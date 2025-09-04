@@ -35,7 +35,7 @@ django-stubs-ext==5.1.1
 django-timezone-field==7.0
 django-vite==3.1.0
 djangorestframework==3.15.2
-djangorestframework_simplejwt==5.4.0
+djangorestframework_simplejwt==5.5.1
 docutils==0.21.2
 freezegun==1.5.2
 gunicorn==23.0.0
