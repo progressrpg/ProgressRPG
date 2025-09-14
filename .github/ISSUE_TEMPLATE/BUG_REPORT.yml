@@ -1,6 +1,6 @@
 name: 🐛 Bug Report
 description: Report something that isn’t working as expected in Progress RPG
-title: "[Bug] "
+title: ""
 labels: ["bug", "triage"]
 assignees: ["gaidheal1"]
 
