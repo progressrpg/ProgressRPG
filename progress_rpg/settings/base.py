@@ -46,6 +46,7 @@ APP_VERSION = "0.6.0-alpha"
 TOKEN_MODEL = None
 
 # Application definition
+# Test for Ruth
 
 INSTALLED_APPS = [
     "django.contrib.auth",
