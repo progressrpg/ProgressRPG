@@ -23,6 +23,7 @@ export default function useTimers({ mode }) {
   const timerRef = useRef(null);
   const stageTimerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const stageStartTimeRef = useRef(null);
   const pausedTimeRef = useRef(0);
 
   // Timer tick handler — updates elapsed or remaining time
@@ -45,13 +46,13 @@ export default function useTimers({ mode }) {
 
     const now = Date.now();
     const secondsPassed = Math.floor((now - startTimeRef.current) / 1000);
-    const stageElapsed = pausedTimeRef.current + secondsPassed;
+    //const stageElapsed = pausedTimeRef.current + secondsPassed;
 
     const timeLeft = stage.duration - stageElapsed;
     setStageTimeRemaining(timeLeft);
     if (timeLeft <=0) {
       setGlobalStageIndex((prev) => prev + 1);
-      startTimeRef.current = Date.now();
+      //stageStartTimeRef.current = Date.now();
       pausedTimeRef.current = 0;
     }
   }, [globalStageIndex, stages]);
@@ -192,22 +193,26 @@ export default function useTimers({ mode }) {
 
       setDuration(newDuration);
       const quest = newSubject;
+      console.log("Quest object to assign:", quest);
       let stagesEd = quest?.stages || [];
-      //console.log('stagesEd:', stagesEd);
+      let c = 1;
+      console.log(`stagesEd v${c}:`, stagesEd);
+      c++;
 
       // Calculate total duration of stages
       const totalStagesDuration = stagesEd.reduce((sum, stage) => {
         const dur = stage.duration ?? stage.endTime;
         return dur ? sum + dur : sum;
       }, 0);
-      //console.log(`Total stages duration: ${totalStagesDuration} seconds`);
+      console.log(`Total stages duration: ${totalStagesDuration} seconds`);
 
       // Shuffle stages
       if (!quest.stagesFixed) {
-        //console.log("Quest stages are random!");
+        console.log("Quest stages are random!");
         stagesEd = shuffle([...stagesEd]);
       }
-      //console.log('stagesEd:', stagesEd);
+      console.log(`stagesEd v${c}:`, stagesEd);
+      c++;
 
       // Loop stages if necessary
       if (newDuration > totalStagesDuration) {
@@ -224,13 +229,15 @@ export default function useTimers({ mode }) {
           globalIndex: index,
         }));
       }
-      //console.log('stagesEd:', stagesEd);
+      console.log(`stagesEd v${c}:`, stagesEd);
+      c++;
 
       setProcessedStages(stagesEd);
       setGlobalStageIndex(0);
-      //console.log(`Duration? ${stagesEd[0].duration} ... or endTime? ${stagesEd[0].endTime}`);
-      setStageTimeRemaining(stagesEd[0].duration ?? stagesEd[0].endTime ?? 0);
-      //console.log('stageTimeRemaining:', stageTimeRemaining);
+      console.log(`stagesEd[0]?`, stagesEd[0]);
+      console.log(`Duration? ${stagesEd[0].stage.duration} ... or endTime? ${stagesEd[0].stage.endTime}`);
+      setStageTimeRemaining(stagesEd[0].stage.duration ?? stagesEd[0].stage.endTime ?? 0);
+      console.log('stageTimeRemaining:', stageTimeRemaining);
 
     } else if (mode === "activity") {
       setDuration(newDuration);
