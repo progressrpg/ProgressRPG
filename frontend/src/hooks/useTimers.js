@@ -16,82 +16,97 @@ export default function useTimers({ mode }) {
   const [stages, setStages] = useState([]);
   const [processedStages, setProcessedStages] = useState([]);
   const [globalStageIndex, setGlobalStageIndex] = useState(0);
-  const [stageTimeRemaining, setStageTimeRemaining] = useState(
-    stages[0]?.duration ?? stages[0]?.endTime ?? 0
-  );
+  const [stageTimeRemaining, setStageTimeRemaining] = useState(0);
 
   const timerRef = useRef(null);
-  const stageTimerRef = useRef(null);
   const startTimeRef = useRef(null);
-  const stageStartTimeRef = useRef(null);
   const pausedTimeRef = useRef(0);
 
-  // Timer tick handler — updates elapsed or remaining time
+  const elapsedRef = useRef(elapsed);
+  const stagesRef = useRef(stages);
+  const processedStagesRef = useRef(processedStages);
+  const globalStageIndexRef = useRef(globalStageIndex);
+
+  useEffect(() => { elapsedRef.current = elapsed; }, [elapsed]);
+  useEffect(() => { stagesRef.current = stages; }, [stages]);
+  useEffect(() => { processedStagesRef.current = processedStages; }, [processedStages]);
+  useEffect(() => { globalStageIndexRef.current = globalStageIndex; }, [globalStageIndex]);
+
+
+  const stageStartTimeRef = useRef(null);
+  const stageTimerRef = useRef(null);
+
+
+  // ----------------------------
+  // Tick the main quest timer
+  // ----------------------------
   const tickMain = useCallback(() => {
-    if (!startTimeRef.current) return; // Safety check
+    if (!startTimeRef.current) return;
 
     const now = Date.now();
     const secondsPassed = Math.floor((now - startTimeRef.current) / 1000);
     const newElapsed = pausedTimeRef.current + secondsPassed;
-
-    //console.log(`[tickMain] mode: ${mode}, status: ${status}, elapsed: ${elapsed}`);
-
     setElapsed(newElapsed);
+  }, []);
 
-  }, [duration, mode]);
-
+  // ----------------------------
+  // Tick the stage timer
+  // ----------------------------
   const tickStage = useCallback(() => {
-    const stage = stages[globalStageIndex];
-    if (!stage) return;
+    const stagesArr = processedStagesRef.current;
+    let stageIdx = globalStageIndexRef.current;
+    const currentStageObj = stagesArr[stageIdx];
+    if (!currentStageObj) return;
 
-    const now = Date.now();
-    const secondsPassed = Math.floor((now - startTimeRef.current) / 1000);
-    //const stageElapsed = pausedTimeRef.current + secondsPassed;
+    const currentStage = currentStageObj.stage;
+    const stageDuration = currentStage.duration ?? currentStage.endTime ?? 0;
 
-    const timeLeft = stage.duration - stageElapsed;
-    setStageTimeRemaining(timeLeft);
-    if (timeLeft <=0) {
-      setGlobalStageIndex((prev) => prev + 1);
-      //stageStartTimeRef.current = Date.now();
-      pausedTimeRef.current = 0;
+    // Total time consumed by all previous stages
+    const previousStagesDuration = stagesArr
+      .slice(0, stageIdx)
+      .reduce((sum, s) => sum + (s.duration ?? s.endTime ?? 0), 0);
+
+    // Stage time remaining = stage duration minus time already elapsed in this stage
+    const timePassed = elapsedRef.current - previousStagesDuration;
+    const timeLeft = stageDuration - timePassed;
+
+    setStageTimeRemaining(timeLeft > 0 ? timeLeft : 0);
+    if (timeLeft <= 0 && stageIdx < stagesArr.length - 1) {
+      setGlobalStageIndex(stageIdx + 1);
     }
-  }, [globalStageIndex, stages]);
+  }, []);
 
-
+  // ----------------------------
   // Start timer
+  // ----------------------------
   const start = useCallback(async () => {
-    if (status === "active") return;
-    if (!subject) return;
+    if (status === "active" || !subject) return;
     //console.log(`[useTimers] Start ${mode}`);
 
     const data = await apiFetch(`/${mode}_timers/${id}/start/`, {
       method: 'POST',
     });
+
     setStatus("active");
     startTimeRef.current = Date.now();
-    pausedTimeRef.current = elapsed;
+    pausedTimeRef.current = elapsedRef.current;
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      timerRef.current = null;
     }
+
     timerRef.current = setInterval(() => {
       //console.log(`[START] tickMain fired for ${mode}`);
       tickMain();
+      if (mode === "quest") tickStage();
     }, 1000);
 
-    if (mode === "quest") {
-      if (stageTimerRef.current) {
-        clearInterval(stageTimerRef.current);
-        stageTimerRef.current = null;
-      }
-      stageTimerRef.current = setInterval(tickStage, 1000);
-    }
-
-  }, [elapsed, status, tickMain, tickStage, subject, id]);
+  }, [mode, status, tickMain, tickStage, subject, id]);
 
 
-  // Pause timer
+  // ----------------------------
+  // Pause / Complete / Reset
+  // ----------------------------
   const pause = useCallback(async () => {
     if (
       status === "paused" ||
@@ -103,31 +118,19 @@ export default function useTimers({ mode }) {
     const data = await apiFetch(`/${mode}_timers/${id}/pause/`, {
       method: 'POST',
     });
+
     const now = Date.now();
-    const secondsPassed = Math.floor((now - startTimeRef.current) / 1000);
-    pausedTimeRef.current += secondsPassed;
-
-    if (mode === "activity") {
-      setDuration((prev) => prev + secondsPassed);
-    }
-
+    pausedTimeRef.current += Math.floor((now - startTimeRef.current) / 1000);
     setStatus("paused");
-
+    //if (mode === "activity") {
+    //  setDuration((prev) => prev + secondsPassed);
+    //}
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      timerRef.current = null;
+      startTimeRef.current = null;
     }
-    if (stageTimerRef.current) {
-      clearInterval(stageTimerRef.current);
-      stageTimerRef.current = null;
-    }
-
-    startTimeRef.current = null;
-
   }, [mode, status, id]);
 
-
-  // Complete timer
   const complete = useCallback(async () => {
     //console.log(`[useTimers] Complete ${mode}`);
     if (status === "completed") return;
@@ -142,16 +145,9 @@ export default function useTimers({ mode }) {
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      timerRef.current = null;
     }
-    if (stageTimerRef.current) {
-      clearInterval(stageTimerRef.current);
-      stageTimerRef.current = null;
-    }
+  }, [mode, status, id]);
 
-  }, [mode, status]);
-
-  // Reset timer
   const reset = useCallback(async () => {
     if (status === "empty") return;
     //console.log(`[useTimers] Reset ${mode}`);
@@ -161,20 +157,17 @@ export default function useTimers({ mode }) {
     });
 
     setStatus("empty");
+    setElapsed(0);
     setDuration(0);
     setSubject(null);
-    setElapsed(0);
+    setGlobalStageIndex(0);
+    setStageTimeRemaining(0);
 
     startTimeRef.current = null;
     pausedTimeRef.current = 0;
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (stageTimerRef.current) {
-      clearInterval(stageTimerRef.current);
-      stageTimerRef.current = null;
     }
   }, [mode, status, id]);
 
@@ -236,8 +229,9 @@ export default function useTimers({ mode }) {
       setGlobalStageIndex(0);
       console.log(`stagesEd[0]?`, stagesEd[0]);
       console.log(`Duration? ${stagesEd[0].stage.duration} ... or endTime? ${stagesEd[0].stage.endTime}`);
-      setStageTimeRemaining(stagesEd[0].stage.duration ?? stagesEd[0].stage.endTime ?? 0);
-      console.log('stageTimeRemaining:', stageTimeRemaining);
+      const newStageTime = stagesEd[0].stage.duration ?? stagesEd[0].stage.endTime ?? 0;
+      setStageTimeRemaining(newStageTime);
+      console.log('stageTimeRemaining:', newStageTime);
 
     } else if (mode === "activity") {
       setDuration(newDuration);
