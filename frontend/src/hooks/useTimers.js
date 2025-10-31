@@ -64,7 +64,7 @@ export default function useTimers({ mode }) {
     // Total time consumed by all previous stages
     const previousStagesDuration = stagesArr
       .slice(0, stageIdx)
-      .reduce((sum, s) => sum + (s.duration ?? s.endTime ?? 0), 0);
+      .reduce((sum, s) => sum + (s.stage.duration ?? s.stage.endTime ?? 0), 0);
 
     // Stage time remaining = stage duration minus time already elapsed in this stage
     const timePassed = elapsedRef.current - previousStagesDuration;
@@ -227,11 +227,12 @@ export default function useTimers({ mode }) {
 
       setProcessedStages(stagesEd);
       setGlobalStageIndex(0);
-      console.log(`stagesEd[0]?`, stagesEd[0]);
-      console.log(`Duration? ${stagesEd[0].stage.duration} ... or endTime? ${stagesEd[0].stage.endTime}`);
-      const newStageTime = stagesEd[0].stage.duration ?? stagesEd[0].stage.endTime ?? 0;
-      setStageTimeRemaining(newStageTime);
-      console.log('stageTimeRemaining:', newStageTime);
+      //console.log(`stagesEd[0]?`, stagesEd[0]);
+      //console.log(`Duration? ${stagesEd[0].stage.duration} ... or endTime? ${stagesEd[0].stage.endTime}`);
+      const firstStageDuration = stagesEd[0].stage.duration ?? stagesEd[0].stage.endTime ?? 0;
+      const firstStageTimeLeft = firstStageDuration - newElapsed;
+      setStageTimeRemaining(Math.max(firstStageTimeLeft, 0));
+      //console.log('stageTimeRemaining:', newStageTime);
 
     } else if (mode === "activity") {
       setDuration(newDuration);
