@@ -186,10 +186,10 @@ export default function useTimers({ mode }) {
 
       setDuration(newDuration);
       const quest = newSubject;
-      console.log("Quest object to assign:", quest);
+      //console.log("Quest object to assign:", quest);
       let stagesEd = quest?.stages || [];
       let c = 1;
-      console.log(`stagesEd v${c}:`, stagesEd);
+      //console.log(`stagesEd v${c}:`, stagesEd);
       c++;
 
       // Calculate total duration of stages
@@ -197,14 +197,14 @@ export default function useTimers({ mode }) {
         const dur = stage.duration ?? stage.endTime;
         return dur ? sum + dur : sum;
       }, 0);
-      console.log(`Total stages duration: ${totalStagesDuration} seconds`);
+      //console.log(`Total stages duration: ${totalStagesDuration} seconds`);
 
       // Shuffle stages
       if (!quest.stagesFixed) {
-        console.log("Quest stages are random!");
+        //console.log("Quest stages are random!");
         stagesEd = shuffle([...stagesEd]);
       }
-      console.log(`stagesEd v${c}:`, stagesEd);
+      //console.log(`stagesEd v${c}:`, stagesEd);
       c++;
 
       // Loop stages if necessary
@@ -222,7 +222,7 @@ export default function useTimers({ mode }) {
           globalIndex: index,
         }));
       }
-      console.log(`stagesEd v${c}:`, stagesEd);
+      //console.log(`stagesEd v${c}:`, stagesEd);
       c++;
 
       setProcessedStages(stagesEd);
