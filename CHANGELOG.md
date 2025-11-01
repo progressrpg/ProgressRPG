@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.15.4 - 2025-11-01
+
+- Merge pull request #144 from gaidheal1/staging
+- fix: update python and npm packages
+- fix: update python and npm packages
+- fix: quest outro text now appears as expected
+- fix: squest stages now last correct duration
+- fix: more tweaks to timer function
+- fix: stage and quest tweaks, and onboarding page update
+- fix: Hi Ruth
+- fix: settings for branch detection and db choice
+- fix: update requirements, add db seed_data
+- Remove title prefix and rename with capitals
+- Update BUG_REPORT.yml
+- fix: remove '[bug]' prefix in issue title
+- docs: Create SECURITY.md
+
 ## v0.15.1-dev - 2025-08-20
 
 - fix: display options with suffix
