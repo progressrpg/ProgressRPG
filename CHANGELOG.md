@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.15.6 - 2025-11-02
+
+- fix: pip and package tweaks
+- Update changelog for v0.15.5
+
 ## v0.15.5 - 2025-11-02
 
 - fix: change dry-run short flag to '-D'
