@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.15.5 - 2025-11-02
+
+- fix: change dry-run short flag to '-D'
+- fix: upgrade pip-tools, downgrade allauth
+- Update changelog for v0.15.4
+
 ## v0.15.4 - 2025-11-01
 
 - Merge pull request #144 from gaidheal1/staging
