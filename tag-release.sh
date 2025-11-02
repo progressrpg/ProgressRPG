@@ -119,7 +119,7 @@ else
 fi
 
 git add CHANGELOG.md
-git commit -m "Update changelog for $new_tag"
+git commit -m "docs: Update changelog for $new_tag"
 git push
 
 echo "✅ Tag $new_tag created and CHANGELOG.md updated."
