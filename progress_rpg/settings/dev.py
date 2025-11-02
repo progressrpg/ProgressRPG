@@ -8,6 +8,25 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from .base import *
 
+import subprocess
+
+
+def get_branch_name():
+    try:
+        return (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            .decode("utf-8")
+            .strip()
+            .replace("/", "_")
+        )
+    except Exception:
+        return "default"
+
+
+BRANCH_NAME = get_branch_name()
+
+print("BRANCH_NAME is:", BRANCH_NAME)
+
 ROOT_URLCONF = "progress_rpg.urls"
 
 
@@ -84,10 +103,15 @@ SECRET_KEY_FALLBACKS = [
 
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
+
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASE_URL = f"{DATABASE_URL}_{BRANCH_NAME}"
 
 if not DATABASE_URL:
     DB_NAME = os.getenv("DB_NAME", default="progress_rpg")
+    DB_NAME = f"{DB_NAME}_{BRANCH_NAME}"
     DB_USER = os.getenv("DB_USER", default="duncan")
     DB_PASSWORD = os.getenv("DB_PASSWORD", "")
     DB_HOST = os.getenv("DB_HOST", default="localhost")

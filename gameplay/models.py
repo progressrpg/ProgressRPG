@@ -62,7 +62,9 @@ class Quest(models.Model):
     end_date = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     stages: Any = models.JSONField(default=list)
-    stagesFixed = models.BooleanField(default=False)
+    stagesFixed = models.BooleanField(
+        default=False, help_text="True if stages must appear in a certain order."
+    )
 
     class Category(models.TextChoices):
         NONE = "NONE", "No category"
