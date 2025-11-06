@@ -1,4 +1,4 @@
-# from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 
 # from channels.exceptions import StopConsumer
@@ -19,15 +19,29 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         from django.contrib.auth.models import AnonymousUser
 
         user = self.scope.get("user", AnonymousUser())
+
+        user_id = None
+        username = None
+        is_authenticated = False
+
         if user and user.is_authenticated:
-            logger.info(f"[CONNECT] Authenticated user {user.id}. Connecting...")
+            user_id = await sync_to_async(lambda: user.id)()
+            username = await sync_to_async(lambda: user.username)()
+            is_authenticated = True
+            is_staff = user.is_staff
+            logger.debug(
+                f"[CONNECT] user={user}, type={type(user)}, is_staff={user.is_staff}"
+            )
+
+        if is_authenticated:
+            logger.info(f"[CONNECT] Authenticated user {user_id}. Connecting...")
 
             if (
                 hasattr(self, "profile_group")
                 and self.profile_group in self.channel_layer.groups
             ):
                 logger.warning(
-                    f"[CONNECT] User {user.username} already connected to a WebSocket."
+                    f"[CONNECT] User {username} already connected to a WebSocket."
                 )
                 await self.close()  # Reject the new connection
                 return
@@ -36,17 +50,16 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             self.profile_group = f"profile_{self.profile.id}"
 
             await database_sync_to_async(self.profile.set_online)()
-
             is_online_now = await database_sync_to_async(
                 lambda: self.profile.is_online
             )()
-            print(
+            logger.debug(
                 f"[CONNECT] Profile {self.profile.id} is_online={is_online_now}"
             )  # ✅ Verify status
 
             await self.channel_layer.group_add(self.profile_group, self.channel_name)
             await self.channel_layer.group_add("online_users", self.channel_name)
-            logger.info(
+            logger.debug(
                 f"[CONNECT] Added profile {self.profile.id} to 'online_users' group."
             )  # ✅ Debug log
 
