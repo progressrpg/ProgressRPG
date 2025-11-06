@@ -1,6 +1,6 @@
 alabaster==1.0.0
 amqp==5.3.1
-asgiref==3.8.1
+asgiref<3.9
 attrs==25.4.0
 autobahn==24.4.2
 Automat==24.8.1
@@ -11,8 +11,8 @@ celery==5.5.3
 certifi==2025.10.5
 cffi==2.0.0
 cfgv==3.4.0
-channels==4.2.2
-channels_redis==4.2.1
+channels<4.3
+channels_redis<4.3
 charset-normalizer==3.4.4
 click==8.3.0
 click-didyoumean==0.3.1
@@ -22,13 +22,13 @@ colorama==0.4.6
 constantly==23.10.4
 cron-descriptor==1.4.5
 cryptography==46.0.3
-daphne==4.1.2
+daphne<4.2
 defusedxml==0.7.1
 distlib==0.4.0
 dj-database-url==2.3.0
 dj-rest-auth==7.0.1
-Django==4.2.25
-django-allauth==0.60.1
+Django<5
+django-allauth<0.61
 django-celery-beat==2.8.1
 django-cf-turnstile==0.1.0
 django-channels-jwt==0.0.3
@@ -112,7 +112,7 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==2.0.0
 sphinxcontrib-serializinghtml==2.0.0
 sqlparse==0.5.3
-stripe==11.3.0
+stripe<12
 tomli==2.3.0
 Twisted==24.11.0
 txaio==23.1.1
