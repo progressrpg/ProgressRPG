@@ -12,6 +12,7 @@ import django
 
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
+from asgiref.sync import SyncToAsync
 
 # from channels.auth import AuthMiddlewareStack
 # from gameplay.mymiddleware import MyAuthMiddleware
@@ -26,9 +27,10 @@ django.setup()
 from django_channels_jwt.middleware import JwtAuthMiddlewareStack
 from gameplay.routing import load_websocket_urlpatterns
 
+django_asgi_app = get_asgi_application()
 application = ProtocolTypeRouter(
     {
-        "http": get_asgi_application(),
+        "http": SyncToAsync(django_asgi_app, thread_sensitive=True),
         "websocket": JwtAuthMiddlewareStack(
             URLRouter(load_websocket_urlpatterns()),
         ),
