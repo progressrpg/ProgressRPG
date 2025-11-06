@@ -28,6 +28,10 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             user_id = await sync_to_async(lambda: user.id)()
             username = await sync_to_async(lambda: user.username)()
             is_authenticated = True
+            is_staff = user.is_staff
+            logger.debug(
+                f"[CONNECT] user={user}, type={type(user)}, is_staff={user.is_staff}"
+            )
 
         if is_authenticated:
             logger.info(f"[CONNECT] Authenticated user {user_id}. Connecting...")
