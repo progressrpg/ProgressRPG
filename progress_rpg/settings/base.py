@@ -94,8 +94,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    #'server_management.middleware.MaintenanceModeMiddleware',
-    #'server_management.middleware.BlockBotMiddleware',
+    #'server_management.middleware.AsyncMaintenanceModeMiddleware',
+    #'server_management.middleware.AsyncBlockBotMiddleware',
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 

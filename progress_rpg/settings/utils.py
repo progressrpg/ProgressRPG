@@ -1,4 +1,123 @@
-import socket
+import socket, os, subprocess, psycopg2
+
+
+def get_branch_name():
+    """Return the current git branch name, safe for DB naming."""
+    try:
+        return (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            .decode("utf-8")
+            .strip()
+            .replace("/", "_")
+        )
+    except Exception:
+        return "default"
+
+
+def get_branch_db_name(base_name=None):
+    """Return database name with current branch suffix."""
+    branch = get_branch_name()
+    base_name = base_name or os.getenv("DB_NAME", "progress_rpg")
+    return f"{base_name}_{branch}"
+
+
+def db_exists(db_name=None):
+    """
+    Check if a PostgreSQL database already exists.
+
+    Returns True if it exists, False otherwise.
+    """
+    db_name = db_name or get_branch_db_name()
+    db_user = os.getenv("DB_USER", "duncan")
+    db_password = os.getenv("DB_PASSWORD", "")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+
+    try:
+        conn = psycopg2.connect(
+            dbname="postgres",  # Connect to the default DB to query metadata
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port,
+        )
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s;", (db_name,))
+            return cur.fetchone() is not None
+    except psycopg2.Error as e:
+        print(f"⚠️ Could not connect to Postgres to check DB: {e}")
+        return False
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
+def ensure_branch_db_exists():
+    """Ensure a PostgreSQL database exists for the current branch, creating it if necessary."""
+    db_name = get_branch_db_name()
+    if db_exists(db_name):
+        print(f"✅ Database already exists: {db_name}")
+        return False
+
+    db_user = os.getenv("DB_USER", "duncan")
+    db_password = os.getenv("DB_PASSWORD", "")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+
+    print(f"⚙️ Creating database for branch: {db_name}")
+
+    try:
+        conn = psycopg2.connect(
+            dbname="postgres",
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port,
+        )
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute(f"CREATE DATABASE {db_name};")
+        print(f"✅ Created database: {db_name}")
+        return True
+    except psycopg2.Error as e:
+        print(f"❌ Failed to create database {db_name}: {e}")
+        return False
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
+def migrate_and_seed(branch_db_name):
+    """
+    Run Django migrations and load seed data for the given branch database.
+    Only runs if the database was just created.
+    """
+    print(f"🚀 Running migrations for {branch_db_name}...")
+    try:
+        subprocess.run(["python", "manage.py", "migrate"], check=True)
+        print("✅ Migrations applied successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Migration failed: {e}")
+        return
+
+    # Load seed data if it exists
+    seed_file = os.path.join(os.getcwd(), "seed_data.json")
+    if os.path.exists(seed_file):
+        print("🌱 Loading seed data...")
+        try:
+            subprocess.run(
+                ["python", "manage.py", "loaddata", "seed_data.json"], check=True
+            )
+            print("✅ Seed data loaded successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"⚠️ Failed to load seed data: {e}")
+    else:
+        print("ℹ️ No seed_data.json file found — skipping.")
 
 
 def is_vite_running(host="localhost", port=5173) -> bool:
