@@ -251,6 +251,7 @@ class Profile(Person):
 
     def set_online(self):
         """Marks profile as online."""
+        logger.debug("[SET ONLINE] Running set_online for profile")
         self.is_online = True
         self.save(update_fields=["is_online"])
 

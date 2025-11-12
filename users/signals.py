@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from django.utils.timezone import now
+from django.utils import timezone
 import logging
 
 from .models import Profile
@@ -55,8 +55,12 @@ def assign_character(sender, instance, created, **kwargs):
 
 @receiver(user_logged_in)
 def update_login_streak(sender, request, user, **kwargs):
+    if request.path.startswith("/admin/"):
+        return  # skip admin logins
+    if user.last_login and timezone.now() - user.last_login < timedelta(hours=24):
+        return
     profile = user.profile
-    today = now().date()
+    today = timezone.now().date()
 
     logger.info(
         f"[UPDATE LOGIN STREAK] Updating login streak for {user.username}. Last login: {profile.last_login}"
@@ -83,6 +87,6 @@ def update_login_streak(sender, request, user, **kwargs):
         is_draft=False,
     )
 
-    profile.last_login = now()
+    profile.last_login = timezone.now()
     profile.total_logins += 1
     profile.save()

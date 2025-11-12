@@ -1,7 +1,5 @@
 Welcome to Progress RPG!
 
-DOUBLE-CHECKING THIS STUPID TEMPLATE IS BEING USED.
-
 Hello {{ user.email }},
 
 Thank you for signing up to Progress RPG! We are excited to have you as part of our community.

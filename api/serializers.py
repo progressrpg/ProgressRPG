@@ -185,6 +185,7 @@ class QuestSerializer(serializers.ModelSerializer):
             "outro_text",
             "duration_choices",
             "stages",
+            "stagesFixed",
             "results",
             "stagesFixed",
         ]

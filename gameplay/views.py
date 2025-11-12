@@ -51,25 +51,13 @@ def get_csrf_token(request):
 def game_view(request):
     """
     Render the main game view for the logged-in user.
-
-    :param request: The HTTP request object.
-    :type request: django.http.HttpRequest
-    :return: An HTML response rendering the game view.
-    :rtype: django.http.HttpResponse
     """
-    try:
-        logger.info(f"[GAME VIEW] Accessed by user {request.user.profile.id}")
-        return render(
-            request,
-            "gameplay/game.html",
-            {"profile": request.user.profile, "debug": settings.DEBUG},
-        )
-    except AttributeError as e:  # For user profile issues
-        logger.error(f"[GAME VIEW] User attribute error: {str(e)}", exc_info=True)
-        return JsonResponse({"error": "User information is unavailable."}, status=500)
-    except Exception as e:
-        logger.error(f"[GAME VIEW] Unexpected error: {str(e)}", exc_info=True)
-        return JsonResponse({"error": "An unexpected error occurred"}, status=500)
+    logger.info(f"[GAME VIEW] Accessed by user {request.user.profile.id}")
+    return render(
+        request,
+        "frontend/index.html",
+        {"debug": settings.DEBUG},
+    )
 
 
 # Fetch activities

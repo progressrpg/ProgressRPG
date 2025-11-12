@@ -7,6 +7,21 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from .base import *
+from .utils import (
+    get_branch_name,
+    get_branch_db_name,
+    ensure_branch_db_exists,
+    migrate_and_seed,
+)
+import subprocess
+
+
+BRANCH_NAME = get_branch_name()
+print("BRANCH_NAME is:", BRANCH_NAME)
+
+new_db_created = ensure_branch_db_exists()
+
+DB_NAME = get_branch_db_name()
 
 ROOT_URLCONF = "progress_rpg.urls"
 
@@ -84,16 +99,13 @@ SECRET_KEY_FALLBACKS = [
 
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
-DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    DB_NAME = os.getenv("DB_NAME", default="progress_rpg")
-    DB_USER = os.getenv("DB_USER", default="duncan")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-    DB_HOST = os.getenv("DB_HOST", default="localhost")
-    DB_PORT = os.getenv("DB_PORT", default=5432)
+DB_USER = os.getenv("DB_USER", default="duncan")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = os.getenv("DB_HOST", default="localhost")
+DB_PORT = os.getenv("DB_PORT", default=5432)
 
-    DATABASE_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = os.getenv("EMAIL_PORT")

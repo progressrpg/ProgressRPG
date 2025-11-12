@@ -61,7 +61,7 @@ export default function QuestTimer() {
 
         <p
           className={styles.questText}
-          style={{ display: status=="complete" ? 'flex' : 'none' }}
+          style={{ display: status=="completed" ? 'flex' : 'none' }}
         >{outro_text}</p>
       </div>
 

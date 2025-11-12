@@ -45,7 +45,13 @@ function Step2({ characterAvailable, character }) {
         Something went wrong: we couldn’t load your character. Try refreshing.
       </p>
     ) : (
-      <p>✅ You have been linked with a character called {character.first_name}. Their backstory: {character.backstory}</p>
+      <>
+        <p>✅ You have been linked with a character called {character.first_name}.</p>
+        <p>Their backstory: {character.backstory}</p>
+        <p>This individual's fate is now linked to yours.</p>
+        <p>Every activity you complete directly impacts their world. Your consistency powers their abilities. Your achievements unlock their quests. They cannot progress without your dedication, and in turn, their journey provides a visual and tangible measure of your own advancement.</p>
+        <p>While they are not aware of the connection, your success is what keeps their quest alive. This is a temporary and powerful connection that ensures neither of you will work alone.</p>
+      </>
     )}
   </>
   )
