@@ -1,6 +1,8 @@
 # progression/tests.py
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
+from unittest import skip
 
 from .models import Activity, CharacterQuest
 from .utils import copy_quest
@@ -18,6 +20,7 @@ logger = logging.getLogger("django")
 class ActivityCreation(TestCase):
     @classmethod
     def setUpTestData(cls):
+        cls.character = Character.objects.create(name="Bob", sex="Male")
         user = User.objects.create_user(
             email="testuser1@example.com", password="testpassword123"
         )
@@ -32,6 +35,7 @@ class ActivityCreation(TestCase):
 class ActivityMethods(TestCase):
     @classmethod
     def setUpTestData(cls):
+        cls.character = Character.objects.create(name="Bob", sex="Male")
         user = User.objects.create_user(
             email="testuser1@example.com", password="testpassword123"
         )

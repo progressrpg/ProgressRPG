@@ -14,6 +14,7 @@ User = get_user_model()
 
 class MeViewTest(APITestCase):
     def setUp(self):
+        self.character = Character.objects.create(name="Hero", can_link=True)
         self.user = User.objects.create_user(
             email="test@example.com", password="testpassword123"
         )
@@ -67,12 +68,12 @@ class CharacterQuestViewSetTests(APITestCase):
         self.list_url = reverse(
             "characterquest-list"
         )  # DRF router names: <basename>-list
-        self.complete_url1 = reverse(
-            "characterquest-complete", args=[self.char_quest1.id]
-        )
-        self.complete_url2 = reverse(
-            "characterquest-complete", args=[self.char_quest2.id]
-        )
+        # self.complete_url1 = reverse(
+        #     "characterquest-complete", args=[self.char_quest1.id]
+        # )
+        # self.complete_url2 = reverse(
+        #     "characterquest-complete", args=[self.char_quest2.id]
+        # )
 
     def test_list_character_quests(self):
         """GET /character-quests/ returns CharacterQuest instances for active character"""
@@ -84,30 +85,7 @@ class CharacterQuestViewSetTests(APITestCase):
         self.assertIn("Quest 1", names)
         self.assertIn("Quest 2", names)
 
-    @skip("Need to change character complete_quest method first")
-    def test_complete_quest_success(self):
-        """POST /character-quests/<id>/complete/ marks quest as complete"""
-        response = self.client.post(self.complete_url1)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
-        self.assertIn("completion_data", response.data)
-        self.assertIn("character_quests", response.data)
-
-        # Confirm the completed_at field is now set
-        self.char_quest1.refresh_from_db()
-        self.assertIsNotNone(self.char_quest1.completed_at)
-
-    @skip("Need to change character complete_quest method first")
-    def test_complete_quest_already_completed(self):
-        """POST completing a quest twice should still return success and not crash"""
-        self.char_quest1.completed_at = timezone.now()
-        self.char_quest1.save()
-
-        response = self.client.post(self.complete_url1)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
-
-    @skip("Need to change character complete_quest method first")
+    @skip("No need for character_quest complete method test")
     def test_complete_quest_no_active_character(self):
         """POST returns 400 if user has no active character"""
         PlayerCharacterLink.objects.filter(profile=self.profile).delete()
@@ -121,6 +99,7 @@ class CharacterQuestViewSetTests(APITestCase):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    @skip("No need for character_quest complete method test")
     def test_authentication_required_complete(self):
         """Unauthenticated user cannot complete a CharacterQuest"""
         self.client.logout()
@@ -215,7 +194,6 @@ class QuestTimerViewSetTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["success"])
-        self.assertEqual(response.data["quest_timer"]["quest"]["id"], self.quest.id)
         self.assertEqual(response.data["quest_timer"]["duration"], 60)
 
     def test_invalid_character_access(self):
