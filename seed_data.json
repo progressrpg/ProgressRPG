@@ -24,7 +24,7 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
@@ -58,7 +58,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -90,7 +90,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -122,7 +122,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
@@ -157,7 +157,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
@@ -192,7 +192,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
@@ -227,7 +227,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -259,7 +259,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -291,7 +291,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
@@ -326,7 +326,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -358,7 +358,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
@@ -392,7 +392,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -424,7 +424,7 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
@@ -458,7 +458,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
@@ -492,7 +492,7 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -524,7 +524,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -556,7 +556,7 @@
     "sex": null,
     "coins": 0,
     "reputation": 0,
-    "is_npc": false,
+    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [],
@@ -1042,12 +1042,12 @@
       {
         "text": "First stage text for quest 1",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       },
       {
         "text": "Second stage text for quest 1",
         "order": 1,
-        "endTime": 10
+        "duration": 10
       }
     ],
     "stagesFixed": false,
@@ -1083,12 +1083,12 @@
       {
         "text": "First stage text for quest 2",
         "order": 0,
-        "endTime": 3
+        "duration": 3
       },
       {
         "text": "Tooth stage text for quest 2",
         "order": 1,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1124,17 +1124,17 @@
       {
         "text": "Gather Wheat – Collect wheat from the fields.",
         "order": 0,
-        "endTime": 300
+        "duration": 300
       },
       {
         "text": "Pick Vegetables – Gather vegetables from the nearby garden.",
         "order": 1,
-        "endTime": 600
+        "duration": 300
       },
       {
         "text": "Store the Produce – Help store the harvest in the barn.",
         "order": 2,
-        "endTime": 900
+        "duration": 300
       }
     ],
     "stagesFixed": false,
@@ -1170,17 +1170,17 @@
       {
         "text": "Prepare the soil in the planting areas.",
         "order": 0,
-        "endTime": 420
+        "duration": 420
       },
       {
         "text": "Plant the seeds carefully in the soil.",
         "order": 1,
-        "endTime": 840
+        "duration": 300
       },
       {
         "text": "Water the newly planted seeds.",
         "order": 2,
-        "endTime": 1200
+        "duration": 300
       }
     ],
     "stagesFixed": false,
@@ -1216,17 +1216,17 @@
       {
         "text": "Weed the garden to remove unwanted plants.",
         "order": 0,
-        "endTime": 180
+        "duration": 180
       },
       {
         "text": "Inspect the crops for any signs of pests or damage.",
         "order": 1,
-        "endTime": 360
+        "duration": 180
       },
       {
         "text": "Water the crops to ensure they stay hydrated.",
         "order": 2,
-        "endTime": 600
+        "duration": 180
       }
     ],
     "stagesFixed": false,
@@ -1262,17 +1262,17 @@
       {
         "text": "Gather manure or compost for fertilization.",
         "order": 0,
-        "endTime": 480
+        "duration": 480
       },
       {
         "text": "Spread the fertilizer evenly across the fields.",
         "order": 1,
-        "endTime": 1020
+        "duration": 480
       },
       {
         "text": "Water the fertilized land to help the nutrients settle.",
         "order": 2,
-        "endTime": 1500
+        "duration": 480
       }
     ],
     "stagesFixed": false,
@@ -1308,17 +1308,17 @@
       {
         "text": "Gather wood, nails, and other necessary tools.",
         "order": 0,
-        "endTime": 420
+        "duration": 420
       },
       {
         "text": "Repair the barn roof by fixing leaks and patches.",
         "order": 1,
-        "endTime": 900
+        "duration": 300
       },
       {
         "text": "Patch the walls of the barn to cover cracks and holes.",
         "order": 2,
-        "endTime": 1800
+        "duration": 300
       }
     ],
     "stagesFixed": false,
@@ -1335,9 +1335,9 @@
   "pk": 8,
   "fields": {
     "name": "[TUTORIAL] Getting started",
-    "description": "",
-    "intro_text": "",
-    "outro_text": "",
+    "description": "Description for TUTORIAL quest",
+    "intro_text": "Intro text for TUTORIAL quest",
+    "outro_text": "Outro text for TUTORIAL quest",
     "duration_choices": [
       60
     ],
@@ -1349,15 +1349,15 @@
       {
         "text": "First stage text for tut quest",
         "order": 0,
-        "endTime": 15
+        "duration": 15
       },
       {
         "text": "Second stage text for tut quest",
         "order": 1,
-        "endTime": 30
+        "duration": 15
       }
     ],
-    "stagesFixed": false,
+    "stagesFixed": true,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1387,7 +1387,7 @@
       {
         "text": "Planting planting planting",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1420,7 +1420,7 @@
       {
         "text": "Watering Watering Watering",
         "order": 0,
-        "endTime": 15
+        "duration": 15
       }
     ],
     "stagesFixed": false,
@@ -1453,7 +1453,7 @@
       {
         "text": "Planting planting planting",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1486,7 +1486,7 @@
       {
         "text": "Planting planting planting",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1519,7 +1519,7 @@
       {
         "text": "Planting planting planting",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1541,7 +1541,7 @@
     "last_updated": "2025-08-20T15:01:33.161Z",
     "status": "completed",
     "character": 1,
-    "quest": 1,
+    "quest": null,
     "duration": 30
   }
 },
@@ -1555,7 +1555,7 @@
     "last_updated": "2025-04-01T14:19:45.813Z",
     "status": "paused",
     "character": 3,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1569,7 +1569,7 @@
     "last_updated": "2025-06-22T17:05:17.007Z",
     "status": "completed",
     "character": 4,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1583,7 +1583,7 @@
     "last_updated": "2025-04-10T19:48:21.067Z",
     "status": "paused",
     "character": 5,
-    "quest": 1,
+    "quest": null,
     "duration": 5
   }
 },
@@ -1597,7 +1597,7 @@
     "last_updated": "2025-06-21T21:29:59.853Z",
     "status": "paused",
     "character": 6,
-    "quest": 1,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1611,7 +1611,7 @@
     "last_updated": "2025-06-21T20:45:40.659Z",
     "status": "paused",
     "character": 7,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1625,7 +1625,7 @@
     "last_updated": "2025-08-15T12:45:29.214Z",
     "status": "waiting",
     "character": 8,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1639,7 +1639,7 @@
     "last_updated": "2025-08-18T13:14:31.660Z",
     "status": "waiting",
     "character": 9,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1653,7 +1653,7 @@
     "last_updated": "2025-08-18T13:44:19.259Z",
     "status": "paused",
     "character": 10,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1667,7 +1667,7 @@
     "last_updated": "2025-08-18T14:55:25.407Z",
     "status": "paused",
     "character": 11,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1681,7 +1681,7 @@
     "last_updated": "2025-08-18T16:25:03.809Z",
     "status": "paused",
     "character": 12,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1695,7 +1695,7 @@
     "last_updated": "2025-08-27T17:36:34.508Z",
     "status": "paused",
     "character": 13,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1709,7 +1709,7 @@
     "last_updated": "2025-08-27T18:09:40.926Z",
     "status": "paused",
     "character": 14,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1723,7 +1723,7 @@
     "last_updated": "2025-08-29T12:47:51.444Z",
     "status": "paused",
     "character": 16,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
@@ -1737,7 +1737,7 @@
     "last_updated": "2025-09-21T08:32:25.175Z",
     "status": "paused",
     "character": 17,
-    "quest": 8,
+    "quest": null,
     "duration": 60
   }
 },
