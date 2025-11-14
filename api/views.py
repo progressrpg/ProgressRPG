@@ -752,8 +752,6 @@ class QuestTimerViewSet(BaseTimerViewSet):
                     {"error": "Duration must be an integer."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-        character_quest = copy_quest(character, quest)
-        print("[TESTING] Character quest copied:", character_quest)
         try:
             timer.change_quest(quest, duration)
             timer.refresh_from_db()
