@@ -18,6 +18,8 @@ from django.utils import timezone
 from typing import Optional, Iterable, Dict, Any, cast, List, TYPE_CHECKING
 import json, logging, math
 
+from progression.models import CharacterQuest
+
 if TYPE_CHECKING:
     from character.models import Character
 
@@ -28,24 +30,6 @@ class Quest(models.Model):
     """
     Represents a quest in the game, with eligibility criteria, duration, and category.
 
-    Attributes:
-        name (str): The name of the quest.
-        description (str): A detailed description of the quest.
-        intro_text (str): The text shown when starting the quest.
-        outro_text (str): The text shown when completing the quest.
-        DURATION_CHOICES (list): Fixed durations available for the quest.
-        duration_choices (list): Customizable durations for the quest, in seconds.
-        created_at (datetime): The timestamp when the quest was created.
-        start_date (datetime): The start date of the quest.
-        end_date (datetime): The end date of the quest.
-        is_active (bool): Indicates whether the quest is currently active.
-        stages (list): A list of quest stages.
-        category (str): The category of the quest (e.g., trade, event).
-        is_premium (bool): Indicates whether the quest is available only for premium users.
-        levelMin (int): Minimum level required to attempt the quest.
-        levelMax (int): Maximum level allowed for the quest.
-        canRepeat (bool): Indicates whether the quest can be repeated after completion.
-        frequency (str): How often the quest can be attempted (e.g., daily, weekly).
     """
 
     name = models.CharField(max_length=255)
@@ -103,21 +87,15 @@ class Quest(models.Model):
         """
         Apply the results and rewards of the quest to the specified character.
 
-        :param character: The character to whom the quest rewards will be applied.
-        :type character: Character
         """
         if self.results:
             self.results.apply(character)
-            character.save()  # Ensure all changes are persisted
+            character.save()
 
     def requirements_met(self, completed_quests):
         """
         Checks if the character meets all prerequisites for the quest.
 
-        :param completed_quests: A dictionary mapping quest IDs to completion counts.
-        :type comppleted_quests: dict
-        :return: True if all requirements are met, False otherwise.
-        :rtype: bool
         """
         # print("you have arrived in requirements_met")
         if hasattr(self, "quest_requirements"):
@@ -127,14 +105,10 @@ class Quest(models.Model):
                     return False
             return True
 
-    def not_repeating(self, character: "Character"):
+    def not_repeating(self, character: "Character") -> bool:
         """
         Verify whether the quest can be repeated for the given character.
 
-        :param character: The character attempting the quest.
-        :type character: Character
-        :return: True if the quest can be repeated, False otherwise.
-        :rtype: bool
         """
         # print("you have arrived in not_repeating")
         if hasattr(self, "quest_completions"):
@@ -151,10 +125,6 @@ class Quest(models.Model):
         """
         Check if the quest is eligible to be undertaken based on its frequency.
 
-        :param character: The character attempting the quest.
-        :type character: Character
-        :return: True if the quest is frequency-eligible, False otherwise.
-        :rtype: bool
         """
         if self.frequency != "NONE":
             today = timezone.now()
@@ -186,12 +156,6 @@ class Quest(models.Model):
         """
         Determine if the quest is eligible for the given character and profile.
 
-        :param character: The character attempting the quest.
-        :type character: Character
-        :param profile: The profile associated with the character.
-        :type profile: Profile
-        :return: True if the quest is eligible, False otherwise.
-        :rtype: bool
         """
         # Simple comparison checks
         if not self.is_active:
@@ -210,13 +174,6 @@ class QuestResults(models.Model):
     Stores the results and rewards for a quest, including experience points,
     coins, and buffs.
 
-    Attributes:
-        quest (Quest): The quest associated with these results.
-        dynamic_rewards (dict): Additional rewards in JSON format.
-        xp_rate (int): The rate of experience points awarded.
-        coin_reward (int): The number of coins awarded.
-        buffs (list): A list of buffs granted upon completion.
-        last_updated (datetime): The timestamp of the last update.
     """
 
     quest = models.OneToOneField(
@@ -235,13 +192,6 @@ class QuestResults(models.Model):
         """
         Calculates the experience points awarded based on quest duration.
 
-        :param character: The character completing the quest.
-        :type character: Character
-        :param duration: Time spent on the quest.
-        :type duration: int
-
-        :return: The calculated experience points.
-        :rtype: int
         """
         base_xp = self.xp_rate
         time_xp = base_xp * duration
@@ -272,8 +222,6 @@ class QuestResults(models.Model):
         Apply the rewards associated with this quest to the given character, including
         coins, dynamic rewards, and buffs.
 
-        :param character: The character receiving the rewards.
-        :type character: Character
         """
         logger.info(
             f"[QUESTRESULTS.APPLY] Applying results for quest {self.quest.name} to character {character.name}"
@@ -521,9 +469,6 @@ class ActivityTimer(Timer):
     """
     A timer that tracks progress on player activities.
 
-    Attributes:
-        profile (Profile): The user profile associated with the timer.
-        activity (Activity): The activity being tracked.
     """
 
     profile = models.OneToOneField(
@@ -548,8 +493,6 @@ class ActivityTimer(Timer):
         """
         Assign a new activity to the timer.
 
-        :param activity: The activity to associate with the timer.
-        :type activity: Activity
         """
         logger.debug(
             f"[ACTIVITYTIMER.new_activity]: Assigning new activity {name} to timer {self.pk}"
@@ -590,8 +533,6 @@ class ActivityTimer(Timer):
         """
         Complete the activity timer and calculate the XP reward for the activity.
 
-        :return: The XP reward for the activity.
-        :rtype: int
         """
 
         if not self.activity:
@@ -643,8 +584,6 @@ class ActivityTimer(Timer):
         """
         Calculate the XP reward for the associated activity.
 
-        :return: The calculated XP reward.
-        :rtype: int
         """
         if self.activity:
             return self.activity.calculate_xp_reward()
@@ -655,17 +594,13 @@ class QuestTimer(Timer):
     """
     A timer that tracks progress on quests for a character.
 
-    Attributes:
-        character (Character): The character associated with the timer.
-        quest (Quest): The quest being tracked by the timer.
-        duration (int): The total duration of the timer in seconds.
     """
 
     character = models.OneToOneField(
         "character.Character", on_delete=models.CASCADE, related_name="quest_timer"
     )
     quest = models.ForeignKey(
-        "Quest",
+        "progression.CharacterQuest",
         on_delete=models.SET_NULL,
         related_name="quest_timer",
         null=True,
@@ -676,13 +611,15 @@ class QuestTimer(Timer):
     def __str__(self):
         return f"QuestTimer {self.id} for {self.character.name}"
 
-    def change_quest(self, quest: Quest, duration: int):
+    def change_quest(self, quest, duration: int):
         """
         Reset the timer and change the associated quest.
         """
+        from progression.utils import copy_quest
 
         self.reset()
-        self.quest = quest
+        # self.quest = quest
+        self.quest = copy_quest(self.character, quest)
         self.duration = duration
         self.set_waiting()
         self.save(update_fields=["quest", "duration", "status"])
@@ -691,7 +628,6 @@ class QuestTimer(Timer):
         """
         Mark the quest timer as complete and calculate XP for the quest.
         """
-
         # logger.debug(f"[QUESTTIMER.COMPLETE] {self}")
         self.refresh_from_db()
 
@@ -796,14 +732,6 @@ class ServerMessage(models.Model):
     Represents a message sent by the server to a specific user profile. This
     can be used for notifications, responses, or event-driven communication.
 
-    Attributes:
-        profile (Profile): The user profile receiving the message.
-        type (str): The type of message (e.g., event, action, error).
-        action (str): The action associated with the message (e.g., 'quest_complete').
-        data (dict): Event-specific data, stored as JSON.
-        message (str): Optional textual content of the message.
-        is_delivered (bool): Whether the message has been delivered to the user.
-        created_at (datetime): The timestamp for when the message was queued.
     """
 
     group = models.CharField(
@@ -835,8 +763,6 @@ class ServerMessage(models.Model):
         """
         Convert the server message to a dictionary representation.
 
-        :return: A dictionary containing the message's type, action, data, and other metadata.
-        :rtype: dict
         """
         message = {
             "type": self.type,
@@ -851,8 +777,6 @@ class ServerMessage(models.Model):
         """
         Convert the server message to a JSON string for sending over WebSocket.
 
-        :return: A JSON string representation of the server message.
-        :rtype: str
         """
         return json.dumps(self.to_dict())
 
@@ -871,10 +795,6 @@ class ServerMessage(models.Model):
         """
         Fetch all undelivered server messages for a specific WebSocket group.
 
-        :param group_name: The WebSocket group to fetch unread messages for.
-        :type group_name: str
-        :return: A QuerySet of undelivered server messages for the given group.
-        :rtype: QuerySet
         """
         return cls.objects.filter(group=group_name, is_delivered=False)
 
@@ -883,8 +803,6 @@ class ServerMessage(models.Model):
         """
         Delete server messages that are older than the specified number of days.
 
-        :param days: The age threshold (in days) for deleting old messages.
-        :type days: int
         """
         cutoff_date = timezone.now() - timezone.timedelta(days=days)
         cls.objects.filter(created_at__lt=cutoff_date).delete()
