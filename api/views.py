@@ -1,12 +1,14 @@
 # api/views.py
 from asgiref.sync import async_to_sync
-from datetime import datetime, timedelta
+
+# from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth import login, logout, get_user_model
 from django.core.mail import send_mail
 from django.db import DatabaseError, transaction
 from django.http import Http404  # , HttpResponseRedirect
-from django.shortcuts import render, get_object_or_404, redirect
+
+# from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.html import escape
@@ -17,7 +19,8 @@ from urllib.parse import quote, unquote
 
 from allauth.account import app_settings as allauth_settings
 from allauth.account.models import EmailConfirmation, EmailAddress
-from allauth.account.utils import complete_signup, send_email_confirmation
+
+# from allauth.account.utils import complete_signup, send_email_confirmation
 from dj_rest_auth.registration.views import RegisterView
 
 from rest_framework import viewsets, permissions, serializers, status, mixins
@@ -28,7 +31,8 @@ from rest_framework.decorators import (
     authentication_classes,
 )
 from rest_framework.exceptions import ValidationError
-from rest_framework.filters import SearchFilter, OrderingFilter
+
+# from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -353,6 +357,12 @@ class FetchInfoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, format=None):
+        heroku_release = settings.HEROKU_RELEASE
+        try:
+            build_number = int(heroku_release.lstrip("v"))
+        except ValueError:
+            build_number = 0
+
         profile = request.user.profile
         try:
             character = PlayerCharacterLink.get_character(profile)
@@ -414,6 +424,7 @@ class FetchInfoAPIView(APIView):
                     "message": "Profile and character fetched",
                     "activity_timer": activity_timer_data,
                     "quest_timer": quest_timer_data,
+                    "build_number": build_number,
                 }
             )
 
