@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from unittest import skip
 import logging
 
 from users.models import Profile
+from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink
 
@@ -210,3 +211,35 @@ class TestViews_LoggedOut(TestCase):
         response = self.client.get(self.register_url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/register.html")
+
+
+@override_settings(
+    CELERY_TASK_ALWAYS_EAGER=True,  # run Celery tasks immediately, not via broker
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",  # in-memory email storage
+)
+class EmailTaskTest(TestCase):
+
+    def test_send_email_task(self):
+        emails = ["test@example.com"]
+        subject = "Test Email"
+        template_base = "emails/email_confirmation_message"
+        context = {"user": {"email": "test@example.com"}}
+        cc_admin = False
+
+        # Run task synchronously
+        send_email_to_users_task(
+            emails=emails,
+            subject=subject,
+            template_base=template_base,
+            context=context,
+            cc_admin=cc_admin,
+        )
+
+        # Check that the email was sent
+        from django.core.mail import outbox
+
+        self.assertEqual(len(outbox), 1)  # one email was sent
+        email = outbox[0]
+        self.assertEqual(email.subject, subject)
+        self.assertEqual(email.to, emails)
+        self.assertIn("test@example.com", email.body)

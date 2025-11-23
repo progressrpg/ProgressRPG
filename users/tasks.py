@@ -3,7 +3,10 @@
 from celery import shared_task
 
 # from datetime import timedelta
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from django.utils import timezone
 import logging
 
@@ -56,3 +59,35 @@ def perform_account_wipe():
 
         # Log the deletion
         logger.info(f"User {user.username} (ID: {user.id}) was deleted after 14 days.")
+
+
+@shared_task(bind=True, retry_backoff=True, max_retries=3)
+def send_email_to_users_task(self, emails, subject, template_base, context, cc_admin):
+    """
+    Celery task to send emails asynchronously.
+    """
+    try:
+        from_email = settings.DEFAULT_FROM_EMAIL
+        admin_email = "admin@progressrpg.com"
+
+        # Add admin to CC if needed
+        if cc_admin:
+            emails.append(admin_email)
+
+        plain_message = render_to_string(f"{template_base}.txt", context or {})
+        html_message = render_to_string(f"{template_base}.html", context or {})
+
+        logger.info(f"[ASYNC SEND EMAIL] Sending '{subject}' to: {emails}")
+
+        email = EmailMultiAlternatives(
+            subject,
+            plain_message,
+            from_email,
+            emails,
+        )
+        email.attach_alternative(html_message, "text/html")
+        email.send()
+
+    except Exception as exc:
+        logger.error(f"[ASYNC SEND EMAIL] Failed: {exc}")
+        raise self.retry(exc=exc)
