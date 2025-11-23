@@ -165,7 +165,10 @@ class CustomRegisterView(RegisterView):
         activate_url = f"{settings.FRONTEND_URL}/confirm_email/{quoted_key}"
 
         context = {
-            "user": user,
+            "user": {
+                "email": user.email,
+                "first_name": user.first_name,
+            },
             "activate_url": activate_url,
         }
 
