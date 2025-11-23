@@ -249,12 +249,6 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-# Email settings (host, port and password are at top)
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "admin@progressrpg.com"
-DEFAULT_FROM_EMAIL = "admin@progressrpg.com"
-
 # Optionally, configure for error emails
 ADMINS = [
     ("Admin", "admin@progressrpg.com")
