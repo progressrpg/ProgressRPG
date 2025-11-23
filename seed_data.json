@@ -1,5 +1,17 @@
 [
 {
+  "model": "users.invitecode",
+  "pk": 1,
+  "fields": {
+    "code": "TEST",
+    "is_active": true,
+    "max_uses": null,
+    "uses": 0,
+    "created_at": "2025-11-16T19:08:11.524Z",
+    "expires_at": null
+  }
+},
+{
   "model": "character.character",
   "pk": 1,
   "fields": {
