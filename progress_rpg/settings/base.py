@@ -33,9 +33,6 @@ os.environ.setdefault(
     os.getenv("DJANGO_SETTINGS_MODULE", "progress_rpg.settings.dev"),
 )
 
-HEROKU_RELEASE = os.environ.get("HEROKU_RELEASE_VERSION", "v0")
-print("Current release:", HEROKU_RELEASE)
-
 sentry_sdk.init(
     dsn="https://644b2888f8bc11ad45e1975cde787ef6@o4509508988764160.ingest.de.sentry.io/4509508990926928",
     # Add data like request headers and IP for users,

@@ -1,3 +1,4 @@
+from django.conf import settings
 import socket, os, subprocess, psycopg2
 
 
@@ -130,3 +131,16 @@ def is_vite_running(host="localhost", port=5173) -> bool:
         return True
     except (ConnectionRefusedError, OSError):
         return False
+
+
+def get_build_number():
+    """
+    Read BUILD_NUMBER from repo, fallback to environment var or 0.
+    """
+    try:
+        base = getattr(settings, "BASE_DIR", os.path.dirname(os.path.dirname(__file__)))
+        path = os.path.join(base, "BUILD_NUMBER")
+        with open(path, "r") as fh:
+            return int(fh.read().strip())
+    except Exception:
+        return 0

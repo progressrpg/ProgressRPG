@@ -1,25 +1,15 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, useLocation } from 'react-router-dom';
-
 import { MaintenanceProvider } from './context/MaintenanceContext';
 import { ToastProvider } from './context/ToastContext';
 import { GameProvider } from './context/GameContext';
+import { BrowserRouter, useLocation } from 'react-router-dom';
 import { WebSocketProvider } from './context/WebSocketContext';
 
-import { useAuth } from './context/AuthContext';
-
-import AppRoutes from "./routes/AppRoutes";
-import Navbar from './layout/Navbar/Navbar';
-import Footer from './layout/Footer/Footer';
-import FeedbackWidget from './components/FeedbackWidget/FeedbackWidget';
-import StaticBanner from './components/StaticBanner/StaticBanner';
 import MaintenanceWatcher from './components/MaintenanceWatcher';
+import AppContent from "./AppContent";
+
 
 import { initGA, logPageView } from '../utils/analytics';
-
-import packageJson from '../package.json';
-const appVersion = packageJson.version;
-const announcement = `Progress RPG is in alpha status, and under active development. Bugs may appear, and data may be lost. Thank you for testing! Version ${appVersion}`;
 
 function RouteChangeTracker() {
   const location = useLocation();
@@ -31,14 +21,10 @@ function RouteChangeTracker() {
   return null;
 }
 
-
 function App() {
-  const { isAuthenticated } = useAuth();
-
   useEffect(() => {
     initGA();
   }, [])
-
 
   return (
     <MaintenanceProvider>
@@ -48,13 +34,7 @@ function App() {
             <BrowserRouter>
               <RouteChangeTracker />
               <MaintenanceWatcher />
-              <div className="app-container">
-                <Navbar />
-                <StaticBanner message={announcement} />
-                <AppRoutes />
-                <Footer />
-                {isAuthenticated && <FeedbackWidget />}
-              </div>
+              <AppContent />
             </BrowserRouter>
           </WebSocketProvider>
         </GameProvider>
