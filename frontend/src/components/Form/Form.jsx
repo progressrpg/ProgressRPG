@@ -14,6 +14,7 @@ export default function Form({
   disabled = false,
   className,
   frameClass,
+  fieldErrors = {}
 }) {
   const [touched, setTouched] = useState({});
 
@@ -22,12 +23,12 @@ export default function Form({
   };
 
   const getError = (field) => {
-    if (!touched[field.name]) return '';
-
     if (fieldErrors[field.name]?.[0]) {
       return fieldErrors[field.name][0];
     }
 
+    if (!touched[field.name]) return '';
+    
     if (field.required && !field.value) {
       return 'This field is required';
     }
