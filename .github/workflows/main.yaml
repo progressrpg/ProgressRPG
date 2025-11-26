@@ -2,9 +2,9 @@ name: Progress RPG CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "staging" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "staging" ]
 
 permissions:
   contents: read
@@ -97,5 +97,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Increment Build Number
+        id: build_number
+        run: |
+          FILE=build_number.txt
+          if [ ! -f $FILE ]; then
+            echo 1 > $FILE
+          else
+            BUILD=$(cat $FILE)
+            BUILD=$((BUILD + 1))
+            echo $BUILD > $FILE
+          fi
+          echo "BUILD_NUMBER=$(cat $FILE)" >> $GITHUB_ENV
+
       - name: Deploy to Heroku
         run: ./deploy_heroku.sh

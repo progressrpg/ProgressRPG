@@ -62,6 +62,7 @@ from character.models import Character, PlayerCharacterLink
 from gameplay.filters import ActivityFilter
 from gameplay.models import Activity, Quest, ActivityTimer, QuestTimer, ServerMessage
 from gameplay.utils import check_quest_eligibility, send_group_message
+from progress_rpg.settings.utils import get_build_number
 from server_management.models import MaintenanceWindow
 from users.models import Profile
 from users.utils import send_email_to_users
@@ -357,11 +358,7 @@ class FetchInfoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, format=None):
-        heroku_release = settings.HEROKU_RELEASE
-        try:
-            build_number = int(heroku_release.lstrip("v"))
-        except ValueError:
-            build_number = 0
+        build_number = get_build_number()
 
         profile = request.user.profile
         try:

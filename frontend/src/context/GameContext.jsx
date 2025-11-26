@@ -20,7 +20,7 @@ export const useGame = () => {
 }
 
 export const GameProvider = ({ children }) => {
-  const { player: playerOnload, character: characterOnload, activityTimerInfo, questTimerInfo, loading, error } = useBootstrapGameData();
+  const { player: playerOnload, character: characterOnload, activityTimerInfo, questTimerInfo, buildNumber, loading, error } = useBootstrapGameData();
   const [activities, setActivities] = useState({ results: [], count: 0 });
   const [quests, setQuests] = useState([]);
   const [player, setPlayer] = useState(playerOnload);
@@ -28,8 +28,6 @@ export const GameProvider = ({ children }) => {
   const activityTimer = useTimers({ mode: "activity" });
   const questTimer = useTimers({ mode: "quest" });
 
-
-  //console.log("Playeronload, characteronload:", playerOnload, characterOnload);
   async function fetchPlayerAndCharacter() {
     const [freshPlayer, freshCharacter] = await Promise.all([
       apiFetch(`/profile/${playerOnload.id}/`),
@@ -44,8 +42,6 @@ export const GameProvider = ({ children }) => {
 
     fetchPlayerAndCharacter();
   }, [playerOnload, characterOnload]);
-
-  //console.log("Player, character:", player, character);
 
   useEffect(() => {
     if (activityTimerInfo || questTimerInfo) {
@@ -86,7 +82,8 @@ export const GameProvider = ({ children }) => {
     quests,
     fetchQuests,
     loading,
-  }), [player, character, activityTimer, questTimer, activities, fetchActivities, quests, fetchQuests, loading]);
+    buildNumber
+  }), [player, character, activityTimer, questTimer, activities, fetchActivities, quests, fetchQuests, loading, buildNumber]);
 
 
   return (

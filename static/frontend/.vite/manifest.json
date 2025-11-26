@@ -3,8 +3,8 @@
     "file": "assets/ButtonFrame-BQKIAcRA.css",
     "src": "_ButtonFrame-BQKIAcRA.css"
   },
-  "_ButtonFrame-Cn4qPAQF.js": {
-    "file": "assets/ButtonFrame-Cn4qPAQF.js",
+  "_ButtonFrame-D0AualJO.js": {
+    "file": "assets/ButtonFrame-D0AualJO.js",
     "name": "ButtonFrame",
     "imports": [
       "src/main.jsx"
@@ -17,34 +17,34 @@
     "file": "assets/Form-BKLS7OIo.css",
     "src": "_Form-BKLS7OIo.css"
   },
-  "_Form-zD-Ltbrp.js": {
-    "file": "assets/Form-zD-Ltbrp.js",
+  "_Form-DIlfq32G.js": {
+    "file": "assets/Form-DIlfq32G.js",
     "name": "Form",
     "imports": [
       "src/main.jsx",
-      "_ButtonFrame-Cn4qPAQF.js",
-      "_Input-C9xk58pu.js"
+      "_ButtonFrame-D0AualJO.js",
+      "_Input-DWA0FXhX.js"
     ],
     "css": [
       "assets/Form-BKLS7OIo.css"
     ]
   },
-  "_Infobar-CXcCkrYl.js": {
-    "file": "assets/Infobar-CXcCkrYl.js",
+  "_Infobar-CgPMV0fj.js": {
+    "file": "assets/Infobar-CgPMV0fj.js",
     "name": "Infobar",
     "imports": [
       "src/main.jsx"
     ],
     "css": [
-      "assets/Infobar-Dmp6riYB.css"
+      "assets/Infobar-Dar6jJwE.css"
     ]
   },
-  "_Infobar-Dmp6riYB.css": {
-    "file": "assets/Infobar-Dmp6riYB.css",
-    "src": "_Infobar-Dmp6riYB.css"
+  "_Infobar-Dar6jJwE.css": {
+    "file": "assets/Infobar-Dar6jJwE.css",
+    "src": "_Infobar-Dar6jJwE.css"
   },
-  "_Input-C9xk58pu.js": {
-    "file": "assets/Input-C9xk58pu.js",
+  "_Input-DWA0FXhX.js": {
+    "file": "assets/Input-DWA0FXhX.js",
     "name": "Input",
     "imports": [
       "src/main.jsx"
@@ -70,7 +70,7 @@
     "src": "src/assets/images/tutorial-mob-p2-v2.png"
   },
   "src/main.jsx": {
-    "file": "assets/main-9cdWs_SP.js",
+    "file": "assets/main-B3sp7ceb.js",
     "name": "main",
     "src": "src/main.jsx",
     "isEntry": true,
@@ -86,11 +86,11 @@
       "src/pages/MaintenancePage/MaintenancePage.jsx"
     ],
     "css": [
-      "assets/main-C9B6wiR-.css"
+      "assets/main-BPuLbszd.css"
     ]
   },
   "src/pages/ConfirmationPage.jsx": {
-    "file": "assets/ConfirmationPage-AJ9xwl-J.js",
+    "file": "assets/ConfirmationPage-BvoU1JRx.js",
     "name": "ConfirmationPage",
     "src": "src/pages/ConfirmationPage.jsx",
     "isDynamicEntry": true,
@@ -99,22 +99,22 @@
     ]
   },
   "src/pages/Game/Game.jsx": {
-    "file": "assets/Game-Cc59ymJD.js",
+    "file": "assets/Game-BXYGAakK.js",
     "name": "Game",
     "src": "src/pages/Game/Game.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
-      "_Infobar-CXcCkrYl.js",
-      "_ButtonFrame-Cn4qPAQF.js",
-      "_Input-C9xk58pu.js"
+      "_Infobar-CgPMV0fj.js",
+      "_ButtonFrame-D0AualJO.js",
+      "_Input-DWA0FXhX.js"
     ],
     "css": [
       "assets/Game-J4MGZt-m.css"
     ]
   },
   "src/pages/Home/Home.jsx": {
-    "file": "assets/Home-CiJj81-6.js",
+    "file": "assets/Home-DzE25btA.js",
     "name": "Home",
     "src": "src/pages/Home/Home.jsx",
     "isDynamicEntry": true,
@@ -123,22 +123,22 @@
     ]
   },
   "src/pages/LoginPage/LoginPage.jsx": {
-    "file": "assets/LoginPage-BVMIlli0.js",
+    "file": "assets/LoginPage-19HqYflq.js",
     "name": "LoginPage",
     "src": "src/pages/LoginPage/LoginPage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
-      "_Form-zD-Ltbrp.js",
-      "_ButtonFrame-Cn4qPAQF.js",
-      "_Input-C9xk58pu.js"
+      "_Form-DIlfq32G.js",
+      "_ButtonFrame-D0AualJO.js",
+      "_Input-DWA0FXhX.js"
     ],
     "css": [
       "assets/LoginPage-BJ4kZmdd.css"
     ]
   },
   "src/pages/LogoutPage/LogoutPage.jsx": {
-    "file": "assets/LogoutPage-BjLsx9lJ.js",
+    "file": "assets/LogoutPage-CbYWqZgw.js",
     "name": "LogoutPage",
     "src": "src/pages/LogoutPage/LogoutPage.jsx",
     "isDynamicEntry": true,
@@ -147,28 +147,28 @@
     ]
   },
   "src/pages/MaintenancePage/MaintenancePage.jsx": {
-    "file": "assets/MaintenancePage-BaSP4hO6.js",
+    "file": "assets/MaintenancePage-CqOCwoK4.js",
     "name": "MaintenancePage",
     "src": "src/pages/MaintenancePage/MaintenancePage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
-      "_ButtonFrame-Cn4qPAQF.js"
+      "_ButtonFrame-D0AualJO.js"
     ],
     "css": [
       "assets/MaintenancePage-tn0RQdqM.css"
     ]
   },
   "src/pages/OnboardingPage/OnboardingPage.jsx": {
-    "file": "assets/OnboardingPage-BgzLeDwb.js",
+    "file": "assets/OnboardingPage-tHEWRk1x.js",
     "name": "OnboardingPage",
     "src": "src/pages/OnboardingPage/OnboardingPage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
-      "_Form-zD-Ltbrp.js",
-      "_Input-C9xk58pu.js",
-      "_ButtonFrame-Cn4qPAQF.js"
+      "_Form-DIlfq32G.js",
+      "_Input-DWA0FXhX.js",
+      "_ButtonFrame-D0AualJO.js"
     ],
     "css": [
       "assets/OnboardingPage-DiKdVLJ-.css"
@@ -180,28 +180,28 @@
     ]
   },
   "src/pages/Profile/Profile.jsx": {
-    "file": "assets/Profile-DqtVJN8B.js",
+    "file": "assets/Profile-DXSuLVzE.js",
     "name": "Profile",
     "src": "src/pages/Profile/Profile.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
-      "_Infobar-CXcCkrYl.js"
+      "_Infobar-CgPMV0fj.js"
     ],
     "css": [
       "assets/Profile-Bc336P9J.css"
     ]
   },
   "src/pages/RegisterPage/RegisterPage.jsx": {
-    "file": "assets/RegisterPage-BvA1iCdo.js",
+    "file": "assets/RegisterPage-C5yx4h9l.js",
     "name": "RegisterPage",
     "src": "src/pages/RegisterPage/RegisterPage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
-      "_Form-zD-Ltbrp.js",
-      "_ButtonFrame-Cn4qPAQF.js",
-      "_Input-C9xk58pu.js"
+      "_Form-DIlfq32G.js",
+      "_ButtonFrame-D0AualJO.js",
+      "_Input-DWA0FXhX.js"
     ]
   }
 }
