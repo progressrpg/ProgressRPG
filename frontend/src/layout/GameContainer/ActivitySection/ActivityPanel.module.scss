@@ -12,7 +12,7 @@
 
 .activityTotals {
   display: flex;
-  margin-bottom: v.$spacing-sm;
+  //margin-bottom: v.$spacing-sm;
   gap: v.$spacing-gap;
 
   @include t.apply-text-style(t.$text-body);
