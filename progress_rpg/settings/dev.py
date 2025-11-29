@@ -80,6 +80,16 @@ LOGGING = {
             "level": "ERROR",
             "propagate": False,
         },
+        "general": {
+            "handlers": ["file_info"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "activity": {
+            "handlers": ["file_debug"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
         "django.db.backends": {
             "level": "WARNING",
             "handlers": ["console", "file_errors"],
