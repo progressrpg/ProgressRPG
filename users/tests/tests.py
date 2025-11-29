@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase, Client, override_settings, tag
 from django.urls import reverse
 from unittest import skip
 import logging
@@ -60,7 +60,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(profile.onboarding_step, 0)
         self.assertEqual(profile.total_time, 0)
         self.assertEqual(profile.total_activities, 0)
-
 
 class OnboardingTest(TestCase):
     def setUp(self):
@@ -124,7 +123,7 @@ class OnboardingTest(TestCase):
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.onboarding_step, 4)
 
-
+@tag("fast")
 class ProfileMethodsTest(TestCase):
     def setUp(self):
         self.character = Character.objects.create(first_name="Jane", can_link=True)
@@ -187,7 +186,7 @@ class TestViews_LoggedIn(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/edit_profile.html")
 
-
+@tag("fast")
 class TestViews_LoggedOut(TestCase):
     def setUp(self):
         # urls

@@ -135,7 +135,7 @@ class Person(models.Model):
 
     name = models.CharField(max_length=100, blank=True, null=True)
     xp = models.PositiveIntegerField(default=0)
-    xp_next_level = models.PositiveIntegerField(default=0)
+    xp_next_level = models.PositiveIntegerField(default=100)
     xp_modifier = models.FloatField(default=1)
     level = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
