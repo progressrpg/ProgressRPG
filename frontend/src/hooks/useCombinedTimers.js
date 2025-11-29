@@ -3,7 +3,7 @@ import { useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 
 export default function useCombinedTimers() {
-  const { activityTimer, questTimer, fetchActivities, fetchQuests, showToast } = useGame();
+  const { setPlayer, activityTimer, questTimer, fetchActivities, fetchQuests, showToast } = useGame();
   const timersRunningRef = useRef(false);
   const completingRef = useRef(false);
 
@@ -38,7 +38,9 @@ export default function useCombinedTimers() {
     const canComplete = (status) => ["active", "waiting", "paused"].includes(status);
 
     if (canComplete(activityTimer.status)) {
-      await activityTimer.complete();
+      const data = await activityTimer.complete();
+      console.log("activity timer complete data:", data);
+      if (data.profile) setPlayer(data.profile);
       await activityTimer.reset();
       await fetchActivities();
 

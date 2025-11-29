@@ -1,7 +1,7 @@
 // hooks/useTimers.js
 import { useState, useRef, useEffect, useCallback } from "react";
 import { apiFetch } from "../../utils/api.js";
-
+//import { useGame } from "../context/GameContext.jsx";
 
 function shuffle(array) {
   return array.sort(() => Math.random() - 0.5);
@@ -32,10 +32,10 @@ export default function useTimers({ mode }) {
   useEffect(() => { processedStagesRef.current = processedStages; }, [processedStages]);
   useEffect(() => { globalStageIndexRef.current = globalStageIndex; }, [globalStageIndex]);
 
-
   const stageStartTimeRef = useRef(null);
   const stageTimerRef = useRef(null);
 
+  //const { setPlayer, setCharacter } = useGame();
 
   // ----------------------------
   // Tick the main quest timer
@@ -141,11 +141,13 @@ export default function useTimers({ mode }) {
       method: 'POST',
     });
 
-    //console.log(`${mode} timer complete, api data:`, data);
+    console.log(`${mode} timer complete, api data:`, data);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
+
+    return data;
   }, [mode, status, id]);
 
   const reset = useCallback(async () => {
