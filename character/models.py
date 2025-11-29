@@ -211,6 +211,13 @@ class Character(Person, LifeCycleMixin):
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
+    @property
+    def current_profile(self):
+        """
+        Retrieve the profile associated with this character.
+        """
+        return PlayerCharacterLink.get_profile(self)
+
     def start_quest(self, quest):
         self.quest_timer.change_quest(quest)
 
@@ -259,14 +266,33 @@ class Character(Person, LifeCycleMixin):
                 f"[CHAR.COMPLETE_QUEST] Error applying rewards for quest {quest.id}: {e}"
             )
 
+        levelups = []
         try:
-            self.add_xp(xp_gained)
+            levelups = self.add_xp(xp_gained)
             self.total_quests += 1
-            self.save()
+            self.save(update_fields=["total_quests"])
 
         except Exception as e:
             logger.exception(
                 f"[CHAR.COMPLETE_QUEST] Error updating XP or quest count for character {self.id}: {e}"
+            )
+            return None
+
+        try:
+            from gameplay.models import ServerMessage
+
+            for event in levelups:
+                ServerMessage.objects.create(
+                    group=self.current_profile.group_name,
+                    type="notification",
+                    action="notification",
+                    message=f"Character {self.name} levelled up! Now level {event['new_level']}.",
+                    data={"level": event["new_level"]},
+                    is_draft=False,
+                )
+        except Exception as e:
+            logger.exception(
+                f"[CHAR.COMPLETE_QUEST] Error notifying levelup for character {self.id}: {e}"
             )
             return None
 
