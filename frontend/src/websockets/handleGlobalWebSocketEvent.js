@@ -1,6 +1,11 @@
 // websockets/handleGlobalWebSocketEvent.js
 
-export async function handleGlobalWebSocketEvent(data, { showToast, maintenanceRefetch, setMaintenance }) {
+export async function handleGlobalWebSocketEvent(data, {
+  showToast,
+  maintenanceRefetch,
+  setMaintenance,
+  setOnlinePlayers,
+}) {
   switch (data.type) {
     case 'notification':
       showToast?.(data.message);
@@ -11,7 +16,9 @@ export async function handleGlobalWebSocketEvent(data, { showToast, maintenanceR
     case 'pong':
       console.log('[WS] Pong!');
       break;
-
+    case 'online_profiles':
+      setOnlinePlayers?.(data.profiles);
+      break;
     case 'action':
       switch (data.action) {
 

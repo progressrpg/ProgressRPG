@@ -9,6 +9,8 @@ import FeedbackWidget from './components/FeedbackWidget/FeedbackWidget';
 import { useAuth } from './context/AuthContext';
 import { useGame } from './context/GameContext';
 
+import OnlinePlayersOverlay from './components/OnlinePlayersOverlay';
+
 const announcement = `Progress RPG is in alpha status, and under active development. Bugs may appear, and data may be lost. Thank you for testing!`;
 
 export default function AppContent() {
@@ -18,6 +20,9 @@ export default function AppContent() {
   return (
     <div className="app-container">
       <Navbar />
+
+      <OnlinePlayersOverlay />
+
       <NavDrawer />
       <StaticBanner message={`${announcement} (Build ${buildNumber})`} />
       <AppRoutes />

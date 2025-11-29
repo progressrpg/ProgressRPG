@@ -58,9 +58,10 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             )  # ✅ Verify status
 
             await self.channel_layer.group_add(self.profile_group, self.channel_name)
-            await self.channel_layer.group_add("online_users", self.channel_name)
+            await self.channel_layer.group_add("online_profiles", self.channel_name)
+            await self.broadcast_online_profiles()
             logger.debug(
-                f"[CONNECT] Added profile {self.profile.id} to 'online_users' group."
+                f"[CONNECT] Added profile {self.profile.id} to 'online_profiles' group."
             )  # ✅ Debug log
 
             await self.accept()
@@ -85,11 +86,11 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             await self.close()
 
     async def disconnect(self, close_code):
+        profile = getattr(self, "profile", None)
+        profile_id = getattr(profile, "id", None)
         logger.info(
-            f"[DISCONNECT] WebSocket disconnecting. Player: {self.profile.id} | Code: {close_code}"
+            f"[DISCONNECT] WebSocket disconnecting. Profile: {profile_id} | Code: {close_code}"
         )
-        await database_sync_to_async(self.profile.set_offline)()
-        await self.channel_layer.group_discard("online_users", self.channel_name)
 
         if hasattr(self, "profile_group"):
             logger.info(f"[DISCONNECT] Removed from group: {self.profile_group}")
@@ -97,18 +98,41 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 self.profile_group, self.channel_name
             )
 
-        if hasattr(self, "profile") and hasattr(self, "character"):
-            logger.info(
-                f"Pausing timers for profile {self.profile.id}; websocket disconnected"
-            )
-            if self.activity_timer.status not in [
-                "completed",
-                "empty",
-                "paused",
-            ] or self.quest_timer.status not in ["completed", "empty", "paused"]:
+        await self.channel_layer.group_discard("online_profiles", self.channel_name)
+        await self.broadcast_online_profiles()
+
+        if profile:
+            await database_sync_to_async(self.profile.set_offline)()
+
+            if hasattr(self, "activity_timer") and hasattr(self, "quest_timer"):
+                logger.info(
+                    f"Pausing timers for profile {self.profile.id}; websocket disconnected"
+                )
                 await control_timers(
                     self.profile, self.activity_timer, self.quest_timer, "pause"
                 )
+
+    async def get_online_profiles(self):
+        from game.models import Profile
+
+        # fetch only IDs or lightweight data
+        profiles = await database_sync_to_async(
+            lambda: list(Profile.objects.filter(is_online=True).values("id", "name"))
+        )()
+
+        return profiles
+
+    async def broadcast_online_profiles(self):
+        await self.channel_layer.group_send(
+            "online_profiles",
+            {
+                "type": "online_profiles",
+                "profiles": await self.get_online_profiles(),
+            },
+        )
+
+    async def online_profiles(self, event):
+        await self.send_json({"type": "online_profiles", "profiles": event["profiles"]})
 
     async def test_message(self, event):
         logger.info(f"[TEST MESSAGE] Received test message: {event}")
@@ -343,13 +367,13 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
 
         get_unread_messages = database_sync_to_async(
             lambda: list(ServerMessage.get_unread(self.profile_group))
-            + list(ServerMessage.get_unread("online_users"))
+            + list(ServerMessage.get_unread("online_profiles"))
         )
         messages = await get_unread_messages()
 
         if not messages:
             logger.info(
-                f"[SEND PENDING MESSAGES] No pending messages for group {self.profile_group} or 'online_users'."
+                f"[SEND PENDING MESSAGES] No pending messages for group {self.profile_group} or 'online_profiles'."
             )
             return
         logger.info(

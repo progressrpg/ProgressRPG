@@ -1,5 +1,5 @@
 // context/WebSocketContext.jsx
-import React, { createContext, useContext, useRef, useCallback } from 'react';
+import React, { createContext, useState, useContext, useRef, useCallback } from 'react';
 import { useGame } from './GameContext';
 import { useToast } from './ToastContext';
 import { useWebSocketConnection } from '../hooks/useWebSocketConnection';
@@ -9,17 +9,17 @@ import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 const WebSocketContext = createContext();
 
 export const WebSocketProvider = ({ children }) => {
+  const [onlinePlayers, setOnlinePlayers] = useState([]);
   const { player } = useGame();
   const { showToast } = useToast();
   const { refetch: maintenanceRefetch } = useMaintenanceStatus();
   const eventHandlersRef = useRef(new Set());
 
   const onMessage = useCallback((data) => {
-    //console.log("[WS Provider] showToast:", showToast);
-    handleGlobalWebSocketEvent(data, { showToast, maintenanceRefetch });
+    handleGlobalWebSocketEvent(data, { showToast, maintenanceRefetch, setOnlinePlayers });
 
     eventHandlersRef.current.forEach((handler) => handler(data));
-  }, [showToast, maintenanceRefetch ]);
+  }, [showToast, maintenanceRefetch, setOnlinePlayers ]);
 
   const onError = useCallback(() => {
     console.error('WebSocket connection error');
