@@ -10,6 +10,8 @@ from users.models import Person, Profile
 from gameplay.models import Buff, AppliedBuff, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
 
+from locations.models import Movable
+
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
 
@@ -177,7 +179,7 @@ class LifeCycleMixin(models.Model):
         return round(chance, 5)
 
 
-class Character(Person, LifeCycleMixin):
+class Character(Person, LifeCycleMixin, Movable):
     quest_completions = models.ManyToManyField(
         "gameplay.Quest",
         through="gameplay.QuestCompletion",
@@ -199,9 +201,6 @@ class Character(Person, LifeCycleMixin):
     )
     is_npc = models.BooleanField(default=True)
     can_link = models.BooleanField(default=False)
-    position = models.OneToOneField(
-        "locations.Position", on_delete=models.SET_NULL, null=True
-    )
     # quest_timer = Optional["QuestTimer"]
 
     def __str__(self):

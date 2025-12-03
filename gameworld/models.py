@@ -7,6 +7,9 @@ from datetime import datetime, date
 import random, math
 import numpy as np
 
+from users.models import Profile
+from gameplay.models import QuestCompletion, Activity
+
 
 # Don't think I actually need this after all!
 # I can use created_at fields which have time too
