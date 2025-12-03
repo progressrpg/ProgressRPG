@@ -18,7 +18,7 @@ export default function AppContent() {
   return (
     <div className="app-container">
       <Navbar />
-      <NavDrawer />
+      {/* <NavDrawer /> */}
       <StaticBanner message={`${announcement} (Build ${buildNumber})`} />
       <AppRoutes />
       <Footer />
