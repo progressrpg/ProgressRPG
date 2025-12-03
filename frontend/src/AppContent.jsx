@@ -1,4 +1,7 @@
+// src/AppContent.jsx
+
 import Navbar from './layout/Navbar/Navbar';
+import NavDrawer from './layout/Nav-drawer/NavDrawer';
 import StaticBanner from './components/StaticBanner/StaticBanner';
 import AppRoutes from "./routes/AppRoutes";
 import Footer from './layout/Footer/Footer';
@@ -15,6 +18,7 @@ export default function AppContent() {
   return (
     <div className="app-container">
       <Navbar />
+      {/* <NavDrawer /> */}
       <StaticBanner message={`${announcement} (Build ${buildNumber})`} />
       <AppRoutes />
       <Footer />

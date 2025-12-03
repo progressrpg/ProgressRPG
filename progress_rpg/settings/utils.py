@@ -1,18 +1,34 @@
 from django.conf import settings
-import socket, os, subprocess, psycopg2
+import socket, os, subprocess, psycopg2, re
 
+PG_ID_MAX_LENGTH = 63
 
 def get_branch_name():
     """Return the current git branch name, safe for DB naming."""
     try:
-        return (
-            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+        raw = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                stderr=subprocess.DEVNULL,
+            )
             .decode("utf-8")
             .strip()
-            .replace("/", "_")
         )
     except Exception:
         return "default"
+
+    safe = re.sub(r"[^0-9a-zA-Z_]+", "_", raw)
+
+    safe = re.sub(r"_+", "_", safe)
+
+    safe = safe.strip("_")
+
+    if not safe:
+        safe = "default"
+
+    safe = safe[:PG_ID_MAX_LENGTH]
+
+    return safe
 
 
 def get_branch_db_name(base_name=None):
@@ -123,12 +139,9 @@ def migrate_and_seed(branch_db_name):
 
 def is_vite_running(host="localhost", port=5173) -> bool:
     """Check if Vite dev server is up."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(0.2)
     try:
-        sock.connect((host, port))
-        sock.close()
-        return True
+        with socket.create_connection((host, port), timeout=0.2):
+            return True
     except (ConnectionRefusedError, OSError):
         return False
 

@@ -60,14 +60,14 @@ from api.serializers import (
 
 from character.models import Character, PlayerCharacterLink
 from gameplay.filters import ActivityFilter
-from gameplay.models import Activity, Quest, ActivityTimer, QuestTimer, ServerMessage
+from gameplay.models import Activity, Quest, ActivityTimer, QuestTimer
 from gameplay.utils import check_quest_eligibility, send_group_message
 from progress_rpg.settings.utils import get_build_number
 from server_management.models import MaintenanceWindow
 from users.models import Profile
 from users.utils import send_email_to_users
 
-import logging, time
+import logging
 
 logger = logging.getLogger("django")
 

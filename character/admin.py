@@ -136,9 +136,10 @@ class CharacterRelationshipAdmin(admin.ModelAdmin):
     ]
     inlines = [CharacterInline]
     readonly_fields = ["created_at", "last_updated"]
-    filter_horizontal = [
-        "characters",
-    ]
+    # not allowed in Django >5
+    #filter_horizontal = [
+    #    "characters",
+    #]
 
     @admin.display(description="Characters")
     def get_linked_characters(self, obj):

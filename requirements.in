@@ -27,7 +27,7 @@ defusedxml==0.7.1
 distlib==0.4.0
 dj-database-url==2.3.0
 dj-rest-auth==7.0.1
-Django<5
+Django>5.2,<6
 django-allauth<0.61
 django-celery-beat==2.8.1
 django-cf-turnstile==0.1.0
