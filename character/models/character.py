@@ -15,6 +15,8 @@ from gameplay.serializers import QuestResultSerializer
 from progression.models import CharacterQuest
 from progress_rpg.exceptions import QuestError
 
+from locations.models import Movable
+
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
 
@@ -171,7 +173,7 @@ class LifeCycleMixin(models.Model):
         return round(chance, 5)
 
 
-class Character(Person, LifeCycleMixin):
+class Character(Person, LifeCycleMixin, Movable):
     quest_completions = models.ManyToManyField(
         "gameplay.Quest",
         through="gameplay.QuestCompletion",
