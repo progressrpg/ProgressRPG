@@ -1,44 +1,64 @@
 import random
 from django.core.management.base import BaseCommand
-from locations.models import PopulationCentre, Building, Position
+from django.contrib.gis.geos import Point, Polygon
+from locations.models import PopulationCentre, Building
 from math import sqrt
 
 
-def distance(p1, p2):
-    return sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
+def distance(p1: Point, p2: Point):
+    """Euclidean distance between two Points."""
+    dx = p1.x - p2.x
+    dy = p1.y - p2.y
+    return sqrt(dx * dx + dy * dy)
+
+
+def create_building_footprint(center: Point, size=2):
+    """Return a square polygon around the building location."""
+    x, y = center.x, center.y
+    half = size / 2
+    return Polygon(
+        (
+            (x - half, y - half),
+            (x - half, y + half),
+            (x + half, y + half),
+            (x + half, y - half),
+            (x - half, y - half),  # close the ring
+        )
+    )
+
+
+def create_centre_boundary(buildings: list[Point], padding=5):
+    """Return a polygon roughly surrounding all buildings."""
+    if not buildings:
+        return None
+
+    xs = [b.x for b in buildings]
+    ys = [b.y for b in buildings]
+
+    min_x, max_x = min(xs) - padding, max(xs) + padding
+    min_y, max_y = min(ys) - padding, max(ys) + padding
+
+    return Polygon(
+        (
+            (min_x, min_y),
+            (min_x, max_y),
+            (max_x, max_y),
+            (max_x, min_y),
+            (min_x, min_y),  # close the ring
+        )
+    )
 
 
 class Command(BaseCommand):
-    help = "Spawn population centres with buildings clustered around them"
+    help = "Spawn population centres with buildings clustered around them, with footprints and boundaries"
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--num-centres", type=int, default=2, help="Number of population centres"
-        )
-        parser.add_argument(
-            "--buildings-per-centre",
-            type=int,
-            default=8,
-            help="Number of buildings per centre",
-        )
-        parser.add_argument(
-            "--grid-size", type=int, default=5000, help="Max coordinate for x and y"
-        )
-        parser.add_argument(
-            "--min-distance", type=int, default=3, help="Min distance between buildings"
-        )
-        parser.add_argument(
-            "--min-centre-distance",
-            type=int,
-            default=1000,
-            help="Min distance between population centres",
-        )
-        parser.add_argument(
-            "--max-centre-distance",
-            type=int,
-            default=2000,
-            help="Max distance between population centres",
-        )
+        parser.add_argument("--num-centres", type=int, default=2)
+        parser.add_argument("--buildings-per-centre", type=int, default=8)
+        parser.add_argument("--grid-size", type=int, default=5000)
+        parser.add_argument("--min-distance", type=int, default=3)
+        parser.add_argument("--min-centre-distance", type=int, default=1000)
+        parser.add_argument("--max-centre-distance", type=int, default=2000)
 
     def handle(self, *args, **options):
         PopulationCentre.objects.all().delete()
@@ -59,10 +79,11 @@ class Command(BaseCommand):
             for attempt in range(100):
                 x = random.randint(0, grid_size)
                 y = random.randint(0, grid_size)
+                new_point = Point(x, y)
                 pos_ok = True
 
                 for cp in centres_positions:
-                    d = distance(Position(x=x, y=y), cp)
+                    d = distance(new_point, cp)
                     if d < min_centre_distance or d > max_centre_distance:
                         pos_ok = False
                         break
@@ -77,15 +98,7 @@ class Command(BaseCommand):
                 )
                 continue
 
-            centre_pos = Position.objects.create(x=x, y=y)
             centre_name = f"Village {i+1}-{random.randint(1000,9999)}"
-            centre = PopulationCentre.objects.create(
-                name=centre_name, position=centre_pos
-            )
-            centres_positions.append(centre_pos)
-            self.stdout.write(
-                f"Created PopulationCentre: {centre_name} at {centre_pos}"
-            )
 
             # Place buildings around this centre
             placed_buildings = []
@@ -93,12 +106,14 @@ class Command(BaseCommand):
                 for attempt in range(100):
                     offset_x = random.randint(-5, 5)
                     offset_y = random.randint(-5, 5)
-                    bx = centre_pos.x + offset_x
-                    by = centre_pos.y + offset_y
+                    bx = new_point.x + offset_x
+                    by = new_point.y + offset_y
+                    building_point = Point(bx, by)
+
                     # Check min distance from other buildings
                     if all(
-                        sqrt((bx - px) ** 2 + (by - py) ** 2) >= min_distance
-                        for px, py in placed_buildings
+                        distance(building_point, bp) >= min_distance
+                        for bp in placed_buildings
                     ):
                         break
                 else:
@@ -109,13 +124,29 @@ class Command(BaseCommand):
                     )
                     continue
 
-                building_pos = Position.objects.create(x=bx, y=by)
+                footprint = create_building_footprint(building_point)
                 building_name = f"Building {j+1} ({centre_name})"
                 Building.objects.create(
-                    name=building_name, position=building_pos, population_centre=centre
+                    name=building_name,
+                    location=building_point,
+                    footprint=footprint,
+                    population_centre=None,
                 )
-                placed_buildings.append((bx, by))
-                self.stdout.write(f"  Placed {building_name} at {building_pos}")
+                placed_buildings.append(building_point)
+                self.stdout.write(f"  Placed {building_name} at {building_point}")
+
+            boundary = create_centre_boundary(placed_buildings)
+
+            centre = PopulationCentre.objects.create(
+                name=centre_name, location=new_point, boundary=boundary
+            )
+
+            Building.objects.filter(location__in=placed_buildings).update(
+                population_centre=centre
+            )
+
+            centres_positions.append(new_point)
+            self.stdout.write(f"Created PopulationCentre: {centre_name} at {new_point}")
 
         self.stdout.write(
             self.style.SUCCESS("Finished spawning population centres with buildings")

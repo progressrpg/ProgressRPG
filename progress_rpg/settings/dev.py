@@ -136,9 +136,6 @@ EMAIL_USE_SSL = False
 print("DEBUG:", DEBUG, file=sys.stderr)
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
@@ -158,8 +155,10 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
+db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
 
-DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=60)}
+DATABASES = {"default": db}
 
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")

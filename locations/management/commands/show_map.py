@@ -1,15 +1,22 @@
 from django.core.management.base import BaseCommand
+from django.contrib.gis.geos import Point
 from locations.models import Building, PopulationCentre
 from character.models import Character
+from math import sqrt
+
+
+def distance(p1, p2):
+    """Euclidean distance between two Points"""
+    dx = p1.x - p2.x
+    dy = p1.y - p2.y
+    return sqrt(dx * dx + dy * dy)
 
 
 class Command(BaseCommand):
-    help = "Display a simple text-based grid for a chosen village"
+    help = "Display a simple ASCII map for a chosen village"
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--grid-size", type=int, default=40, help="Size of the grid (default: 40)"
-        )
+        parser.add_argument("--grid-size", type=int, default=40)
 
     def handle(self, *args, **options):
         grid_size = options["grid_size"]
@@ -43,26 +50,32 @@ class Command(BaseCommand):
 
         characters = []
         for c in Character.objects.all():
-            if c.position:
-                dx = c.position.x - selected_centre.position.x
-                dy = c.position.y - selected_centre.position.y
-                distance = (dx * dx + dy * dy) ** 0.5
-                if distance <= grid_size:
+            if getattr(c, "location", None):
+                if distance(c.location, selected_centre.location) <= grid_size:
                     characters.append(c)
 
-        # Gather all positions to compute grid scaling
-        all_positions = [b.position for b in buildings if b.position] + [
-            c.position for c in characters if c.position
+        # Gather all locations to compute grid scaling
+        all_points = [b.location for b in buildings if b.location] + [
+            c.location for c in characters if c.location
         ]
 
-        if not all_positions:
-            self.stdout.write("No positions to display for this village.")
+        # Include building footprints and centre boundary extents
+        for b in buildings:
+            if getattr(b, "footprint", None):
+                minx, miny, maxx, maxy = b.footprint.extent
+                all_points.extend([Point(minx, miny), Point(maxx, maxy)])
+        if getattr(selected_centre, "boundary", None):
+            minx, miny, maxx, maxy = selected_centre.boundary.extent
+            all_points.extend([Point(minx, miny), Point(maxx, maxy)])
+
+        if not all_points:
+            self.stdout.write("No locations to display for this village.")
             return
 
-        min_x = min(p.x for p in all_positions)
-        max_x = max(p.x for p in all_positions)
-        min_y = min(p.y for p in all_positions)
-        max_y = max(p.y for p in all_positions)
+        min_x = min(p.x for p in all_points)
+        max_x = max(p.x for p in all_points)
+        min_y = min(p.y for p in all_points)
+        max_y = max(p.y for p in all_points)
 
         dx = max_x - min_x + 1
         dy = max_y - min_y + 1
@@ -72,20 +85,38 @@ class Command(BaseCommand):
         def to_grid(p):
             x = int((p.x - min_x) * scale_x) + 1
             y = int((p.y - min_y) * scale_y) + 1
+            # Clamp to grid limits
+            x = max(0, min(grid_size - 1, x))
+            y = max(0, min(grid_size - 1, y))
             return x, y
 
         # Initialize empty grid
         grid = [["." for _ in range(grid_size)] for _ in range(grid_size)]
 
-        # Plot buildings
+        # Plot centre boundary
+        if getattr(selected_centre, "boundary", None):
+            # Sample boundary polygon as grid points (roughly)
+            for x, y in selected_centre.boundary.coords[0]:
+                gx, gy = to_grid(Point(x, y))
+                grid[gy][gx] = "P"
+
+        # Plot building footprints
         for b in buildings:
-            x, y = to_grid(b.position)
-            grid[y][x] = "B"
+            if getattr(b, "footprint", None):
+                minx, miny, maxx, maxy = b.footprint.extent
+                gx_min, gy_min = to_grid(Point(minx, miny))
+                gx_max, gy_max = to_grid(Point(maxx, maxy))
+                for gx in range(gx_min, gx_max + 1):
+                    for gy in range(gy_min, gy_max + 1):
+                        grid[gy][gx] = "B"
+            else:
+                gx, gy = to_grid(b.location)
+                grid[gy][gx] = "B"
 
         # Plot characters
         for c in characters:
-            x, y = to_grid(c.position)
-            grid[y][x] = "C"
+            gx, gy = to_grid(c.location)
+            grid[gy][gx] = "C"
 
         # Print grid (y-axis inverted so top-left is 0,0)
         for row in reversed(grid):
