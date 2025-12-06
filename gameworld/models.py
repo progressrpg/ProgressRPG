@@ -155,9 +155,9 @@ class WeatherEvent(models.Model):
         "WeatherType", on_delete=models.SET_NULL, null=True
     )
     base_temperature = models.IntegerField()
-    location = models.ForeignKey(
-        "locations.Location", on_delete=models.CASCADE, null=True, blank=True
-    )
+    # location = models.ForeignKey(
+    #     "locations.Location", on_delete=models.CASCADE, null=True, blank=True
+    # )
     season = models.ForeignKey(
         "Season", on_delete=models.CASCADE, null=True, blank=True
     )
