@@ -98,11 +98,22 @@ class Command(BaseCommand):
         # Initialize empty grid
         grid = [["." for _ in range(map_size)] for _ in range(map_size)]
 
+        def sample_polygon_edges(polygon, step=1.0):
+            """Yield points along the polygon edges at roughly `step` units apart."""
+            coords = list(polygon.coords[0])
+            for i in range(len(coords) - 1):
+                x1, y1 = coords[i]
+                x2, y2 = coords[i + 1]
+                dx, dy = x2 - x1, y2 - y1
+                dist = (dx**2 + dy**2) ** 0.5
+                num_points = max(int(dist / step), 1)
+                for j in range(num_points):
+                    yield (x1 + dx * j / num_points, y1 + dy * j / num_points)
+
         # Plot centre boundary
-        if getattr(selected_centre, "boundary", None):
-            # Sample boundary polygon as grid points (roughly)
-            for x, y in selected_centre.boundary.coords[0]:
-                gx, gy = to_grid(Point(x, y))
+        for x, y in sample_polygon_edges(selected_centre.boundary, step=5.0):
+            gx, gy = to_grid(Point(x, y))
+            if 0 <= gy < len(grid) and 0 <= gx < len(grid[0]):
                 grid[gy][gx] = "P"
 
         # Plot building footprints
