@@ -1,6 +1,6 @@
 import random
 from django.core.management.base import BaseCommand
-from django.contrib.gis.geos import Point, Polygon
+from django.contrib.gis.geos import Point, Polygon, MultiPolygon
 from locations.models import PopulationCentre, Building
 from math import sqrt
 
@@ -12,41 +12,43 @@ def distance(p1: Point, p2: Point):
     return sqrt(dx * dx + dy * dy)
 
 
-def create_building_footprint(center: Point, size=2):
-    """Return a square polygon around the building location."""
-    x, y = center.x, center.y
-    half = size / 2
-    return Polygon(
-        (
-            (x - half, y - half),
-            (x - half, y + half),
-            (x + half, y + half),
-            (x + half, y - half),
-            (x - half, y - half),  # close the ring
-        )
-    )
+def create_building_footprint(centre: Point, min_size=5, max_size=20, irregularity=0.3):
+    """Return a polygon around the building location with variation."""
+    x, y = centre.x, centre.y
+
+    width = random.uniform(min_size, max_size)
+    height = random.uniform(min_size, max_size)
+
+    hw, hh = width / 2, height / 2
+
+    corners = [
+        (x - hw, y - hh),
+        (x - hw, y + hh),
+        (x + hw, y + hh),
+        (x + hw, y - hh),
+    ]
+
+    if irregularity > 0:
+        max_dx = width * irregularity
+        max_dy = height * irregularity
+        corners = [
+            (cx + random.uniform(-max_dx, max_dx), cy + random.uniform(-max_dy, max_dy))
+            for cx, cy in corners
+        ]
+
+    corners.append(corners[0])
+
+    return Polygon(corners)
 
 
-def create_centre_boundary(buildings: list[Point], padding=5):
-    """Return a polygon roughly surrounding all buildings."""
+def create_centre_boundary(buildings: list[Polygon], padding=10):
+    """Return a polygon roughly surrounding all building footprints."""
     if not buildings:
         return None
 
-    xs = [b.x for b in buildings]
-    ys = [b.y for b in buildings]
-
-    min_x, max_x = min(xs) - padding, max(xs) + padding
-    min_y, max_y = min(ys) - padding, max(ys) + padding
-
-    return Polygon(
-        (
-            (min_x, min_y),
-            (min_x, max_y),
-            (max_x, max_y),
-            (max_x, min_y),
-            (min_x, min_y),  # close the ring
-        )
-    )
+    multi = MultiPolygon(buildings)
+    hull = multi.convex_hull
+    return hull.buffer(padding)
 
 
 class Command(BaseCommand):
@@ -55,8 +57,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--num-centres", type=int, default=2)
         parser.add_argument("--buildings-per-centre", type=int, default=8)
-        parser.add_argument("--grid-size", type=int, default=5000)
-        parser.add_argument("--min-distance", type=int, default=3)
+        parser.add_argument("--grid-size", type=int, default=10000)
         parser.add_argument("--min-centre-distance", type=int, default=1000)
         parser.add_argument("--max-centre-distance", type=int, default=2000)
 
@@ -68,7 +69,6 @@ class Command(BaseCommand):
         num_centres = options["num_centres"]
         buildings_per_centre = options["buildings_per_centre"]
         grid_size = options["grid_size"]
-        min_distance = options["min_distance"]
         min_centre_distance = options["min_centre_distance"]
         max_centre_distance = options["max_centre_distance"]
 
@@ -97,25 +97,40 @@ class Command(BaseCommand):
                     )
                 )
                 continue
-
             centre_name = f"Village {i+1}-{random.randint(1000,9999)}"
 
             # Place buildings around this centre
             placed_buildings = []
+            placed_footprints = []
             for j in range(buildings_per_centre):
                 for attempt in range(100):
-                    offset_x = random.randint(-5, 5)
-                    offset_y = random.randint(-5, 5)
+                    offset_x = random.randint(-50, 50)
+                    offset_y = random.randint(-50, 50)
                     bx = new_point.x + offset_x
                     by = new_point.y + offset_y
                     building_point = Point(bx, by)
 
-                    # Check min distance from other buildings
+                    footprint = create_building_footprint(
+                        building_point, min_size=10, max_size=25, irregularity=0.2
+                    )
                     if all(
-                        distance(building_point, bp) >= min_distance
-                        for bp in placed_buildings
+                        not footprint.intersects(existing_fp)
+                        for existing_fp in placed_buildings
                     ):
+                        building_name = f"Building {j+1} ({centre_name})"
+                        placed_footprints.append(footprint)
+                        Building.objects.create(
+                            name=building_name,
+                            location=building_point,
+                            footprint=footprint,
+                            population_centre=None,
+                        )
+                        placed_buildings.append(building_point)
+                        self.stdout.write(
+                            f"  Placed {building_name} at {building_point}"
+                        )
                         break
+
                 else:
                     self.stdout.write(
                         self.style.WARNING(
@@ -124,18 +139,7 @@ class Command(BaseCommand):
                     )
                     continue
 
-                footprint = create_building_footprint(building_point)
-                building_name = f"Building {j+1} ({centre_name})"
-                Building.objects.create(
-                    name=building_name,
-                    location=building_point,
-                    footprint=footprint,
-                    population_centre=None,
-                )
-                placed_buildings.append(building_point)
-                self.stdout.write(f"  Placed {building_name} at {building_point}")
-
-            boundary = create_centre_boundary(placed_buildings)
+            boundary = create_centre_boundary(placed_footprints)
 
             centre = PopulationCentre.objects.create(
                 name=centre_name, location=new_point, boundary=boundary

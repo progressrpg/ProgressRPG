@@ -7,6 +7,8 @@ from datetime import date, timedelta
 from locations.models import PopulationCentre
 from character.models import Character, PlayerCharacterLink
 
+CHARS_PER_BUILDING = 5
+
 MALE_NAMES = [
     "Elrond",
     "Gareth",
@@ -106,7 +108,7 @@ class Command(BaseCommand):
         buildings = list(centre.buildings.all())
         building_count = len(buildings)
 
-        num_chars = int(building_count * 3 * random.uniform(0.8, 1.2))
+        num_chars = int(building_count * CHARS_PER_BUILDING * random.uniform(0.8, 1.2))
 
         self.stdout.write(
             f"{centre.name}: Buildings={building_count}, Generating {num_chars} characters..."

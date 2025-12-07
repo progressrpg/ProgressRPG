@@ -42,5 +42,9 @@ app.conf.beat_schedule = {
     "check_user_deletion": {
         "task": "users.tasks.perform_account_wipe",
         "schedule": crontab(minute=0, hour=0),
-    }
+    },
+    "move_characters_tick": {
+        "task": "character.tasks.move_characters_tick",
+        "schedule": 5.0,  # every 5 seconds
+    },
 }

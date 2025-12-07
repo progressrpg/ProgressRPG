@@ -14,8 +14,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--radius",
             type=int,
-            default=5,
-            help="Max distance from the centre to place characters",
+            default=20,
+            help="Max distance from the home to place characters",
         )
         parser.add_argument(
             "--assign",
