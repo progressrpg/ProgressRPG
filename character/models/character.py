@@ -188,6 +188,13 @@ class Character(Person, LifeCycleMixin, Movable):
     first_name = models.CharField(max_length=50, default="")
     last_name = models.CharField(max_length=50, default="", null=True, blank=True)
     backstory = models.TextField(default="")
+    building = models.ForeignKey(
+        "locations.Building",
+        related_name="residents",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
     parents = models.ManyToManyField(
         "self", related_name="children", symmetrical=False, blank=True
     )

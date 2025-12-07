@@ -304,7 +304,7 @@ class InviteCode(models.Model):
         self.uses += 1
         if self.max_uses and self.uses >= self.max_uses:
             self.is_active = False
-        self.save()
+        self.save(update_fields=["uses", "is_active"])
 
     def __str__(self):
         return self.code
