@@ -38,7 +38,7 @@
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [
       23
     ],
@@ -67,12 +67,12 @@
     "first_name": "Gareth",
     "last_name": "Holloway",
     "backstory": "Farmer, former mercenary, settled into rural life.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -99,12 +99,12 @@
     "first_name": "Agnes",
     "last_name": "Holloway",
     "backstory": "Gareth’s wife, keeps the household running.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -131,12 +131,12 @@
     "first_name": "Tristan",
     "last_name": "Holloway",
     "backstory": "Agnes and Gareth's son, dreams of something beyond farming.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [
       2,
       3
@@ -166,12 +166,12 @@
     "first_name": "Mira",
     "last_name": "Holloway",
     "backstory": "Helps with the animals, dislikes farm work.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [
       2,
       3
@@ -201,12 +201,12 @@
     "first_name": "Oswin",
     "last_name": "Holloway",
     "backstory": "Youngest child, eager to learn his father’s trade.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [
       2,
       3
@@ -236,12 +236,12 @@
     "first_name": "Callum",
     "last_name": "Drake",
     "backstory": "Shepherd, spends most of his time in the hills.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -268,12 +268,12 @@
     "first_name": "Eda",
     "last_name": "Drake",
     "backstory": "Dairy and spinner. Callum's wife.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -300,12 +300,12 @@
     "first_name": "Nico",
     "last_name": "Drake",
     "backstory": "Callum and Eda's son, recently discovered as illegitimate.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [
       8,
       7
@@ -335,12 +335,12 @@
     "first_name": "Aldwin",
     "last_name": "Weaver",
     "backstory": "Tavern owner, grew up as a farmer before changing trade.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -367,12 +367,12 @@
     "first_name": "Rosalind",
     "last_name": "Weaver",
     "backstory": "Aldwin’s daughter, newlywed to a soldier, currently pregnant.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [
       10
     ],
@@ -401,12 +401,12 @@
     "first_name": "Edric",
     "last_name": "Thornbrook",
     "backstory": "Retired blacksmith, owns a small farm.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -438,7 +438,7 @@
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [
       12
     ],
@@ -467,12 +467,12 @@
     "first_name": "Freya",
     "last_name": "Thornbrook",
     "backstory": "Edric's daughter, more interested in farming than smithing.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [
       12
     ],
@@ -506,7 +506,7 @@
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -533,12 +533,12 @@
     "first_name": "Ella",
     "last_name": "Stormvale",
     "backstory": "Viggo’s orphaned niece, raised by him.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -565,12 +565,12 @@
     "first_name": "Dain",
     "last_name": "Mossgrove",
     "backstory": "Goatherd, known for his stubbornness. Anwen's husband.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": false,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -597,12 +597,12 @@
     "first_name": "Anwen",
     "last_name": "Mossgrove",
     "backstory": "Cheesemaker. Dain's wife.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -629,12 +629,12 @@
     "first_name": "Ronan",
     "last_name": "Mossgrove",
     "backstory": "Their son, a struggling market trader",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [
       17,
       18
@@ -664,12 +664,12 @@
     "first_name": "Elena",
     "last_name": "Fenwick",
     "backstory": "Widow, struggling to raise crops on a poor strip of land",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -696,12 +696,12 @@
     "first_name": "Ivy",
     "last_name": "Fenwick",
     "backstory": "Elena's daughter, more interested in plants than farmwork.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [
       20
     ],
@@ -730,12 +730,12 @@
     "first_name": "Ysabet",
     "last_name": "Ashford",
     "backstory": "Seamstress, formerly a noble worker, now living with farmers.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -762,12 +762,12 @@
     "first_name": "Rowenna",
     "last_name": "Ashford",
     "backstory": "Ysabet's daughter, works fields for a local landowner.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [
       22
     ],
@@ -796,12 +796,12 @@
     "first_name": "Loralei",
     "last_name": "Dewhurst",
     "backstory": "Ranger, hunts for game and protects woodland.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -828,12 +828,12 @@
     "first_name": "Ronan",
     "last_name": "Blackthorne",
     "backstory": "Former rogue, now a merchant.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -860,12 +860,12 @@
     "first_name": "Marwen",
     "last_name": "Brightwater",
     "backstory": "Herbalist, grows medicinal plants.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -892,12 +892,12 @@
     "first_name": "Theo",
     "last_name": "Brightwater",
     "backstory": "Marwen's grandson, helps with the chickens.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -924,12 +924,12 @@
     "first_name": "Dain",
     "last_name": "Ironhand",
     "backstory": "Stonemason, lives in a farming village.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -956,12 +956,12 @@
     "first_name": "Sylvie",
     "last_name": "Briarwood",
     "backstory": "Orphan raised by monks, training as a scribe.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -988,12 +988,12 @@
     "first_name": "Baldric",
     "last_name": "Holt",
     "backstory": "Aspiring knight, former farmhand.",
-    "sex": null,
+    "sex": "Male",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }
@@ -1020,12 +1020,12 @@
     "first_name": "Thea",
     "last_name": "Lockwood",
     "backstory": "Tavern owner, daughter of farmers.",
-    "sex": null,
+    "sex": "Female",
     "coins": 0,
     "reputation": 0,
     "is_npc": true,
     "can_link": true,
-    "position": null,
+
     "parents": [],
     "buffs": []
   }

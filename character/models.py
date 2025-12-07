@@ -100,19 +100,30 @@ class LifeCycleMixin(models.Model):
     is_pregnant = models.BooleanField(default=False)
     pregnancy_start_date = models.DateField(null=True, blank=True)
     pregnancy_due_date = models.DateTimeField(null=True, blank=True)
+    is_living = models.BooleanField(default=True)
 
     class Meta:
         abstract = True
 
-    def get_age(self):
-        return (now().date() - self.birth_date).days
+    @property
+    def age_display(self):
+        delta = now().date() - self.birth_date
+        days = delta.days
+
+        if days < 30:
+            return f"{days} days"
+
+        elif days < 18 * 30:
+            months = days // 30
+            return f"{months} month{'s' if months != 1 else ''}"
+
+        years = days // 365
+        return f"{years} years{'s' if years != 1 else ''}"
 
     def die(self):
         self.death_date = now().date()
-        self.save()
-
-    def is_alive(self):
-        return self.death_date is None
+        self.is_living = False
+        self.save(update_fields=["death_date", "is_living"])
 
     def get_romantic_partners(self):
         return Character.objects.filter(
@@ -190,6 +201,13 @@ class Character(Person, LifeCycleMixin, Movable):
     first_name = models.CharField(max_length=50, default="")
     last_name = models.CharField(max_length=50, default="", null=True, blank=True)
     backstory = models.TextField(default="")
+    building = models.ForeignKey(
+        "locations.Building",
+        related_name="residents",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
     parents = models.ManyToManyField(
         "self", related_name="children", symmetrical=False, blank=True
     )
@@ -241,7 +259,7 @@ class Character(Person, LifeCycleMixin, Movable):
             )
             if not created:
                 completion.times_completed += 1
-                completion.save()
+                completion.save(update_fields=["times_completed"])
 
         except IntegrityError as e:
             logger.error(
@@ -344,7 +362,7 @@ class PlayerCharacterLink(models.Model):
         """Marks link as inactive and records unlink date"""
         self.date_unlinked = now().date()
         self.is_active = False
-        self.save()
+        self.save(update_fields=["date_unlinked", "is_active"])
 
     @classmethod
     def deactivate_active_links(cls, profile: Profile):
