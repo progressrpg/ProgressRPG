@@ -16,10 +16,15 @@ class Command(BaseCommand):
     help = "Display a simple ASCII map for a chosen village"
 
     def add_arguments(self, parser):
-        parser.add_argument("--grid-size", type=int, default=40)
+        parser.add_argument(
+            "--size",
+            type=int,
+            default=40,
+            help="The dimensions of the map (default: 40)",
+        )
 
     def handle(self, *args, **options):
-        grid_size = options["grid_size"]
+        map_size = options["size"]
 
         # List all villages
         centres = PopulationCentre.objects.all()
@@ -51,7 +56,7 @@ class Command(BaseCommand):
         characters = []
         for c in Character.objects.all():
             if getattr(c, "location", None):
-                if distance(c.location, selected_centre.location) <= grid_size:
+                if distance(c.location, selected_centre.location) <= map_size:
                     characters.append(c)
 
         # Gather all locations to compute grid scaling
@@ -79,19 +84,19 @@ class Command(BaseCommand):
 
         dx = max_x - min_x + 1
         dy = max_y - min_y + 1
-        scale_x = (grid_size - 3) / dx if dx > 0 else 1
-        scale_y = (grid_size - 3) / dy if dy > 0 else 1
+        scale_x = (map_size - 3) / dx if dx > 0 else 1
+        scale_y = (map_size - 3) / dy if dy > 0 else 1
 
         def to_grid(p):
             x = int((p.x - min_x) * scale_x) + 1
             y = int((p.y - min_y) * scale_y) + 1
             # Clamp to grid limits
-            x = max(0, min(grid_size - 1, x))
-            y = max(0, min(grid_size - 1, y))
+            x = max(0, min(map_size - 1, x))
+            y = max(0, min(map_size - 1, y))
             return x, y
 
         # Initialize empty grid
-        grid = [["." for _ in range(grid_size)] for _ in range(grid_size)]
+        grid = [["." for _ in range(map_size)] for _ in range(map_size)]
 
         # Plot centre boundary
         if getattr(selected_centre, "boundary", None):
