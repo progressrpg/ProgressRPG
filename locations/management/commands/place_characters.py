@@ -24,7 +24,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        code = 0
         radius = options["radius"]
 
         if options["assign"]:
@@ -39,7 +38,8 @@ class Command(BaseCommand):
             return
 
         for char in characters:
-
+            if char.target_location:
+                char.cancel_journey()
             if options["assign"]:
                 if not char.building:
                     char.building = random.choice(Building.objects.all())
@@ -70,7 +70,7 @@ class Command(BaseCommand):
 
             char.location = new_location
             self.stdout.write(
-                f"{char.full_name} placed at {new_location} near home at {home.location}"
+                f"{char.full_name} placed at ({new_location.x:.0f}, {new_location.y:.0f}) near home at ({char.building.location.x:.0f}, {char.building.location.y:.0f})"
             )
 
         Character.objects.bulk_update(characters, ["location"])

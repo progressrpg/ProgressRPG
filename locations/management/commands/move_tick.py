@@ -8,13 +8,16 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--ticks", type=int, default=1, help="Number of movement ticks to simulate"
+            "--ticks",
+            type=int,
+            default=1,
+            help="Number of movement ticks to simulate (default: 1)",
         )
         parser.add_argument(
             "--time-delta",
             type=float,
             default=5.0,
-            help="Time delta per tick for movement calculation",
+            help="Time delta per tick for movement calculation (default: 5.0)",
         )
 
     def handle(self, *args, **options):
@@ -32,10 +35,8 @@ class Command(BaseCommand):
                 for obj in movables:
                     obj.step_toward(time_delta=time_delta)
                     self.stdout.write(
-                        f"  {obj.name} at {obj.location.x:.2f}, {obj.location.y:.2f}. Travelled {distance_travelled}m."
+                        f"  {obj.name} at {obj.location.x:.2f}, {obj.location.y:.2f}"
                     )
-                    if not still_moving:
-                        self.stdout.write(f"    {obj.name} arrived at target")
                 Character.objects.bulk_update(
                     movables, ["location", "target_location", "is_moving"]
                 )
