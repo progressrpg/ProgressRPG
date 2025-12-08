@@ -1,6 +1,6 @@
-from django.contrib import admin
+from django.contrib.gis import admin
 
-from .models import Building
+from .models import Building, PopulationCentre
 
 
 @admin.register(Building)
@@ -14,3 +14,26 @@ class BuildingAdmin(admin.ModelAdmin):
         "name",
         "description",
     ]
+
+class BuildingInline(admin.TabularInline):
+    model = Building
+    extra = 0
+
+@admin.register(PopulationCentre)
+class PopulationCentreAdmin(admin.ModelAdmin):
+    inlines = [BuildingInline]
+    list_display = [
+        "name",
+        "building_count"
+    ]
+    readonly_fields = []
+    fields = [
+        "name",
+        "description",
+    ]
+
+    def building_count(self, obj):
+        return obj.buildings.count()
+    building_count.short_description = "Buildings"
+
+
