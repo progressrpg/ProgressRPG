@@ -5,7 +5,7 @@ from django.db import models
 from math import sqrt
 
 ##########################################################
-##### MIXIN
+##### MOVABLE OBJECTS/BEINGS
 ##########################################################
 
 
@@ -71,7 +71,7 @@ class Movable(models.Model):
 
 
 ##########################################################
-##### BASIC LOCATION
+##### BUILDINGS
 ##########################################################
 
 
@@ -95,6 +95,33 @@ class Building(models.Model):
         return self.name
 
 
+class InteriorSpace(models.Model):
+    class SpaceUsage(models.TextChoices):
+        LIVING = "living", "Living"
+        SLEEPING = "sleeping", "Sleeping"
+        COOKING = "cooking", "Cooking"
+        STORAGE = "storage", "Storage"
+        WORKSHOP = "workshop", "Workshop"
+        ANIMALS = "animals", "Animals"
+        COMMUNAL = "communal", "Communal"
+        OTHER = "other", "Other"
+
+    name = models.CharField(max_length=255)
+    building = models.ForeignKey(
+        Building, on_delete=models.CASCADE, related_name="interiorspaces"
+    )
+    area = models.FloatField()
+    use = models.CharField(max_length=50, choices=SpaceUsage.choices)
+
+    def __str__(self):
+        return f"{self.name} ({self.usage})"
+
+
+##########################################################
+##### POPULATION CENTRES
+##########################################################
+
+
 class PopulationCentre(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
@@ -104,3 +131,7 @@ class PopulationCentre(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def building_count(self):
+        return self.buildings.count()

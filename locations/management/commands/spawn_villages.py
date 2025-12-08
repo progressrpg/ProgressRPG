@@ -57,9 +57,38 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--num-centres", type=int, default=2)
         parser.add_argument("--buildings-per-centre", type=int, default=8)
-        parser.add_argument("--grid-size", type=int, default=10000)
-        parser.add_argument("--min-centre-distance", type=int, default=1000)
-        parser.add_argument("--max-centre-distance", type=int, default=2000)
+        parser.add_argument("--grid-size", type=int, default=5000)
+        parser.add_argument("--min-distance", type=int, default=3)
+
+    def attempt_place_centre(
+        self, centres_positions, grid_size=5000, min_distance=1000, max_distance=2000
+    ):
+        x = random.randint(0, grid_size)
+        y = random.randint(0, grid_size)
+        new_point = Point(x, y)
+
+        if not centres_positions:
+            return new_point
+
+        for cp in centres_positions:
+            d = distance(new_point, cp)
+
+            if d < min_distance or d > max_distance:
+                return False
+
+        return new_point
+
+    def attempt_place_building(
+        self, centre_point: Point, placed_buildings, min_distance
+    ):
+        offset_x = random.randint(-50, 50)
+        offset_y = random.randint(-50, 50)
+        candidate = Point(centre_point.x + offset_x, centre_point.y + offset_y)
+
+        if all(distance(candidate, bp) >= min_distance for bp in placed_buildings):
+            return candidate
+
+        return None
 
     def handle(self, *args, **options):
         PopulationCentre.objects.all().delete()
@@ -69,26 +98,20 @@ class Command(BaseCommand):
         num_centres = options["num_centres"]
         buildings_per_centre = options["buildings_per_centre"]
         grid_size = options["grid_size"]
-        min_centre_distance = options["min_centre_distance"]
-        max_centre_distance = options["max_centre_distance"]
+        min_distance = options["min_distance"]
 
         centres_positions = []
-
+        # Place centres
         for i in range(num_centres):
-            # Place centre respecting min and max distance from other centres
             for attempt in range(100):
-                x = random.randint(0, grid_size)
-                y = random.randint(0, grid_size)
-                new_point = Point(x, y)
-                pos_ok = True
-
-                for cp in centres_positions:
-                    d = distance(new_point, cp)
-                    if d < min_centre_distance or d > max_centre_distance:
-                        pos_ok = False
-                        break
-
-                if pos_ok or not centres_positions:
+                result = self.attempt_place_centre(
+                    centres_positions,
+                    grid_size=grid_size,
+                    min_distance=1000,
+                    max_distance=2000,
+                )
+                if result:
+                    new_point = result
                     break
             else:
                 self.stdout.write(
@@ -104,18 +127,16 @@ class Command(BaseCommand):
             placed_footprints = []
             for j in range(buildings_per_centre):
                 for attempt in range(100):
-                    offset_x = random.randint(-50, 50)
-                    offset_y = random.randint(-50, 50)
-                    bx = new_point.x + offset_x
-                    by = new_point.y + offset_y
-                    building_point = Point(bx, by)
+                    building_point = self.attempt_place_building(
+                        new_point, placed_buildings, min_distance
+                    )
 
                     footprint = create_building_footprint(
                         building_point, min_size=10, max_size=25, irregularity=0.2
                     )
                     if all(
                         not footprint.intersects(existing_fp)
-                        for existing_fp in placed_buildings
+                        for existing_fp in placed_footprints
                     ):
                         building_name = f"Building {j+1} ({centre_name})"
                         placed_footprints.append(footprint)
