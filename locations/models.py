@@ -72,3 +72,8 @@ class PopulationCentre(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def building_count(self):
+        return self.buildings.count()
+
