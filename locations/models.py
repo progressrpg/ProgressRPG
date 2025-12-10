@@ -3,8 +3,11 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.gis.db import models as gis_models
 from django.contrib.gis.geos import Point
 from django.contrib.gis.db.models.functions import Distance
-from django.db import models
+from django.db import models, transaction
 from math import sqrt
+
+from .tasks import move_characters_tick
+from .utils import relative_distance_directon
 
 ##########################################################
 ##### MOVABLE OBJECTS/BEINGS
@@ -17,7 +20,17 @@ class Movable(models.Model):
     is_moving = models.BooleanField(default=False)
     target_location = gis_models.PointField(srid=3857, blank=True, null=True)
 
-    # Generic FK for destination object
+    # Generic FKs
+    current_content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="current_movables",
+    )
+    current_object_id = models.PositiveIntegerField(null=True, blank=True)
+    current_object = GenericForeignKey("current_content_type", "current_object_id")
+
     target_content_type = models.ForeignKey(
         ContentType,
         on_delete=models.SET_NULL,
@@ -31,29 +44,43 @@ class Movable(models.Model):
     class Meta:
         abstract = True
 
-    def set_destination(self, obj, use_obj_location=True):
+    def set_destination(self, obj=None, point=None, use_obj_location=True):
         """
         Assign a target location to this movable object.
         """
-        self.target_content_type = ContentType.objects.get_for_model(obj)
-        self.target_object_id = obj.pk
+        # If currently inside an object, mark that we're leaving it
+        if self.current_object:
+            self.leave()
 
-        if use_obj_location:
-            location_obj = obj
-            while True:
-                if hasattr(location_obj, "location") and location_obj.location:
-                    self.target_location = location_obj.location
-                    break
+        if obj:
+            self.target_content_type = ContentType.objects.get_for_model(obj)
+            self.target_object_id = obj.pk
 
-                parent_attr = getattr(location_obj, "parent_for_navigation", None)
-                if not parent_attr:
-                    self.target_location = None
-                    break
+            if use_obj_location:
+                location_obj = obj
+                while True:
+                    if hasattr(location_obj, "location") and location_obj.location:
+                        self.target_location = location_obj.location
+                        break
 
-                location_obj = getattr(location_obj, parent_attr, None)
-                if not location_obj:
-                    self.target_location = None
-                    break
+                    parent_attr = getattr(location_obj, "parent_for_navigation", None)
+                    if not parent_attr:
+                        self.target_location = None
+                        break
+
+                    location_obj = getattr(location_obj, parent_attr, None)
+                    if not location_obj:
+                        self.target_location = None
+                        break
+        elif point:
+            # raw GIS point: no target object
+            if not isinstance(point, Point):
+                raise ValueError("point must be a GEOS Point")
+            self.target_content_type = None
+            self.target_object_id = None
+            self.target_location = point
+        else:
+            raise ValueError("Must provide either obj or point")
 
         self.is_moving = True
         self.save(
@@ -62,8 +89,17 @@ class Movable(models.Model):
                 "target_object_id",
                 "target_location",
                 "is_moving",
+                "current_content_type",
+                "current_object_id",
             ]
         )
+        from character.models import Character
+
+        with transaction.atomic():
+            Character.objects.select_for_update().filter(is_moving=True)
+            moving_count = Character.objects.filter(is_moving=True).count()
+        if moving_count == 1:
+            move_characters_tick.apply_async()
 
     def cancel_journey(self):
         """
@@ -86,7 +122,8 @@ class Movable(models.Model):
         Move object to new location instantly.
         """
         self.location = new_location
-        self.save(update_fields=["location"])
+        self.is_moving = False
+        self.save(update_fields=["location", "is_moving"])
         return
 
     def step_toward(self, time_delta: float = 1.0, speed_modifier: float = 1.0):
@@ -114,11 +151,42 @@ class Movable(models.Model):
         # No save here: done in move tick bulk update
         return True
 
+    def leave(self):
+        """
+        Mark that the character is leaving their current object.
+        """
+        self.current_object = None
+        self.current_content_type = None
+        self.current_object_id = None
+        self.save(update_fields=["current_content_type", "current_object_id"])
+
     def arrive(self):
         self.location = self.target_location
+
+        if self.target_object:
+            self.current_object = self.target_object
+            self.current_content_type = self.target_content_type
+            self.current_object_id = self.target_object_id
+        else:
+            self.current_object = None
+            self.current_content_type = None
+            self.current_object_id = None
+
         self.target_location = None
+        self.target_content_type = None
+        self.target_object_id = None
         self.is_moving = False
-        # No save here: done in move tick bulk update
+        self.save(
+            update_fields[
+                "location",
+                "current_content_type",
+                "current_object_id",
+                "target_location",
+                "target_content_type",
+                "target_object_id",
+                "is_moving",
+            ]
+        )
         return True
 
     def nearby_objects(self, queryset, radius: float):
@@ -173,6 +241,7 @@ class InteriorSpace(models.Model):
     building = models.ForeignKey(
         Building, on_delete=models.CASCADE, related_name="interiorspaces"
     )
+    location = gis_models.PointField(srid=3857, null=True, blank=True)
     area = models.FloatField()
     usage = models.CharField(max_length=50, choices=SpaceUsage.choices)
 
@@ -180,6 +249,71 @@ class InteriorSpace(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.usage})"
+
+
+##########################################################
+##### LAND USE
+##########################################################
+
+
+class LandArea(models.Model):
+    """
+    A named geographic region around a settlement.
+    This is not property. It is a communal or functional area.
+    Size in hectares.
+    """
+
+    name = models.CharField(max_length=255)
+    population_centre = models.ForeignKey(
+        "locations.PopulationCentre",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="land_areas",
+    )
+
+    location = gis_models.PointField(srid=3857, null=True, blank=True)
+    boundary = gis_models.PolygonField(srid=3857, null=True, blank=True)
+    size = models.FloatField(help_text="Size of land area in hectares")
+
+    parent_for_navigation = "population_centre"
+
+    def __str__(self):
+        return f"{self.name} ({self.size:.1f} ha)"
+
+
+class Subzone(models.Model):
+    """
+    Subdivisions with usage choice.
+    Size in hectares.
+    """
+
+    land_area = models.ForeignKey(
+        LandArea, on_delete=models.CASCADE, related_name="subzones"
+    )
+    name = models.CharField(max_length=255)
+    location = gis_models.PointField(srid=3857, null=True, blank=True)
+    boundary = gis_models.PolygonField(srid=3857, null=True, blank=True)
+    size = models.FloatField(help_text="Size of subzone in hectares")
+
+    # Optional "intended usage", not exclusive or enforced.
+    usage = models.CharField(
+        max_length=50,
+        choices=[
+            ("crops", "Crop Growing"),
+            ("grazing", "Grazing Land"),
+            ("foraging", "Foraging"),
+            ("woodland", "Woodland"),
+            ("orchard", "Orchard"),
+            ("other", "Other"),
+        ],
+        default="crops",
+    )
+
+    parent_for_navigation = "land_area"
+
+    def __str__(self):
+        return f"{self.usage} ({self.size:.1f} ha)"
 
 
 ##########################################################
@@ -202,3 +336,6 @@ class PopulationCentre(models.Model):
     @property
     def building_count(self):
         return self.buildings.count()
+
+    def relative_to_centre(self, obj):
+        return relative_distance_direction(self.location, obj.location)

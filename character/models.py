@@ -1,9 +1,12 @@
 # from datetime import datetime
+from django.contrib.gis.geos import Point
 from django.db import models, transaction, IntegrityError
 from django.utils.timezone import now
 from random import random, randint
 from typing import TYPE_CHECKING, Optional
 import logging
+import math
+import random
 
 from users.models import Person, Profile
 
@@ -123,6 +126,7 @@ class LifeCycleMixin(models.Model):
     def die(self):
         self.death_date = now().date()
         self.is_living = False
+        self.cancel_journey()
         self.save(update_fields=["death_date", "is_living"])
 
     def get_romantic_partners(self):
@@ -208,6 +212,14 @@ class Character(Person, LifeCycleMixin, Movable):
         null=True,
         on_delete=models.SET_NULL,
     )
+    population_centre = models.ForeignKey(
+        "locations.PopulationCentre",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="residents",
+    )
+
     parents = models.ManyToManyField(
         "self", related_name="children", symmetrical=False, blank=True
     )
@@ -234,6 +246,52 @@ class Character(Person, LifeCycleMixin, Movable):
         Retrieve the profile associated with this character.
         """
         return PlayerCharacterLink.get_profile(self)
+
+    def react_to_sun_phase(self, phase):
+        if phase == "dawn":
+            print(f"{self.name} wakes up and moves outside")
+            self.go_outside(radius=10)
+        elif phase == "day":
+            print(f"{self.name} is outside during the day")
+        elif phase == "dusk":
+            print(f"{self.name} heads inside for the night")
+            self.go_home()
+        elif phase == "night":
+            print(f"{self.name} is indoors at night")
+
+    def go_home(self):
+        self.refresh_from_db()  # Needed for self.current_object because it's a GenericForeignKey
+        if self.building:
+            print(f"Char home: {self.building}")
+            print(f"Current building: {self.current_object}")
+            if self.building == self.current_object:
+                print(f"{self.name} cannot go home, they're already there!")
+
+            self.set_destination(obj=self.building)
+            print(f"{self.name} is going home.")
+        else:
+            print(f"{self.name} has no home to go to!")
+
+    def go_outside(self, radius=10):
+        if not self.building:
+            print(f"{self.name} has no home!")
+            return False
+
+        home = self.building
+        # Random offset within radius
+        angle = random.random() * 2 * math.pi
+        r = random.random() * radius
+        offset_x = math.cos(angle) * r
+        offset_y = math.sin(angle) * r
+
+        new_location = Point(
+            home.location.x + offset_x,
+            home.location.y + offset_y,
+        )
+        print(
+            f"Character {self.name} is going to ({new_location.x:.0f},{new_location.y:.0f})"
+        )
+        self.set_destination(point=new_location)
 
     def start_quest(self, quest):
         self.quest_timer.change_quest(quest)

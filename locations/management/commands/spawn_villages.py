@@ -14,6 +14,9 @@ def distance(p1: Point, p2: Point):
 
 def create_building_footprint(centre: Point, min_size=5, max_size=20, irregularity=0.3):
     """Return a polygon around the building location with variation."""
+    if not centre:
+        raise ValueError(f"create_building_footprint needs Point to exist!")
+
     x, y = centre.x, centre.y
 
     width = random.uniform(min_size, max_size)

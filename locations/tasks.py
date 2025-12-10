@@ -1,23 +1,56 @@
 from celery import shared_task
-from character.models import Character
-from django.db import transaction
+from django.core.management import call_command
 
 
 @shared_task
-def move_characters_tick(time_delta=5.0):
-    movables = Character.objects.filter(target_location__isnull=False)
+def move_characters_tick(time_delta=1.0):
+    from character.models import Character
 
-    updated = []
+    movers = Character.objects.filter(is_moving=True)
 
-    for obj in movables:
-        changed = obj.step_toward(time_delta=time_delta)
-        if changed:
-            updated.append(obj)
+    if not movers.exists():
+        return
 
-    if updated:
-        with transaction.atomic():
-            Character.objects.bulk_update(
-                updated, ("location", "target_location", "is_moving")
-            )
+    for char in movers:
+        changed = char.step_toward(time_delta)
 
-    return updated
+    Character.objects.bulk_update(
+        movers,
+        (
+            "location",
+            "target_location",
+            "is_moving",
+            "current_content_type",
+            "current_object_id",
+            "target_content_type",
+            "target_object_id",
+        ),
+    )
+
+    if Character.objects.filter(is_moving=True).exists():
+        move_characters_tick.apply_async(countdown=time_delta)
+
+
+@shared_task
+def spawn_villages_task():
+    call_command("spawn_villages")
+
+
+@shared_task
+def spawn_characters_task():
+    call_command("spawn_characters")
+
+
+@shared_task
+def populate_interiors_task():
+    call_command("populate_interiors")
+
+
+@shared_task
+def place_characters_task():
+    call_command("place_characters")
+
+
+@shared_task
+def generate_landarea_task(overwrite=False):
+    call_command("generate_landarea", overwrite=overwrite)

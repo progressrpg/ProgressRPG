@@ -4,6 +4,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.timezone import timedelta, now
 from datetime import datetime, date
+from astral import LocationInfo
+from astral.sun import sun
 import random, math
 import numpy as np
 
@@ -11,31 +13,61 @@ from users.models import Profile
 from gameplay.models import QuestCompletion, Activity
 
 
-# Don't think I actually need this after all!
-# I can use created_at fields which have time too
-class DailyStats(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)  # auto_now_add=True
-    newUsers = models.PositiveIntegerField(default=0)
-    questsCompleted = models.PositiveIntegerField(default=0)
-    activitiesCompleted = models.PositiveIntegerField(default=0)
-    activityTimeLogged = models.PositiveIntegerField(default=0)
-    today = now().date()
-    recordDate = models.DateField(default=now)
+class DailySunTimes(models.Model):
+    world = models.ForeignKey(
+        "GameWorld", on_delete=models.CASCADE, related_name="sun_times"
+    )
+    date = models.DateField(unique=True)
+    sunrise = models.DateTimeField()
+    sunset = models.DateTimeField()
+    dawn = models.DateTimeField()
+    dusk = models.DateTimeField()
 
-    def __str__(self):
-        return f"Daily Stats for {self.recordDate} \
-            {self.newUsers} new users, "
+    class Meta:
+        unique_together = ("world", "date")
+        ordering = ["date"]
 
 
 class GameWorld(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=100)
-    num_profiles = models.PositiveIntegerField(default=0)
-    highest_login_streak_ever = models.PositiveIntegerField(default=0)
-    highest_login_streak_current = models.PositiveIntegerField(default=0)
-    total_activity_num = models.PositiveIntegerField(default=0)
-    total_activity_time = models.PositiveIntegerField(default=0)
-    years_diff = models.IntegerField()
+    latitude = models.FloatField(default=51.5074)
+    longitude = models.FloatField(default=-0.1278)
+    timezone = models.CharField(max_length=50, default="Europe/London")
+
+    years_diff = models.IntegerField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_instance(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def current_sun_phase(self, now=None):
+        """
+        Returns one of 'night', 'dawn', 'day', or 'dusk'
+        based on precomputed sun times for today.
+        """
+        from .models import DailySunTimes
+
+        if now is None:
+            now = datetime.now().astimezone()
+
+        today_times = self.sun_times.get(date=now.date())
+
+        if now < today_times.dawn:
+            return "night"
+        elif now < today_times.sunrise:
+            return "dawn"
+        elif now < today_times.sunset:
+            return "day"
+        elif now < today_times.dusk:
+            return "dusk"
+        else:
+            return "night"
 
     def convert_to_game_date(self, input_date):
         """Convert a date or datetime object to a chosen distance in the past."""
@@ -62,37 +94,6 @@ class GameWorld(models.Model):
 
     def time_up(self):
         return now() - self.created_at
-
-    def update(self):
-        profiles = Profile.objects.all()
-        self.num_profiles = len(profiles)
-        for profile in profiles:
-            if self.highest_login_streak_ever < profile.login_streak_max:
-                self.highest_login_streak_ever = profile.login_streak_max
-            if self.highest_login_streak_current < profile.login_streak:
-                self.highest_login_streak_current = profile.login_streak
-
-        activities = Activity.objects.all()
-        self.total_activity_num = len(activities)
-        total_activity_time = 0
-        for activity in activities:
-            total_activity_time += activity.duration
-        self.total_activity_time = total_activity_time
-
-        activities_num_average = self.total_activity_num / self.num_profiles
-        activities_time_average = self.total_activity_time / self.num_profiles
-
-        questsCompleted = QuestCompletion.objects.all()
-        unique_quests = set()
-        total_quests = 0
-        for qc in questsCompleted:
-            unique_quests.add(qc.quest)
-            total_quests += qc.times_completed
-
-    def createDailyStats(self):
-        ds = DailyStats.objects.create(
-            name=f"DailyStats for world {self.name}",
-        )
 
     def __str__(self):
         return f"GameWorld {self.name}"

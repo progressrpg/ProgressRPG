@@ -1,8 +1,72 @@
 from celery import shared_task
+from zoneinfo import ZoneInfo
 from django.utils import timezone
+from datetime import date, datetime, timedelta
+from astral import LocationInfo
+from astral.sun import sun
+import random
+
+
+from .models import DailySunTimes, GameWorld
 from character.models import Character
 
-import random
+
+@shared_task
+def precompute_sun_times(days_ahead=7):
+    world = GameWorld.get_instance()
+    tz = ZoneInfo(world.timezone)
+    today = date.today()
+
+    for delta in range(days_ahead):
+        target_date = today + timedelta(days=delta)
+        loc = LocationInfo(latitude=world.latitude, longitude=world.longitude)
+        s = sun(loc.observer, date=target_date, tzinfo=tz)
+
+        DailySunTimes.objects.update_or_create(
+            world=world,
+            date=target_date,
+            defaults={
+                "sunrise": s["sunrise"],
+                "sunset": s["sunset"],
+                "dawn": s["dawn"],
+                "dusk": s["dusk"],
+            },
+        )
+
+
+@shared_task
+def sun_phase_started(phase):
+    """
+    Notify characters/world that a sun phase has started.
+    """
+    from character.models import Character
+
+    print(f"Sun phase started: {phase}")
+
+    # example: tell all characters to react
+    for char in Character.objects.all():
+        char.react_to_sun_phase(phase)
+
+
+def schedule_sun_phase_tasks():
+    """
+    Call this after precomputing sun times to schedule today's phase events
+    """
+    world = GameWorld.get_instance()
+    now = datetime.now().astimezone()
+    today_times = world.sun_times.get(date=now.date())
+
+    phases = [
+        ("dawn", today_times.dawn),
+        ("day", today_times.sunrise),
+        ("dusk", today_times.dusk),
+        ("night", today_times.sunset),
+    ]
+
+    for phase_name, phase_time in phases:
+        delta_seconds = (phase_time - now).total_seconds()
+        if delta_seconds > 0:
+            sun_phase_started.apply_async(countdown=delta_seconds, args=[phase_name])
 
 
 def death_probability(age):
@@ -27,32 +91,6 @@ def check_character_deaths():
             death_count += 1
 
     print(f"{death_count} people died of old age today.")
-
-
-# # @shared_task
-# def start_character_pregnancies():
-#     today = timezone.now().date()
-#     for partnership in Partnership.objects.filter(partner_is_pregnant=False):
-#         partner1 = partnership.partner1
-#         partner2 = partnership.partner2
-
-#         if partner1.gender == "Male" and partner2.gender == "Male": continue
-
-#         time_since_last_birth = today - partnership.last_birth_date.days if partnership.last_birth_date else None
-#         partner1_age = partner1.get_age()
-#         partner2_age = partner2.get_age()
-
-#         chance_of_pregnancy = 0
-#         if time_since_last_birth:
-#             if time_since_last_birth > 365:
-#                 chance_of_pregnancy += 10
-#             if partner1_age > 30 and partner2_age > 30:
-#                 chance_of_pregnancy += 5
-
-#         if random.random() < (chance_of_pregnancy / 100):
-#             if partner1.gender == "Female":
-#                 partner1.start_pregnancy()
-#             else: partner2.start_pregnancy()
 
 
 @shared_task
