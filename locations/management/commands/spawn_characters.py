@@ -136,6 +136,7 @@ class Command(BaseCommand):
                     birth_date=birth_date,
                     can_link=can_link,
                     building=building,
+                    population_centre=centre,
                 )
             )
 

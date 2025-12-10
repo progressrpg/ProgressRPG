@@ -58,4 +58,9 @@ app.conf.beat_schedule = {
     #     "task": "character.tasks.move_characters_tick",
     #     "schedule": 5.0,  # every 5 seconds
     # },
+    "precompute-sun-times-daily": {
+        "task": "gameworld.tasks.precompute_sun_times",
+        "schedule": crontab(hour=0, minute=0),
+        "args": (7,),  # keep 7 days ahead
+    },
 }
