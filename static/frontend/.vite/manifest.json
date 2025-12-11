@@ -236,6 +236,18 @@
       "assets/MaintenancePage-tn0RQdqM.css"
     ]
   },
+  "src/pages/MapPage/MapPage.jsx": {
+    "file": "assets/MapPage-B_TndKzc.js",
+    "name": "MapPage",
+    "src": "src/pages/MapPage/MapPage.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/main.jsx"
+    ],
+    "css": [
+      "assets/MapPage-oewK_e9I.css"
+    ]
+  },
   "src/pages/OnboardingPage/OnboardingPage.jsx": {
     "file": "assets/OnboardingPage-BwH5HZL9.js",
     "name": "OnboardingPage",

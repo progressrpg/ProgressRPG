@@ -5,6 +5,10 @@ from locations.models import PopulationCentre, Building
 from math import sqrt
 
 
+SPECIAL_BUILDINGS = ["granary", "inn", "mill", "bakery", "communal"]
+RESIDENTIAL_PER_VILLAGE = 5
+
+
 def distance(p1: Point, p2: Point):
     """Euclidean distance between two Points."""
     dx = p1.x - p2.x
@@ -59,7 +63,6 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--num-centres", type=int, default=2)
-        parser.add_argument("--buildings-per-centre", type=int, default=8)
         parser.add_argument("--grid-size", type=int, default=5000)
         parser.add_argument("--min-distance", type=int, default=3)
 
@@ -98,7 +101,6 @@ class Command(BaseCommand):
         self.stdout.write("Deleted all existing population centres and buildings")
 
         num_centres = options["num_centres"]
-        buildings_per_centre = options["buildings_per_centre"]
         grid_size = options["grid_size"]
         min_distance = options["min_distance"]
 
@@ -124,18 +126,57 @@ class Command(BaseCommand):
             centre_name =  f"Village {i+1}-{random.randint(1000,9999)}"
 
             # Place buildings around this centre
+            residential_buildings = [
+                f"residential-{i+1}" for i in range(RESIDENTIAL_PER_VILLAGE)
+            ]
+            all_buildings_to_place = SPECIAL_BUILDINGS + residential_buildings
+
             placed_buildings = []
             placed_footprints = []
-            for j in range(buildings_per_centre):
+
+            for btype_or_name in all_buildings_to_place:
                 for attempt in range(100):
-                    building_point = self.attempt_place_building(new_point, placed_buildings, min_distance)
-                    if building_point:
+                    building_point = self.attempt_place_building(
+                        new_point, placed_buildings, min_distance
+                    )
+
+                    if building_point is None:
+                        continue
+
+                    footprint = create_building_footprint(
+                        building_point, min_size=10, max_size=25, irregularity=0.2
+                    )
+                    if all(
+                        not footprint.intersects(existing_fp)
+                        for existing_fp in placed_footprints
+                    ):
+                        if btype_or_name in SPECIAL_BUILDINGS:
+                            building_name = (
+                                f"{btype_or_name.capitalize()} of ({centre_name})"
+                            )
+                            building_type = btype_or_name
+                        else:
+                            building_name = f"House {btype_or_name.split('-')[1]} of ({centre_name})"
+                            building_type = "residential"
+
+                        placed_footprints.append(footprint)
+                        Building.objects.create(
+                            name=building_name,
+                            building_type=building_type,
+                            location=building_point,
+                            footprint=footprint,
+                            population_centre=None,
+                        )
+                        placed_buildings.append(building_point)
+                        self.stdout.write(
+                            f"  Placed {building_name} at {building_point}"
+                        )
                         break
 
                 else:
                     self.stdout.write(
                         self.style.WARNING(
-                            f"Could not place building {j+1} in {centre_name} after 100 attempts"
+                            f"Could not place building {btype_or_name} in {centre_name} after 100 attempts"
                         )
                     )
                     continue

@@ -1,0 +1,8 @@
+/* Map.module.scss */
+.mapSvg {
+  width: 100%;       // fill parent horizontally
+  height: 100%;      // fill parent vertically
+  min-height: 400px; // optional fallback height
+  background: white;
+  max-width: 1200px;
+}

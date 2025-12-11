@@ -111,3 +111,59 @@ class CustomRegisterSerializer(RegisterSerializer):
     def save(self, request):
         user = super().save(request)
         return user
+
+
+class ObjectLocationSerializer(serializers.Serializer):
+    x = serializers.FloatField()
+    y = serializers.FloatField()
+
+    def to_representation(self, obj):
+        return {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [obj.location.x, obj.location.y],
+            },
+            "properties": {
+                "id": obj.id,
+                "name": getattr(obj, "name", ""),
+            },
+        }
+
+
+class PolygonFeatureSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    coords = serializers.SerializerMethodField()
+    name = serializers.CharField()
+
+    def get_coords(self, obj):
+        # Returns list of linear rings
+        # obj.footprint.coords gives outer ring only unless you use holes
+        outer_ring = obj.footprint.coords[0]
+        return [[list(map(float, point)) for point in outer_ring]]
+
+    def to_representation(self, obj):
+        rep = super().to_representation(obj)
+        coords = rep.pop("coords")
+
+        return {
+            "type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": coords},
+            "properties": rep,
+        }
+
+
+class BoundaryFeatureSerializer(serializers.Serializer):
+    coords = serializers.SerializerMethodField()
+
+    def get_coords(self, obj):
+        outer_ring = obj.boundary.coords[0]
+        return [[list(map(float, point)) for point in outer_ring]]
+
+    def to_representation(self, obj):
+        coords = self.get_coords(obj)
+        return {
+            "type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": coords},
+            "properties": {"type": "boundary"},
+        }

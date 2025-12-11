@@ -488,3 +488,42 @@ class DeleteAccountAPIView(APIView):
             {"detail": "Use POST to delete your account."},
             status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
+
+
+from locations.models import PopulationCentre
+from .serializers import (
+    ObjectLocationSerializer,
+    PolygonFeatureSerializer,
+    BoundaryFeatureSerializer,
+)
+
+
+class PopulationCentreMapView(APIView):
+    def get(self, request, pk):
+        population_centre = PopulationCentre.objects.get(pk=pk)
+        buildings = population_centre.buildings.all()
+        characters = population_centre.residents.all()
+
+        features = []
+
+        features.append(BoundaryFeatureSerializer(population_centre).data)
+
+        character_features = ObjectLocationSerializer(characters, many=True).data
+
+        features.extend(character_features)
+
+        building_features = PolygonFeatureSerializer(buildings, many=True).data
+
+        features.extend(building_features)
+
+        # road_features = RoadFeatureSerializer(
+        #     population_centre.roads.all(),
+        #     many=True
+        # ).data
+
+        return Response(
+            {
+                "type": "FeatureCollection",
+                "features": features,
+            }
+        )
