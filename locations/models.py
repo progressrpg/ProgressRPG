@@ -7,7 +7,7 @@ from django.db import models, transaction
 from math import sqrt
 
 from .tasks import move_characters_tick
-from .utils import relative_distance_directon
+from .utils import relative_distance_direction
 
 ##########################################################
 ##### MOVABLE OBJECTS/BEINGS
@@ -177,7 +177,7 @@ class Movable(models.Model):
         self.target_object_id = None
         self.is_moving = False
         self.save(
-            update_fields[
+            update_fields=[
                 "location",
                 "current_content_type",
                 "current_object_id",
@@ -204,7 +204,19 @@ class Movable(models.Model):
 
 
 class Building(models.Model):
+    BUILDING_TYPES = [
+        ("residential", "Residential"),
+        ("granary", "Granary"),
+        ("inn", "Inn"),
+        ("mill", "Mill"),
+        ("bakery", "Bakery"),
+        ("communal", "Communal"),
+    ]
+
     name = models.CharField(max_length=255, unique=True)
+    building_type = models.CharField(
+        max_length=50, choices=BUILDING_TYPES, default="residential"
+    )
     description = models.TextField(blank=True, default="")
     location = gis_models.PointField(
         srid=3857, default=Point(0, 0, srid=3857), help_text="Entrance location"
@@ -222,7 +234,7 @@ class Building(models.Model):
     parent_for_navigation = "population_centre"
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.building_type})"
 
 
 class InteriorSpace(models.Model):
@@ -230,11 +242,11 @@ class InteriorSpace(models.Model):
         LIVING = "living", "Living"
         SLEEPING = "sleeping", "Sleeping"
         HYGIENE = "hygiene", "Hygiene"
-        COOKING = "cooking", "Cooking"
+        KITCHEN = "kitchen", "Kitchen"
         STORAGE = "storage", "Storage"
         WORKSHOP = "workshop", "Workshop"
         ANIMALS = "animals", "Animals"
-        COMMUNAL = "communal", "Communal"
+        MEETING = "meeting", "Meeting"
         OTHER = "other", "Other"
 
     name = models.CharField(max_length=255)

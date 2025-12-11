@@ -26,6 +26,7 @@ from .views import (
     DeleteAccountAPIView,
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
+    PopulationCentreMapView,
 )
 
 
@@ -54,7 +55,6 @@ router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytime
 router.register(r"quest_timers", QuestTimerViewSet, basename="questtimer")
 router.register(r"onboarding", OnboardingViewSet, basename="onboarding")
 
-
 urlpatterns = [
     # General urls
     path("", include(router.urls)),
@@ -82,4 +82,10 @@ urlpatterns = [
         name="api_download_user_data",
     ),
     path("delete_account/", DeleteAccountAPIView.as_view(), name="api_delete_account"),
+    # Other urls
+    path(
+        "population-centres/<int:pk>/map/",
+        PopulationCentreMapView.as_view(),
+        name="populationcentre-map",
+    ),
 ]

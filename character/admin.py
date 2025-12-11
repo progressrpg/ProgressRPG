@@ -46,13 +46,17 @@ def mark_as_canlink(modeladmin, request, queryset):
 
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
-    # def current_player(self, obj):
-    #     link = PlayerCharacterLink.objects.filter(character=obj, is_active=True).first()
-    #     return link.profile.name if link else 'No player linked'
-
-    # current_player.short_description = 'Current Player'
     fieldsets = (
         (None, {"fields": ("first_name", "last_name", "is_npc", "can_link")}),
+        (
+            "Location",
+            {
+                "fields": (
+                    "building",
+                    "population_centre",
+                )
+            },
+        ),
         ("Life & Story", {"fields": ("backstory", "parents", "sex")}),
         (
             "Pregnancy Details",
@@ -86,6 +90,7 @@ class CharacterAdmin(admin.ModelAdmin):
     ]
     readonly_fields = [
         "get_profile",
+        "parents",
     ]
     inlines = [LinkInline]
     actions = [mark_as_npc, mark_as_canlink]
@@ -95,6 +100,25 @@ class CharacterAdmin(admin.ModelAdmin):
         try:
             return PlayerCharacterLink.get_profile(obj)
         except ValueError:
+            return "-"
+
+    @admin.display(description="Population Centre")
+    def get_settlement(self, obj):
+        from django.urls import reverse
+        from django.utils.html import format_html
+
+        try:
+            if obj.population_centre:
+                url = reverse(
+                    "admin:locations_populationcentre_change",
+                    args=[obj.population_centre.id],
+                )
+                return format_html(
+                    '<a href="{}">{}</a>', url, obj.population_centre.name
+                )
+                # return f"Settlement {obj.population_centre.name} (id: {obj.population_centre.id})"
+            return "-"
+        except AttributeError:
             return "-"
 
     @admin.display(boolean=True, description="Has Profile")
@@ -137,9 +161,9 @@ class CharacterRelationshipAdmin(admin.ModelAdmin):
     inlines = [CharacterInline]
     readonly_fields = ["created_at", "last_updated"]
     # not allowed in Django >5
-    #filter_horizontal = [
+    # filter_horizontal = [
     #    "characters",
-    #]
+    # ]
 
     @admin.display(description="Characters")
     def get_linked_characters(self, obj):

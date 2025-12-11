@@ -3,8 +3,41 @@ from locations.models import Building, InteriorSpace
 from django.contrib.gis.geos import Polygon, Point
 import random
 
-USAGES = ["sleeping", "living", "cooking", "hygiene"]
-STORAGE_PROPORTION = 0.08  # 8% of total footprint
+BUILDING_INTERIORS_PROPORTIONS = {
+    "residential": {
+        "living": 0.25,
+        "sleeping": 0.40,
+        "cooking": 0.20,
+        "hygiene": 0.10,
+        "storage": 0.05,
+    },
+    "granary": {
+        "storage": 1.0,
+    },
+    "inn": {
+        "sleeping": 0.50,
+        "living": 0.20,
+        "kitchen": 0.15,
+        "storage": 0.15,
+    },
+    "mill": {
+        "workshop": 0.70,
+        "storage": 0.30,
+    },
+    "bakery": {
+        "workshop": 0.50,
+        "storage": 0.30,
+        "living": 0.20,
+    },
+    "communal": {
+        "meeting": 0.50,
+        "kitchen": 0.30,
+        "storage": 0.20,
+    },
+}
+
+VILLAGE_SPECIAL_BUILDINGS = ["granary", "inn", "mill", "bakery", "communal"]
+RESIDENTIAL_PER_VILLAGE = 5
 
 
 class Command(BaseCommand):
@@ -44,7 +77,7 @@ class Command(BaseCommand):
             building.interiorspaces.all().delete()
 
         building_area = building.footprint.area if building.footprint else 5.0
-        subspaces_info = self.generate_subspaces(building_area)
+        subspaces_info = self.generate_subspaces(building_area, building.building_type)
 
         if building.footprint:
             minx, miny, maxx, maxy = building.footprint.extent
@@ -89,14 +122,12 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------
 
-    def generate_subspaces(self, building_area: float):
-        storage_area = building_area * STORAGE_PROPORTION
-        remaining_area = building_area - storage_area
+    def generate_subspaces(self, building_area: float, building_type: str):
+        proportions = BUILDING_INTERIORS_PROPORTIONS.get(building_type, {"other": 1.0})
+        subspaces = []
 
-        per_main_area = remaining_area / len(USAGES)
-
-        subspaces = [{"usage": u, "area": per_main_area} for u in USAGES]
-
-        subspaces.append({"usage": "storage", "area": storage_area})
+        for usage, fraction in proportions.items():
+            area = building_area * fraction
+            subspaces.append({"usage": usage, "area": area})
 
         return subspaces
