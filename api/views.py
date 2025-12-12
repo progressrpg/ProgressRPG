@@ -405,7 +405,6 @@ class FetchInfoAPIView(APIView):
 ##########################################################
 
 
-
 class DownloadUserDataAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -513,25 +512,31 @@ from .serializers import (
     BoundaryFeatureSerializer,
 )
 
-class InteriorSpaceViewSet(ReadOnlyModelViewSet):
+
+class InteriorSpaceViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = InteriorSpace.objects.all()
     serializer_class = InteriorSpaceSerializer
 
-class BuildingViewSet(ReadOnlyModelViewSet):
+
+class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Building.objects.all()
     serializer_class = BuildingSerializer
 
-class PopulationCentreViewSet(ReadOnlyModelViewSet):
+
+class PopulationCentreViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PopulationCentre.objects.all()
     serializer_class = PopulationCentreSerializer
 
-class LandAreaViewSet(ReadOnlyModelViewSet):
+
+class LandAreaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = LandArea.objects.all()
     serializer_class = LandAreaSerializer
 
-class SubzoneViewSet(ReadOnlyModelViewSet):
+
+class SubzoneViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Subzone.objects.all()
     serializer_class = SubzoneSerializer
+
 
 class PopulationCentreMapView(APIView):
     def get(self, request, pk):
