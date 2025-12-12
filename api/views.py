@@ -42,6 +42,11 @@ from api.serializers import (
     CustomRegisterSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
+    InteriorSpaceSerializer,
+    BuildingSerializer,
+    PopulationCentreSerializer,
+    LandAreaSerializer,
+    SubzoneSerializer,
 )
 
 from character.models import Character, PlayerCharacterLink
@@ -395,6 +400,12 @@ class FetchInfoAPIView(APIView):
                 raise
 
 
+##########################################################
+##### USER DATA MANAGEMENT VIEWS
+##########################################################
+
+
+
 class DownloadUserDataAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -490,6 +501,11 @@ class DeleteAccountAPIView(APIView):
         )
 
 
+##########################################################
+##### LOCATION VIEWS AND VIEWSETS
+##########################################################
+
+
 from locations.models import PopulationCentre
 from .serializers import (
     ObjectLocationSerializer,
@@ -497,6 +513,25 @@ from .serializers import (
     BoundaryFeatureSerializer,
 )
 
+class InteriorSpaceViewSet(ReadOnlyModelViewSet):
+    queryset = InteriorSpace.objects.all()
+    serializer_class = InteriorSpaceSerializer
+
+class BuildingViewSet(ReadOnlyModelViewSet):
+    queryset = Building.objects.all()
+    serializer_class = BuildingSerializer
+
+class PopulationCentreViewSet(ReadOnlyModelViewSet):
+    queryset = PopulationCentre.objects.all()
+    serializer_class = PopulationCentreSerializer
+
+class LandAreaViewSet(ReadOnlyModelViewSet):
+    queryset = LandArea.objects.all()
+    serializer_class = LandAreaSerializer
+
+class SubzoneViewSet(ReadOnlyModelViewSet):
+    queryset = Subzone.objects.all()
+    serializer_class = SubzoneSerializer
 
 class PopulationCentreMapView(APIView):
     def get(self, request, pk):
@@ -509,11 +544,9 @@ class PopulationCentreMapView(APIView):
         features.append(BoundaryFeatureSerializer(population_centre).data)
 
         character_features = ObjectLocationSerializer(characters, many=True).data
-
         features.extend(character_features)
 
         building_features = PolygonFeatureSerializer(buildings, many=True).data
-
         features.extend(building_features)
 
         # road_features = RoadFeatureSerializer(

@@ -113,6 +113,12 @@ class CustomRegisterSerializer(RegisterSerializer):
         return user
 
 
+
+##########################################################
+##### LOCATION SERIALISERS
+##########################################################
+
+
 class ObjectLocationSerializer(serializers.Serializer):
     x = serializers.FloatField()
     y = serializers.FloatField()
@@ -129,7 +135,6 @@ class ObjectLocationSerializer(serializers.Serializer):
                 "name": getattr(obj, "name", ""),
             },
         }
-
 
 class PolygonFeatureSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -152,7 +157,6 @@ class PolygonFeatureSerializer(serializers.Serializer):
             "properties": rep,
         }
 
-
 class BoundaryFeatureSerializer(serializers.Serializer):
     coords = serializers.SerializerMethodField()
 
@@ -167,3 +171,29 @@ class BoundaryFeatureSerializer(serializers.Serializer):
             "geometry": {"type": "Polygon", "coordinates": coords},
             "properties": {"type": "boundary"},
         }
+
+
+class InteriorSpaceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InteriorSpace
+        fields = "__all__"
+
+class BuildingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Building
+        fields = "__all__"
+
+class PopulationCentreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PopulationCentre
+        fields = "__all__"
+
+class LandAreaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LandArea
+        fields = "__all__"
+
+class SubzoneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subzone
+        fields = "__all__"
