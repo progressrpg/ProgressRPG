@@ -67,6 +67,13 @@ from character.models import Character, PlayerCharacterLink
 from gameplay.filters import ActivityFilter
 from gameplay.models import Activity, Quest, ActivityTimer, QuestTimer
 from gameplay.utils import check_quest_eligibility, send_group_message
+from locations.models import (
+    InteriorSpace,
+    Building,
+    PopulationCentre,
+    LandArea,
+    Subzone,
+)
 from progress_rpg.settings.utils import get_build_number
 from server_management.models import MaintenanceWindow
 from users.models import Profile
@@ -148,11 +155,9 @@ def maintenance_status(request):
     return Response(data)
 
 
-
 ##########################################################
 ##### REGISTRATION VIEWS
 ##########################################################
-
 
 
 class CustomRegisterView(RegisterView):
@@ -353,11 +358,9 @@ class OnboardingViewSet(viewsets.ViewSet):
         )
 
 
-
 ##########################################################
 ##### FETCHINFO API RESPONSE
 ##########################################################
-
 
 
 class FetchInfoAPIView(APIView):
@@ -456,7 +459,6 @@ class ProfileViewSet(
         return Profile.objects.filter(user=self.request.user)
 
 
-
 class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Viewset for listing and retrieving characters.
@@ -480,7 +482,6 @@ class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
         # queryset = queryset.filter(location__near=location)
 
         return queryset
-
 
 
 ##########################################################
@@ -662,11 +663,9 @@ class QuestViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
 
-
 ##########################################################
 ##### TIMER VIEWSETS
 ##########################################################
-
 
 
 class BaseTimerViewSet(viewsets.ReadOnlyModelViewSet):
@@ -855,7 +854,6 @@ class QuestTimerViewSet(BaseTimerViewSet):
 ##########################################################
 
 
-
 class DownloadUserDataAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -957,25 +955,31 @@ from .serializers import (
     BoundaryFeatureSerializer,
 )
 
-class InteriorSpaceViewSet(ReadOnlyModelViewSet):
+
+class InteriorSpaceViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = InteriorSpace.objects.all()
     serializer_class = InteriorSpaceSerializer
 
-class BuildingViewSet(ReadOnlyModelViewSet):
+
+class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Building.objects.all()
     serializer_class = BuildingSerializer
 
-class PopulationCentreViewSet(ReadOnlyModelViewSet):
+
+class PopulationCentreViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PopulationCentre.objects.all()
     serializer_class = PopulationCentreSerializer
 
-class LandAreaViewSet(ReadOnlyModelViewSet):
+
+class LandAreaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = LandArea.objects.all()
     serializer_class = LandAreaSerializer
 
-class SubzoneViewSet(ReadOnlyModelViewSet):
+
+class SubzoneViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Subzone.objects.all()
     serializer_class = SubzoneSerializer
+
 
 class PopulationCentreMapView(APIView):
     def get(self, request, pk):
