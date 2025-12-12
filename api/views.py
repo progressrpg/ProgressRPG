@@ -43,6 +43,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.serializers import (
+    CustomTokenObtainPairSerializer,
+    CustomTokenRefreshSerializer,
+    CustomRegisterSerializer,
     UserSerializer,
     ProfileSerializer,
     CharacterSerializer,
@@ -53,9 +56,11 @@ from api.serializers import (
     Step1Serializer,
     # Step2Serializer,
     # Step3Serializer,
-    CustomRegisterSerializer,
-    CustomTokenObtainPairSerializer,
-    CustomTokenRefreshSerializer,
+    InteriorSpaceSerializer,
+    BuildingSerializer,
+    PopulationCentreSerializer,
+    LandAreaSerializer,
+    SubzoneSerializer,
 )
 
 from character.models import Character, PlayerCharacterLink
@@ -141,6 +146,13 @@ def maintenance_status(request):
     else:
         data = {"maintenance_active": False}
     return Response(data)
+
+
+
+##########################################################
+##### REGISTRATION VIEWS
+##########################################################
+
 
 
 class CustomRegisterView(RegisterView):
@@ -256,18 +268,6 @@ class ConfirmEmailView(APIView):
             raise Http404("Something went wrong")
 
 
-class ProfileViewSet(
-    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
-):
-    queryset = Profile.objects.all()
-    serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Restrict access to only the logged-in user's profile
-        return Profile.objects.filter(user=self.request.user)
-
-
 class OnboardingViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
@@ -297,7 +297,6 @@ class OnboardingViewSet(viewsets.ViewSet):
             2: self.handle_step2,
             3: self.handle_step3,
         }
-
         handler = handlers.get(step)
         if handler:
             return handler(profile, request)
@@ -352,6 +351,13 @@ class OnboardingViewSet(viewsets.ViewSet):
                 "step": profile.onboarding_step,
             }
         )
+
+
+
+##########################################################
+##### FETCHINFO API RESPONSE
+##########################################################
+
 
 
 class FetchInfoAPIView(APIView):
@@ -433,6 +439,24 @@ class FetchInfoAPIView(APIView):
             )
 
 
+##########################################################
+##### PROFILE & CHARACTER VIEWSETS
+##########################################################
+
+
+class ProfileViewSet(
+    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
+):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Restrict access to only the logged-in user's profile
+        return Profile.objects.filter(user=self.request.user)
+
+
+
 class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Viewset for listing and retrieving characters.
@@ -456,6 +480,12 @@ class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
         # queryset = queryset.filter(location__near=location)
 
         return queryset
+
+
+
+##########################################################
+##### ACTIVITY AND QUEST VIEWSETS
+##########################################################
 
 
 class ActivityViewSet(viewsets.ModelViewSet):
@@ -630,6 +660,13 @@ class QuestViewSet(viewsets.ReadOnlyModelViewSet):
                 "completion_data": completion_data,
             }
         )
+
+
+
+##########################################################
+##### TIMER VIEWSETS
+##########################################################
+
 
 
 class BaseTimerViewSet(viewsets.ReadOnlyModelViewSet):
@@ -813,6 +850,12 @@ class QuestTimerViewSet(BaseTimerViewSet):
         return Response(response)
 
 
+##########################################################
+##### USER DATA MANAGEMENT VIEWS
+##########################################################
+
+
+
 class DownloadUserDataAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -902,6 +945,11 @@ class DeleteAccountAPIView(APIView):
         )
 
 
+##########################################################
+##### LOCATION VIEWS AND VIEWSETS
+##########################################################
+
+
 from locations.models import PopulationCentre
 from .serializers import (
     ObjectLocationSerializer,
@@ -909,6 +957,25 @@ from .serializers import (
     BoundaryFeatureSerializer,
 )
 
+class InteriorSpaceViewSet(ReadOnlyModelViewSet):
+    queryset = InteriorSpace.objects.all()
+    serializer_class = InteriorSpaceSerializer
+
+class BuildingViewSet(ReadOnlyModelViewSet):
+    queryset = Building.objects.all()
+    serializer_class = BuildingSerializer
+
+class PopulationCentreViewSet(ReadOnlyModelViewSet):
+    queryset = PopulationCentre.objects.all()
+    serializer_class = PopulationCentreSerializer
+
+class LandAreaViewSet(ReadOnlyModelViewSet):
+    queryset = LandArea.objects.all()
+    serializer_class = LandAreaSerializer
+
+class SubzoneViewSet(ReadOnlyModelViewSet):
+    queryset = Subzone.objects.all()
+    serializer_class = SubzoneSerializer
 
 class PopulationCentreMapView(APIView):
     def get(self, request, pk):
@@ -921,11 +988,9 @@ class PopulationCentreMapView(APIView):
         features.append(BoundaryFeatureSerializer(population_centre).data)
 
         character_features = ObjectLocationSerializer(characters, many=True).data
-
         features.extend(character_features)
 
         building_features = PolygonFeatureSerializer(buildings, many=True).data
-
         features.extend(building_features)
 
         # road_features = RoadFeatureSerializer(

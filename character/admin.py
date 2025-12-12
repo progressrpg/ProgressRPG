@@ -7,13 +7,16 @@ from .models import (
     CharacterProgression,
 )
 
-# Register your models here.
-
+from gameplay.models import QuestCompletion
 from django.contrib import messages
 
 
 class LinkInline(admin.TabularInline):
     model = PlayerCharacterLink
+
+class QuestCompletionInline(admin.TabularInline):
+    model = QuestCompletion
+
 
 
 @admin.action(description="Mark selected characters as NPCs and unlink from profiles")
@@ -73,7 +76,6 @@ class CharacterAdmin(admin.ModelAdmin):
     list_display = [
         "first_name",
         "last_name",
-        "backstory",
         "get_profile",
         "is_npc",
         "can_link",
@@ -92,7 +94,7 @@ class CharacterAdmin(admin.ModelAdmin):
         "get_profile",
         "parents",
     ]
-    inlines = [LinkInline]
+    inlines = [LinkInline, QuestCompletionInline]
     actions = [mark_as_npc, mark_as_canlink]
 
     @admin.display(description="Profile")
