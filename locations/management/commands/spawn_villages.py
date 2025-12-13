@@ -1,7 +1,8 @@
 import random
 from django.core.management.base import BaseCommand
 from django.contrib.gis.geos import Point, Polygon, MultiPolygon
-from locations.models import PopulationCentre, Building
+from django.contrib.gis.db.models.functions import Distance
+from locations.models import PopulationCentre, Building, InteriorSpace, Node, Path
 from math import sqrt
 
 
@@ -96,10 +97,50 @@ class Command(BaseCommand):
 
         return None
 
+    def create_street_network(self, central_node, building_nodes, max_neighbours=2):
+        """
+        Connects building nodes to each other to create 'streets',
+        while keeping connections to the central node.
+        """
+        paths = []
+        # 1 Keep hub-and-spoke connections
+        for node in building_nodes:
+            if node == central_node:
+                continue
+            path1, _ = Path.objects.get_or_create(from_node=node, to_node=central_node)
+            path2, _ = Path.objects.get_or_create(from_node=central_node, to_node=node)
+            paths.extend([path1, path2])
+
+        # Connect each building node to its nearest neighbours
+        for node in building_nodes:
+            if node == central_node:
+                continue
+
+            # Exclude itself and the central node
+            candidates = [
+                n for n in building_nodes if n.pk not in (node.pk, central_node.pk)
+            ]
+
+            # Annotate distances and sort
+            nearest = sorted(
+                candidates, key=lambda n: node.location.distance(n.location)
+            )[:max_neighbours]
+
+            for neighbour in nearest:
+                # Avoid duplicate paths
+                path1, _ = Path.objects.get_or_create(from_node=node, to_node=neighbour)
+                path2, _ = Path.objects.get_or_create(from_node=neighbour, to_node=node)
+                paths.extend([path1, path2])
+
+        return paths
+
     def handle(self, *args, **options):
         PopulationCentre.objects.all().delete()
         Building.objects.all().delete()
-        self.stdout.write("Deleted all existing population centres and buildings")
+        InteriorSpace.objects.all().delete()
+        Node.objects.all().delete()
+        Path.objects.all().delete()
+        self.stdout.write("Deleted all existing game world locations")
 
         num_centres = options["num_centres"]
         grid_size = options["grid_size"]
@@ -135,6 +176,7 @@ class Command(BaseCommand):
 
             placed_buildings = []
             placed_footprints = []
+            created_nodes = []
 
             for btype_or_name in all_buildings_to_place:
                 for attempt in range(100):
@@ -146,7 +188,7 @@ class Command(BaseCommand):
                         continue
 
                     footprint = create_building_footprint(
-                        building_point, min_size=10, max_size=25, irregularity=0.2
+                        building_point, min_size=10, max_size=25, irregularity=0.1
                     )
                     if all(
                         not footprint.intersects(existing_fp)
@@ -162,14 +204,25 @@ class Command(BaseCommand):
                             building_type = "residential"
 
                         placed_footprints.append(footprint)
-                        Building.objects.create(
+                        building = Building.objects.create(
                             name=building_name,
                             building_type=building_type,
                             location=building_point,
                             footprint=footprint,
                             population_centre=None,
                         )
+
+                        node, _ = Node.objects.get_or_create(
+                            building=building,
+                            defaults={
+                                "name": f"Node for {building.name}",
+                                "location": building.location,
+                                "population_centre": building.population_centre,
+                            },
+                        )
+
                         placed_buildings.append(building_point)
+                        created_nodes.append(node)
                         self.stdout.write(
                             f"  Placed {building_name} at {building_point}"
                         )
@@ -188,6 +241,17 @@ class Command(BaseCommand):
             centre = PopulationCentre.objects.create(
                 name=centre_name, location=new_point, boundary=boundary
             )
+
+            central_node, _ = Node.objects.get_or_create(
+                name=f"Central node of settlement {centre.name}",
+                population_centre=centre,
+                location=centre.location,
+            )
+
+            paths = self.create_street_network(central_node, created_nodes)
+            for path in paths:
+                path.population_centre = centre
+            Path.objects.bulk_update(paths, ["population_centre"])
 
             Building.objects.filter(location__in=placed_buildings).update(
                 population_centre=centre

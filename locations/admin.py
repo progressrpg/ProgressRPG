@@ -1,16 +1,33 @@
 from django.contrib.gis import admin
 
-from .models import InteriorSpace, Building, PopulationCentre, LandArea, Subzone
+from .models import (
+    Node,
+    Path,
+    InteriorSpace,
+    Building,
+    PopulationCentre,
+    LandArea,
+    Subzone,
+)
 from character.models import Character
+
+
+@admin.register(Node)
+class NodeAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "location")
+    search_fields = ("name",)
+
+
+@admin.register(Path)
+class PathAdmin(admin.ModelAdmin):
+    list_display = ("from_node", "to_node", "length")
+    list_filter = ("from_node", "to_node")
+    autocomplete_fields = ("from_node", "to_node")
+
 
 @admin.register(InteriorSpace)
 class InteriorSpaceAdmin(admin.ModelAdmin):
-    list_display = [
-        "name",
-        "id",
-        "usage",
-        "building"
-    ]
+    list_display = ["name", "id", "usage", "building"]
     list_filter = [
         "area",
         "usage",
@@ -25,9 +42,11 @@ class InteriorSpaceAdmin(admin.ModelAdmin):
         "building",
     ]
 
+
 class InteriorSpaceInline(admin.TabularInline):
     model = InteriorSpace
     extra = 0
+
 
 class CharacterInline(admin.TabularInline):
     model = Character
@@ -61,32 +80,33 @@ class BuildingAdmin(admin.ModelAdmin):
     ]
 
 
-
-
 class BuildingInline(admin.TabularInline):
     model = Building
     extra = 0
+
 
 class LandAreaInline(admin.TabularInline):
     model = LandArea
     extra = 0
 
+
 @admin.register(PopulationCentre)
 class PopulationCentreAdmin(admin.ModelAdmin):
-    search_field = ["name"]
-
     inlines = [BuildingInline, LandAreaInline]
+    search_field = ["name"]
     list_display = ["name", "building_count"]
     readonly_fields = []
     fields = [
         "name",
         "description",
+        "building_count",
     ]
 
     def building_count(self, obj):
         return obj.buildings.count()
 
     building_count.short_description = "Buildings"
+
 
 class SubzoneInline(admin.TabularInline):
     model = Subzone
@@ -105,8 +125,9 @@ class LandAreaAdmin(admin.ModelAdmin):
     ]
     list_filter = [
         "size",
+        "population_centre",
     ]
-    
+
     readonly_fields = [
         "population_centre",
     ]
@@ -115,4 +136,3 @@ class LandAreaAdmin(admin.ModelAdmin):
         "size",
         "population_centre",
     ]
-

@@ -1,5 +1,6 @@
 # from datetime import datetime
 from django.contrib.gis.geos import Point
+from django.contrib.gis.db.models.functions import Distance
 from django.db import models, transaction, IntegrityError
 from django.utils.timezone import now
 from random import random, randint
@@ -13,7 +14,7 @@ from users.models import Person, Profile
 from gameplay.models import Buff, AppliedBuff, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
 
-from locations.models import Movable
+from locations.models import Movable, Node
 
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
@@ -261,37 +262,59 @@ class Character(Person, LifeCycleMixin, Movable):
 
     def go_home(self):
         self.refresh_from_db()  # Needed for self.current_object because it's a GenericForeignKey
-        if self.building:
-            print(f"Char home: {self.building}")
-            print(f"Current building: {self.current_object}")
-            if self.building == self.current_object:
-                print(f"{self.name} cannot go home, they're already there!")
-
-            self.set_destination(obj=self.building)
-            print(f"{self.name} is going home.")
-        else:
+        if not self.building:
             print(f"{self.name} has no home to go to!")
+            return
+
+        home_node = self.building.node.first()
+        if not home_node:
+            print(f"{self.name} has no node! Skipping.")
+            return
+
+        if self.current_node == home_node:
+            print(f"{self.name} cannot go home, they're already there!")
+            return
+
+        self.set_destination(node=home_node)
+        print(f"{self.name} is going home.")
+
+    def get_outside_nodes(self):
+        """
+        Return outside nodes in the same population centre.
+        """
+        if not self.building or not self.building.population_centre:
+            return Node.objects.none()
+
+        return Node.objects.filter(
+            population_centre=self.building.population_centre,
+            building__isnull=True,
+        )
+
+    def pick_random_outside_node(self, radius=100):
+        qs = self.get_outside_nodes()
+
+        if self.location:
+            qs = (
+                qs.annotate(dist=Distance("location", self.location))
+                .filter(dist__lte=radius)
+                .order_by("dist")
+            )
+
+        nodes = list(qs)
+        if not nodes:
+            return None
+
+        # weighted randomness: closer nodes more likely
+        return random.choice(nodes[: max(3, len(nodes))])
 
     def go_outside(self, radius=10):
-        if not self.building:
-            print(f"{self.name} has no home!")
+        node = self.pick_random_outside_node()
+        if not node:
+            print(f"{self.name} couldn't find anywhere to go outside")
             return False
 
-        home = self.building
-        # Random offset within radius
-        angle = random.random() * 2 * math.pi
-        r = random.random() * radius
-        offset_x = math.cos(angle) * r
-        offset_y = math.sin(angle) * r
-
-        new_location = Point(
-            home.location.x + offset_x,
-            home.location.y + offset_y,
-        )
-        print(
-            f"Character {self.name} is going to ({new_location.x:.0f},{new_location.y:.0f})"
-        )
-        self.set_destination(point=new_location)
+        self.set_destination(node=node)
+        return True
 
     def start_quest(self, quest):
         self.quest_timer.change_quest(quest)
