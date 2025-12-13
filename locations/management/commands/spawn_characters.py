@@ -1,32 +1,52 @@
 # locations/management/commands/generate_characters.py
 
 import random
+import math
+from django.contrib.gis.db.models.functions import Distance
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from datetime import date, timedelta
-from locations.models import PopulationCentre
+from locations.models import PopulationCentre, Point, Node, Path
 from character.models import Character, PlayerCharacterLink
+
 
 CHARS_PER_BUILDING = 5
 
 MALE_NAMES = [
-    "Elrond",
     "Gareth",
     "Tristan",
     "Oswin",
     "Callum",
-    "Ronan",
     "Ronan",
     "Nico",
     "Aldwin",
     "Edric",
     "Elias",
     "Viggo",
-    "Dain",
     "Marwen",
     "Theo",
     "Dain",
     "Baldric",
+    "Aelfric",
+    "Aethelred",
+    "Aethelwin",
+    "Beorn",
+    "Beric",
+    "Cedric",
+    "Cuthbert",
+    "Eadgar",
+    "Eadmund",
+    "Ealdred",
+    "Godric",
+    "Hereward",
+    "Leofric",
+    "Osbert",
+    "Osmund",
+    "Roderic",
+    "Sigeric",
+    "Thurstan",
+    "Wulfric",
+    "Wynfrid",
 ]
 
 FEMALE_NAMES = [
@@ -44,6 +64,21 @@ FEMALE_NAMES = [
     "Ella",
     "Sylvie",
     "Thea",
+    "Aelfgifu",
+    "Aethelwyn",
+    "Edith",
+    "Eadgyth",
+    "Elfrida",
+    "Godgifu",
+    "Hilda",
+    "Leofgifu",
+    "Mildred",
+    "Osburga",
+    "Sibyl",
+    "Wynflaed",
+    "Eadwina",
+    "Isolde",
+    "Maud",
 ]
 
 LAST_NAMES = [
@@ -62,6 +97,24 @@ LAST_NAMES = [
     "Holloway",
     "Ashford",
     "Mossgrove",
+    "Atwood",
+    "Baker",
+    "Brook",
+    "Cartwright",
+    "Clayton",
+    "Cooper",
+    "Crowhurst",
+    "Fielding",
+    "Fletcher",
+    "Greenhill",
+    "Hardwick",
+    "Millward",
+    "Shepherd",
+    "Stonebridge",
+    "Tanner",
+    "Underhill",
+    "Webster",
+    "Whiteoak",
 ]
 
 
@@ -105,7 +158,7 @@ class Command(BaseCommand):
             self.generate_for_centre(centre)
 
     def generate_for_centre(self, centre: PopulationCentre):
-        buildings = list(centre.buildings.all())
+        buildings = list(centre.buildings.filter(building_type="residential"))
         building_count = len(buildings)
 
         num_chars = int(building_count * CHARS_PER_BUILDING * random.uniform(0.8, 1.2))
@@ -141,3 +194,63 @@ class Command(BaseCommand):
             )
 
         Character.objects.bulk_create(characters)
+
+        outside_nodes = self.generate_nodes(centre, buildings, num_chars)
+
+        paths = self.connect_outside_nodes(outside_nodes)
+
+    def generate_nodes(self, pop_centre, buildings, num):
+        outside_nodes = []
+        building_footprints = [b.footprint for b in buildings if b.footprint]
+
+        for i in range(num):
+            for attempt in range(50):  # try a few times to avoid collisions
+                # pick a random offset from village centre
+                angle = random.random() * 2 * math.pi
+                r = random.random() * 100  # adjust radius as needed
+                x = pop_centre.location.x + math.cos(angle) * r
+                y = pop_centre.location.y + math.sin(angle) * r
+                point = Point(x, y, srid=pop_centre.location.srid)
+
+                # make sure it doesn’t overlap a building
+                if any(fp.contains(point) for fp in building_footprints):
+                    continue
+
+                node = Node.objects.create(
+                    name=f"Outside node {i+1} for ({pop_centre.name})",
+                    location=point,
+                    population_centre=pop_centre,
+                )
+                outside_nodes.append(node)
+                break
+
+        return outside_nodes
+
+    def connect_outside_nodes(self, outside_nodes, max_neighbours=2):
+        paths = []
+
+        for outside_node in outside_nodes:
+            neighbours = self.nearest_building_nodes(outside_node, max_neighbours)
+
+            for building_node in neighbours:
+                path1, _ = Path.objects.get_or_create(
+                    from_node=outside_node,
+                    to_node=building_node,
+                )
+                path2, _ = Path.objects.get_or_create(
+                    from_node=building_node,
+                    to_node=outside_node,
+                )
+                paths.extend([path1, path2])
+
+        return paths
+
+    def nearest_building_nodes(self, outside_node, max_neighbours=2):
+        return (
+            Node.objects.filter(
+                population_centre=outside_node.population_centre,
+                building__isnull=False,
+            )
+            .annotate(dist=Distance("location", outside_node.location))
+            .order_by("dist")[:max_neighbours]
+        )

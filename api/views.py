@@ -47,6 +47,7 @@ from api.serializers import (
     PopulationCentreSerializer,
     LandAreaSerializer,
     SubzoneSerializer,
+    JourneySerializer,
 )
 
 from character.models import Character, PlayerCharacterLink
@@ -508,6 +509,7 @@ class DeleteAccountAPIView(APIView):
 from locations.models import PopulationCentre
 from .serializers import (
     ObjectLocationSerializer,
+    LineFeatureSerializer,
     PolygonFeatureSerializer,
     BoundaryFeatureSerializer,
 )
@@ -542,6 +544,7 @@ class PopulationCentreMapView(APIView):
     def get(self, request, pk):
         population_centre = PopulationCentre.objects.get(pk=pk)
         buildings = population_centre.buildings.all()
+        paths = population_centre.paths.all()
         characters = population_centre.residents.all()
 
         features = []
@@ -554,10 +557,8 @@ class PopulationCentreMapView(APIView):
         building_features = PolygonFeatureSerializer(buildings, many=True).data
         features.extend(building_features)
 
-        # road_features = RoadFeatureSerializer(
-        #     population_centre.roads.all(),
-        #     many=True
-        # ).data
+        path_features = PathFeatureSerializer(paths, many=True).data
+        features.extend(path_features)
 
         return Response(
             {
@@ -565,3 +566,15 @@ class PopulationCentreMapView(APIView):
                 "features": features,
             }
         )
+
+
+class JourneyViewSet(viewsets.ViewSet):
+    def list(self, request):
+        journeys = Journey.objects.filter(status="active")
+        serializer = JourneySerializer(journeys, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        journey = Journey.objects.get(pk=pk)
+        serializer = JourneySerializer(journey)
+        return Response(serializer.data)

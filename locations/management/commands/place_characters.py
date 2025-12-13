@@ -38,8 +38,8 @@ class Command(BaseCommand):
             return
 
         for char in characters:
-            if char.target_location:
-                char.cancel_journey()
+            if char.is_moving:
+                char.journey.cancel()
             if options["assign"]:
                 if not char.building:
                     char.building = random.choice(Building.objects.all())
@@ -56,22 +56,12 @@ class Command(BaseCommand):
                 )
                 continue
 
-            home = char.building
-            # Random offset within radius
-            angle = random.random() * 2 * math.pi
-            r = random.random() * radius
-            offset_x = math.cos(angle) * r
-            offset_y = math.sin(angle) * r
+            home = char.building.node.first()
+            print(f"home node: {home}")
+            char.move_to(home)
 
-            new_location = Point(
-                home.location.x + offset_x,
-                home.location.y + offset_y,
-            )
-
-            char.location = new_location
             self.stdout.write(
-                f"{char.full_name} placed at ({new_location.x:.0f}, {new_location.y:.0f}) near home at ({char.building.location.x:.0f}, {char.building.location.y:.0f})"
+                f"{char.full_name} at home at ({home.location.x:.0f}, {home.location.y:.0f})"
             )
 
-        Character.objects.bulk_update(characters, ["location"])
         self.stdout.write(self.style.SUCCESS("Characters have been placed"))
