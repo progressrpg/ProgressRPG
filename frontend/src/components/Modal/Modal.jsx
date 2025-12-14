@@ -27,7 +27,10 @@ export default function Modal({ title, children, onClose }) {
 
   return (
     <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
-      <div className={styles.modal}>
+      <div
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+      >
         <header className={styles.modalHeader}>
           <h2>{title}</h2>
           <Button
