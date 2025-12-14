@@ -84,3 +84,40 @@
     display: none;
   }
 }
+
+.menuButton {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-right: 1rem; // adjust as needed
+
+  &:hover .bar {
+    background-color: var(--primary-500);
+  }
+}
+
+.bar {
+  width: 22px;
+  height: 3px;
+  background-color: var(--text-900);
+  border-radius: 3px;
+}
+
+
+.menuIcon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menuIcon span {
+  display: block;
+  width: 22px;
+  height: 3px;
+  background: var(--text-900, #000); // fallback if variables missing
+  border-radius: 3px;
+}

@@ -1,0 +1,29 @@
+// src/AppContent.jsx
+import { useState } from 'react';
+import Navbar from './layout/Navbar/Navbar';
+import NavDrawer from './layout/NavDrawer/NavDrawer';
+import StaticBanner from './components/StaticBanner/StaticBanner';
+import AppRoutes from "./routes/AppRoutes";
+import Footer from './layout/Footer/Footer';
+import FeedbackWidget from './components/FeedbackWidget/FeedbackWidget';
+import { useAuth } from './context/AuthContext';
+import { useGame } from './context/GameContext';
+
+const announcement = `Progress RPG is in alpha status, and under active development. Bugs may appear, and data may be lost. Thank you for testing!`;
+
+export default function AppContent() {
+  const { buildNumber } = useGame();
+  const { isAuthenticated } = useAuth();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  return (
+    <div className="app-container">
+      <Navbar onMenuClick={() => setDrawerOpen(true)}/>
+      <NavDrawer drawerOpen={drawerOpen} onClose={() => setDrawerOpen(false)}/>
+      <StaticBanner message={`${announcement} (Build ${buildNumber})`} />
+      <AppRoutes />
+      <Footer />
+      {isAuthenticated && <FeedbackWidget />}
+    </div>
+  );
+}

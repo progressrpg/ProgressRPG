@@ -20,29 +20,32 @@ export default function QuestSection() {
     }
   }, [questTimer.isComplete, status]);
 
+  const canChooseQuest = (status == 'completed');
+
   return (
     <GameSection type="Quest">
       <QuestTimer />
       <QuestRewards rewards={{ xp: 0, coins: 0 }}/>
-      <ButtonFrame>
-        <Button
-          className="primary"
-          onClick={() => {
-            setShowQuestModal(true);
-          }}
-        >
-          Show quests
-        </Button>
-        <Button
-          className="primary"
-          onClick={() => {
-            setShowTaskSupport(true);
-          }}
-        >
-          Task Support
-        </Button>
 
-      </ButtonFrame>
+      {canChooseQuest && (
+        <ButtonFrame>
+          <Button
+            className="primary"
+            onClick={() => {
+              setModalOpen(true);
+            }}
+          >
+            Show quests
+          </Button>
+
+          <Button
+            className="primary"
+            onClick={() => {setShowTaskSupport(true);}}
+          >
+            Task Support
+          </Button>
+        </ButtonFrame>
+      )}
 
       {showQuestModal && (
         <QuestModal

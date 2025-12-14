@@ -1,7 +1,8 @@
 name: 🐛 Bug Report
 description: Report something that isn’t working as expected in Progress RPG
-title: "[Bug] "
 labels: ["bug", "triage"]
+assignees: ["gaidheal1"]
+
 body:
   - type: markdown
     attributes:
@@ -47,6 +48,14 @@ body:
       placeholder: e.g. "The timer went back to 0 after a few seconds. No error message showed up."
     validations:
       required: true
+
+  - type: checkboxes
+    id: where
+    attributes:
+      label: Where does this bug occur?
+      options:
+        - label: Staging (staging.progressrpg.com)
+        - label: Production (app.progressrpg.com)
 
   - type: textarea
     id: context

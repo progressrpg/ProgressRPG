@@ -46,6 +46,7 @@ APP_VERSION = "0.6.0-alpha"
 TOKEN_MODEL = None
 
 # Application definition
+# Test for Ruth
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -93,8 +94,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    #'server_management.middleware.MaintenanceModeMiddleware',
-    #'server_management.middleware.BlockBotMiddleware',
+    #'server_management.middleware.AsyncMaintenanceModeMiddleware',
+    #'server_management.middleware.AsyncBlockBotMiddleware',
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -238,7 +239,11 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -247,12 +252,6 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
-# Email settings (host, port and password are at top)
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "admin@progressrpg.com"
-DEFAULT_FROM_EMAIL = "admin@progressrpg.com"
 
 # Optionally, configure for error emails
 ADMINS = [

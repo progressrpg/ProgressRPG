@@ -4,7 +4,7 @@ set -e
 
 # Check for dry-run flag
 dry_run=false
-if [[ "$1" == "--dry-run" || "$1" == "-DR" ]]; then
+if [[ "$1" == "--dry-run" || "$1" == "-D" ]]; then
   dry_run=true
   echo "🔍 Running in dry-run mode. No changes will be made."
 fi
@@ -119,7 +119,7 @@ else
 fi
 
 git add CHANGELOG.md
-git commit -m "Update changelog for $new_tag"
+git commit -m "docs: Update changelog for $new_tag"
 git push
 
 echo "✅ Tag $new_tag created and CHANGELOG.md updated."

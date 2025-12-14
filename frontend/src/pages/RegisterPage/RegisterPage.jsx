@@ -54,7 +54,6 @@ export default function RegisterPage() {
     } else {
       setError(errorMessage);
       setFieldErrors(errors || {});
-      //console.log(errorMessage);
     }
   };
 
@@ -134,6 +133,7 @@ export default function RegisterPage() {
           error={error}
           onSubmit={handleRegister}
           submitLabel="Create Account"
+          fieldErrors={fieldErrors}
         />
       )}
       {error && <p className="error">{error}</p>}

@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings, tag
 from django.urls import reverse
 from unittest import skip
 import logging
 
 from users.models import Profile
+from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink
 
@@ -59,7 +60,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(profile.onboarding_step, 0)
         self.assertEqual(profile.total_time, 0)
         self.assertEqual(profile.total_activities, 0)
-
 
 class OnboardingTest(TestCase):
     def setUp(self):
@@ -123,7 +123,7 @@ class OnboardingTest(TestCase):
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.onboarding_step, 4)
 
-
+@tag("fast")
 class ProfileMethodsTest(TestCase):
     def setUp(self):
         self.character = Character.objects.create(first_name="Jane", can_link=True)
@@ -186,7 +186,7 @@ class TestViews_LoggedIn(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/edit_profile.html")
 
-
+@tag("fast")
 class TestViews_LoggedOut(TestCase):
     def setUp(self):
         # urls
@@ -210,3 +210,35 @@ class TestViews_LoggedOut(TestCase):
         response = self.client.get(self.register_url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/register.html")
+
+
+@override_settings(
+    CELERY_TASK_ALWAYS_EAGER=True,  # run Celery tasks immediately, not via broker
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",  # in-memory email storage
+)
+class EmailTaskTest(TestCase):
+
+    def test_send_email_task(self):
+        emails = ["test@example.com"]
+        subject = "Test Email"
+        template_base = "emails/email_confirmation_message"
+        context = {"user": {"email": "test@example.com"}}
+        cc_admin = False
+
+        # Run task synchronously
+        send_email_to_users_task(
+            emails=emails,
+            subject=subject,
+            template_base=template_base,
+            context=context,
+            cc_admin=cc_admin,
+        )
+
+        # Check that the email was sent
+        from django.core.mail import outbox
+
+        self.assertEqual(len(outbox), 1)  # one email was sent
+        email = outbox[0]
+        self.assertEqual(email.subject, subject)
+        self.assertEqual(email.to, emails)
+        self.assertIn("test@example.com", email.body)
