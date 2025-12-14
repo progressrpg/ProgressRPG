@@ -132,7 +132,7 @@ class Movable(models.Model):
         if moving_count == 1:
             move_characters_tick.apply_async()
 
-    def move_to(self, new_node: "locations.Node"):
+    def move_to(self, new_node):
         """
         Move object to new node instantly.
         """
@@ -153,13 +153,9 @@ class Movable(models.Model):
         # Determine the next target node
         next_node = self.journey.next_node()
         if not next_node:
-            # Reached end of journey
+            # Reached end of journey: finalise via arrive()
             self.is_moving = False
-            return self.arrive()  # optional: triggers whatever arrive() does
-            if not self.target_location:
-                if self.is_moving:
-                    self.is_moving = False
-                    return False
+            return self.arrive()
 
         dx = next_node.location.x - self.location.x
         dy = next_node.location.y - self.location.y
