@@ -13,6 +13,9 @@ export default function QuestSection() {
   const { status, assignSubject } = questTimer;
   const [showQuestModal, setShowQuestModal] = useState(false);
   const [showTaskSupport, setShowTaskSupport] = useState(false);
+  const [taskSupportActive, setTaskSupportActive] = useState(false);
+  const [lastTaskSupportDuration, setLastTaskSupportDuration] = useState();
+
 
   useEffect(() => {
     if (questTimer.isComplete && status === 'active') {
@@ -20,7 +23,14 @@ export default function QuestSection() {
     }
   }, [questTimer.isComplete, status]);
 
-  const canChooseQuest = (status == 'completed');
+  const canChooseQuest = (status === 'completed' || status === 'empty');
+
+  useEffect(() => {
+    if (canChooseQuest && taskSupportActive) {
+      setShowTaskSupport(true);
+    }
+  }, [canChooseQuest, taskSupportActive])
+
 
   return (
     <GameSection type="Quest">
@@ -31,16 +41,16 @@ export default function QuestSection() {
         <ButtonFrame>
           <Button
             className="primary"
-            onClick={() => {
-              setModalOpen(true);
-            }}
+            onClick={() => {setShowQuestModal(true);}}
           >
             Show quests
           </Button>
 
           <Button
             className="primary"
-            onClick={() => {setShowTaskSupport(true);}}
+            onClick={() => {
+              setShowTaskSupport(true);
+            }}
           >
             Task Support
           </Button>
@@ -63,7 +73,17 @@ export default function QuestSection() {
           onChooseQuest={(quest, duration) => {
             assignSubject(quest, duration);
             setShowTaskSupport(false);
+            setTaskSupportActive(true);
           }}
+          taskSupportActive={taskSupportActive}
+          onFinishSupport={() => {
+            setTaskSupportActive(false);
+          }}
+          onStartSupport={() => {
+            setTaskSupportActive(true);
+          }}
+          lastDuration={lastTaskSupportDuration}
+          setLastDuration={setLastTaskSupportDuration}
         />
       )}
 

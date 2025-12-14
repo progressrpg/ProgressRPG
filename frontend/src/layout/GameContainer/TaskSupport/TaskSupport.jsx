@@ -1,14 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Modal from "../../../components/Modal/Modal";
 import Button from "../../../components/Button/Button";
 import ButtonFrame from "../../../components/Button/ButtonFrame";
+import { useGame } from "../../../context/GameContext";
 
-export default function TaskSupportModal() {
-  const [modalState, setModalState] = useState("welcome"); // welcome | walkthrough | suggestion | postQuest | null
-  const [questDuration, setQuestDuration] = useState(null);
-  const [suggestion, setSuggestion] = useState(null);
+
+export default function TaskSupportModal({
+  onClose,
+  onChooseQuest,
+  onStartSupport,
+  onFinishSupport,
+  taskSupportActive,
+  lastDuration,
+  setLastDuration,
+}) {
+  const [modalState, setModalState] = useState('welcome'); // welcome | walkthrough | suggestion | postQuest
+  const [suggestion, setSuggestion] = useState();
+
+  const { quests } = useGame();
+
+  useEffect(() => {
+    if (taskSupportActive) {
+      setModalState("postQuest");
+    }
+  }, [taskSupportActive]);
 
   // Simple suggestion mapping (MVP)
   const suggestions = {
@@ -25,10 +42,21 @@ export default function TaskSupportModal() {
     postQuest: "welcome"
   };
 
-  function startQuest(duration) {
-    setQuestDuration(duration);
-    setModalState(null); // close modal
 
+  const quest = quests.find(quest => quest.name === "Task Support Quest"); // placeholder quest
+
+  function startQuest(duration) {
+    const chosenDuration = duration ?? lastDuration;
+    setLastDuration(chosenDuration);
+
+    if (chosenDuration == null) {
+      console.warn("No duration set for quest!");
+      return;
+    }
+
+    onChooseQuest?.(quest, chosenDuration);
+    onStartSupport?.();
+    onClose?.();
   }
 
   function handleWalkthroughChoice(type) {
@@ -39,10 +67,10 @@ export default function TaskSupportModal() {
   return (
     <>
       {modalState === "welcome" && (
-        <Modal title="Welcome back!" onClose={() => setModalState(null)}>
+        <Modal title="Welcome back!" onClose={onClose}>
           <p>How would you like to begin?</p>
           <ButtonFrame>
-            <Button onClick={() => startQuest(5)}>Jump straight in</Button>
+            <Button onClick={() => startQuest(10)}>Jump straight in</Button>
             <Button onClick={() => setModalState("walkthrough")}>
               Walkthrough
             </Button>
@@ -51,7 +79,7 @@ export default function TaskSupportModal() {
       )}
 
       {modalState === "walkthrough" && (
-        <Modal title="What’s most difficult right now?" onClose={() => setModalState(null)}>
+        <Modal title="What’s most difficult right now?" onClose={onClose}>
           <ButtonFrame>
             <Button onClick={() => handleWalkthroughChoice("start")}>
               Don’t know where to start
@@ -70,11 +98,11 @@ export default function TaskSupportModal() {
       )}
 
       {modalState === "suggestion" && (
-        <Modal title="Quest Suggestion" onClose={() => setModalState(null)}>
+        <Modal title="Quest Suggestion" onClose={onClose}>
           <p>{suggestion}</p>
           <div>
-            {[5, 10, 15].map((d) => (
-              <Button key={d} onClick={() => startQuest(d)}>
+            {[1, 3, 5].map((d) => (
+              <Button key={d} onClick={() => startQuest(d*60)}>
                 {d} min
               </Button>
             ))}
@@ -88,12 +116,18 @@ export default function TaskSupportModal() {
       )}
 
       {modalState === "postQuest" && (
-        <Modal title="Quest complete!" onClose={() => setModalState(null)}>
+        <Modal title="Quest complete!" onClose={onClose}>
           <p className="mt-2">Nice work. What do you need next?</p>
           <ButtonFrame>
-            <Button onClick={() => startQuest(questDuration)}>Repeat quest</Button>
+            <Button onClick={() => startQuest(lastDuration)}>Repeat quest ({lastDuration} min)</Button>
             <Button onClick={() => setModalState("walkthrough")}>Pick another quest</Button>
-            <Button onClick={() => setModalState(null)}>Finish for now</Button>
+            <Button onClick={() => {
+              onClose?.();
+              onFinishSupport?.();
+              }}
+            >
+              Finish for now
+            </Button>
           </ButtonFrame>
         </Modal>
       )}
