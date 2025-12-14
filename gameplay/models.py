@@ -77,6 +77,7 @@ class Quest(models.Model):
 
     # Eligibility criteria
     is_premium = models.BooleanField(default=False)
+    is_task_support = models.BooleanField(default=False)
     levelMin = models.IntegerField(default=0)
     levelMax = models.IntegerField(default=0)
     canRepeat = models.BooleanField(default=True)
@@ -196,6 +197,8 @@ class Quest(models.Model):
         # Simple comparison checks
         if not self.is_active:
             return False
+        # elif self.is_task_support:
+        #    return False
         elif character.level < self.levelMin or character.level > self.levelMax:
             return False
         elif profile.is_premium and self.is_premium:

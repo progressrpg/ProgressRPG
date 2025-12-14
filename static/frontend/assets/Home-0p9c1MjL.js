@@ -1,0 +1,1 @@
+import{u as t,j as e,B as a}from"./main-Dm1cB4_l.js";function r(){const s=t();return e.jsxs("div",{className:"home-page",children:[e.jsx("h1",{children:"🧙‍♂️ Welcome to Progress RPG"}),e.jsx("p",{children:"Embark on epic quests and master your time through focused activity."}),e.jsx(a,{onClick:()=>s("/game"),children:"Enter the game"})]})}export{r as default};

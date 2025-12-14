@@ -25,7 +25,7 @@ class QuestAdmin(admin.ModelAdmin):
         "name",
         "description",
         ("intro_text", "outro_text"),
-        ("canRepeat", "is_premium", "frequency"),
+        ("canRepeat", "is_premium", "is_task_support", "frequency"),
         ("levelMin", "levelMax"),
         "duration_choices",
         "created_at",
@@ -44,6 +44,7 @@ class QuestAdmin(admin.ModelAdmin):
         # "frequency",
         "levelMin",
         "levelMax",
+        "is_task_support",
     ]
 
     readonly_fields = [
