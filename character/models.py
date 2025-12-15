@@ -260,8 +260,11 @@ class Character(Person, LifeCycleMixin, Movable):
         elif phase == "night":
             print(f"{self.name} is indoors at night")
 
+    def assign_home(self, building: Building):
+        self.building = building
+        self.save(update_fields["building"])
+
     def go_home(self):
-        self.refresh_from_db()  # Needed for self.current_object because it's a GenericForeignKey
         if not self.building:
             print(f"{self.name} has no home to go to!")
             return
