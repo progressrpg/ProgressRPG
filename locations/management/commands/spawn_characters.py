@@ -157,6 +157,13 @@ class Command(BaseCommand):
         for centre in centres:
             self.generate_for_centre(centre)
 
+        # Place linked characters
+        buildings = Building.objects.all()
+        chars = Character.objects.all()
+        for char in chars:
+            char.assign_home(random.choice(buildings))
+            char.move_to(char.building.node)
+
     def generate_for_centre(self, centre: PopulationCentre):
         buildings = list(centre.buildings.filter(building_type="residential"))
         building_count = len(buildings)
