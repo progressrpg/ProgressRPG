@@ -308,37 +308,6 @@ class QuestCompletion(models.Model):
         return f"character {self.character.name} has completed {self.quest.name}"
 
 
-class Skill(models.Model):
-    profile = models.ForeignKey(
-        "users.Profile", on_delete=models.CASCADE, related_name="skills"
-    )
-    name = models.CharField(max_length=100)
-    time = models.PositiveIntegerField(default=0)
-    xp = models.IntegerField(default=0)
-    level = models.IntegerField(default=0)
-    total_activities = models.PositiveIntegerField(default=0)
-    last_updated = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-
-class Project(models.Model):
-    profile = models.ForeignKey(
-        "users.Profile", on_delete=models.CASCADE, related_name="projects"
-    )
-    name = models.CharField(max_length=100)
-    description = models.TextField(max_length=2000)
-    time = models.PositiveIntegerField(default=0)
-    total_activities = models.PositiveIntegerField(default=0)
-    last_updated = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-
 class Timer(models.Model):
     """
     An abstract base model that represents a general timer for activities

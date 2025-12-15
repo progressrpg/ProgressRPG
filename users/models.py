@@ -120,9 +120,14 @@ class Person(models.Model):
         self.xp += amount
         levelups = []
 
-        while self.xp >= self.get_xp_for_next_level():
+        while True:
+            xp_needed = self.get_xp_for_next_level()
+            if self.xp < xp_needed:
+                break
+
             old_level = self.level
-            self.level_up()
+            self.xp -= xp_needed
+            self.level += 1
             levelups.append(
                 {
                     "old_level": old_level,
@@ -131,18 +136,12 @@ class Person(models.Model):
                     "name": self.name,
                 }
             )
-            self.xp_next_level = self.get_xp_for_next_level()
-        self.save(update_fields=["xp_next_level", "xp"])
 
+        self.xp = max(0, self.xp)
+        self.xp_next_level = self.get_xp_for_next_level()
+
+        self.save(update_fields=["xp", "level", "xp_next_level"])
         return levelups
-
-    def level_up(self):
-        """
-        Increase the level of the person and reset XP accordingly.
-        """
-        self.xp -= self.get_xp_for_next_level()
-        self.level += 1
-        self.save(update_fields=["level", "xp"])
 
     def get_xp_for_next_level(self):
         """

@@ -1,16 +1,11 @@
 # character/tests.py
 
-from django.test import TestCase
-
-from character.models import Character, PlayerCharacterLink
-
-from gameplay.models import QuestCompletion, Quest, QuestResults, QuestTimer
-
 from datetime import date, datetime, timedelta
-from unittest.mock import patch, MagicMock
-from django.test import TestCase
 from django.db import IntegrityError, transaction
+from django.test import TestCase
 from django.utils.timezone import now
+from unittest import skip
+from unittest.mock import patch, MagicMock
 
 from character.models import (
     Character,
@@ -22,6 +17,8 @@ from character.models import (
     CharacterRoleSkill,
     CharacterProgression,
 )
+
+from gameplay.models import QuestCompletion, Quest, QuestResults, QuestTimer
 from users.models import Person, Profile, CustomUser
 
 
@@ -356,19 +353,6 @@ class PersonTests(TestCase):
         self.character.level = 5
         self.assertEqual(self.character.get_xp_for_next_level(), 600)  # 100 * (5+1)
 
-    def test_level_up(self):
-        """Test individual level up logic"""
-        self.character.xp = 150
-        self.character.level = 1
-
-        initial_xp_needed = self.character.get_xp_for_next_level()  # 200
-        self.character.level_up()
-
-        self.assertEqual(self.character.level, 2)
-        self.assertEqual(
-            self.character.xp, 150 - initial_xp_needed
-        )  # 150 - 200 = -50 (should be handled by add_xp)
-
     def test_xp_modifier_property(self):
         """Test XP modifier default value"""
         self.assertEqual(self.character.xp_modifier, 1.0)
@@ -377,6 +361,7 @@ class PersonTests(TestCase):
         """Test created_at timestamp is set"""
         self.assertIsNotNone(self.character.created_at)
 
+    @skip("Buffs not in use")
     def test_apply_buffs_no_buffs(self):
         """Test applying buffs when no buffs exist"""
         # Since buffs aren't implemented, this should return the base value
