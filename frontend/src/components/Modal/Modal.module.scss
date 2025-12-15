@@ -1,9 +1,9 @@
-@use '../../../styles/base/variables' as v;
-@use '../../../styles/semantic/colors' as c;
-@use '../../two-columns' as tc;
+// components/Modal/Modal.module.scss
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+@use '../../layout/two-columns' as tc;
 @use 'sass:map';
-@use '../../../styles/utilities/mixins' as m;
-
+@use '../../styles/utilities/mixins' as m;
 
 
 .modalBackdrop {

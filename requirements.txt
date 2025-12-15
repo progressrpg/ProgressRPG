@@ -1,6 +1,6 @@
 alabaster==1.0.0
 amqp==5.3.1
-asgiref==3.7.2
+asgiref==3.8.1
 attrs==25.4.0
 autobahn==24.4.2
 Automat==24.8.1
@@ -27,7 +27,7 @@ defusedxml==0.7.1
 distlib==0.4.0
 dj-database-url==2.3.0
 dj-rest-auth==7.0.1
-Django==4.2.26
+Django==5.2.8
 django-allauth==0.60.1
 django-celery-beat==2.8.1
 django-cf-turnstile==0.1.0

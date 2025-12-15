@@ -80,6 +80,16 @@ LOGGING = {
             "level": "ERROR",
             "propagate": False,
         },
+        "general": {
+            "handlers": ["file_info"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "activity": {
+            "handlers": ["file_debug"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
         "django.db.backends": {
             "level": "WARNING",
             "handlers": ["console", "file_errors"],
@@ -107,9 +117,13 @@ DB_PORT = os.getenv("DB_PORT", default=5432)
 
 DATABASE_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = os.getenv("EMAIL_PORT")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = "localhost"
+EMAIL_PORT = 1025
+EMAIL_HOST_USER = ""
+EMAIL_HOST_PASSWORD = ""
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = False
 
 print("DEBUG:", DEBUG)
 
@@ -165,7 +179,7 @@ CACHES = {
 
 
 # For local development only
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True

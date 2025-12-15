@@ -48,9 +48,16 @@ DB_PASSWORD = os.environ.get("DB_PASSWORD")
 DB_HOST = os.environ.get("DB_HOST")
 DB_PORT = os.environ.get("DB_PORT")
 
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
-EMAIL_PORT = os.environ.get("EMAIL_PORT")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+EMAIL_HOST_USER = "admin@progressrpg.com"
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+
+EMAIL_USE_TLS = True
+# EMAIL_USE_SSL = False
+DEFAULT_FROM_EMAIL = "Progress RPG <admin@progressrpg.com>"
 
 print("DEBUG:", DEBUG)
 
@@ -140,7 +147,7 @@ CELERY_RESULT_BACKEND = REDIS_URL_MOD
 
 
 # Session settings
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = False
