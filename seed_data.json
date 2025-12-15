@@ -1054,12 +1054,12 @@
       {
         "text": "First stage text for quest 1",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       },
       {
         "text": "Second stage text for quest 1",
         "order": 1,
-        "endTime": 10
+        "duration": 10
       }
     ],
     "stagesFixed": false,
@@ -1095,12 +1095,12 @@
       {
         "text": "First stage text for quest 2",
         "order": 0,
-        "endTime": 3
+        "duration": 3
       },
       {
         "text": "Tooth stage text for quest 2",
         "order": 1,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1136,17 +1136,17 @@
       {
         "text": "Gather Wheat – Collect wheat from the fields.",
         "order": 0,
-        "endTime": 300
+        "duration": 300
       },
       {
         "text": "Pick Vegetables – Gather vegetables from the nearby garden.",
         "order": 1,
-        "endTime": 600
+        "duration": 600
       },
       {
         "text": "Store the Produce – Help store the harvest in the barn.",
         "order": 2,
-        "endTime": 900
+        "duration": 900
       }
     ],
     "stagesFixed": false,
@@ -1182,17 +1182,17 @@
       {
         "text": "Prepare the soil in the planting areas.",
         "order": 0,
-        "endTime": 420
+        "duration": 420
       },
       {
         "text": "Plant the seeds carefully in the soil.",
         "order": 1,
-        "endTime": 840
+        "duration": 840
       },
       {
         "text": "Water the newly planted seeds.",
         "order": 2,
-        "endTime": 1200
+        "duration": 1200
       }
     ],
     "stagesFixed": false,
@@ -1228,17 +1228,17 @@
       {
         "text": "Weed the garden to remove unwanted plants.",
         "order": 0,
-        "endTime": 180
+        "duration": 180
       },
       {
         "text": "Inspect the crops for any signs of pests or damage.",
         "order": 1,
-        "endTime": 360
+        "duration": 360
       },
       {
         "text": "Water the crops to ensure they stay hydrated.",
         "order": 2,
-        "endTime": 600
+        "duration": 600
       }
     ],
     "stagesFixed": false,
@@ -1274,17 +1274,17 @@
       {
         "text": "Gather manure or compost for fertilization.",
         "order": 0,
-        "endTime": 480
+        "duration": 480
       },
       {
         "text": "Spread the fertilizer evenly across the fields.",
         "order": 1,
-        "endTime": 1020
+        "duration": 1020
       },
       {
         "text": "Water the fertilized land to help the nutrients settle.",
         "order": 2,
-        "endTime": 1500
+        "duration": 1500
       }
     ],
     "stagesFixed": false,
@@ -1320,17 +1320,17 @@
       {
         "text": "Gather wood, nails, and other necessary tools.",
         "order": 0,
-        "endTime": 420
+        "duration": 420
       },
       {
         "text": "Repair the barn roof by fixing leaks and patches.",
         "order": 1,
-        "endTime": 900
+        "duration": 900
       },
       {
         "text": "Patch the walls of the barn to cover cracks and holes.",
         "order": 2,
-        "endTime": 1800
+        "duration": 1800
       }
     ],
     "stagesFixed": false,
@@ -1361,12 +1361,12 @@
       {
         "text": "First stage text for tut quest",
         "order": 0,
-        "endTime": 15
+        "duration": 15
       },
       {
         "text": "Second stage text for tut quest",
         "order": 1,
-        "endTime": 30
+        "duration": 30
       }
     ],
     "stagesFixed": false,
@@ -1399,7 +1399,7 @@
       {
         "text": "Planting planting planting",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1432,7 +1432,7 @@
       {
         "text": "Watering Watering Watering",
         "order": 0,
-        "endTime": 15
+        "duration": 15
       }
     ],
     "stagesFixed": false,
@@ -1465,7 +1465,7 @@
       {
         "text": "Planting planting planting",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1498,7 +1498,7 @@
       {
         "text": "Planting planting planting",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1531,7 +1531,7 @@
       {
         "text": "Planting planting planting",
         "order": 0,
-        "endTime": 5
+        "duration": 5
       }
     ],
     "stagesFixed": false,
@@ -1541,6 +1541,41 @@
     "levelMax": 10,
     "canRepeat": false,
     "frequency": "NONE"
+  }
+},
+{
+  "model": "gameplay.quest",
+  "pk": 14,
+  "fields": {
+    "name": "Task Support Quest",
+    "description": "This is a placeholder quest for the Task Support feature.",
+    "intro_text": "You can do it!",
+    "outro_text": "You did it!",
+    "duration_choices": [
+      30,
+      60,
+      120,
+      180
+    ],
+    "created_at": "2025-12-02T23:04:55.736Z",
+    "start_date": null,
+    "end_date": null,
+    "is_active": true,
+    "stages": [
+      {
+        "text": "Supporting supporting supporting",
+        "order": 0,
+        "duration": 15
+      }
+    ],
+    "stagesFixed": false,
+    "category": "NONE",
+    "is_premium": false,
+    "levelMin": 0,
+    "levelMax": 10,
+    "canRepeat": false,
+    "frequency": "NONE",
+    "is_task_support": true
   }
 },
 {
