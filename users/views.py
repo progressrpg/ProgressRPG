@@ -20,6 +20,7 @@ from .forms import UserRegisterForm, ProfileForm, EmailAuthenticationForm
 from .models import Profile
 from .utils import kick_old_sessions, send_signup_email
 
+from api.views import IsOwnerProfile
 from character.models import PlayerCharacterLink
 from gameplay.serializers import ActivitySerializer
 
@@ -516,3 +517,21 @@ def delete_account(request):
         return redirect("index")
     else:
         return render(request, "users/delete_account.html")
+
+
+class ProfileViewSet(
+    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
+):
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated, IsOwnerProfile]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_class = ProfileFilter
+    search_fields = ["name"]
+    ordering_fields = ["level", "xp", "total_time", "total_activities", "login_streak"]
+
+    def get_queryset(self):
+        return Profile.objects.filter(user=self.request.user)

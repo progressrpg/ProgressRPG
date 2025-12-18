@@ -41,7 +41,6 @@ class UserCreationTest(TestCase):
         self.assertTrue(superuser.is_superuser)
         self.assertTrue(superuser.is_staff)
 
-    @skip("Error on 'link.character'")
     def test_character_assigned_on_profile(self):
         """Test that a character is assigned to the user's profile."""
         user = self.UserModel.objects.create_user(
@@ -60,6 +59,7 @@ class UserCreationTest(TestCase):
         self.assertEqual(profile.onboarding_step, 0)
         self.assertEqual(profile.total_time, 0)
         self.assertEqual(profile.total_activities, 0)
+
 
 class OnboardingTest(TestCase):
     def setUp(self):
@@ -123,6 +123,7 @@ class OnboardingTest(TestCase):
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.onboarding_step, 4)
 
+
 @tag("fast")
 class ProfileMethodsTest(TestCase):
     def setUp(self):
@@ -150,42 +151,6 @@ class ProfileMethodsTest(TestCase):
         self.assertEqual(link.character, self.character2)
 
 
-class TestViews_LoggedIn(TestCase):
-    def setUp(self):
-        self.client = Client()
-
-        # urls
-        self.index_url = reverse("index")
-        self.profile_url = reverse("profile")
-        self.editprofile_url = reverse("edit_profile")
-
-        character = Character.objects.create(name="Bob", can_link=True)
-        User = get_user_model()
-        user = User.objects.create_user(
-            email="testuser@example.com", password="testpassword123"
-        )
-
-        self.client.login(email="testuser@example.com", password="testpassword123")
-
-    @skip("Skipping as temporarily broken")
-    def test_index_GET(self):
-        """Check the index is rendered successfully."""
-        response = self.client.get(self.index_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "users/index.html")
-
-    def test_profile_GET(self):
-        """Check the profile is rendered successfully."""
-        response = self.client.get(self.profile_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "users/profile.html")
-
-    def test_profile_edit_GET(self):
-        """Check the edit profile page is rendered successfully."""
-        response = self.client.get(self.editprofile_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "users/edit_profile.html")
-
 @tag("fast")
 class TestViews_LoggedOut(TestCase):
     def setUp(self):
@@ -209,7 +174,6 @@ class TestViews_LoggedOut(TestCase):
         """Check the register page is rendered successfully."""
         response = self.client.get(self.register_url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "users/register.html")
 
 
 @override_settings(

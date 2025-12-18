@@ -16,5 +16,16 @@ class ProfileSerializer(serializers.ModelSerializer):
             "total_time",
             "total_activities",
             "is_premium",
+            "onboarding_step",
+            "login_streak",
+        ]
+        read_only_fields = [
+            "id",
+            "xp",
+            "xp_next_level",
+            "xp_modifier",
+            "level",
+            "total_time",
+            "total_activities",
             "login_streak",
         ]
