@@ -2,13 +2,14 @@
 from django.db import models, transaction, IntegrityError
 from django.utils.timezone import now
 from random import random, randint
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Dict, Any, cast
 import logging
 
 from users.models import Person, Profile
 
 from gameplay.models import Buff, AppliedBuff, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
+from progression.models import CharacterQuest
 
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
@@ -221,60 +222,81 @@ class Character(Person, LifeCycleMixin):
     def start_quest(self, quest):
         self.quest_timer.change_quest(quest)
 
-    def get_quest_completions(self, quest: Quest):
-        return QuestCompletion.objects.filter(character=self, quest=quest)
-
     @transaction.atomic
     def complete_quest(self, xp_gained):
         logger.info(f"[CHAR.COMPLETE_QUEST] Starting quest completion for {self}")
 
         quest = self.quest_timer.quest
-        logger.debug(f"{self.quest_timer}")
 
         if quest is None:
             logger.error(f"[CHAR.COMPLETE_QUEST] Quest is None for character {self.id}")
             return None
 
-        try:
-            completion, created = QuestCompletion.objects.get_or_create(
-                character=self,
-                quest=quest,
-            )
-            if not created:
-                completion.times_completed += 1
-                completion.save()
-
-        except IntegrityError as e:
-            logger.error(
-                f"[CHAR.COMPLETE_QUEST] IntegrityError: failed to create or retrieve quest completion for character {self.id}, quest {quest.id}: {e}"
-            )
-            return None
-        except Exception as e:
-            logger.exception(
-                f"[CHAR.COMPLETE_QUEST] Unexpected error while completing quest {quest.id} for character {self.id}: {e}"
-            )
-            return None
-
         rewards_summary = None
         try:
             if hasattr(quest, "results") and quest.results is not None:
-                quest.results.apply(self)
-                rewards_summary = QuestResultSerializer(quest.results).data
-
+                rewards_summary = self.apply_quest_results(quest)
+            else:
+                rewards_summary = {
+                    "xp_gained": 0,
+                    "coins_gained": 0,
+                    "dynamic_rewards": {},
+                    "buffs_applied": [],
+                    "levelups": [],
+                }
         except Exception as e:
             logger.exception(
                 f"[CHAR.COMPLETE_QUEST] Error applying rewards for quest {quest.id}: {e}"
             )
 
+        logger.info(f"[CHAR.COMPLETE_QUEST] Quest completion successful")
+        return rewards_summary
+
+    @transaction.atomic
+    def apply_quest_results(self, quest):
+        """
+        Apply the rewards associated with a character quest to the character, including
+        coins, xp, and dynamic rewards.
+
+        """
+        logger.info(f"[QUESTRESULTS.APPLY] Applying results to character {self.name}")
+        results = getattr(quest, "results", {}) or {}
+
+        xp_rate = getattr(results, "xp_rate", 1)
+
+        time_xp = xp_rate * getattr(quest, "duration", 0)
+        level_scaling = 1
+        repeat_penalty = 1
+        final_xp = time_xp * level_scaling * repeat_penalty
+
+        coins_gained = results.get("coin_reward", 0)
+        self.coins += coins_gained
+
+        dynamic_rewards = results.get("dynamic_rewards", {})
+        if dynamic_rewards:
+            for key, value in dynamic_rewards.items():
+                if hasattr(self, f"apply_{key}"):
+                    getattr(self, f"apply_{key}")(value)
+                elif hasattr(self, key):
+                    current_value = getattr(self, key)
+                    if isinstance(current_value, (int, float)):
+                        setattr(self, key, current_value + value)
+                    else:
+                        setattr(self, key, value)
+        else:
+            logger.info(
+                f"[CHAR.APPLY_QUEST_RESULTS] No dynamic rewards found for quest."
+            )
+
         levelups = []
         try:
-            levelups = self.add_xp(xp_gained)
+            levelups = self.add_xp(final_xp)
             self.total_quests += 1
-            self.save(update_fields=["total_quests"])
+            self.save(update_fields=["coins", "total_quests"])
 
         except Exception as e:
             logger.exception(
-                f"[CHAR.COMPLETE_QUEST] Error updating XP or quest count for character {self.id}: {e}"
+                f"[CHAR.APPLY_QUEST_RESULTS] Error updating XP or quest count for character {self.id}: {e}"
             )
             return None
 
@@ -295,8 +317,19 @@ class Character(Person, LifeCycleMixin):
                 f"[CHAR.COMPLETE_QUEST] Error notifying levelup for character {self.id}: {e}"
             )
             return None
+        rewards_summary = {
+            "xp_gained": final_xp if "final_xp" in locals() else 0,
+            "coins_gained": getattr(results, "coin_reward", 0) if results else 0,
+            "dynamic_rewards": (
+                getattr(results, "dynamic_rewards", {}) if results else {}
+            ),
+            "levelups": (
+                [{"new_level": e["new_level"]} for e in levelups]
+                if "levelups" in locals()
+                else []
+            ),
+        }
 
-        logger.info(f"[CHAR.COMPLETE_QUEST] Quest completion successful")
         return rewards_summary
 
     @classmethod

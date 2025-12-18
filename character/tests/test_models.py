@@ -360,10 +360,3 @@ class PersonTests(TestCase):
     def test_person_created_at(self):
         """Test created_at timestamp is set"""
         self.assertIsNotNone(self.character.created_at)
-
-    @skip("Buffs not in use")
-    def test_apply_buffs_no_buffs(self):
-        """Test applying buffs when no buffs exist"""
-        # Since buffs aren't implemented, this should return the base value
-        result = self.character.apply_buffs(100, "xp")
-        self.assertEqual(result, 100)
