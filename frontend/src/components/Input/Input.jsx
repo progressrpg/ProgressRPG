@@ -32,8 +32,11 @@ export default function Input({
         value={isCheckbox ? undefined : value}
         checked={isCheckbox ? checked : undefined}
         onChange={(e) => {
-          if (onChange) {
-            isCheckbox ? onChange(e) : onChange(e.target.value);
+          if (!onChange) return;
+          if (isCheckbox) {
+            onChange(e.target.checked);
+          } else {
+            onChange(e.target.value);
           }
         }}
         placeholder={placeholder}

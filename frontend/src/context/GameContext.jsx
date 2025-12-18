@@ -48,16 +48,16 @@ export const GameProvider = ({ children }) => {
 
 
   const fetchPlayerAndCharacter = useCallback(async () => {
-    if (!playerOnload?.id || !characterOnload?.id) return;
+    if (!characterOnload?.id) return;
 
     const [freshPlayer, freshCharacter] = await Promise.all([
-      apiFetch(`/profile/${playerOnload.id}/`),
+      apiFetch(`/profile/me/`),
       apiFetch(`/character/${characterOnload.id}/`),
     ]);
 
     setPlayer(freshPlayer);
     setCharacter(freshCharacter);
-  }, [playerOnload?.id, characterOnload?.id]);
+  }, [characterOnload?.id]);
 
   const formattedDate = getFormattedDate();
 
