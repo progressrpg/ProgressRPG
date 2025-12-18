@@ -1,6 +1,14 @@
 # progression/models.py
-from django.db import models
+
+from django.db import models, transaction
+from django.db.models import CheckConstraint, Q, Sum
 from django.utils import timezone
+from typing import Dict, Any, cast
+import logging
+
+from .mixins import ProfileOwnedMixin
+
+logger = logging.getLogger("django")
 
 
 #########################################
@@ -20,29 +28,36 @@ class Group(models.Model):
 
     @property
     def total_time(self):
-        return self.skills.aggregate(total=Sum("total_time"))["total"] or 0
+        return (
+            self.skills.filter(records__is_complete=True).aggregate(
+                total=Sum("records__duration")
+            )["total"]
+            or 0
+        )
 
     @property
     def total_records(self):
-        return self.skills.aggregate(total=Sum("total_records"))["total"] or 0
+        return (
+            self.skills.filter(records__is_complete=True).aggregate(
+                total=Sum("records")
+            )["total"]
+            or 0
+        )
 
     @property
     def total_xp(self):
-        return self.skills.aggregate(total=Sum("xp"))["total"] or 0
-
-    def rename(self, new_name: str):
-        """
-        Update name.
-        """
-        self.name = new_name
-        self.save(update_fields=["name"])
-        return self
+        return (
+            self.skills.filter(records__is_complete=True).aggregate(
+                total=Sum("records__xp_gained")
+            )["total"]
+            or 0
+        )
 
     class Meta:
         abstract = True
 
 
-class Category(Group):
+class Category(Group, ProfileOwnedMixin):
     profile = models.ForeignKey(
         "users.Profile", on_delete=models.CASCADE, related_name="categories"
     )
@@ -78,29 +93,31 @@ class Skill(models.Model):
 
     @property
     def total_time(self):
-        return self.records.aggregate(total=Sum("total_time"))["total"] or 0
+        return (
+            self.records.filter(is_complete=True).aggregate(total=Sum("duration"))[
+                "total"
+            ]
+            or 0
+        )
 
     @property
     def total_records(self):
-        return self.records.aggregate(total=Sum("total_records"))["total"] or 0
+        return self.records.filter(is_complete=True).count()
 
     @property
     def total_xp(self):
-        return self.records.aggregate(total=Sum("xp"))["total"] or 0
-
-    def rename(self, new_name: str):
-        """
-        Update the skill's  name.
-        """
-        self.name = new_name
-        self.save(update_fields=["name"])
-        return self
+        return (
+            self.records.filter(is_complete=True).aggregate(total=Sum("xp_gained"))[
+                "total"
+            ]
+            or 0
+        )
 
     class Meta:
         abstract = True
 
 
-class PlayerSkill(Skill):
+class PlayerSkill(Skill, ProfileOwnedMixin):
     profile = models.ForeignKey(
         "users.Profile", on_delete=models.CASCADE, related_name="skills"
     )
@@ -154,14 +171,6 @@ class TimeRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
 
-    def rename(self, new_name: str):
-        """
-        Update the record's name.
-        """
-        self.name = new_name
-        self.save(update_fields=["name"])
-        return self
-
     def add_time(self, num: int):
         """
         Increase the record's duration by a given amount.
@@ -199,9 +208,6 @@ class TimeRecord(models.Model):
         self.is_complete = True
         self.save(update_fields=["completed_at", "is_complete"])
 
-        skill = getattr(self, "skill", None)
-        if skill:
-            self.skill.add_record(1, time=getattr(self, "duration", 0))
         return self.completed_at
 
     def calculate_xp_reward(self) -> int:
@@ -217,7 +223,7 @@ class TimeRecord(models.Model):
         abstract = True
 
 
-class Activity(TimeRecord):
+class Activity(TimeRecord, ProfileOwnedMixin):
     """
     Represents an activity tracked by a user.
 
@@ -254,6 +260,12 @@ class Activity(TimeRecord):
     class Meta:
         ordering = ["-created_at"]
         db_table = "progression_activity"
+        constraints = [
+            CheckConstraint(
+                condition=(Q(task__isnull=True) | Q(project__isnull=True)),
+                name="activity_task_or_project_not_both",
+            )
+        ]
 
     def __str__(self):
         """
@@ -301,7 +313,7 @@ class CharacterQuest(TimeRecord):
 #########################################
 
 
-class Project(models.Model):
+class Project(models.Model, ProfileOwnedMixin):
     profile = models.ForeignKey(
         "users.Profile", on_delete=models.CASCADE, related_name="projects"
     )
@@ -312,17 +324,29 @@ class Project(models.Model):
 
     @property
     def total_time(self):
-        return self.records.aggregate(total=Sum("total_time"))["total"] or 0
+        return (
+            Activity.objects.filter(
+                Q(project=self) | Q(task__project=self),
+                is_complete=True,
+            ).aggregate(total=Sum("duration"))["total"]
+            or 0
+        )
 
     @property
     def total_records(self):
-        return self.records.aggregate(total=Sum("total_records"))["total"] or 0
+        return (
+            Activity.objects.filter(
+                Q(project=self) | Q(task__project=self),
+                is_complete=True,
+            ).count()
+            or 0
+        )
 
     def __str__(self):
         return self.name
 
 
-class Task(models.Model):
+class Task(models.Model, ProfileOwnedMixin):
     profile = models.ForeignKey(
         "users.Profile", on_delete=models.CASCADE, related_name="tasks"
     )
@@ -340,11 +364,16 @@ class Task(models.Model):
 
     @property
     def total_time(self):
-        return self.records.aggregate(total=Sum("total_time"))["total"] or 0
+        return (
+            self.records.filter(is_complete=True).aggregate(total=Sum("duration"))[
+                "total"
+            ]
+            or 0
+        )
 
     @property
     def total_records(self):
-        return self.records.aggregate(total=Sum("total_records"))["total"] or 0
+        return self.records.filter(is_complete=True).count()
 
     def __str__(self):
         return self.name
