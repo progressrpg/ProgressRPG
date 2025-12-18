@@ -34,6 +34,7 @@ from character.models import PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
 from progression.models import Activity
+from progression.serializers import ActivitySerializer
 
 from users.serializers import ProfileSerializer
 

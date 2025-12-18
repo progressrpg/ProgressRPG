@@ -80,9 +80,12 @@ class TimeRecordBaseSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(GroupBaseSerializer):
+    profile = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta(GroupBaseSerializer.Meta):
         model = Category
         fields = GroupBaseSerializer.Meta.fields + ["profile"]
+        read_only_fields = ["profile"]
 
 
 class RoleSerializer(GroupBaseSerializer):
@@ -97,9 +100,12 @@ class RoleSerializer(GroupBaseSerializer):
 
 
 class PlayerSkillSerializer(SkillBaseSerializer):
+    profile = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta(SkillBaseSerializer.Meta):
         model = PlayerSkill
         fields = SkillBaseSerializer.Meta.fields + ["profile", "is_private", "category"]
+        read_only_fields = ["profile"]
 
 
 class CharacterSkillSerializer(SkillBaseSerializer):
@@ -114,6 +120,8 @@ class CharacterSkillSerializer(SkillBaseSerializer):
 
 
 class ActivitySerializer(TimeRecordBaseSerializer):
+    profile = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta(TimeRecordBaseSerializer.Meta):
         model = Activity
         fields = TimeRecordBaseSerializer.Meta.fields + [
@@ -123,6 +131,7 @@ class ActivitySerializer(TimeRecordBaseSerializer):
             "project",
             "task",
         ]
+        read_only_fields = ["profile"]
 
 
 class CharacterQuestSerializer(TimeRecordBaseSerializer):

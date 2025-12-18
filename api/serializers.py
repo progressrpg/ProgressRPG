@@ -1,6 +1,10 @@
-from dj_rest_auth.registration.serializers import RegisterSerializer
 from django.contrib.sites.shortcuts import get_current_site
+from dj_rest_auth.registration.serializers import RegisterSerializer
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
 
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import (
@@ -9,13 +13,10 @@ from gameplay.models import (
     ActivityTimer,
     QuestTimer,
 )
-from users.models import Profile, InviteCode
+from gameplay.serializers import QuestSerializer
 from progression.models import Activity, CharacterQuest
-
-from rest_framework_simplejwt.serializers import (
-    TokenObtainPairSerializer,
-    TokenRefreshSerializer,
-)
+from progression.serializers import ActivitySerializer
+from users.models import Profile, InviteCode
 
 from django.contrib.auth import get_user_model
 

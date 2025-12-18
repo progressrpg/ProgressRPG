@@ -26,7 +26,7 @@ from .views import (
 
 from character.views import CharacterViewSet
 from gameplay.views import QuestViewSet
-from progression.views import ActivityViewSet, CharacterQuestViewSet
+from progression.views import ActivityViewSet, CharacterQuestViewSet, PlayerSkillViewSet
 from users.views import ProfileViewSet
 
 
@@ -49,9 +49,11 @@ register_converter(KeyConverter, "key")
 router = DefaultRouter()
 router.register(r"profile", ProfileViewSet, basename="profile")
 router.register(r"character", CharacterViewSet, basename="character")
+router.register(r"skills", PlayerSkillViewSet, basename="skills")
 router.register(r"activities", ActivityViewSet, basename="activity")
-router.register(r"quests", QuestViewSet, basename="quest")
 router.register(r"character_quests", CharacterQuestViewSet, basename="characterquest")
+
+router.register(r"quests", QuestViewSet, basename="quest")
 router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytimer")
 router.register(r"quest_timers", QuestTimerViewSet, basename="questtimer")
 router.register(r"onboarding", OnboardingViewSet, basename="onboarding")
