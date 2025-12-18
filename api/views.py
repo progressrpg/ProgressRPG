@@ -55,8 +55,10 @@ from api.serializers import (
 )
 
 from character.models import Character, PlayerCharacterLink
+from character.serializers import CharacterSerializer
 
 from progression.models import Activity, CharacterQuest
+from progression.serializers import ActivitySerializer
 from progression.utils import copy_quest
 
 from gameplay.models import Quest, ActivityTimer, QuestTimer, ServerMessage

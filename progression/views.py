@@ -1,6 +1,10 @@
 # progression/views.py
-from rest_framework import viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
 from api.views import IsOwnerProfile
 from .models import (
     Category,
@@ -20,6 +24,7 @@ from .serializers import (
     ActivitySerializer,
     CharacterQuestSerializer,
     ProjectSerializer,
+    TaskSerializer,
 )
 from .filters import (
     CategoryFilter,
@@ -190,6 +195,8 @@ class CharacterQuestViewSet(viewsets.ModelViewSet):
         """
         Return CharacterQuest objects for the current user's active character.
         """
+        from character.models import PlayerCharacterLink
+
         profile = self.request.user.profile
         character = PlayerCharacterLink.get_character(profile)
         if not character:
