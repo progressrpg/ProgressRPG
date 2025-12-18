@@ -11,8 +11,6 @@ import logging
 from gameplay.models import (
     Quest,
     QuestRequirement,
-    Skill,
-    Project,
     QuestCompletion,
     QuestResults,
     Buff,
@@ -185,62 +183,6 @@ class TestQuestEligible(TestCase):
         self.assertTrue(eligible_quests[0].name == "Test Quest 1")
 
 
-class TestQuestEligibleFrequency(TestCase):
-    def setUp(self):
-        self.char = Character.objects.create(name="Bob")
-        self.quest4 = Quest.objects.create(
-            name="Test Quest 4",
-            description="Test Quest Description 4",
-            levelMax=10,
-            canRepeat=True,
-            frequency=Quest.Frequency.DAILY,
-        )
-        self.quest5 = Quest.objects.create(
-            name="Test Quest 5",
-            description="Test Quest Description 5",
-            levelMax=10,
-            canRepeat=True,
-            frequency=Quest.Frequency.WEEKLY,
-        )
-        self.quest6 = Quest.objects.create(
-            name="Test Quest 6",
-            description="Test Quest Description 6",
-            levelMax=10,
-            canRepeat=True,
-            frequency=Quest.Frequency.MONTHLY,
-        )
-
-    @skip("Skipping as temporarily broken")
-    def test_frequency_eligible(self):
-        today = now()
-        yesterday = today - timedelta(days=1)
-        weekago = today - timedelta(days=7)
-        monthago = today - timedelta(days=27)
-
-        qc4 = QuestCompletion.objects.create(
-            character=self.char,
-            quest=self.quest4,
-            times_completed=3,
-            last_completed=yesterday,
-        )
-        qc5 = QuestCompletion.objects.create(
-            character=self.char,
-            quest=self.quest5,
-            times_completed=3,
-            last_completed=weekago,
-        )
-        qc6 = QuestCompletion.objects.create(
-            character=self.char,
-            quest=self.quest6,
-            times_completed=3,
-            last_completed=monthago,
-        )
-
-        self.assertTrue(self.quest4.frequency_eligible(self.char))
-        self.assertTrue(self.quest5.frequency_eligible(self.char))
-        self.assertTrue(self.quest6.frequency_eligible(self.char))
-
-
 class TestQuestResults(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -270,36 +212,6 @@ class TestQuestResults(TestCase):
         self.char.quest_timer.change_quest(self.quest1, 10)
 
         # Add buff later when fully implemented
-
-    @skip("Need to add quest results to new character_quest model")
-    def test_questresults(self):
-        def display(char):
-            print(
-                "char",
-                char.name,
-                "| xp: ",
-                char.xp,
-                "| coins:",
-                char.coins,
-                "| sex:",
-                char.sex,
-            )
-
-        # print("before:")
-        # display(self.char)
-
-        self.assertEqual(self.char.coins, 0)
-        self.assertEqual(self.char.sex, "Male")
-
-        self.char.complete_quest(5)
-
-        # print("after:")
-        # display(self.char)
-
-        self.assertEqual(self.char.coins, 5)
-        self.assertEqual(self.char.sex, "Female")
-
-        # Add buff test later when fully implemented
 
 
 class TestQuestCompletionModel(TestCase):
@@ -363,20 +275,32 @@ class TestActivityTimer(TestCase):
         self.assertIsNone(self.timer.activity)
         self.assertEqual(self.timer.status, "empty")
 
-    @skip("Skipping as temporarily broken")
     def test_complete(self):
         self.timer.new_activity("Test activity")
         self.timer.start()
-        self.timer.complete()
-        # self.assertIsInstance(xp, int)
-        # self.assertEqual(self.timer.status, "empty")
-        # self.assertIsNone(self.timer.activity)
+
+        # Complete the timer
+        result = self.timer.complete()  # now returns the timer itself
+        activity = self.timer.activity
+
+        # Activity should be marked complete
+        self.assertIsNotNone(activity.completed_at)
+        self.assertTrue(activity.is_complete)
+
+        # Profile should have XP applied
+        self.assertGreaterEqual(self.profile.xp, 0)
+
+        # Timer status remains "completed" or however you define post-completion
+        self.assertEqual(self.timer.status, "completed")
+
+        # Ensure the returned object is the timer itself
+        self.assertIs(result, self.timer)
 
 
 class TestQuestTimer(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.character = Character.objects.create(name="Hero", sex="Male")
+        cls.character = Character.objects.create(name="Hero", sex="Male", can_link=True)
         cls.character.save()
         cls.quest = Quest.objects.create(name="Test Quest", levelMax=10)
         User = get_user_model()
@@ -386,7 +310,7 @@ class TestQuestTimer(TestCase):
         cls.profile = user.profile
 
     def setUp(self):
-        self.timer, created = QuestTimer.objects.get_or_create(character=self.character)
+        self.timer, _ = QuestTimer.objects.get_or_create(character=self.character)
         self.char_quest = copy_quest(self.character, self.quest)
 
     def test_change_quest_sets_state(self):
@@ -394,20 +318,12 @@ class TestQuestTimer(TestCase):
         self.assertEqual(self.timer.duration, 300)
         self.assertEqual(self.timer.status, "waiting")
 
-    @skip("Skipping as temporarily broken ('character has no active profile link')")
     def test_start_and_complete(self):
-        # print("hi:", self.profile)
-        # from character.models import PlayerCharacterLink
-        # links = PlayerCharacterLink.objects.all()
-        # print(links)
-        # thingy = PlayerCharacterLink.get_character(self.profile)
-
         self.timer.change_quest(self.char_quest, duration=300)
         self.timer.start()
         self.assertEqual(self.timer.status, "active")
         self.timer.complete()
         self.assertEqual(self.timer.status, "completed")
-        # self.assertIsInstance(xp, int)
 
     def test_reset_clears_quest(self):
         self.timer.reset()

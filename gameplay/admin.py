@@ -26,7 +26,7 @@ class QuestAdmin(admin.ModelAdmin):
         ("levelMin", "levelMax"),
         "duration_choices",
         "created_at",
-        ("stages", "stagesFixed"),
+        ("stages", "stages_fixed"),
     ]
     list_display = [
         "name",
