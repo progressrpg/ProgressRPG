@@ -7,9 +7,8 @@ from django.contrib.auth import login, logout, get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.db import DatabaseError, transaction
-from django.http import Http404  # , HttpResponseRedirect
+from django.http import Http404
 
-# from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.html import escape
@@ -45,12 +44,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.serializers import (
     UserSerializer,
-    ProfileSerializer,
-    CharacterSerializer,
-    ActivitySerializer,
-    QuestSerializer,
     ActivityTimerSerializer,
-    CharacterQuestSerializer,
     QuestTimerSerializer,
     Step1Serializer,
     # Step2Serializer,
@@ -64,7 +58,6 @@ from character.models import Character, PlayerCharacterLink
 
 from progression.models import Activity, CharacterQuest
 from progression.utils import copy_quest
-from progression.filters import ActivityFilter
 
 from gameplay.models import Quest, ActivityTimer, QuestTimer, ServerMessage
 from gameplay.utils import check_quest_eligibility, send_group_message
@@ -75,6 +68,7 @@ from progress_rpg.settings.utils import get_build_number
 from server_management.models import MaintenanceWindow
 
 from users.models import Profile
+from users.serializers import ProfileSerializer
 from users.utils import send_email_to_users
 
 import logging
@@ -266,18 +260,6 @@ class ConfirmEmailView(APIView):
             raise Http404("Something went wrong")
 
 
-class ProfileViewSet(
-    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
-):
-    queryset = Profile.objects.all()
-    serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Restrict access to only the logged-in user's profile
-        return Profile.objects.filter(user=self.request.user)
-
-
 class OnboardingViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
@@ -449,185 +431,6 @@ class FetchInfoAPIView(APIView):
                 {"error": "An error occurred during serialization."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-
-class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Viewset for listing and retrieving characters.
-    Characters can be browsed by authenticated users — for example,
-    to view their history or find nearby players.
-
-    Modifications to characters should happen only via gameplay endpoints
-    (e.g. quest completion, XP gain), not through direct update.
-    """
-
-    serializer_class = CharacterSerializer
-    permission_classes = [IsAuthenticated]
-    queryset = Character.objects.all()
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        user = self.request.user
-
-        # Example: later you might filter by proximity or visibility
-        # location = user.profile.location
-        # queryset = queryset.filter(location__near=location)
-
-        return queryset
-
-
-class ActivityViewSet(viewsets.ModelViewSet):
-    serializer_class = ActivitySerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = ActivityFilter
-    permission_classes = [IsAuthenticated, IsOwnerProfile]
-
-    def perform_create(self, serializer):
-        serializer.save(profile=self.request.user.profile)
-
-    def get_queryset(self):
-        profile = self.request.user.profile
-        queryset = Activity.objects.filter(profile=profile)
-
-        return queryset.order_by("-created_at")
-
-    def create(self, request, *args, **kwargs):
-        profile = request.user.profile
-        activity_name_raw = request.data.get("activityName")
-
-        if not activity_name_raw:
-            return Response(
-                {"error": "Activity name is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        activity_name = escape(activity_name_raw)
-
-        try:
-            activity = Activity.objects.create(profile=profile, name=activity_name)
-            profile.activity_timer.new_activity(activity)
-            profile.activity_timer.refresh_from_db()
-        except DatabaseError:
-            return Response(
-                {"error": "A database error occurred while creating the activity."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        try:
-            activity_timer_data = ActivityTimerSerializer(
-                profile.activity_timer, context={"request": request}
-            ).data
-        except ValidationError:
-            return Response(
-                {"error": "Invalid data encountered during serialization."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response(
-            {
-                "success": True,
-                "message": "Activity timer created and ready",
-                "activity_timer": activity_timer_data,
-            }
-        )
-
-    @action(
-        detail=True,
-        methods=["post"],
-        url_path="submit",
-        permission_classes=[IsAuthenticated],
-    )
-    def submit(self, request, pk=None):
-        profile = request.user.profile
-
-        try:
-            activity = self.get_object()  # Get activity by pk for current user
-        except Activity.DoesNotExist:
-            return Response(
-                {"error": "Activity not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        activity_name = request.data.get("name")
-        if not activity_name:
-            return Response(
-                {"error": "Activity name is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            activity.update_name(activity_name)
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-        # Return latest activities (today’s or recent 5)
-        activities = Activity.objects.filter(
-            profile=profile, completed_at__date=timezone.now().date()
-        ).order_by("-completed_at")
-        if not activities.exists():
-            activities = Activity.objects.filter(profile=profile).order_by(
-                "-completed_at"
-            )[:5]
-
-        activities_list = ActivitySerializer(activities, many=True).data
-        profile_data = ProfileSerializer(profile).data
-
-        return Response(
-            {
-                "success": True,
-                "message": "Activity submitted",
-                "profile": profile_data,
-                "activities": activities_list,
-            }
-        )
-
-
-class CharacterQuestViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    API endpoint for CharacterQuest instances.
-    """
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = CharacterQuestSerializer
-
-    def get_queryset(self):
-        """
-        Return CharacterQuest objects for the current user's active character.
-        """
-        profile = self.request.user.profile
-        try:
-            character = PlayerCharacterLink.get_character(profile)
-        except ValueError:
-            return CharacterQuest.objects.none()
-        return CharacterQuest.objects.filter(character=character)
-
-
-class QuestViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
-    serializer_class = QuestSerializer
-
-    def get_queryset(self):
-        return Quest.objects.all()
-
-    def list(self, request):
-        quests = self.get_queryset()
-        serializer = QuestSerializer(quests, many=True, context={"request": request})
-        return Response({"quests": serializer.data})
-
-    @action(detail=False, methods=["get"])
-    def eligible(self, request):
-        profile = request.user.profile
-        try:
-            character = PlayerCharacterLink.get_character(profile)
-        except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        eligible_quests = check_quest_eligibility(character, profile)
-        serializer = QuestSerializer(
-            eligible_quests, many=True, context={"request": request}
-        )
-        return Response({"eligible_quests": serializer.data})
 
 
 class BaseTimerViewSet(viewsets.ReadOnlyModelViewSet):

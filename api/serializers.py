@@ -4,8 +4,6 @@ from rest_framework import serializers
 
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import (
-    Quest,
-    QuestResults,
     QuestRequirement,
     QuestCompletion,
     ActivityTimer,
@@ -65,27 +63,6 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 
-class ProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profile
-        fields = [
-            "id",
-            "name",
-            "xp",
-            "xp_next_level",
-            "xp_modifier",
-            "level",
-            "total_time",
-            "total_activities",
-            "is_premium",
-            "onboarding_step",
-            "login_streak",
-        ]
-        read_only_fields = [
-            "id",
-        ]
-
-
 class Step1Serializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
@@ -102,125 +79,10 @@ class Step3Serializer(serializers.Serializer):
     confirm_tutorial = serializers.BooleanField()
 
 
-class CharacterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Character
-        fields = [
-            "id",
-            "first_name",
-            "last_name",
-            "backstory",
-            "sex",
-            "xp",
-            "xp_next_level",
-            "xp_modifier",
-            "level",
-            "coins",
-            "total_quests",
-            "is_npc",
-            "can_link",
-        ]
-        read_only_fields = [
-            "id",
-        ]
-
-
 class QuestRequirementSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestRequirement
         fields = ["prerequisite", "times_required"]
-
-
-class QuestCompletionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = QuestCompletion
-        fields = ["character", "quest", "times_completed", "last_completed"]
-
-
-class QuestResultSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = QuestResults
-        fields = ["dynamic_rewards", "xp_rate", "coin_reward"]
-
-
-class ActivitySerializer(serializers.ModelSerializer):
-    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    last_updated = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-
-    class Meta:
-        model = Activity
-        fields = [
-            # TimeRecord fields
-            "id",
-            "name",
-            "description",
-            "duration",
-            "created_at",
-            "last_updated",
-            "completed_at",
-            # Activity specific fields
-            "profile",
-            "skill",
-            "project",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "last_updated",
-            "completed_at",
-            "profile",
-        ]
-
-
-class QuestSerializer(serializers.ModelSerializer):
-    results = QuestResultSerializer(read_only=True)  # source='results',
-
-    class Meta:
-        model = Quest
-        fields = [
-            "id",
-            "name",
-            "description",
-            "intro_text",
-            "outro_text",
-            "duration_choices",
-            "stages",
-            "stagesFixed",
-            "results",
-            "stagesFixed",
-        ]
-        read_only_fields = [
-            "id",
-        ]
-
-
-class CharacterQuestSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CharacterQuest
-        fields = [
-            # TimeRecord fields
-            "id",
-            "name",
-            "description",
-            "duration",
-            "created_at",
-            "last_updated",
-            "completed_at",
-            # CQ fields
-            "character",
-            "intro_text",
-            "outro_text",
-            "quest_duration",
-            "stages",
-            "stagesFixed",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "last_updated",
-            "completed_at",
-            "character",
-        ]
 
 
 class ActivityTimerSerializer(serializers.ModelSerializer):

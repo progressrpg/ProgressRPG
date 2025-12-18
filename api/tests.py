@@ -51,13 +51,13 @@ class CharacterQuestViewSetTests(APITestCase):
             character=cls.character,
             name=cls.quest1.name,
             description=cls.quest1.description,
-            quest_duration=300,
+            target_duration=300,
         )
         cls.char_quest2 = CharacterQuest.objects.create(
             character=cls.character,
             name=cls.quest2.name,
             description=cls.quest2.description,
-            quest_duration=600,
+            target_duration=600,
         )
 
     def setUp(self):

@@ -16,18 +16,18 @@ from .views import (
     ConfirmEmailView,
     OnboardingViewSet,
     FetchInfoAPIView,
-    ProfileViewSet,
-    CharacterViewSet,
     ActivityTimerViewSet,
-    CharacterQuestViewSet,
     QuestTimerViewSet,
-    ActivityViewSet,
-    QuestViewSet,
     DownloadUserDataAPIView,
     DeleteAccountAPIView,
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
 )
+
+from character.views import CharacterViewSet
+from gameplay.views import QuestViewSet
+from progression.views import ActivityViewSet, CharacterQuestViewSet
+from users.views import ProfileViewSet
 
 
 class KeyConverter:
