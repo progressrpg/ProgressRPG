@@ -202,7 +202,7 @@ export default function useTimers({ mode }) {
       //console.log(`Total stages duration: ${totalStagesDuration} seconds`);
 
       // Shuffle stages
-      if (!quest.stagesFixed) {
+      if (!quest.stages_fixed) {
         //console.log("Quest stages are random!");
         stagesEd = shuffle([...stagesEd]);
       }

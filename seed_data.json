@@ -1062,7 +1062,7 @@
         "duration": 10
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1103,7 +1103,7 @@
         "duration": 5
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1149,7 +1149,7 @@
         "duration": 900
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1195,7 +1195,7 @@
         "duration": 300
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1241,7 +1241,7 @@
         "duration": 180
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1287,7 +1287,7 @@
         "duration": 480
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1333,7 +1333,7 @@
         "duration": 300
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1369,7 +1369,7 @@
         "duration": 15
       }
     ],
-    "stagesFixed": true,
+    "stages_fixed": true,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1402,7 +1402,7 @@
         "duration": 5
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1435,7 +1435,7 @@
         "duration": 15
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1468,7 +1468,7 @@
         "duration": 5
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1501,7 +1501,7 @@
         "duration": 5
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1534,7 +1534,7 @@
         "duration": 5
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
@@ -1568,7 +1568,7 @@
         "duration": 15
       }
     ],
-    "stagesFixed": false,
+    "stages_fixed": false,
     "category": "NONE",
     "is_premium": false,
     "levelMin": 0,
