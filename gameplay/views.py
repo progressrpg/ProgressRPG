@@ -2,41 +2,40 @@ from asgiref.sync import async_to_sync
 
 # from asgiref.sync import sync_to_async
 from channels.layers import get_channel_layer
+from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-
-# from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, OperationalError, DatabaseError
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.utils.html import escape
-
-# from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET
+from rest_framework import viewsets, filters
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import ValidationError
 import json, logging
 
-from .models import Quest, ServerMessage
+from .models import Quest, QuestResults, ServerMessage
 
-# from .models import QuestCompletion, ActivityTimer, QuestTimer
 from .serializers import (
-    ActivitySerializer,
     QuestSerializer,
     ActivityTimerSerializer,
     QuestTimerSerializer,
 )
+from .filters import QuestFilter
 from .utils import check_quest_eligibility, send_group_message
 
 from character.models import PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
-# from users.models import Profile
-from users.serializers import ProfileSerializer
-
 from progression.models import Activity
+
+from users.serializers import ProfileSerializer
 
 logger = logging.getLogger("django")
 
@@ -923,3 +922,34 @@ def submit_bug_report(request):
         return JsonResponse(
             {"success": False, "error": "An unexpected error occurred"}, status=500
         )
+
+
+class QuestViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only API endpoint for Quest instances.
+    """
+
+    serializer_class = QuestSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Quest.objects.all()
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_class = QuestFilter
+    search_fields = ["name", "description", "intro_text", "outro_text"]
+    ordering_fields = ["id", "name"]
+
+    @action(detail=False, methods=["get"])
+    def eligible(self, request):
+        profile = request.user.profile
+        try:
+            character = PlayerCharacterLink.get_character(profile)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+
+        eligible_quests = check_quest_eligibility(character, profile)
+        serializer = self.get_serializer(eligible_quests, many=True)
+        return Response({"eligible_quests": serializer.data})

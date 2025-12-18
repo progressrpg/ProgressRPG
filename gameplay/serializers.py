@@ -9,10 +9,11 @@ class QuestResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestResults
         fields = ["dynamic_rewards", "xp_rate", "coin_reward"]
+        read_only_fields = fields
 
 
 class QuestSerializer(serializers.ModelSerializer):
-    result = QuestResultSerializer(source="results", read_only=True)
+    results = QuestResultSerializer(read_only=True)
 
     class Meta:
         model = Quest
@@ -24,8 +25,9 @@ class QuestSerializer(serializers.ModelSerializer):
             "outro_text",
             "duration_choices",
             "stages",
-            "result",
+            "results",
         ]
+        read_only_fields = fields
 
 
 class ActivityTimerSerializer(serializers.ModelSerializer):
