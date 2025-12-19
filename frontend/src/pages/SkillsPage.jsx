@@ -1,10 +1,8 @@
 // src/pages/SkillsPage.jsx
 import { useState } from "react";
-import { useSkills } from "../hooks/useSkills";
-import { useCreateSkill } from "../hooks/useCreateSkill";
-import { useUpdateSkill } from "../hooks/useUpdateSkill";
-import { useDeleteSkill } from "../hooks/useDeleteSkill";
+import { useSkills, useCreateSkill, useUpdateSkill, useDeleteSkill  } from "../hooks/useSkills";
 
+import ExpandableCard from "../components/Form/Card/Card";
 import Form from "../components/Form/Form";
 import Input from "../components/Input/Input";
 import Button from "../components/Button/Button";
@@ -16,11 +14,10 @@ export default function SkillsPage() {
   const createSkill = useCreateSkill();
   const updateSkill = useUpdateSkill();
   const deleteSkill = useDeleteSkill();
-
   const [newName, setNewName] = useState("");
-
+  
   if (isLoading) return <p>Loading skills…</p>;
-
+  
   return (
     <div>
       <h1>Skills</h1>
@@ -42,17 +39,22 @@ export default function SkillsPage() {
         <Button type="submit">Add skill</Button>
       </form>
 
+
       <List
         items={skills}
         renderItem={(skill) => (
-          <div>
-            <Input
-              value={skill.name}
-              onChange={(value) =>
-                updateSkill.mutate({
-                  id: skill.id,
-                  data: { name: value },
-                })
+          <>
+            <ExpandableCard
+              title={skill["name"]}
+              children={
+                <div>
+                  <div>
+                    Level {skill.level}
+                  </div>
+                  <div>
+                    Total xp: {skill.total_xp} | Total time: {skill.total_time} | Total records: {skill.total_records}
+                  </div>
+                </div>
               }
             />
 
@@ -65,7 +67,7 @@ export default function SkillsPage() {
             >
               Delete
             </Button>
-          </div>
+          </>
         )}
       />
     </div>

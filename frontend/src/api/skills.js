@@ -10,6 +10,7 @@ export function fetchGroups() {
   return apiFetch("/groups/");
 }
 
+
 export function fetchSkills() {
   return apiFetch(`/skills/`).then(data => data.results);
 }
