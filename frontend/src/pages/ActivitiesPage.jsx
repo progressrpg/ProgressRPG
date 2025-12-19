@@ -27,16 +27,9 @@ export default function ActivitiesPage() {
         items={activities}
         renderItem={(activity) => (
           <>
-            <ExpandableCard
-              title={activity["name"]}
-              children={
-                <div>
-                  <div>
-                    Duration: {activity.duration} | Completed at: {activity.total_time}
-                  </div>
-                </div>
-              }
-            />
+            <div>
+              Activity: {activity.name} | Duration: {activity.duration} | Completed at: {activity.total_time}
+            </div>
 
             <Button
               onClick={() => {
