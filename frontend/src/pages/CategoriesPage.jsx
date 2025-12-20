@@ -49,9 +49,6 @@ export default function CategoriesPage() {
               children={
                 <div>
                   <div>
-                    Level {category.level}
-                  </div>
-                  <div>
                     Total xp: {category.total_xp} | Total time: {category.total_time} | Total records: {category.total_records}
                   </div>
                 </div>

@@ -12,6 +12,7 @@ const ProfilePage = lazy(() => import("../pages/Profile/Profile"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
 const SkillsPage = lazy(() => import("../pages/SkillsPage"));
 const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
+const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
 
 import PrivateRoute from "../components/PrivateRoute";
 import RequireOnboardingComplete from "../components/RequireOnboardingComplete";
@@ -80,6 +81,14 @@ export const routes = [
     element: (
       <PrivateRoute>
         <ActivitiesPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/categories",
+    element: (
+      <PrivateRoute>
+        <CategoriesPage />
       </PrivateRoute>
     ),
   },
