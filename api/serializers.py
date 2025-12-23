@@ -136,17 +136,17 @@ class CharacterSerializer(serializers.ModelSerializer):
             "is_npc",
             "can_link",
             "population_centre_id",
-            "location",
+            "location", # this is calculated with a method!
+            "current_node",
+            "target_node",
         ]
-        read_only_fields = [
-            "id",
-        ]
+        read_only_fields = fields
 
     def get_location(self, obj):
         # obj must have x and y attributes, or replace with obj.position.x / obj.position.y
         return {
             "type": "Point",
-            "coordinates": [obj.location.x, obj.location.y],  # adjust to your model
+            "coordinates": [obj.current_node.location.x, obj.current_node.location.y],  # adjust to your model
         }
 
 
