@@ -6,7 +6,7 @@ from django.contrib.gis.db.models.functions import Distance
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from datetime import date, timedelta
-from locations.models import PopulationCentre, Point, Node, Path
+from locations.models import PopulationCentre, Point, Node, Path, Building
 from character.models import Character, PlayerCharacterLink
 
 
@@ -151,18 +151,21 @@ class Command(BaseCommand):
         self.stdout.write("Deleting existing unlinked characters…")
 
         linked_ids = PlayerCharacterLink.objects.values_list("character_id", flat=True)
-
         Character.objects.exclude(id__in=linked_ids).delete()
-
+        
         for centre in centres:
             self.generate_for_centre(centre)
 
         # Place linked characters
+        id_list = list(linked_ids)
         buildings = Building.objects.all()
         chars = Character.objects.all()
         for char in chars:
-            char.assign_home(random.choice(buildings))
-            char.move_to(char.building.node)
+            if char.id in id_list:
+                building = random.choice(buildings)
+                char.assign_home(building)
+                char.move_to(building.node.first())
+
 
     def generate_for_centre(self, centre: PopulationCentre):
         buildings = list(centre.buildings.filter(building_type="residential"))
@@ -186,7 +189,7 @@ class Command(BaseCommand):
             # can_link possible for chars over 15 years old
             age_days = (date.today() - birth_date).days
             can_link = age_days >= int(15 * 365.25)
-
+            
             characters.append(
                 Character(
                     first_name=first_name,
@@ -197,16 +200,17 @@ class Command(BaseCommand):
                     can_link=can_link,
                     building=building,
                     population_centre=centre,
+                    current_node=building.node.first(),
                 )
             )
 
         Character.objects.bulk_create(characters)
 
-        outside_nodes = self.generate_nodes(centre, buildings, num_chars)
+        # Moving node and path creation elsewhere
+        #outside_nodes = self.generate_nodes(centre, buildings, num_chars)
+        #paths = self.connect_outside_nodes(outside_nodes)
 
-        paths = self.connect_outside_nodes(outside_nodes)
-
-    def generate_nodes(self, pop_centre, buildings, num):
+    def generate_nodes(self, pop_centre: PopulationCentre, buildings, num: int):
         outside_nodes = []
         building_footprints = [b.footprint for b in buildings if b.footprint]
 
