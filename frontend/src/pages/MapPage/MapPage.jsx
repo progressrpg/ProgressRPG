@@ -8,9 +8,11 @@ export default function MapPage() {
   const [geojson, setGeojson] = useState(null);
   const { character } = useGame();
   const pcId = character?.population_centre_id;
+  console.log("character:", character);
+  console.log("pcId:", pcId);
 
   useEffect(() => {
-    if (!pcId) return;
+    if (pcId == null) return;
 
     const fetchData = async () => {
       try {
