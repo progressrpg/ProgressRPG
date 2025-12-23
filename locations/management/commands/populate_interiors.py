@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from locations.models import Building, InteriorSpace
+from locations.models import Building, InteriorSpace, Node
 from django.contrib.gis.geos import Polygon, Point
 import random
 
@@ -47,12 +47,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--centre", type=str, help="Limit to a specific population centre name"
         )
-        parser.add_argument(
-            "--overwrite",
-            action="store_true",
-            help="Delete existing interior spaces before regenerating",
-        )
-
+        
     def handle(self, *args, **options):
         centre_name = options.get("centre")
         overwrite = options.get("overwrite")
@@ -66,15 +61,14 @@ class Command(BaseCommand):
         )
 
         for building in buildings:
-            self.create_interiors_for_building(building, overwrite)
+            self.create_interiors_for_building(building)
 
         self.stdout.write(self.style.SUCCESS("Done!"))
 
     # ------------------------------------------------------
 
-    def create_interiors_for_building(self, building: Building, overwrite=False):
-        if overwrite:
-            building.interiorspaces.all().delete()
+    def create_interiors_for_building(self, building: Building):
+        building.interiorspaces.all().delete()
 
         building_area = building.footprint.area if building.footprint else 5.0
         subspaces_info = self.generate_subspaces(building_area, building.building_type)
@@ -86,15 +80,19 @@ class Command(BaseCommand):
             maxx = maxy = 5
 
         for info in subspaces_info:
-            location = self.random_point_in_polygon(
-                building.footprint, minx, miny, maxx, maxy
-            )
-            InteriorSpace.objects.create(
+            space = InteriorSpace.objects.create(
                 building=building,
                 usage=info["usage"],
                 area=info["area"],
-                location=location,
             )
+            
+            node = self.random_point_in_polygon(
+                building.footprint, minx, miny, maxx, maxy
+            )
+
+            node.interior_space = space
+            node.building = building
+            node.save(update_fields=["interior_space", "building"])
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -104,21 +102,26 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------
 
-    def random_point_in_polygon(self, polygon, minx, miny, maxx, maxy, max_attempts=50):
+    def random_point_in_polygon(self, polygon, minx, miny, maxx, maxy, max_attempts=50, node_kwargs=None):
         """
         Generate a random Point inside the given polygon.
         """
+        if node_kwargs is None:
+            node_kwargs = {}
+        
         if not polygon:
-            return Point(0, 0, srid=3857)
+            return Node.objects.create(location=Point(0,0, srid=3857), **node_kwargs,)
 
         for _ in range(max_attempts):
             x = random.uniform(minx, maxx)
             y = random.uniform(miny, maxy)
             p = Point(x, y, srid=polygon.srid)
+            
             if polygon.contains(p):
-                return p
+                return Node.objects.create(location=p, **node_kwargs,)
+        
         # fallback: return centroid if random sampling fails
-        return polygon.centroid
+        return Node.objects.create(location=polygon.centroid, **node_kwargs,)
 
     # ------------------------------------------------------
 
