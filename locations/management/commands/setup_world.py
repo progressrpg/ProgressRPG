@@ -8,14 +8,11 @@ class Command(BaseCommand):
         self.stdout.write("=== Spawning villages ===")
         call_command("spawn_villages")
 
-        self.stdout.write("=== Spawning characters ===")
-        call_command("spawn_characters")
-
         self.stdout.write("=== Populating interiors ===")
         call_command("populate_interiors")
 
-        self.stdout.write("=== Placing characters ===")
-        call_command("place_characters")
+        self.stdout.write("=== Spawning characters ===")
+        call_command("spawn_characters")
 
         self.stdout.write("=== Generating land areas ===")
         call_command("generate_landarea")
