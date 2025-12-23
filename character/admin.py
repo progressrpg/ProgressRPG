@@ -62,6 +62,7 @@ class CharacterAdmin(admin.ModelAdmin):
             "Location",
             {
                 "fields": (
+                    "current_node",
                     "building",
                     "population_centre",
                 )
@@ -121,6 +122,7 @@ class CharacterAdmin(admin.ModelAdmin):
         "get_player",
         "get_age",
         "parents",
+        "created_at",
     ]
 
     ordering = ["last_name", "first_name"]
