@@ -62,6 +62,7 @@ from api.serializers import (
     LandAreaSerializer,
     SubzoneSerializer,
     JourneySerializer,
+    LineFeatureSerializer,
 )
 
 from character.models import Character, PlayerCharacterLink
@@ -1002,7 +1003,7 @@ class PopulationCentreMapView(APIView):
         building_features = PolygonFeatureSerializer(buildings, many=True).data
         features.extend(building_features)
 
-        path_features = PathFeatureSerializer(paths, many=True).data
+        path_features = LineFeatureSerializer(paths, many=True).data
         features.extend(path_features)
 
         return Response(
