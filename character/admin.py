@@ -55,6 +55,7 @@ class CharacterAdmin(admin.ModelAdmin):
             "Location",
             {
                 "fields": (
+                    "current_node",
                     "building",
                     "population_centre",
                 )
@@ -80,6 +81,7 @@ class CharacterAdmin(admin.ModelAdmin):
         "is_npc",
         "can_link",
         "birth_date",
+        "created_at",
     ]
     list_filter = [
         "is_npc",
@@ -93,6 +95,7 @@ class CharacterAdmin(admin.ModelAdmin):
     readonly_fields = [
         "get_profile",
         "parents",
+        "created_at",
     ]
     inlines = [LinkInline, QuestCompletionInline]
     actions = [mark_as_npc, mark_as_canlink]
