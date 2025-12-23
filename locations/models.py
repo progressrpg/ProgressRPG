@@ -15,7 +15,7 @@ from .utils import relative_distance_direction
 ##########################################################
 
 
-def find_path(start_node, end_node):
+def find_path(start_node: "Node", end_node: "Node"):
     # very dumb: pick first outgoing path until we reach the end
     # or you can implement BFS for shortest segment count
     visited = set()
@@ -132,7 +132,7 @@ class Movable(models.Model):
         if moving_count == 1:
             move_characters_tick.apply_async()
 
-    def move_to(self, new_node):
+    def move_to(self, new_node: "Node"):
         """
         Move object to new node instantly.
         """
@@ -260,6 +260,13 @@ class Node(models.Model):
         on_delete=models.CASCADE,
         related_name="node",
     )
+    interior_space = models.ForeignKey(
+        "locations.InteriorSpace",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="node",
+    )
 
     def neighbours(self):
         return Node.objects.filter(paths_from__from_node=self)
@@ -293,7 +300,7 @@ class Path(models.Model):
                 pass
         super().save(*args, **kwargs)
 
-    def other_end(self, node):
+    def other_end(self, node: Node):
         if node == self.from_node:
             return self.to_node
         return None
