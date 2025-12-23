@@ -14,7 +14,7 @@ from users.models import Person, Profile
 from gameplay.models import Buff, AppliedBuff, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
 
-from locations.models import Movable, Node
+from locations.models import Movable, Node, Building
 
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
@@ -262,7 +262,8 @@ class Character(Person, LifeCycleMixin, Movable):
 
     def assign_home(self, building: Building):
         self.building = building
-        self.save(update_fields["building"])
+        self.population_centre = building.population_centre
+        self.save(update_fields=["building", "population_centre"])
 
     def go_home(self):
         if not self.building:
