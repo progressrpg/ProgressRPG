@@ -3,10 +3,11 @@
 import random
 import math
 from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.geos import Point
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from datetime import date, timedelta
-from locations.models import PopulationCentre, Point, Node, Path, Building
+from locations.models import PopulationCentre, Node, Path, Building
 from character.models import Character, PlayerCharacterLink
 
 
@@ -152,7 +153,7 @@ class Command(BaseCommand):
 
         linked_ids = PlayerCharacterLink.objects.values_list("character_id", flat=True)
         Character.objects.exclude(id__in=linked_ids).delete()
-        
+
         for centre in centres:
             self.generate_for_centre(centre)
 
@@ -165,7 +166,6 @@ class Command(BaseCommand):
                 building = random.choice(buildings)
                 char.assign_home(building)
                 char.move_to(building.node.first())
-
 
     def generate_for_centre(self, centre: PopulationCentre):
         buildings = list(centre.buildings.filter(building_type="residential"))
@@ -189,26 +189,22 @@ class Command(BaseCommand):
             # can_link possible for chars over 15 years old
             age_days = (date.today() - birth_date).days
             can_link = age_days >= int(15 * 365.25)
-            
-            characters.append(
-                Character(
-                    first_name=first_name,
-                    last_name=last_name,
-                    name=f"{first_name} {last_name}",
-                    sex=sex,
-                    birth_date=birth_date,
-                    can_link=can_link,
-                    building=building,
-                    population_centre=centre,
-                    current_node=building.node.first(),
-                )
-            )
 
-        Character.objects.bulk_create(characters)
+            char = Character.objects.create(
+                first_name=first_name,
+                last_name=last_name,
+                name=f"{first_name} {last_name}",
+                sex=sex,
+                birth_date=birth_date,
+                can_link=can_link,
+            )
+            char.assign_home(building)
+            char.move_to(building.node.first())
+            char.save()
 
         # Moving node and path creation elsewhere
-        #outside_nodes = self.generate_nodes(centre, buildings, num_chars)
-        #paths = self.connect_outside_nodes(outside_nodes)
+        # outside_nodes = self.generate_nodes(centre, buildings, num_chars)
+        # paths = self.connect_outside_nodes(outside_nodes)
 
     def generate_nodes(self, pop_centre: PopulationCentre, buildings, num: int):
         outside_nodes = []
@@ -221,7 +217,7 @@ class Command(BaseCommand):
                 r = random.random() * 100  # adjust radius as needed
                 x = pop_centre.location.x + math.cos(angle) * r
                 y = pop_centre.location.y + math.sin(angle) * r
-                point = Point(x, y, srid=pop_centre.location.srid)
+                point = Point(x, y, srid=3857)
 
                 # make sure it doesn’t overlap a building
                 if any(fp.contains(point) for fp in building_footprints):

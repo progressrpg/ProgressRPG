@@ -47,7 +47,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--centre", type=str, help="Limit to a specific population centre name"
         )
-        
+
     def handle(self, *args, **options):
         centre_name = options.get("centre")
         overwrite = options.get("overwrite")
@@ -85,7 +85,7 @@ class Command(BaseCommand):
                 usage=info["usage"],
                 area=info["area"],
             )
-            
+
             node = self.random_point_in_polygon(
                 building.footprint, minx, miny, maxx, maxy
             )
@@ -102,26 +102,37 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------
 
-    def random_point_in_polygon(self, polygon, minx, miny, maxx, maxy, max_attempts=50, node_kwargs=None):
+    def random_point_in_polygon(
+        self, polygon, minx, miny, maxx, maxy, max_attempts=50, node_kwargs=None
+    ):
         """
         Generate a random Point inside the given polygon.
         """
         if node_kwargs is None:
             node_kwargs = {}
-        
+
         if not polygon:
-            return Node.objects.create(location=Point(0,0, srid=3857), **node_kwargs,)
+            return Node.objects.create(
+                location=Point(0, 0, srid=3857),
+                **node_kwargs,
+            )
 
         for _ in range(max_attempts):
             x = random.uniform(minx, maxx)
             y = random.uniform(miny, maxy)
-            p = Point(x, y, srid=polygon.srid)
-            
+            p = Point(x, y, srid=3857)
+
             if polygon.contains(p):
-                return Node.objects.create(location=p, **node_kwargs,)
-        
+                return Node.objects.create(
+                    location=p,
+                    **node_kwargs,
+                )
+
         # fallback: return centroid if random sampling fails
-        return Node.objects.create(location=polygon.centroid, **node_kwargs,)
+        return Node.objects.create(
+            location=polygon.centroid,
+            **node_kwargs,
+        )
 
     # ------------------------------------------------------
 

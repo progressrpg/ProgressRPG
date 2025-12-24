@@ -58,7 +58,9 @@ class Command(BaseCommand):
             for la in landareas:
                 if getattr(la, "area_polygon", None):
                     minx, miny, maxx, maxy = la.area_polygon.extent
-                    all_points.extend([Point(minx, miny), Point(maxx, maxy)])
+                    all_points.extend(
+                        [Point(minx, miny, srid=3857), Point(maxx, maxy, srid=3857)]
+                    )
         else:
             landareas = []
 
@@ -121,10 +123,12 @@ class Command(BaseCommand):
         for b in buildings:
             if getattr(b, "footprint", None):
                 minx, miny, maxx, maxy = b.footprint.extent
-                points.extend([Point(minx, miny), Point(maxx, maxy)])
+                points.extend(
+                    [Point(minx, miny, srid=3857), Point(maxx, maxy, srid=3857)]
+                )
         if getattr(centre, "boundary", None):
             minx, miny, maxx, maxy = centre.boundary.extent
-            points.extend([Point(minx, miny), Point(maxx, maxy)])
+            points.extend([Point(minx, miny, srid=3857), Point(maxx, maxy, srid=3857)])
         return points
 
     def compute_grid_bounds(self, points, map_size):
@@ -164,7 +168,7 @@ class Command(BaseCommand):
     ):
         for x, y in self.sample_polygon_edges(polygon):
             gx, gy = self.point_to_grid(
-                Point(x, y), min_x, min_y, scale_x, scale_y, map_size
+                Point(x, y, srid=3857), min_x, min_y, scale_x, scale_y, map_size
             )
             if 0 <= gy < len(grid) and 0 <= gx < len(grid[0]):
                 grid[gy][gx] = symbol
@@ -174,10 +178,20 @@ class Command(BaseCommand):
             if getattr(b, "footprint", None):
                 minx, miny, maxx, maxy = b.footprint.extent
                 gx_min, gy_min = self.point_to_grid(
-                    Point(minx, miny), min_x, min_y, scale_x, scale_y, map_size
+                    Point(minx, miny, srid=3857),
+                    min_x,
+                    min_y,
+                    scale_x,
+                    scale_y,
+                    map_size,
                 )
                 gx_max, gy_max = self.point_to_grid(
-                    Point(maxx, maxy), min_x, min_y, scale_x, scale_y, map_size
+                    Point(maxx, maxy, srid=3857),
+                    min_x,
+                    min_y,
+                    scale_x,
+                    scale_y,
+                    map_size,
                 )
                 for gx in range(gx_min, gx_max + 1):
                     for gy in range(gy_min, gy_max + 1):
