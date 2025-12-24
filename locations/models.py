@@ -164,9 +164,7 @@ class Movable(models.Model):
 
         if distance <= max_distance:
             # Arrive at node
-            self.location = Point(
-                next_node.location.x, next_node.location.y, srid=self.location.srid
-            )
+            self.location = Point(next_node.location.x, next_node.location.y, srid=3857)
             self.journey.advance_index()  # move to next node in path
             if self.journey.is_complete():
                 self.is_moving = False
@@ -176,7 +174,7 @@ class Movable(models.Model):
             factor = max_distance / distance
             new_x = self.location.x + dx * factor
             new_y = self.location.y + dy * factor
-            self.location = Point(new_x, new_y, srid=self.location.srid)
+            self.location = Point(new_x, new_y, srid=3857)
             if not self.is_moving:
                 self.is_moving = True
 
@@ -245,7 +243,7 @@ class Movable(models.Model):
 
 class Node(models.Model):
     name = models.CharField(max_length=100, blank=True)
-    location = gis_models.PointField()
+    location = gis_models.PointField(srid=3857)
     population_centre = models.ForeignKey(
         "locations.PopulationCentre",
         null=True,
