@@ -53,7 +53,9 @@ export default function PopulationCentreMap({
             fill={isBoundary ? "none" : "#ddd"}
             stroke={isBoundary ? "#888" : "#333"}
             strokeWidth={isBoundary ? 2 : 1}
-          />
+          >
+            <title>{f.properties?.name}</title>
+          </polygon>
         );
       })}
 
@@ -81,7 +83,9 @@ export default function PopulationCentreMap({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 opacity={0.9}
-              />
+              >
+                <title>{f.properties?.name}</title>
+              </polyline>
             );
           })}
 
