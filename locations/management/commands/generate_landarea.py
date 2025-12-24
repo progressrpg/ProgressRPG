@@ -43,7 +43,8 @@ class Command(BaseCommand):
                 (cx + side_m, cy + side_m),
                 (cx + side_m, cy - side_m),
                 (cx - side_m, cy - side_m),
-            )
+            ),
+            srid=3857,
         )
         # Use center point as location
         landarea.location = Point(cx, cy, srid=3857)
@@ -85,7 +86,8 @@ class Command(BaseCommand):
                     (x1, max_y),
                     (x1, min_y),
                     (x0, min_y),
-                )
+                ),
+                srid=3857,
             )
             # center as location
             subzone.location = Point((x0 + x1) / 2, (min_y + max_y) / 2, srid=3857)
