@@ -44,8 +44,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.serializers import (
     UserSerializer,
-    ActivityTimerSerializer,
-    QuestTimerSerializer,
     Step1Serializer,
     # Step2Serializer,
     # Step3Serializer,
@@ -57,21 +55,23 @@ from api.serializers import (
 from character.models import Character, PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
-from progression.models import Activity, CharacterQuest
+from gameplay.models import Quest, ServerMessage
+from gameplay.utils import send_group_message
+from gameplay.serializers import (
+    QuestSerializer,
+    ActivityTimerSerializer,
+    QuestTimerSerializer,
+)
+
+from progression.models import Activity, Task
 from progression.serializers import ActivitySerializer
 from progression.utils import copy_quest
-
-from gameplay.models import Quest, ActivityTimer, QuestTimer, ServerMessage
-from gameplay.utils import check_quest_eligibility, send_group_message
-from gameplay.models import ActivityTimer, QuestTimer, ServerMessage
-
-from progress_rpg.settings.utils import get_build_number
-
-from server_management.models import MaintenanceWindow
 
 from users.models import Profile
 from users.serializers import ProfileSerializer
 from users.utils import send_email_to_users
+
+from progress_rpg.settings.utils import get_build_number
 
 import logging
 
@@ -335,9 +335,9 @@ class FetchInfoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, format=None):
+        profile = request.user.profile
         build_number = get_build_number()
 
-        profile = request.user.profile
         try:
             character = PlayerCharacterLink.get_character(profile)
         except ValueError as e:
@@ -347,251 +347,80 @@ class FetchInfoAPIView(APIView):
             f"[FETCH INFO] Fetching data for profile {profile.id}, character {character.id}"
         )
 
-        qt = character.quest_timer
-        if qt.time_finished() and qt.status != "completed":
-            try:
-                qt.elapsed_time = qt.duration
-                qt.save()
-                async_to_sync(send_group_message)(
-                    f"profile_{profile.id}",
-                    {"type": "action", "action": "quest_complete"},
-                )
-            except Exception as e:
-                logger.error(f"Error handling quest timer completion: {e}")
-                return Response(
-                    {
-                        "error": "An error occurred while handling quest timer completion."
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+        # --- Auto-complete quest timer if expired ---
+        self._handle_quest_timer_expiry(character, profile)
 
+        # --- Ensure activity timer is in a valid state ---
+        self._ensure_activity_timer_consistency(profile)
+
+        # --- Serialize everything ---
         try:
-            at = profile.activity_timer
-        except ObjectDoesNotExist:
-            timer = None
-
-        activity = None
-        if at is not None:
-            try:
-                activity = at.activity
-            except ObjectDoesNotExist:
-                activity = None
-        if at.status != "empty" and activity is None:
-            try:
-                profile.activity_timer.reset()
-            except Exception as e:
-                logger.error(f"Error resetting activity timer: {e}")
-                return Response(
-                    {"error": "An error occurred while resetting the activity timer."},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-
-        try:
-            profile_data = ProfileSerializer(profile, context={"request": request}).data
-            character_data = CharacterSerializer(
-                character, context={"request": request}
-            ).data
-            activity_timer_data = ActivityTimerSerializer(
-                profile.activity_timer, context={"request": request}
-            ).data
-            quest_timer_data = QuestTimerSerializer(
-                qt, context={"request": request}
-            ).data
-
-            return Response(
-                {
-                    "success": True,
-                    "profile": profile_data,
-                    "character": character_data,
-                    "message": "Profile and character fetched",
-                    "activity_timer": activity_timer_data,
-                    "quest_timer": quest_timer_data,
-                    "build_number": build_number,
-                }
-            )
+            data = {
+                "success": True,
+                "message": "Profile and character fetched",
+                "build_number": build_number,
+                "profile": ProfileSerializer(
+                    profile, context={"request": request}
+                ).data,
+                "character": CharacterSerializer(
+                    character, context={"request": request}
+                ).data,
+                "activity_timer": ActivityTimerSerializer(
+                    profile.activity_timer, context={"request": request}
+                ).data,
+                "quest_timer": QuestTimerSerializer(
+                    character.quest_timer, context={"request": request}
+                ).data,
+            }
+            return Response(data)
 
         except Exception as e:
-            logger.error(f"Serialization error: {e}")
+            logger.error(f"[FETCH INFO] Serialization error: {e}", exc_info=True)
             return Response(
                 {"error": "An error occurred during serialization."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-
-class BaseTimerViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Abstract base class for timer viewsets. Assumes each timer
-    is linked to a profile, and enforces IsAuthenticated + IsOwnerProfile.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Default queryset logic (override if needed)
-        return self.queryset.filter(profile=self.request.user.profile)
-
-    def handle_related_object(self, related_model, related_id, related_name="object"):
+    def _handle_quest_timer_expiry(self, profile, character):
         """
-        Generic helper to fetch a related model instance and return a DRF Response on failure.
+        If the quest timer has finished but not marked complete, finalise it.
         """
+        qt = character.quest_timer
+        if not (qt.time_finished() and qt.status != "completed"):
+            return
+
         try:
-            return related_model.objects.get(id=related_id), None
-        except related_model.DoesNotExist:
-            return None, Response(
-                {"error": f"{related_name.capitalize()} not found."},
-                status=status.HTTP_400_BAD_REQUEST,
+            qt.elapsed_time = qt.duration
+            qt.save()
+
+            async_to_sync(send_group_message)(
+                f"profile_{profile.id}",
+                {"type": "action", "action": "quest_complete"},
             )
 
-    def control_timer(self, request, pk, command):
-        timer = self.get_object()
-
-        # Map commands to timer methods
-        commands_map = {
-            "start": timer.start,
-            "pause": timer.pause,
-            "reset": timer.reset,
-        }
-
-        if command not in commands_map:
-            return Response({"error": "Invalid timer command"}, status=400)
-
-        try:
-            commands_map[command]()
-            timer.refresh_from_db()
-            serializer = self.get_serializer(timer)
-            return Response({"success": True, "timer": serializer.data})
         except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            logger.error(f"Error handling quest timer completion: {e}", exc_info=True)
+            raise
 
-    @action(detail=True, methods=["post"])
-    def start(self, request, pk=None):
-        return self.control_timer(request, pk, "start")
-
-    @action(detail=True, methods=["post"])
-    def pause(self, request, pk=None):
-        return self.control_timer(request, pk, "pause")
-
-    @action(detail=True, methods=["post"])
-    def reset(self, request, pk=None):
-        return self.control_timer(request, pk, "reset")
-
-
-class ActivityTimerViewSet(BaseTimerViewSet):
-    serializer_class = ActivityTimerSerializer
-    queryset = ActivityTimer.objects.all()
-    permission_classes = [IsAuthenticated, IsOwnerProfile]
-
-    def get_queryset(self):
-        timer = ActivityTimer.objects.filter(profile=self.request.user.profile)
-        # logger.debug(f"activitytimer viewset, timer: {timer}")
-        return timer
-
-    @action(detail=True, methods=["post"])
-    def set_activity(self, request, pk=None):
-        timer = self.get_object()
-        name = request.data.get("activityName")
-
-        if not name:
-            return Response({"error": "Missing activity name"}, status=400)
-
-        act_timer_updated = timer.new_activity(name)
-
-        logger.debug(f"activitytimer set_activity, timer: {act_timer_updated.activity}")
-        act_timer_updated.refresh_from_db()
-        serializer = self.get_serializer(act_timer_updated)
-        return Response({"success": True, "activity_timer": serializer.data})
-
-    @action(detail=True, methods=["post"])
-    def complete(self, request, pk=None):
-        timer = self.get_object()
+    def _ensure_activity_timer_consistency(self, profile):
+        """Ensure activity timer is not in an invalid state."""
         try:
-            timer.complete()
-            serializer = self.get_serializer(timer)
-            return Response({"success": True, "timer": serializer.data})
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            at = profile.activity_timer
+        except ObjectDoesNotExist:
+            return
 
+        activity = getattr(at, "activity", None)
 
-class QuestTimerViewSet(BaseTimerViewSet):
-    serializer_class = QuestTimerSerializer
-    queryset = QuestTimer.objects.all()
-    permission_classes = [IsAuthenticated, IsOwnerCharacter]
+        # Timer says it's running but no activity exists -> reset
 
-    def get_queryset(self):
-        profile = self.request.user.profile
-        active_character_ids = PlayerCharacterLink.objects.filter(
-            profile=profile, is_active=True
-        ).values_list("character_id", flat=True)
-
-        return QuestTimer.objects.filter(character_id__in=active_character_ids)
-
-    @action(detail=True, methods=["post"])
-    def change_quest(self, request, pk=None):
-        timer = self.get_object()
-
-        # Confirm timer belongs to request.user.profile's character
-        try:
-            character = PlayerCharacterLink.get_character(request.user.profile)
-        except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        if timer.character != character:
-            return Response(
-                {"error": "You do not have permission to modify this quest timer."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        quest_id = request.data.get("quest_id")
-        duration = request.data.get("duration")
-
-        quest, error_response = self.handle_related_object(Quest, quest_id, "quest")
-        if error_response:
-            return error_response
-
-        if not isinstance(duration, int):
+        if at.status != "empty" and activity is None:
             try:
-                duration = int(duration)
-            except (ValueError, TypeError):
-                return Response(
-                    {"error": "Duration must be an integer."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                at.reset()
+            except Exception as e:
+                logger.error(
+                    f"[FETCH INFO] Error resetting activity timer: {e}", exc_info=True
                 )
-        try:
-            timer.change_quest(quest, duration)
-            timer.refresh_from_db()
-        except Exception as e:
-            return Response(
-                {"error": "Failed to change quest: " + str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        serializer = self.get_serializer(timer)
-        return Response({"success": True, "quest_timer": serializer.data})
-
-    @action(detail=True, methods=["post"])
-    def complete(self, request, pk=None):
-        timer = self.get_object()
-        if not timer.quest:
-            return Response({"error": "No quest assigned to this timer."}, status=400)
-
-        quest = timer.quest
-
-        try:
-            qt_updated, character_updated = timer.complete()
-        except Exception as e:
-            return Response(
-                {"error": f"Failed to complete quest: {str(e)}"}, status=500
-            )
-
-        qt_serialized = self.get_serializer(qt_updated)
-        character_serialized = CharacterSerializer(character_updated)
-        response = {
-            "success": True,
-            "quest_timer": qt_serialized.data,
-            "character": character_serialized.data,
-        }
-
-        logger.debug(f"Questtimer complete, response: {response}")
-        return Response(response)
+                raise
 
 
 class DownloadUserDataAPIView(APIView):
@@ -606,7 +435,8 @@ class DownloadUserDataAPIView(APIView):
             character_obj = PlayerCharacterLink().get_character(profile)
         except Character.DoesNotExist:
             logger.error(
-                f"Character not found for user {user.username} (ID: {user.id})."
+                f"Character not found for user {user.username} (ID: {user.id}).",
+                exc_info=True,
             )
             raise Http404("Character data not found.")
 
