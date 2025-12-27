@@ -129,9 +129,11 @@ class QuestViewSetTests(APITestCase):
         """GET /quests/ should return all quests"""
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("quests", response.data)
-        self.assertEqual(len(response.data["quests"]), 2)
-        names = [q["name"] for q in response.data["quests"]]
+
+        self.assertIn("results", response.data)
+        self.assertEqual(len(response.data["results"]), 2)
+
+        names = [q["name"] for q in response.data["results"]]
         self.assertIn("Quest 1", names)
         self.assertIn("Quest 2", names)
 
@@ -177,9 +179,7 @@ class QuestTimerViewSetTests(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-        self.url = reverse(
-            "questtimer-change-quest", args=[self.character.quest_timer.id]
-        )
+        self.url = reverse("questtimer-change-quest")
 
     def test_requires_authentication(self):
         self.client.logout()
@@ -195,18 +195,6 @@ class QuestTimerViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["success"])
         self.assertEqual(response.data["quest_timer"]["duration"], 60)
-
-    def test_invalid_character_access(self):
-        other_character = Character.objects.create(name="Villain", can_link=True)
-        other_user = User.objects.create_user(
-            email="other@example.com", password="pass1234"
-        )
-        other_profile = other_user.profile
-        other_character.save()
-
-        url = reverse("questtimer-change-quest", args=[other_character.quest_timer.id])
-        response = self.client.post(url, {"quest_id": self.quest.id, "duration": 60})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_invalid_duration(self):
         response = self.client.post(
