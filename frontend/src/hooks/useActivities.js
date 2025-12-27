@@ -25,12 +25,38 @@ export function useCreateActivity() {
 
 
 export function useUpdateActivity() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }) => updateActivity(id, data),
+    mutationFn: ({ activityId, data }) => updateActivity(activityId, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["activities"] });
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
+    },
+  });
+}
+
+export function useChangeActivitySkill() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ activityId, skillId }) =>
+      updateActivity(activityId, { skill_id: skillId }), // re-use your updateActivity API
+    onSuccess: () => {
+      // Refresh activities so the UI reflects the new skill
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
+    },
+  });
+}
+
+export function useChangeActivityTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ activityId, taskId }) =>
+      updateActivity(activityId, { task_id: taskId }), // re-use your updateActivity API
+    onSuccess: () => {
+      // Refresh activities so the UI reflects the new task
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
     },
   });
 }
