@@ -11,7 +11,6 @@ from django_channels_jwt.views import AsgiValidateTokenView
 
 from .views import (
     me_view,
-    maintenance_status,
     CustomRegisterView,
     ConfirmEmailView,
     OnboardingViewSet,
@@ -32,6 +31,7 @@ from progression.views import (
     PlayerSkillViewSet,
     CategoryViewSet,
 )
+from server_management.views import maintenance_status
 from users.views import ProfileViewSet
 
 

@@ -132,23 +132,6 @@ def me_view(request):
     return Response({"success": True, "user": serializer.data})
 
 
-@api_view(["GET"])
-def maintenance_status(request):
-    # Returns whether any maintenance window is currently active
-    window = MaintenanceWindow.objects.filter(is_active=True).first()
-    if window:
-        data = {
-            "maintenance_active": True,
-            "name": window.name,
-            "start_time": window.start_time.isoformat(),
-            "end_time": window.end_time.isoformat(),
-            "description": window.description,
-        }
-    else:
-        data = {"maintenance_active": False}
-    return Response(data)
-
-
 class CustomRegisterView(RegisterView):
     serializer_class = CustomRegisterSerializer
 
