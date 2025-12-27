@@ -9,13 +9,8 @@ from rest_framework_simplejwt.serializers import (
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import (
     QuestRequirement,
-    QuestCompletion,
-    ActivityTimer,
-    QuestTimer,
 )
-from gameplay.serializers import QuestSerializer
 from progression.models import Activity, CharacterQuest
-from progression.serializers import ActivitySerializer
 from users.models import Profile, InviteCode
 
 from django.contrib.auth import get_user_model
@@ -78,75 +73,6 @@ class Step2Serializer(serializers.Serializer):
 class Step3Serializer(serializers.Serializer):
     # No extra data, just confirming tutorial completion
     confirm_tutorial = serializers.BooleanField()
-
-
-class QuestRequirementSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = QuestRequirement
-        fields = ["prerequisite", "times_required"]
-
-
-class ActivityTimerSerializer(serializers.ModelSerializer):
-    activity = ActivitySerializer(read_only=True)
-    # logger.debug(f"API Activity serializer: {activity}")
-    elapsed_time = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ActivityTimer
-        fields = [
-            # Base timer fields
-            "id",
-            "status",
-            "elapsed_time",
-            "created_at",
-            "last_updated",
-            # Activity timer specific fields
-            "activity",
-            "profile",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "last_updated",
-            "profile",
-        ]
-
-    def get_elapsed_time(self, obj):
-        return obj.get_elapsed_time()
-
-
-class QuestTimerSerializer(serializers.ModelSerializer):
-    quest = QuestSerializer(read_only=True)
-    elapsed_time = serializers.SerializerMethodField()
-    remaining_time = serializers.SerializerMethodField()
-
-    class Meta:
-        model = QuestTimer
-        fields = [
-            # Base timer fields
-            "id",
-            "status",
-            "elapsed_time",
-            "created_at",
-            "last_updated",
-            # Quest timer specific fields
-            "quest",
-            "duration",
-            "remaining_time",
-            "character",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "last_updated",
-            "character",
-        ]
-
-    def get_elapsed_time(self, obj):
-        return obj.get_elapsed_time()
-
-    def get_remaining_time(self, obj):
-        return obj.get_remaining_time()
 
 
 class CustomRegisterSerializer(RegisterSerializer):

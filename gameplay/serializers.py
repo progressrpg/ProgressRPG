@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from .models import Quest, QuestResults, ActivityTimer, QuestTimer
+from .models import (
+    Quest,
+    QuestResults,
+    QuestRequirement,
+    ActivityTimer,
+    QuestTimer,
+)
 
 from progression.serializers import ActivitySerializer
 
@@ -30,13 +36,35 @@ class QuestSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class QuestRequirementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuestRequirement
+        fields = ["prerequisite", "times_required"]
+
+
 class ActivityTimerSerializer(serializers.ModelSerializer):
     activity = ActivitySerializer(read_only=True)
     elapsed_time = serializers.SerializerMethodField()
 
     class Meta:
         model = ActivityTimer
-        fields = ["id", "status", "activity", "elapsed_time"]
+        fields = [
+            # Base timer fields
+            "id",
+            "status",
+            "elapsed_time",
+            "created_at",
+            "last_updated",
+            # Activity timer specific fields
+            "activity",
+            "profile",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "last_updated",
+            "profile",
+        ]
 
     def get_elapsed_time(self, obj):
         return obj.get_elapsed_time()
@@ -50,12 +78,22 @@ class QuestTimerSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestTimer
         fields = [
+            # Base timer fields
             "id",
             "status",
+            "elapsed_time",
+            "created_at",
+            "last_updated",
+            # Quest timer specific fields
             "quest",
             "duration",
-            "elapsed_time",
             "remaining_time",
+            "character",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "last_updated",
             "character",
         ]
 
