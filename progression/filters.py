@@ -67,7 +67,14 @@ class ProjectFilter(django_filters.FilterSet):
 
     class Meta:
         model = Project
-        fields = ["name", "profile", "created_at", "last_updated"]
+        fields = [
+            "name",
+            "profile",
+            "created_at",
+            "last_updated",
+            "is_complete",
+            "completed_at",
+        ]
 
 
 class TaskFilter(django_filters.FilterSet):
@@ -79,4 +86,12 @@ class TaskFilter(django_filters.FilterSet):
 
     class Meta:
         model = Task
-        fields = ["name", "profile", "project", "created_at", "last_updated"]
+        fields = [
+            "name",
+            "profile",
+            "project",
+            "created_at",
+            "last_updated",
+            "is_complete",
+            "completed_at",
+        ]

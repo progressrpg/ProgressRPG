@@ -154,6 +154,7 @@ class CharacterQuestSerializer(TimeRecordBaseSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    profile = serializers.PrimaryKeyRelatedField(read_only=True)
     total_time = serializers.IntegerField(read_only=True)
     total_records = serializers.IntegerField(read_only=True)
 
@@ -166,12 +167,15 @@ class ProjectSerializer(serializers.ModelSerializer):
             "profile",
             "created_at",
             "last_updated",
+            "is_complete",
+            "completed_at",
             "total_time",
             "total_records",
         ]
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    profile = serializers.PrimaryKeyRelatedField(read_only=True)
     total_time = serializers.IntegerField(read_only=True)
     total_records = serializers.IntegerField(read_only=True)
 
@@ -185,6 +189,9 @@ class TaskSerializer(serializers.ModelSerializer):
             "project",
             "created_at",
             "last_updated",
+            "is_complete",
+            "completed_at",
             "total_time",
             "total_records",
         ]
+        read_only_fields = ["profile"]

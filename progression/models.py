@@ -318,9 +318,11 @@ class Project(models.Model, ProfileOwnedMixin):
         "users.Profile", on_delete=models.CASCADE, related_name="projects"
     )
     name = models.CharField(max_length=100)
-    description = models.TextField(max_length=2000)
+    description = models.TextField(max_length=2000, null=True, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_complete = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     @property
     def total_time(self):
@@ -358,9 +360,11 @@ class Task(models.Model, ProfileOwnedMixin):
         blank=True,
     )
     name = models.CharField(max_length=100)
-    description = models.TextField(max_length=2000)
+    description = models.TextField(max_length=2000, null=True, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_complete = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     @property
     def total_time(self):

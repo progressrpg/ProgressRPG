@@ -182,6 +182,20 @@ class ActivityViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(detail=True, methods=["patch"])
+    def change_skill(self, request, pk=None):
+        activity = self.get_object()
+        skill_id = request.data.get("skill_id")
+        # validate + assign skill
+        return Response({"success": True})
+
+    @action(detail=True, methods=["patch"])
+    def change_task(self, request, pk=None):
+        activity = self.get_object()
+        task_id = request.data.get("task_id")
+        # validate + assign task
+        return Response({"success": True})
+
 
 class CharacterQuestViewSet(viewsets.ModelViewSet):
     queryset = CharacterQuest.objects.all()
@@ -219,7 +233,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ]
     filterset_class = ProjectFilter
     search_fields = ["name", "description", "profile__name"]
-    ordering_fields = ["created_at", "last_updated"]
+    ordering_fields = ["created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
         return Project.objects.filter(profile=self.request.user.profile).order_by(
@@ -240,10 +254,10 @@ class TaskViewSet(viewsets.ModelViewSet):
     ]
     filterset_class = TaskFilter
     search_fields = ["name", "description", "profile__name", "project__name"]
-    ordering_fields = ["created_at", "last_updated"]
+    ordering_fields = ["created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return Project.objects.filter(profile=self.request.user.profile).order_by(
+        return Task.objects.filter(profile=self.request.user.profile).order_by(
             "-created_at"
         )
 

@@ -116,7 +116,7 @@ class ActivityAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
     class Meta:
-        verbose_name = "Character Quest"  # singular name
+        verbose_name = "Activity"  # singular name
         verbose_name_plural = "Activities"  # plural name
 
 
@@ -151,10 +151,13 @@ class ProjectAdmin(admin.ModelAdmin):
         "total_time",
         "total_records",
         "created_at",
+        "is_complete",
+        "completed_at",
     )
     search_fields = ("name", "description", "profile__name")
-    list_filter = ("profile",)
-    readonly_fields = ("total_time", "total_records")
+    list_filter = ("profile", "is_complete", "completed_at")
+    readonly_fields = ("total_time", "total_records", "created_at", "completed_at")
+    date_hierarchy = "created_at"
 
 
 @admin.register(Task)
@@ -167,7 +170,10 @@ class TaskAdmin(admin.ModelAdmin):
         "total_time",
         "total_records",
         "created_at",
+        "is_complete",
+        "completed_at",
     )
     search_fields = ("name", "description", "profile__name", "project__name")
-    list_filter = ("profile", "project")
-    readonly_fields = ("total_time", "total_records")
+    list_filter = ("profile", "project", "is_complete", "completed_at")
+    readonly_fields = ("total_time", "total_records", "created_at", "completed_at")
+    date_hierarchy = "created_at"
