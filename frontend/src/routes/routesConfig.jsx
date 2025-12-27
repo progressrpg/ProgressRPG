@@ -11,6 +11,7 @@ const Game = lazy(() => import("../pages/Game/Game"));
 const ProfilePage = lazy(() => import("../pages/Profile/Profile"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
 const SkillsPage = lazy(() => import("../pages/SkillsPage"));
+const TasksPage = lazy(() => import("../pages/TasksPage"));
 const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
 const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
 
@@ -73,6 +74,14 @@ export const routes = [
     element: (
       <PrivateRoute>
         <SkillsPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/tasks",
+    element: (
+      <PrivateRoute>
+        <TasksPage />
       </PrivateRoute>
     ),
   },
