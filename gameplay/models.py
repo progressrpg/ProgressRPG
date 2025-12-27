@@ -19,6 +19,8 @@ from typing import Optional, Iterable, Dict, Any, cast, List, TYPE_CHECKING
 import json, logging, math
 
 
+from progression.models import Activity
+
 if TYPE_CHECKING:
     from character.models import Character
 
@@ -382,24 +384,36 @@ class ActivityTimer(Timer):
     def __str__(self):
         return f"ActivityTimer {self.id} for {self.profile.name}"
 
-    def new_activity(self, name=""):
+    def new_activity(self, name="", task=None):
         """
         Assign a new activity to the timer.
+        Optionally associate it with a Task.
 
         """
         logger.debug(
-            f"[ACTIVITYTIMER.new_activity]: Assigning new activity {name} to timer {self.pk}"
+            f"[ACTIVITYTIMER.new_activity]: Assigning new activity {name} "
+            f"(task={getattr(task, 'id', None)}) to timer {self.pk}"
         )
-        from progression.models import Activity
 
-        self.activity = Activity.objects.create(name=name, profile=self.profile)
+        self.activity = Activity.objects.create(
+            name=name,
+            profile=self.profile,
+            task=task,
+        )
 
         if self.status == "empty":
             self.set_waiting()
+
         self.save(update_fields=["activity"])
         logger.debug(
-            f"ActivityTimer after save: {self.pk}, activity: {self.activity}, status: {self.status}"
+            f"ActivityTimer after save: {self.pk}, activity: {self.activity}, "
+            f"status: {self.status}"
         )
+        return self
+
+    def change_task(self, new_task):
+        self.activity.task = new_task
+        self.activity.save(update_fields=["task"])
         return self
 
     def pause(self):
