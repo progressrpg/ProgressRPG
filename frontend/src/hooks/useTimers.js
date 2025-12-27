@@ -107,6 +107,8 @@ export default function useTimers({ mode }) {
   // ----------------------------
   // Pause / Complete / Reset
   // ----------------------------
+
+
   const pause = useCallback(async () => {
     if (
       status === "paused" ||
@@ -141,7 +143,7 @@ export default function useTimers({ mode }) {
       method: 'POST',
     });
 
-    console.log(`${mode} timer complete, api data:`, data);
+    //console.log(`${mode} timer complete, api data:`, data);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -173,18 +175,24 @@ export default function useTimers({ mode }) {
     }
   }, [mode, status, id]);
 
-  // Assign subject to timer
+
+  // ----------------------------
+  // Assign subject
+  // ----------------------------
+
+
   const assignSubject = useCallback(async (newSubject, newDuration = 0, newStatus = "waiting", newElapsed = 0) => {
     //console.log(`[useTimers] Assign ${mode}`);
-    setSubject(newSubject);
     setStatus(newStatus);
     setElapsed(newElapsed);
 
     if (mode === "quest") {
+      setSubject(newSubject);
       const data = await apiFetch(`/${mode}_timers/${id}/change_quest/`, {
         method: 'POST',
         body: JSON.stringify({ quest_id: newSubject.id, duration: newDuration }),
       });
+      //console.log(`${mode} timer assign activity, api data:`, data);
 
       setDuration(newDuration);
       const quest = newSubject;
@@ -236,16 +244,40 @@ export default function useTimers({ mode }) {
       setStageTimeRemaining(Math.max(firstStageTimeLeft, 0));
       //console.log('stageTimeRemaining:', newStageTime);
 
+
     } else if (mode === "activity") {
       setDuration(newDuration);
-      const data = await apiFetch(`/${mode}_timers/${id}/set_activity/`, {
-        method: 'POST',
-        body: JSON.stringify({ activityName: newSubject }),
-      });
+      // newSubject is now an object:
+      // { text: string, taskId: number|null }
+      const { text, taskId } =
+        typeof newSubject === "string"
+        ? { text: newSubject, taskId: null }
+        : newSubject || {};
 
-      //console.log(`${mode} timer assign, api data:`, data);
+
+        const data = await apiFetch(`/${mode}_timers/${id}/set_activity/`, {
+          method: 'POST',
+          body: JSON.stringify({
+            activityName: text,
+            task_id: taskId ?? null,
+            duration: newDuration,
+          }),
+        });
+        // store the structured subject in state so the timer "knows"
+        setSubject(data.activity_timer.activity);
+
+        //console.log(`${mode} timer assign activity, api data:`, data);
+        //console.log(`activity id: ${data.activity_timer.activity.id}`);
     }
+
   }, [mode, id]);
+
+
+  // ----------------------------
+  // Misc methods
+  // ----------------------------
+
+
 
   // Cleanup on unmount
   useEffect(() => {
