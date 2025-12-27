@@ -15,8 +15,6 @@ from .views import (
     ConfirmEmailView,
     OnboardingViewSet,
     FetchInfoAPIView,
-    ActivityTimerViewSet,
-    QuestTimerViewSet,
     DownloadUserDataAPIView,
     DeleteAccountAPIView,
     CustomTokenObtainPairView,
@@ -24,12 +22,13 @@ from .views import (
 )
 
 from character.views import CharacterViewSet
-from gameplay.views import QuestViewSet
+from gameplay.views import ActivityTimerViewSet, QuestTimerViewSet, QuestViewSet
 from progression.views import (
     ActivityViewSet,
     CharacterQuestViewSet,
     PlayerSkillViewSet,
     CategoryViewSet,
+    TaskViewSet,
 )
 from server_management.views import maintenance_status
 from users.views import ProfileViewSet
@@ -55,6 +54,7 @@ router = DefaultRouter()
 router.register(r"profile", ProfileViewSet, basename="profile")
 router.register(r"character", CharacterViewSet, basename="character")
 router.register(r"skills", PlayerSkillViewSet, basename="skills")
+router.register(r"tasks", TaskViewSet, basename="tasks")
 router.register(r"activities", ActivityViewSet, basename="activity")
 router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"character_quests", CharacterQuestViewSet, basename="characterquest")
