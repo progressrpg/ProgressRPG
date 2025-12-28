@@ -8,9 +8,8 @@ import { formatDuration } from "../../../utils/formatUtils.js";
 import TimerDisplay from "./TimerDisplay.jsx";
 import styles from "./ActivityTimer.module.scss";
 
-import { useSkills } from "../../hooks/useSkills.js";
 import { useTasks } from "../../hooks/useTasks.js";
-import { useUpdateActivity, useChangeActivitySkill, useChangeActivityTask } from "../../hooks/useActivities.js";
+import { useUpdateActivity, useChangeActivityTask } from "../../hooks/useActivities.js";
 
 export function ActivityTimer() {
   const [activityName, setActivityName] = useState('');
@@ -32,9 +31,7 @@ export function ActivityTimer() {
     }
   }, [activity?.name]);
 
-  const [selectedSkill, setSelectedSkill] = useState('');
   const [selectedTask, setSelectedTask] = useState('');
-
   useEffect(() => {
     if (activity?.taskId != null) {
       setSelectedTask(activity.taskId.toString());
@@ -44,16 +41,11 @@ export function ActivityTimer() {
   const displayTime = formatDuration(elapsed);
 
   const { submitActivity } = useCombinedTimers();
-
+  
   const updateActivity = useUpdateActivity();
-
-  const { data: skills = [], isLoading: skillsLoading } = useSkills();
-  const changeSkill = useChangeActivitySkill();
   const { data: tasks = [], isLoading: tasksLoading } = useTasks();
   const changeTask = useChangeActivityTask();
 
-  // console.log("Activity timer:", activityTimer);
-  //console.log("activity:", activity);
   return (
     <section className={styles.activityRow}>
 
@@ -71,7 +63,7 @@ export function ActivityTimer() {
         placeholder="Enter activity"
       />
 
-      {/* 🔹 Skill dropdown */}
+      {/* 🔹 Task dropdown */}
       <div className={styles.taskSelect}>
         <label htmlFor="task-select">Task</label>
         <select
