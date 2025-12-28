@@ -5,7 +5,7 @@ import { ActivityTimer } from '../../../components/Timer/ActivityTimer';
 import { useGame } from '../../../context/GameContext.jsx';
 
 export default function ActivitySection() {
-  const { onboardingState } = useGame();
+  const { onboardingStage } = useGame();
 
   return (
       <GameSection type="Activity">
