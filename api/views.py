@@ -297,7 +297,7 @@ class FetchInfoAPIView(APIView):
         )
 
         # --- Auto-complete quest timer if expired ---
-        self._handle_quest_timer_expiry(character, profile)
+        self._handle_quest_timer_expiry(profile, character)
 
         # --- Ensure activity timer is in a valid state ---
         self._ensure_activity_timer_consistency(profile)
