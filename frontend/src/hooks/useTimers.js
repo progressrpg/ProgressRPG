@@ -83,7 +83,8 @@ export default function useTimers({ mode }) {
     if (status === "active" || !subject) return;
     //console.log(`[useTimers] Start ${mode}`);
 
-    const data = await apiFetch(`/${mode}_timers/${id}/start/`, {
+    //const data = await apiFetch(`/${mode}_timers/${id}/start/`, {
+    const data = await apiFetch(`/${mode}_timers/start/`, {
       method: 'POST',
     });
 
@@ -117,7 +118,8 @@ export default function useTimers({ mode }) {
     if (!startTimeRef.current) return;
 
     //console.log(`[useTimers] Pause ${mode}`);
-    const data = await apiFetch(`/${mode}_timers/${id}/pause/`, {
+    //const data = await apiFetch(`/${mode}_timers/${id}/pause/`, {
+    const data = await apiFetch(`/${mode}_timers/pause/`, {
       method: 'POST',
     });
 
@@ -139,7 +141,8 @@ export default function useTimers({ mode }) {
 
     setStatus("completed");
 
-    const data = await apiFetch(`/${mode}_timers/${id}/complete/`, {
+    //const data = await apiFetch(`/${mode}_timers/${id}/complete/`, {
+    const data = await apiFetch(`/${mode}_timers/complete/`, {
       method: 'POST',
     });
 
@@ -156,7 +159,8 @@ export default function useTimers({ mode }) {
     if (status === "empty") return;
     //console.log(`[useTimers] Reset ${mode}`);
 
-    const data = await apiFetch(`/${mode}_timers/${id}/reset/`, {
+    //const data = await apiFetch(`/${mode}_timers/${id}/reset/`, {
+    const data = await apiFetch(`/${mode}_timers/reset/`, {
       method: 'POST',
     });
 
@@ -188,7 +192,8 @@ export default function useTimers({ mode }) {
 
     if (mode === "quest") {
       setSubject(newSubject);
-      const data = await apiFetch(`/${mode}_timers/${id}/change_quest/`, {
+      //const data = await apiFetch(`/${mode}_timers/${id}/change_quest/`, {
+      const data = await apiFetch(`/${mode}_timers/change_quest/`, {
         method: 'POST',
         body: JSON.stringify({ quest_id: newSubject.id, duration: newDuration }),
       });
@@ -255,7 +260,8 @@ export default function useTimers({ mode }) {
         : newSubject || {};
 
 
-        const data = await apiFetch(`/${mode}_timers/${id}/set_activity/`, {
+        //const data = await apiFetch(`/${mode}_timers/${id}/set_activity/`, {
+        const data = await apiFetch(`/${mode}_timers/set_activity/`, {
           method: 'POST',
           body: JSON.stringify({
             activityName: text,
