@@ -190,15 +190,13 @@ class Profile(Person):
     ONBOARDING_STEPS = [
         (0, "Not started"),
         (1, "Step 1: Profile creation"),
-        (2, "Step 2: Character generation"),
-        (3, "Step 3: Subscription"),
-        (4, "Completed"),
+        (2, "Completed"),
     ]
     onboarding_step = models.PositiveIntegerField(choices=ONBOARDING_STEPS, default=0)
 
     @property
     def needs_onboarding(self):
-        return self.onboarding_step < 4
+        return self.onboarding_step < 2
 
     @property
     def group_name(self):

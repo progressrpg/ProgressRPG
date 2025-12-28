@@ -45,8 +45,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.serializers import (
     UserSerializer,
     Step1Serializer,
-    # Step2Serializer,
-    # Step3Serializer,
     CustomRegisterSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
@@ -259,76 +257,27 @@ class OnboardingViewSet(viewsets.ViewSet):
             profile.save()
         return Response(
             {
-                "step": request.user.profile.onboarding_step,
-                "characters_available": Character.has_available(),
+                "step": profile.onboarding_step,
             }
         )
 
     @action(detail=False, methods=["post"])
     def progress(self, request):
         profile = self.get_profile(request)
-        step = profile.onboarding_step
 
-        handlers = {
-            1: self.handle_step1,
-            2: self.handle_step2,
-            3: self.handle_step3,
-        }
-
-        handler = handlers.get(step)
-        if handler:
-            return handler(profile, request)
-        return Response({"message": "Onboarding complete."}, status=200)
-
-    def handle_step1(self, profile, request):
-        serializer = Step1Serializer(profile, data=request.data, partial=True)
-        characters_available = Character.has_available()
-        character = PlayerCharacterLink.get_character(profile)
-        if character is not None:
-            character_data = CharacterSerializer(
-                character, context={"request": request}
-            ).data
-        if serializer.is_valid():
-            serializer.save()
-            profile.onboarding_step = 2
-            profile.save()
-            return Response(
-                {
-                    "message": "Step 1 complete.",
-                    "step": profile.onboarding_step,
-                    "characters_available": characters_available,
-                    "character": character_data if character else None,
-                }
-            )
+        if profile.onboarding_step == 1:
+            serializer = Step1Serializer(profile, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                profile.onboarding_step = 2
+                profile.save()
+                return Response(
+                    {
+                        "message": "Profile named.",
+                        "step": profile.onboarding_step,
+                    }
+                )
         return Response(serializer.errors, status=400)
-
-    def handle_step2(self, profile, request):
-        character = PlayerCharacterLink.get_character(profile)
-        if not character:
-            return Response({"error": "No active character link found."}, status=404)
-
-        profile.onboarding_step = 3
-        profile.save()
-        character_data = CharacterSerializer(
-            character, context={"request": request}
-        ).data
-        return Response(
-            {
-                "message": "Step 2 complete.",
-                "step": profile.onboarding_step,
-                "character": character_data,
-            }
-        )
-
-    def handle_step3(self, profile, request):
-        profile.onboarding_step = 4
-        profile.save()
-        return Response(
-            {
-                "message": "Stage 3 complete. Onboarding finished!",
-                "step": profile.onboarding_step,
-            }
-        )
 
 
 class FetchInfoAPIView(APIView):

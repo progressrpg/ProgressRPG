@@ -7,5 +7,5 @@ export default function RequireOnboardingComplete({ children }) {
 
   if (loading || step === undefined) return <p>Loading onboarding status…</p>;
 
-  return step < 4 ? <Navigate to="/onboarding" replace /> : children;
+  return step < 2 ? <Navigate to="/onboarding" replace /> : children;
 }

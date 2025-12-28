@@ -65,16 +65,6 @@ class Step1Serializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
-class Step2Serializer(serializers.Serializer):
-    # No extra fields for linking character, just confirmation
-    confirm_link = serializers.BooleanField()
-
-
-class Step3Serializer(serializers.Serializer):
-    # No extra data, just confirming tutorial completion
-    confirm_tutorial = serializers.BooleanField()
-
-
 class CustomRegisterSerializer(RegisterSerializer):
     invite_code = serializers.CharField(write_only=True, required=True)
     agree_to_terms = serializers.BooleanField(write_only=True, required=True)

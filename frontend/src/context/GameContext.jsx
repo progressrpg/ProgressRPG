@@ -8,8 +8,7 @@ import useTimers from '../hooks/useTimers';
 const GameContext = createContext();
 
 export const useGame = () => {
-  const context = useContext(GameContext);
-  return context;
+  return useContext(GameContext);
 }
 // Optional alternative:
 //export const useGame = () => useContext(GameContext);
@@ -37,6 +36,8 @@ export const GameProvider = ({ children }) => {
   const [character, setCharacter] = useState(characterOnload);
   const [activities, setActivities] = useState({ results: [], count: 0 });
   const [quests, setQuests] = useState([]);
+
+  const [onboardingStage, setOnboardingStage] = useState(1);
 
   const activityTimer = useTimers({ mode: "activity" });
   const questTimer = useTimers({ mode: "quest" });
@@ -117,6 +118,8 @@ export const GameProvider = ({ children }) => {
       fetchQuests,
       loading,
       buildNumber,
+      onboardingStage,
+      setOnboardingStage,
     }),
     [
       player,
@@ -129,7 +132,8 @@ export const GameProvider = ({ children }) => {
       fetchActivities,
       fetchQuests,
       loading,
-      buildNumber
+      buildNumber,
+      onboardingStage,
     ]
   );
 
