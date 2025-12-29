@@ -34,7 +34,7 @@ from .utils import check_quest_eligibility, send_group_message
 from character.models import PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
-from progression.models import Activity
+from progression.models import Activity, Task
 from progression.serializers import ActivitySerializer
 
 from users.serializers import ProfileSerializer
