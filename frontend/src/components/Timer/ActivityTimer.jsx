@@ -113,12 +113,27 @@ export function ActivityTimer() {
             });
 
             setActivityName('');
-            setSelectedTask('');
+            // setSelectedTask('');
           }}
           disabled={status === "empty"}
         >
           Submit Activity
         </Button>
+
+
+      <ButtonFrame>
+        <Button
+          onClick={() => assignSubject({
+            text: activityName,
+            taskId: selectedTask || null,
+            })
+          }
+          disabled={status === "empty"}
+        >
+          Complete task
+        </Button>
+
+
       </ButtonFrame>
     </section>
   );
