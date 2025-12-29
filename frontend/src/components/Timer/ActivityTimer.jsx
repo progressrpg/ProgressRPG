@@ -8,7 +8,7 @@ import { formatDuration } from "../../../utils/formatUtils.js";
 import TimerDisplay from "./TimerDisplay.jsx";
 import styles from "./ActivityTimer.module.scss";
 
-import { useTasks } from "../../hooks/useTasks.js";
+import { useTasks, useCreateTask, useUpdateTask } from "../../hooks/useTasks.js";
 import { useUpdateActivity, useChangeActivityTask } from "../../hooks/useActivities.js";
 
 export function ActivityTimer() {
@@ -41,10 +41,18 @@ export function ActivityTimer() {
   const displayTime = formatDuration(elapsed);
 
   const { submitActivity } = useCombinedTimers();
-  
+
   const updateActivity = useUpdateActivity();
   const { data: tasks = [], isLoading: tasksLoading } = useTasks();
+  const updateTask = useUpdateTask();
+  const createTask = useCreateTask();
   const changeTask = useChangeActivityTask();
+  const [creatingTask, setCreatingTask] = useState(false);
+  const [newTaskName, setNewTaskName] = useState("");
+
+  //console.log("tasks:", tasks);
+
+  const incompleteTasks = tasks.filter(task => !task.is_complete);
 
   return (
     <section className={styles.activityRow}>
@@ -68,27 +76,65 @@ export function ActivityTimer() {
         <label htmlFor="task-select">Task</label>
         <select
           id="task-select"
-          value={selectedTask}
+          value={creatingTask ? "new" : selectedTask}
           onChange={(e) => {
-            const newTaskId = e.target.value;
-            setSelectedTask(newTaskId);
+            if (e.target.value === "new") {
+              setCreatingTask(true);
+            } else {
+              setSelectedTask(e.target.value);
+              setCreatingTask(false);
 
-            if (activity?.id) {
-              changeTask.mutate({ activityId: activity.id, taskId: newTaskId });
+              if (activity?.id) {
+                changeTask.mutate({ activityId: activity.id, taskId: newTaskId });
+              }
             }
           }}
         >
           <option value="">
-            {tasksLoading ? "Loading tasks..." : "No task selected"}
+            {tasksLoading
+              ? "Loading tasks..."
+              : incompleteTasks.length === 0
+              ? "No incomplete tasks"
+              : "No task selected"}
           </option>
 
-          {tasks.map((task) => (
+          {incompleteTasks.map((task) => (
             <option key={task.id} value={task.id.toString()}>
               {task.name}
             </option>
           ))}
+
+          <option value="new">+ Create new task</option>
         </select>
+
+        {creatingTask && (
+          <div className={styles.inlineNewTask}>
+            <input
+              type="text"
+              value={newTaskName}
+              onChange={(e) => setNewTaskName(e.target.value)}
+              placeholder="Enter new task name"
+            />
+            <button
+              onClick={async () => {
+                if (!newTaskName.trim()) return;
+                const task = await createTask.mutateAsync({ name: newTaskName });
+                setSelectedTask(task.id.toString());
+                setNewTaskName("");
+                setCreatingTask(false);
+
+                if (activity?.id) {
+                  changeTask.mutate({ activityId: activity.id, taskId: task.id });
+                }
+              }}
+            >
+              Add Task
+            </button>
+            <button onClick={() => setCreatingTask(false)}>Cancel</button>
+          </div>
+        )}
       </div>
+
 
       <ButtonFrame>
         <Button
@@ -113,7 +159,6 @@ export function ActivityTimer() {
             });
 
             setActivityName('');
-            // setSelectedTask('');
           }}
           disabled={status === "empty"}
         >
@@ -121,14 +166,14 @@ export function ActivityTimer() {
         </Button>
 
 
-      <ButtonFrame>
         <Button
-          onClick={() => assignSubject({
-            text: activityName,
-            taskId: selectedTask || null,
-            })
-          }
-          disabled={status === "empty"}
+          onClick={async () => {
+            if (!selectedTask) return;
+
+            await updateTask.mutateAsync({ id: selectedTask, data: { is_complete: true } });
+            setSelectedTask('');
+          }}
+          disabled={status !== "empty" || !selectedTask}
         >
           Complete task
         </Button>
