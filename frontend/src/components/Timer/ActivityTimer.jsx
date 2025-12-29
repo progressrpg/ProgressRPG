@@ -17,7 +17,14 @@ export function ActivityTimer() {
     setActivityName(value); // record every change
   };
 
-  const { activityTimer } = useGame();
+  const {
+    onboardingStage,
+    fetchActivities,
+    fetchQuests,
+    setPlayer,
+    showToast
+  } = useGame();
+
   const {
     subject: activity,
     status,
@@ -40,7 +47,23 @@ export function ActivityTimer() {
 
   const displayTime = formatDuration(elapsed);
 
-  const { submitActivity } = useCombinedTimers();
+  const { submitActivity, mode } = useCombinedTimers({
+    enableQuest: onboardingStage >= 2,
+    autoStart: onboardingStage >= 2,
+
+    onActivityComplete: (data) => {
+      if (data.profile) setPlayer(data.profile);
+      fetchActivities();
+    },
+
+    onQuestComplete: (data) => {
+      fetchQuests();
+    },
+
+    onError: (err) => {
+      showToast("Something went wrong", err);
+    },
+  });
 
   const updateActivity = useUpdateActivity();
   const { data: tasks = [], isLoading: tasksLoading } = useTasks();
