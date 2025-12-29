@@ -37,7 +37,7 @@ export const GameProvider = ({ children }) => {
   const [activities, setActivities] = useState({ results: [], count: 0 });
   const [quests, setQuests] = useState([]);
 
-  const [onboardingStage, setOnboardingStage] = useState(1);
+  const [onboardingStage, setOnboardingStage] = useState(4);
 
   const activityTimer = useTimers({ mode: "activity" });
   const questTimer = useTimers({ mode: "quest" });
