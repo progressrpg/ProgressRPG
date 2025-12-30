@@ -11,7 +11,7 @@ export default function GameContent() {
 
   return (
     <div className={styles.gameContent}>
-      <ActivitySection onboardingStage={onboardingStage} />
+      <ActivitySection />
       {onboardingStage >= 3 && (
         <QuestSection />
       )}
