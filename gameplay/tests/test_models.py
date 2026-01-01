@@ -20,7 +20,7 @@ from gameplay.models import (
     ServerMessage,
 )
 
-from progression.models import Activity
+from progression.models import PlayerActivity
 from progression.utils import copy_quest
 from character.models import Character
 
@@ -246,7 +246,7 @@ class TestActivityTimer(TestCase):
             email="user1@gmail.com", password="test"
         )
         cls.profile = cls.user.profile
-        cls.activity = Activity.objects.create(
+        cls.activity = PlayerActivity.objects.create(
             profile=cls.profile, name="Test Activity", duration=10
         )
 
@@ -255,7 +255,7 @@ class TestActivityTimer(TestCase):
 
     def test_new_activity_sets_state(self):
         self.timer.new_activity("Test activity")
-        self.assertIsInstance(self.timer.activity, Activity)
+        self.assertIsInstance(self.timer.activity, PlayerActivity)
         self.assertEqual(self.timer.status, "waiting")
 
     def test_start_and_pause(self):

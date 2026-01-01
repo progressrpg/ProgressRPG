@@ -40,7 +40,7 @@ from .models import QuestCompletion, Quest, ActivityTimer, QuestTimer
 # from .models import ServerMessage
 from .serializers import QuestTimerSerializer
 
-# from .serializers import QuestSerializer, ActivitySerializer, ActivityTimerSerializer
+# from .serializers import QuestSerializer, ActivityTimerSerializer
 
 from character.models import Character
 

@@ -210,20 +210,11 @@ class TimeRecord(models.Model):
 
         return self.completed_at
 
-    def calculate_xp_reward(self) -> int:
-        """
-        Calculate and store the XP reward based on duration.
-
-        Currently, XP gained equals total duration.
-        """
-        xp = self.duration
-        return xp
-
     class Meta:
         abstract = True
 
 
-class Activity(TimeRecord, ProfileOwnedMixin):
+class PlayerActivity(TimeRecord, ProfileOwnedMixin):
     """
     Represents an activity tracked by a user.
 
@@ -273,6 +264,44 @@ class Activity(TimeRecord, ProfileOwnedMixin):
         """
         return "Private activity" if self.is_private else f"activity {self.name}"
 
+    def calculate_xp_reward(self) -> int:
+        """
+        Calculate and store the XP reward based on duration.
+        Currently, XP gained equals total duration in seconds.
+        """
+        xp = self.duration
+        return xp
+
+
+class CharacterActivity(TimeRecord):
+    """
+    Character's autonomous activity.
+    Generated daily, added to a queue, consumes character time.
+    """
+
+    character = models.ForeignKey(
+        "character.Character",
+        on_delete=models.CASCADE,
+        related_name="character_activities",
+    )
+    kind = models.CharField(
+        max_length=50, choices=[("day", "Daytime"), ("rest", "Resting")]
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"character_activity {self.name}"
+
+    def calculate_xp_reward(self) -> int:
+        """
+        Calculate and store the XP gained based on duration.
+        """
+        base_xp = self.duration // 60
+        multiplier = 0.25 if self.kind == "rest" else 1
+        return int(base_xp * multiplier)
+
 
 class CharacterQuest(TimeRecord):
     """
@@ -307,6 +336,15 @@ class CharacterQuest(TimeRecord):
     def __str__(self):
         return f"character_quest {self.name}"
 
+    def calculate_xp_reward(self) -> int:
+        """
+        Calculate and store the XP reward based on duration.
+
+        Currently, XP gained equals total duration in seconds.
+        """
+        xp = self.duration
+        return xp
+
 
 #########################################
 #####      Other models
@@ -327,7 +365,7 @@ class Project(models.Model, ProfileOwnedMixin):
     @property
     def total_time(self):
         return (
-            Activity.objects.filter(
+            PlayerActivity.objects.filter(
                 Q(project=self) | Q(task__project=self),
                 is_complete=True,
             ).aggregate(total=Sum("duration"))["total"]
@@ -337,7 +375,7 @@ class Project(models.Model, ProfileOwnedMixin):
     @property
     def total_records(self):
         return (
-            Activity.objects.filter(
+            PlayerActivity.objects.filter(
                 Q(project=self) | Q(task__project=self),
                 is_complete=True,
             ).count()

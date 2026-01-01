@@ -7,29 +7,29 @@ Skill: { id, name, group, xp, level }
 */
 
 export function fetchActivities() {
-  return apiFetch(`/activities/`).then(data => data.results);
+  return apiFetch(`/player-activities/`).then(data => data.results);
 }
 
 export function fetchActivity(id) {
-  return apiFetch(`/activities/${id}/`);
+  return apiFetch(`/player-activities/${id}/`);
 }
 
 export function createActivity(data) {
-  return apiFetch("/activities/", {
+  return apiFetch("/player-activities/", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
 export function updateActivity(id, data) {
-  return apiFetch(`/activities/${id}/`, {
+  return apiFetch(`/player-activities/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
 }
 
 export function deleteActivity(id) {
-  return apiFetch(`/activities/${id}/`, {
+  return apiFetch(`/player-activities/${id}/`, {
     method: "DELETE",
   });
 }

@@ -9,7 +9,7 @@ from .models import (
     Role,
     PlayerSkill,
     CharacterSkill,
-    Activity,
+    PlayerActivity,
     CharacterQuest,
     Project,
     Task,
@@ -104,7 +104,7 @@ class ActivityModelTests(BaseTestCase):
         )
 
     def test_activity_start(self):
-        activity = Activity.objects.create(
+        activity = PlayerActivity.objects.create(
             profile=self.profile,
             name="Write tests",
         )
@@ -115,7 +115,7 @@ class ActivityModelTests(BaseTestCase):
         self.assertIsNotNone(activity.started_at)
 
     def test_activity_complete_updates_skill(self):
-        activity = Activity.objects.create(
+        activity = PlayerActivity.objects.create(
             profile=self.profile,
             name="Write tests",
             skill=self.skill,
@@ -177,7 +177,7 @@ class ProjectTaskTests(BaseTestCase):
 
     def test_task_activity_total(self):
         # Activity linked only to task
-        activity = Activity.objects.create(
+        activity = PlayerActivity.objects.create(
             profile=self.profile,
             name="Task work",
             task=self.task,
@@ -194,7 +194,7 @@ class ProjectTaskTests(BaseTestCase):
 
     def test_project_activity_total(self):
         # Activity linked only to project (not a task)
-        activity = Activity.objects.create(
+        activity = PlayerActivity.objects.create(
             profile=self.profile,
             name="Project work",
             project=self.project,

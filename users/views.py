@@ -29,7 +29,7 @@ from .utils import kick_old_sessions, send_signup_email
 
 from api.views import IsOwnerProfile
 from character.models import PlayerCharacterLink
-from gameplay.serializers import ActivitySerializer
+from gameplay.serializers import PlayerActivitySerializer
 
 logger = logging.getLogger("django")
 
@@ -443,7 +443,7 @@ def download_user_data(request):
         logger.error(f"Character not found for user {user.username} (ID: {user.id}).")
         return JsonResponse({"error": "Character data not found."}, status=404)
 
-    activities_json = ActivitySerializer(profile.activities.all(), many=True).data
+    activities_json = PlayerActivitySerializer(profile.activities.all(), many=True).data
     user_data = {
         "username": user.username,
         "email": user.email,

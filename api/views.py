@@ -61,8 +61,11 @@ from gameplay.serializers import (
     QuestTimerSerializer,
 )
 
-from progression.models import Activity, Task
-from progression.serializers import ActivitySerializer
+from progression.models import PlayerActivity, Task
+from progression.serializers import (
+    PlayerActivitySerializer,
+    CharacterActivitySerializer,
+)
 from progression.utils import copy_quest
 
 from users.models import Profile
@@ -389,7 +392,9 @@ class DownloadUserDataAPIView(APIView):
             )
             raise Http404("Character data not found.")
 
-        activities_json = ActivitySerializer(profile.activities.all(), many=True).data
+        activities_json = PlayerActivitySerializer(
+            profile.activities.all(), many=True
+        ).data
         user_data = {
             "email": user.email,
             "profile": {

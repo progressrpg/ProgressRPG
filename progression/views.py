@@ -11,7 +11,8 @@ from .models import (
     Role,
     PlayerSkill,
     CharacterSkill,
-    Activity,
+    PlayerActivity,
+    CharacterActivity,
     CharacterQuest,
     Project,
     Task,
@@ -21,7 +22,8 @@ from .serializers import (
     RoleSerializer,
     PlayerSkillSerializer,
     CharacterSkillSerializer,
-    ActivitySerializer,
+    PlayerActivitySerializer,
+    CharacterActivitySerializer,
     CharacterQuestSerializer,
     ProjectSerializer,
     TaskSerializer,
@@ -110,8 +112,8 @@ class CharacterSkillViewSet(viewsets.ModelViewSet):
 #########################################
 
 
-class ActivityViewSet(viewsets.ModelViewSet):
-    serializer_class = ActivitySerializer
+class PlayerActivityViewSet(viewsets.ModelViewSet):
+    serializer_class = PlayerActivitySerializer
     permission_classes = [IsAuthenticated, IsOwnerProfile]
     filter_backends = [
         DjangoFilterBackend,
@@ -129,9 +131,9 @@ class ActivityViewSet(viewsets.ModelViewSet):
     ordering_fields = ["duration", "created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return Activity.objects.filter(profile=self.request.user.profile).order_by(
-            "-created_at"
-        )
+        return PlayerActivity.objects.filter(
+            profile=self.request.user.profile
+        ).order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(profile=self.request.user.profile)
@@ -164,11 +166,11 @@ class ActivityViewSet(viewsets.ModelViewSet):
         serializer.save()
 
         # Return latest activities (today’s or recent 5)
-        activities = Activity.objects.filter(
+        activities = PlayerActivity.objects.filter(
             profile=profile, completed_at__date=timezone.now().date()
         ).order_by("-completed_at")
         if not activities.exists():
-            activities = Activity.objects.filter(profile=profile).order_by(
+            activities = PlayerActivity.objects.filter(profile=profile).order_by(
                 "-completed_at"
             )[:5]
 
@@ -177,7 +179,7 @@ class ActivityViewSet(viewsets.ModelViewSet):
                 "success": True,
                 "message": "Activity submitted",
                 "profile": ProfileSerializer(profile).data,
-                "activities": ActivitySerializer(activities, many=True).data,
+                "activities": PlayerActivitySerializer(activities, many=True).data,
             },
             status=status.HTTP_200_OK,
         )
@@ -195,6 +197,27 @@ class ActivityViewSet(viewsets.ModelViewSet):
         task_id = request.data.get("task_id")
         # validate + assign task
         return Response({"success": True})
+
+
+class CharacterActivityViewSet(viewsets.ModelViewSet):
+    queryset = CharacterActivity.objects.all()
+    serializer_class = CharacterActivitySerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description", "character__name"]
+    ordering_fields = ["duration", "target_duration", "created_at", "last_updated"]
+
+    def get_queryset(self):
+        """
+        Return CharacterActivity objects for the current user's active character.
+        """
+        from character.models import PlayerCharacterLink
+
+        profile = self.request.user.profile
+        character = PlayerCharacterLink.get_character(profile)
+        if not character:
+            return CharacterActivity.objects.none()
+        return CharacterActivity.objects.filter(character=character)
 
 
 class CharacterQuestViewSet(viewsets.ModelViewSet):

@@ -8,7 +8,7 @@ from unittest import skip
 from users.models import Profile
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import Quest
-from progression.models import Activity
+from progression.models import PlayerActivity
 
 import json, logging
 
@@ -59,7 +59,7 @@ class GameViewTest(GameplayViewTestBase):
 # Fetch Activities
 class FetchActivitiesTest(GameplayViewTestBase):
     def test_get_activities(self):
-        Activity.objects.create(profile=self.profile, name="Test Activity")
+        PlayerActivity.objects.create(profile=self.profile, name="Test Activity")
         response = self.client.get(reverse("fetch_activities"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("activities", response.json())
@@ -99,7 +99,7 @@ class CreateActivityTest(GameplayViewTestBase):
         data = {"activityName": "Focus Time"}
         response = self.ajax_post(reverse("create_activity"), data)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(Activity.objects.filter(profile=self.profile).exists())
+        self.assertTrue(PlayerActivity.objects.filter(profile=self.profile).exists())
 
     def test_create_activity_missing_name(self):
         response = self.ajax_post(reverse("create_activity"), {})
@@ -115,7 +115,7 @@ class SubmitActivityTest(GameplayViewTestBase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.activity = Activity.objects.create(
+        cls.activity = PlayerActivity.objects.create(
             profile=cls.profile, name="Initial Activity"
         )
         cls.profile.activity_timer.new_activity(cls.activity)

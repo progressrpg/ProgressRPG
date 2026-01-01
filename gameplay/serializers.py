@@ -8,7 +8,7 @@ from .models import (
     QuestTimer,
 )
 
-from progression.serializers import ActivitySerializer
+from progression.serializers import PlayerActivitySerializer
 
 
 class QuestResultSerializer(serializers.ModelSerializer):
@@ -43,7 +43,7 @@ class QuestRequirementSerializer(serializers.ModelSerializer):
 
 
 class ActivityTimerSerializer(serializers.ModelSerializer):
-    activity = ActivitySerializer(read_only=True)
+    activity = PlayerActivitySerializer(read_only=True)
     elapsed_time = serializers.SerializerMethodField()
 
     class Meta:

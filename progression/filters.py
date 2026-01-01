@@ -7,7 +7,8 @@ from .models import (
     Role,
     PlayerSkill,
     CharacterSkill,
-    Activity,
+    PlayerActivity,
+    CharacterActivity,
     CharacterQuest,
     Project,
     Task,
@@ -21,7 +22,7 @@ class ActivityFilter(django_filters.FilterSet):
     created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
 
     class Meta:
-        model = Activity
+        model = PlayerActivity
         fields = ["date", "is_complete", "created_at", "skill"]
 
 

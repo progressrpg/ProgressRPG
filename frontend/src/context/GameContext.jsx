@@ -62,7 +62,7 @@ export const GameProvider = ({ children }) => {
 
   const fetchActivities = useCallback(async () => {
     const data = await apiFetch(
-      `/activities/?date_after=${formattedDate}&date_before=${formattedDate}`
+      `/player-activities/?date_after=${formattedDate}&date_before=${formattedDate}`
     );
     setActivities(data);
   }, [formattedDate]);

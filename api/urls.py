@@ -24,7 +24,8 @@ from .views import (
 from character.views import CharacterViewSet
 from gameplay.views import ActivityTimerViewSet, QuestTimerViewSet, QuestViewSet
 from progression.views import (
-    ActivityViewSet,
+    PlayerActivityViewSet,
+    CharacterActivityViewSet,
     CharacterQuestViewSet,
     PlayerSkillViewSet,
     CategoryViewSet,
@@ -55,7 +56,10 @@ router.register(r"profile", ProfileViewSet, basename="profile")
 router.register(r"character", CharacterViewSet, basename="character")
 router.register(r"skills", PlayerSkillViewSet, basename="skills")
 router.register(r"tasks", TaskViewSet, basename="tasks")
-router.register(r"activities", ActivityViewSet, basename="activity")
+router.register(r"player-activities", PlayerActivityViewSet, basename="playeractivity")
+router.register(
+    r"character-activities", CharacterActivityViewSet, basename="characteractivity"
+)
 router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"character_quests", CharacterQuestViewSet, basename="characterquest")
 

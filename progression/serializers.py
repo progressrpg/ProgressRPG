@@ -6,7 +6,8 @@ from .models import (
     Role,
     PlayerSkill,
     CharacterSkill,
-    Activity,
+    PlayerActivity,
+    CharacterActivity,
     CharacterQuest,
     Project,
     Task,
@@ -119,11 +120,11 @@ class CharacterSkillSerializer(SkillBaseSerializer):
 #########################################
 
 
-class ActivitySerializer(TimeRecordBaseSerializer):
+class PlayerActivitySerializer(TimeRecordBaseSerializer):
     profile = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta(TimeRecordBaseSerializer.Meta):
-        model = Activity
+        model = PlayerActivity
         fields = TimeRecordBaseSerializer.Meta.fields + [
             "profile",
             "is_private",
@@ -132,6 +133,15 @@ class ActivitySerializer(TimeRecordBaseSerializer):
             "task",
         ]
         read_only_fields = ["profile"]
+
+
+class CharacterActivitySerializer(TimeRecordBaseSerializer):
+    class Meta(TimeRecordBaseSerializer.Meta):
+        model = CharacterActivity
+        fields = TimeRecordBaseSerializer.Meta.fields + [
+            "character",
+            "kind",
+        ]
 
 
 class CharacterQuestSerializer(TimeRecordBaseSerializer):

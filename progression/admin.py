@@ -1,15 +1,14 @@
-from django.contrib import admin
-
-from .models import Activity, CharacterQuest
-
 # progression/admin.py
+
+from django.contrib import admin
 from django.contrib import admin
 from .models import (
     Category,
     Role,
     PlayerSkill,
     CharacterSkill,
-    Activity,
+    PlayerActivity,
+    CharacterActivity,
     CharacterQuest,
     Project,
     Task,
@@ -97,7 +96,7 @@ class CharacterSkillAdmin(admin.ModelAdmin):
 #########################################
 
 
-@admin.register(Activity)
+@admin.register(PlayerActivity)
 class ActivityAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -116,7 +115,7 @@ class ActivityAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
     class Meta:
-        verbose_name = "Activity"  # singular name
+        verbose_name = "PlayerActivity"  # singular name
         verbose_name_plural = "Activities"  # plural name
 
 

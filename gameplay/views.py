@@ -34,8 +34,11 @@ from .utils import check_quest_eligibility, send_group_message
 from character.models import PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
-from progression.models import Activity, Task
-from progression.serializers import ActivitySerializer
+from progression.models import PlayerActivity, Task
+from progression.serializers import (
+    PlayerActivitySerializer,
+    CharacterActivitySerializer,
+)
 
 from users.serializers import ProfileSerializer
 
@@ -82,10 +85,10 @@ def fetch_activities(request):
     logger.info(f"[FETCH ACTIVITIES] Request received from user {profile.id}")
 
     try:
-        activities = Activity.objects.filter(
+        activities = PlayerActivity.objects.filter(
             profile=profile, created_at__date=timezone.now().date()
         )
-        serializer = ActivitySerializer(activities, many=True).data
+        serializer = PlayerActivitySerializer(activities, many=True).data
 
         # Remove current activity
         if profile.activity_timer.status not in ["empty", "completed"]:
@@ -402,7 +405,9 @@ def create_activity(request):
         logger.debug(f"[CREATE ACTIVITY] Received activity name: {activity_name}")
 
         try:
-            activity = Activity.objects.create(profile=profile, name=activity_name)
+            activity = PlayerActivity.objects.create(
+                profile=profile, name=activity_name
+            )
             profile.activity_timer.new_activity(activity)
             profile.activity_timer.refresh_from_db()
             logger.info(
@@ -513,17 +518,17 @@ def submit_activity(request):
             )
 
         try:
-            activities = Activity.objects.filter(
+            activities = PlayerActivity.objects.filter(
                 profile=profile, created_at__date=timezone.now().date()
             ).order_by("-created_at")
             if not activities.exists():
-                activities = Activity.objects.filter(profile=profile).order_by(
+                activities = PlayerActivity.objects.filter(profile=profile).order_by(
                     "-created_at"
                 )[:5]
                 logger.debug(
                     f"[SUBMIT ACTIVITY] No activities for today. Showing recent activities: {activities}"
                 )
-            activities_list = ActivitySerializer(activities, many=True).data
+            activities_list = PlayerActivitySerializer(activities, many=True).data
         except ObjectDoesNotExist as e:
             logger.error(
                 f"[SUBMIT ACTIVITY] Object not found while fetching activities for profile {profile.id}: {e}"

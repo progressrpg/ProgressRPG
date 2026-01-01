@@ -19,7 +19,7 @@ from typing import Optional, Iterable, Dict, Any, cast, List, TYPE_CHECKING
 import json, logging, math
 
 
-from progression.models import Activity
+from progression.models import PlayerActivity
 
 if TYPE_CHECKING:
     from character.models import Character
@@ -370,7 +370,7 @@ class ActivityTimer(Timer):
         "users.profile", on_delete=models.CASCADE, related_name="activity_timer"
     )
     activity = models.ForeignKey(
-        "progression.Activity",
+        "progression.PlayerActivity",
         on_delete=models.SET_NULL,
         related_name="activity_timer",
         null=True,
@@ -395,7 +395,7 @@ class ActivityTimer(Timer):
             f"(task={getattr(task, 'id', None)}) to timer {self.pk}"
         )
 
-        self.activity = Activity.objects.create(
+        self.activity = PlayerActivity.objects.create(
             name=name,
             profile=self.profile,
             task=task,
