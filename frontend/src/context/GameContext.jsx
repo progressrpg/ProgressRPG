@@ -32,7 +32,8 @@ export const GameProvider = ({ children }) => {
 
   const [player, setPlayer] = useState(playerOnload);
   const [character, setCharacter] = useState(characterOnload);
-  const [activities, setActivities] = useState({ results: [], count: 0 });
+  const [playerActivities, setPlayerActivities] = useState({ results: [], count: 0 });
+  const [characterActivities, setCharacterActivities] = useState({ results: [], count: 0 });
   const [quests, setQuests] = useState([]);
 
   const [onboardingStage, setOnboardingStage] = useState(4);
@@ -61,10 +62,17 @@ export const GameProvider = ({ children }) => {
   const formattedDate = getFormattedDate();
 
   const fetchActivities = useCallback(async () => {
-    const data = await apiFetch(
-      `/player-activities/?date_after=${formattedDate}&date_before=${formattedDate}`
-    );
-    setActivities(data);
+    const [playerData, charData] = await Promise.all([
+      apiFetch(
+        `/player-activities/?date_after=${formattedDate}&date_before=${formattedDate}`
+      ),
+      apiFetch(
+        `/character-activities/?date_after=${formattedDate}&date_before=${formattedDate}`
+      ),
+    ]);
+
+    setPlayerActivities(await playerData);
+    setCharacterActivities(await charData);
   }, [formattedDate]);
 
   const fetchQuests = useCallback(async () => {
