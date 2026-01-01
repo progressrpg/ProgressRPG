@@ -10,8 +10,6 @@ const GameContext = createContext();
 export const useGame = () => {
   return useContext(GameContext);
 }
-// Optional alternative:
-//export const useGame = () => useContext(GameContext);
 
 const getFormattedDate = () => {
   const today = new Date();

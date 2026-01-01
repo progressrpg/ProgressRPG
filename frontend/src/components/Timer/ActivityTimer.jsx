@@ -22,7 +22,8 @@ export function ActivityTimer() {
     fetchActivities,
     fetchQuests,
     setPlayer,
-    showToast
+    activityTimer,
+    showToast,
   } = useGame();
 
   const {
@@ -61,21 +62,27 @@ export function ActivityTimer() {
     },
 
     onError: (err) => {
-      showToast("Something went wrong", err);
+      if (typeof showToast === "function") {
+        showToast("Something went wrong", err);
+      } else {
+        console.error(err);
+      }
     },
   });
 
   const updateActivity = useUpdateActivity();
-  const { data: tasks = [], isLoading: tasksLoading } = useTasks();
-  const updateTask = useUpdateTask();
-  const createTask = useCreateTask();
-  const changeTask = useChangeActivityTask();
-  const [creatingTask, setCreatingTask] = useState(false);
-  const [newTaskName, setNewTaskName] = useState("");
+  // const { data: tasks = [], isLoading: tasksLoading } = useTasks();
+  // const updateTask = useUpdateTask();
+  // const createTask = useCreateTask();
+  // const changeTask = useChangeActivityTask();
+  // const [creatingTask, setCreatingTask] = useState(false);
+  // const [newTaskName, setNewTaskName] = useState("");
 
-  //console.log("tasks:", tasks);
+  // //console.log("tasks:", tasks);
 
-  const incompleteTasks = tasks.filter(task => !task.is_complete);
+  // const incompleteTasks = tasks.filter(task => !task.is_complete);
+
+  console.log("act timer status:", status);
 
   return (
     <section className={styles.activityRow}>
@@ -93,8 +100,8 @@ export function ActivityTimer() {
         onChange={handleInputChange}
         placeholder="Enter activity"
       />
-
       {/* 🔹 Task dropdown */}
+{/*
       <div className={styles.taskSelect}>
         <label htmlFor="task-select">Task</label>
         <select
@@ -156,7 +163,7 @@ export function ActivityTimer() {
             <button onClick={() => setCreatingTask(false)}>Cancel</button>
           </div>
         )}
-      </div>
+      </div> */}
 
 
       <ButtonFrame>
@@ -188,7 +195,7 @@ export function ActivityTimer() {
           Submit Activity
         </Button>
 
-
+{/*
         <Button
           onClick={async () => {
             if (!selectedTask) return;
@@ -199,7 +206,7 @@ export function ActivityTimer() {
           disabled={status !== "empty" || !selectedTask}
         >
           Complete task
-        </Button>
+        </Button> */}
 
 
       </ButtonFrame>
