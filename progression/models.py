@@ -161,7 +161,7 @@ class TimeRecord(models.Model):
     Stores metadata about start, completion, duration, and XP rewards.
     """
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, blank=True)
     description = models.TextField(max_length=2000, blank=True)
     duration = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField(null=True, blank=True)
