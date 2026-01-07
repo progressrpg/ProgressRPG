@@ -379,7 +379,7 @@ class ActivityTimer(Timer):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        logger.debug(f"[Activity timer save] Compute elapsed: {self.compute_elapsed()}")
+        # logger.debug(f"[Activity timer save] Compute elapsed: {self.compute_elapsed()}")
 
     def __str__(self):
         return f"ActivityTimer {self.id} for {self.profile.name}"
@@ -401,10 +401,11 @@ class ActivityTimer(Timer):
             task=task,
         )
 
-        if self.status == "empty":
-            self.set_waiting()
+        self.start_time = None
+        self.elapsed_time = 0
+        self.status = "waiting"
 
-        self.save(update_fields=["activity"])
+        self.save(update_fields=["activity", "start_time", "elapsed_time", "status"])
         logger.debug(
             f"ActivityTimer after save: {self.pk}, activity: {self.activity}, "
             f"status: {self.status}"
@@ -427,7 +428,6 @@ class ActivityTimer(Timer):
         """
         Update the total duration of the associated activity.
         """
-
         if self.activity:
             self.activity.new_time(self.elapsed_time)
         else:
@@ -443,9 +443,7 @@ class ActivityTimer(Timer):
     def complete(self, newName=None):
         """
         Complete the activity timer and calculate the XP reward for the activity.
-
         """
-
         if not self.activity:
             logger.warning(
                 f"[COMPLETE] Timer {self.id} has no activity assigned — skipping activity.complete()"
@@ -480,6 +478,8 @@ class ActivityTimer(Timer):
         logger.debug(
             f"[TIMER COMPLETE] Timer {self.id} completed — elapsed_time: {self.elapsed_time}, completed_at: {self.activity.completed_at}"
         )
+
+        self.reset()
 
         return self
 
