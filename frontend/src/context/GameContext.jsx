@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useBootstrapGameData } from '../hooks/useBootstrapGameData';
 import { apiFetch } from '../../utils/api';
 import useTimers from '../hooks/useTimers';
+import useActivityTimer from '../hooks/useActivityTimer';
 
 const GameContext = createContext();
 
@@ -40,6 +41,8 @@ export const GameProvider = ({ children }) => {
 
   const activityTimer = useTimers({ mode: "activity" });
   const questTimer = useTimers({ mode: "quest" });
+
+  const activityTimer2 = useActivityTimer();
 
 
   // ----------------------------------------
@@ -91,7 +94,10 @@ export const GameProvider = ({ children }) => {
   }, [fetchPlayerAndCharacter]);
 
   useEffect(() => {
-    if (activityTimerInfo) activityTimer.loadFromServer(activityTimerInfo);
+    if (activityTimerInfo) {
+      activityTimer.loadFromServer(activityTimerInfo);
+      activityTimer2.loadFromServer(activityTimerInfo);
+    }
     if (questTimerInfo) questTimer.loadFromServer(questTimerInfo);
   }, [activityTimerInfo, questTimerInfo]);
 
@@ -117,8 +123,10 @@ export const GameProvider = ({ children }) => {
       setCharacter,
       fetchPlayerAndCharacter,
       activityTimer,
+      activityTimer2,
       questTimer,
-      activities,
+      playerActivities,
+      characterActivities,
       fetchActivities,
       quests,
       fetchQuests,
@@ -130,9 +138,11 @@ export const GameProvider = ({ children }) => {
     [
       player,
       character,
-      activities,
+      playerActivities,
+      characterActivities,
       quests,
       activityTimer,
+      activityTimer2,
       questTimer,
       fetchPlayerAndCharacter,
       fetchActivities,
