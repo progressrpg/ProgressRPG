@@ -74,8 +74,8 @@ export const GameProvider = ({ children }) => {
       ),
     ]);
 
-    setPlayerActivities(await playerData);
-    setCharacterActivities(await charData);
+    setPlayerActivities(await playerData?.results ?? []);
+    setCharacterActivities(await charData?.results ?? []);
   }, [formattedDate]);
 
   const fetchQuests = useCallback(async () => {
