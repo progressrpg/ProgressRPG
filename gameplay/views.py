@@ -1017,14 +1017,14 @@ class ActivityTimerViewSet(BaseTimerViewSet):
 
         name = request.data.get("activityName")
         if not name:
-            raise ValidationError({"activityName": "This field is required."})
+            name = ""
 
         task_id = request.data.get("task_id")
         task = None
         if task_id:
             task = get_object_or_404(Task, pk=task_id, profile=request.user.profile)
 
-        updated = timer.new_activity(name, task=task)
+        updated = timer.new_activity(name=name, task=task)
         updated.refresh_from_db()
         return Response({"success": True, "activity_timer": self.serialize(updated)})
 
