@@ -994,7 +994,10 @@ class BaseTimerViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def complete(self, request):
         timer = self.get_timer(request)
-        result = timer.complete()
+        print("datadata:", request.data)
+        name = request.data.get("activityName")
+
+        result = timer.complete(newName=name)
         return Response(self.serialize(timer))
 
 

@@ -436,7 +436,11 @@ class ActivityTimer(Timer):
             )
             self.reset()
 
-    def complete(self):
+    def rename_activity(self, name):
+        if self.activity:
+            self.activity.rename(name)
+
+    def complete(self, newName=None):
         """
         Complete the activity timer and calculate the XP reward for the activity.
 
@@ -454,6 +458,9 @@ class ActivityTimer(Timer):
             )
 
         super().complete()
+
+        if newName:
+            self.rename_activity(newName)
         self.update_activity_time()
 
         xp_gained = self.activity.calculate_xp_reward()

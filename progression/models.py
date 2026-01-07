@@ -264,6 +264,10 @@ class PlayerActivity(TimeRecord, ProfileOwnedMixin):
         """
         return "Private activity" if self.is_private else f"activity {self.name}"
 
+    def rename(self, newName):
+        self.name = newName
+        self.save(update_fields=["name"])
+
     def calculate_xp_reward(self) -> int:
         """
         Calculate and store the XP reward based on duration.
