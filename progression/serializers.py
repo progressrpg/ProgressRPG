@@ -1,6 +1,8 @@
 # progression/serializers.py
 
+from django.utils import timezone
 from rest_framework import serializers
+
 from .models import (
     Category,
     Role,
@@ -136,12 +138,28 @@ class PlayerActivitySerializer(TimeRecordBaseSerializer):
 
 
 class CharacterActivitySerializer(TimeRecordBaseSerializer):
+    status = serializers.SerializerMethodField()
+
     class Meta(TimeRecordBaseSerializer.Meta):
         model = CharacterActivity
         fields = TimeRecordBaseSerializer.Meta.fields + [
             "character",
+            "scheduled_start",
+            "scheduled_end",
+            "status",
             "kind",
         ]
+
+    def get_status(self, obj):
+        now = timezone.now()
+        if obj.is_complete:
+            return "past"
+        if obj.scheduled_start and obj.scheduled_end:
+            if obj.scheduled_start <= now < obj.scheduled_end:
+                return "current"
+            if now < obj.scheduled_start:
+                return "future"
+        return "unknown"
 
 
 class CharacterQuestSerializer(TimeRecordBaseSerializer):

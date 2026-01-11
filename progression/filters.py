@@ -15,18 +15,26 @@ from .models import (
 )
 
 
-class ActivityFilter(django_filters.FilterSet):
+class PlayerActivityFilter(django_filters.FilterSet):
     date = django_filters.DateFromToRangeFilter(field_name="completed_at")
     is_complete = django_filters.BooleanFilter(field_name="is_complete")
-    skill = django_filters.NumberFilter(field_name="skill_id")
     created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
+    completed_at = django_filters.DateFromToRangeFilter(field_name="completed_at")
 
     class Meta:
         model = PlayerActivity
-        fields = ["date", "is_complete", "created_at", "skill"]
+        fields = ["date", "is_complete", "created_at", "completed_at"]
 
 
-from progression.models import PlayerSkill, Category
+class CharacterActivityFilter(django_filters.FilterSet):
+    is_complete = django_filters.BooleanFilter(field_name="is_complete")
+    completed_at = django_filters.DateFromToRangeFilter(field_name="completed_at")
+    scheduled_start = django_filters.DateFromToRangeFilter(field_name="scheduled_start")
+    scheduled_end = django_filters.DateFromToRangeFilter(field_name="scheduled_end")
+
+    class Meta:
+        model = CharacterActivity
+        fields = ["is_complete", "completed_at", "scheduled_start", "scheduled_end"]
 
 
 class PlayerSkillFilter(django_filters.FilterSet):

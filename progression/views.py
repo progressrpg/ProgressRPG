@@ -1,5 +1,7 @@
 # progression/views.py
+from datetime import timedelta
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -31,7 +33,8 @@ from .serializers import (
 from .filters import (
     CategoryFilter,
     PlayerSkillFilter,
-    ActivityFilter,
+    PlayerActivityFilter,
+    CharacterActivityFilter,
     ProjectFilter,
     TaskFilter,
 )
@@ -120,7 +123,7 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    filterset_class = ActivityFilter
+    filterset_class = PlayerActivityFilter
     search_fields = [
         "name",
         "description",
@@ -203,21 +206,46 @@ class CharacterActivityViewSet(viewsets.ModelViewSet):
     queryset = CharacterActivity.objects.all()
     serializer_class = CharacterActivitySerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_class = CharacterActivityFilter
     search_fields = ["name", "description", "character__name"]
-    ordering_fields = ["duration", "target_duration", "created_at", "last_updated"]
+    ordering_fields = ["duration", "created_at", "last_updated", "scheduled_start"]
 
     def get_queryset(self):
         """
         Return CharacterActivity objects for the current user's active character.
         """
-        from character.models import PlayerCharacterLink
-
-        profile = self.request.user.profile
-        character = PlayerCharacterLink.get_character(profile)
+        character = self.request.user.profile.current_character
         if not character:
             return CharacterActivity.objects.none()
         return CharacterActivity.objects.filter(character=character)
+
+    @action(detail=False, methods=["get"])
+    def current(self, request):
+        character = request.user.profile.current_character
+
+        behaviour = getattr(character, "behaviour", None)
+        if not behaviour:
+            return Response(
+                {
+                    "current": None,
+                    "message": "No behaviour!",
+                }
+            )
+
+        # today = timezone.localdate()
+        # yesterday = today - timedelta(days=1)
+
+        # behaviour.generate_day(yesterday)
+        # behaviour.generate_day(today)
+
+        current = behaviour.sync_to_now()
+        data = self.get_serializer(current).data if current else None
+        return Response({"current": data})
 
 
 class CharacterQuestViewSet(viewsets.ModelViewSet):
