@@ -97,7 +97,7 @@ class CharacterSkillAdmin(admin.ModelAdmin):
 
 
 @admin.register(PlayerActivity)
-class ActivityAdmin(admin.ModelAdmin):
+class PlayerActivityAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
@@ -107,16 +107,43 @@ class ActivityAdmin(admin.ModelAdmin):
         "task",
         "duration",
         "is_private",
-        "is_complete",
         "created_at",
+        "started_at",
+        "is_complete",
+        "completed_at",
     )
     search_fields = ("name", "description", "profile__name")
     list_filter = ("profile", "is_private", "is_complete", "skill", "project", "task")
     date_hierarchy = "created_at"
+    readonly_fields = ("created_at",)
 
-    class Meta:
-        verbose_name = "PlayerActivity"  # singular name
-        verbose_name_plural = "Activities"  # plural name
+
+@admin.register(CharacterActivity)
+class CharacterActivityAdmin(admin.ModelAdmin):
+    list_display = (
+        # "id",
+        "name",
+        "kind",
+        "character",
+        "is_complete",
+        "completed_at",
+        "created_at",
+        "scheduled_start",
+        "scheduled_end",
+    )
+    search_fields = ("name", "description", "profile__name")
+    list_filter = ("is_complete", "kind")
+    date_hierarchy = "created_at"
+    readonly_fields = ("created_at",)
+    fields = (
+        "character",
+        ("name", "kind"),
+        "duration",
+        ("scheduled_start", "scheduled_end"),
+        ("started_at", "completed_at"),
+        "is_complete",
+        "created_at",
+    )
 
 
 @admin.register(CharacterQuest)
