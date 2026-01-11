@@ -10,10 +10,9 @@ from rest_framework.routers import DefaultRouter
 from django_channels_jwt.views import AsgiValidateTokenView
 
 from .views import (
-    me_view,
     CustomRegisterView,
     ConfirmEmailView,
-    OnboardingViewSet,
+    MeViewSet,
     FetchInfoAPIView,
     DownloadUserDataAPIView,
     DeleteAccountAPIView,
@@ -52,6 +51,7 @@ class KeyConverter:
 register_converter(KeyConverter, "key")
 
 router = DefaultRouter()
+router.register(r"me", MeViewSet, basename="me")
 router.register(r"profile", ProfileViewSet, basename="profile")
 router.register(r"character", CharacterViewSet, basename="character")
 router.register(r"skills", PlayerSkillViewSet, basename="skills")
@@ -66,13 +66,11 @@ router.register(r"character_quests", CharacterQuestViewSet, basename="characterq
 router.register(r"quests", QuestViewSet, basename="quest")
 router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytimer")
 router.register(r"quest_timers", QuestTimerViewSet, basename="questtimer")
-router.register(r"onboarding", OnboardingViewSet, basename="onboarding")
 
 
 urlpatterns = [
     # General urls
     path("", include(router.urls)),
-    path("me/", me_view, name="me"),
     path("maintenance_status/", maintenance_status, name="maintenance_status"),
     path("fetch_info/", FetchInfoAPIView.as_view(), name="fetch_info"),
     # Auth urls

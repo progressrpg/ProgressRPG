@@ -170,7 +170,7 @@ export default function useActivityTimer() {
 
   const loadFromServer = useCallback((serverData) => {
     if (!serverData) return;
-    console.log("timer from server:", serverData);
+    //console.log("timer from server:", serverData);
     const { id, status, elapsed_time, duration, activity } = serverData;
 
     setId(id || 0);

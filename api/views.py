@@ -125,12 +125,25 @@ class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
 
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def me_view(request):
-    user = request.user
-    serializer = UserSerializer(user)
-    return Response({"success": True, "user": serializer.data})
+class MeViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get", "patch"])
+    def profile(self, request):
+        profile = request.user.profile
+
+        if request.method == "PATCH":
+            serializer = ProfileSerializer(profile, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data)
 
 
 class CustomRegisterView(RegisterView):

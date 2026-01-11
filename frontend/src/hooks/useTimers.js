@@ -315,7 +315,7 @@ export default function useTimers({ mode }) {
 
   const loadFromServer = useCallback((serverData) => {
     if (!serverData) return;
-    console.log("timer from server:", serverData);
+    //console.log("timer from server:", serverData);
     const { id, status, elapsed_time, duration, activity, quest } = serverData;
 
     setId(id || 0);

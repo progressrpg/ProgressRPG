@@ -55,7 +55,7 @@ export const GameProvider = ({ children }) => {
     if (!characterOnload?.id) return;
 
     const [freshPlayer, freshCharacter] = await Promise.all([
-      apiFetch(`/profile/me/`),
+      apiFetch(`/me/profile/`),
       apiFetch(`/character/${characterOnload.id}/`),
     ]);
 
