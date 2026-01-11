@@ -5,6 +5,7 @@ import styles from './List.module.scss';
 export default function List({
   items = [],
   renderItem,
+  getKey,
   onSelect,
   selectedItem,
   selectable = false,
@@ -30,7 +31,7 @@ export default function List({
 
           return (
             <li
-              key={item.id || index}
+              key={getKey ? getKey(item, index) : (item.id || index)}
               className={classNames(itemClass, {
                 [styles.selected]: isSelected,
                 [styles.hidden]: isHidden,
