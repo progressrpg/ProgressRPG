@@ -285,18 +285,24 @@ class CharacterActivity(TimeRecord):
 
     scheduled_start = models.DateTimeField(null=True, blank=True)
     scheduled_end = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(
-        max_length=20,
-        default="future",
-        choices=[("future", "Future"), ("current", "Current"), ("past", "Past")],
-    )
+
     character = models.ForeignKey(
         "character.Character",
         on_delete=models.CASCADE,
         related_name="character_activities",
     )
     kind = models.CharField(
-        max_length=50, choices=[("day", "Daytime"), ("rest", "Resting")]
+        max_length=50,
+        choices=[
+            ("sleep", "Sleeping"),
+            ("morning", "Morning routine"),
+            ("work", "Working"),
+            ("meal", "Meal"),
+            ("leisure", "Leisure"),
+            ("wind_down", "Wind down"),
+            ("rest", "Resting"),
+            ("idle", "Idling"),
+        ],
     )
 
     class Meta:
