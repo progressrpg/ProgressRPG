@@ -7,4 +7,9 @@
   padding: 12px;
 
   background: rgba(255, 255, 255, 0.6);
+
+  // scroll behaviour
+  max-height: 60vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
