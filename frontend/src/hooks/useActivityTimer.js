@@ -71,7 +71,7 @@ export default function useActivityTimer() {
         }),
       });
 
-      console.log("setData:", setData);
+      //console.log("setData:", setData);
       // If server returns canonical activity object, store it
       const serverActivity = setData?.activity_timer?.activity;
       const serverStatus = setData?.activity_timer?.status;
@@ -114,8 +114,8 @@ export default function useActivityTimer() {
 
   const stop = useCallback(async ({ activityName } = {}) => {
     console.log(`[useActivityTimer] Stop and submit timer`);
-    console.log("COMPLETE called", { status, duration, elapsed, currentActivity });
-    console.trace();
+    //console.log("COMPLETE called", { status, duration, elapsed, currentActivity });
+    //console.trace();
 
     if (status === "empty") return;
 
