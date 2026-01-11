@@ -1,0 +1,48 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+
+.page {
+  /* full-height page layout */
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: v.$spacing-gap;
+
+  /* optional: if you have an app shell already applying padding,
+     you can remove this */
+  padding: v.$spacing-gap;
+}
+
+/* Centre content consistently */
+.header,
+.main {
+  width: 100%;
+  margin: 0 auto;
+
+  @include m.respond-to(small) {
+    max-width: 576px;
+  }
+
+  @include m.respond-to(big) {
+    max-width: 1400px;
+  }
+}
+
+.title {
+  /* if you already style h1 globally, this can be minimal */
+  margin: 0;
+}
+
+/* Make timeline area the one that scrolls (not the whole page) */
+.main {
+  overflow: auto;
+  /* prevents grid child overflow issues in some browsers */
+  min-height: 0;
+
+  /* Optional: make the timeline feel like a panel */
+  // padding: v.$spacing-gap;
+  // border-radius: v.$radius-lg;
+  // background: v.$surface;
+}
+

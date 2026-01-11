@@ -14,7 +14,7 @@ const SkillsPage = lazy(() => import("../pages/SkillsPage"));
 const TasksPage = lazy(() => import("../pages/TasksPage"));
 const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
 const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
-const ActivityTimelinePage = lazy(() => import("../pages/ActivityTimelinePage"))
+const ActivityTimelinePage = lazy(() => import("../pages/Game2/ActivityTimelinePage"))
 
 import PrivateRoute from "../components/PrivateRoute";
 import RequireOnboardingComplete from "../components/RequireOnboardingComplete";
