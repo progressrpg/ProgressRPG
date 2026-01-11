@@ -35,6 +35,7 @@ export const GameProvider = ({ children }) => {
   const [character, setCharacter] = useState(characterOnload);
   const [playerActivities, setPlayerActivities] = useState({ results: [], count: 0 });
   const [characterActivities, setCharacterActivities] = useState({ results: [], count: 0 });
+  const [characterCurrentActivity, setCharacterCurrentActivity] = useState({});
   const [quests, setQuests] = useState([]);
 
   const [onboardingStage, setOnboardingStage] = useState(4);
@@ -67,16 +68,23 @@ export const GameProvider = ({ children }) => {
   const fetchActivities = useCallback(async () => {
     const [playerData, charData] = await Promise.all([
       apiFetch(
-        `/player-activities/?date_after=${formattedDate}&date_before=${formattedDate}`
+        `/player-activities/?is_complete=true&completed_at_after=${formattedDate}&completed_at_before=${formattedDate}`
       ),
       apiFetch(
-        `/character-activities/?date_after=${formattedDate}&date_before=${formattedDate}`
+        `/character-activities/?is_complete=true&completed_at_after=${formattedDate}&completed_at_before=${formattedDate}`
       ),
     ]);
-
     setPlayerActivities(await playerData?.results ?? []);
     setCharacterActivities(await charData?.results ?? []);
   }, [formattedDate]);
+
+  const fetchCharacterCurrent = useCallback(async () => {
+    const data = await apiFetch(`/character-activities/current/`);
+    console.log("/current, data:", data);
+    setCharacterCurrentActivity(data.current); // depending on your response shape
+    return data.current;
+  }, []);
+
 
   const fetchQuests = useCallback(async () => {
     const data = await apiFetch(`/quests/eligible`);
@@ -128,6 +136,9 @@ export const GameProvider = ({ children }) => {
       playerActivities,
       characterActivities,
       fetchActivities,
+      fetchCharacterCurrent,
+      characterCurrentActivity,
+      setCharacterCurrentActivity,
       quests,
       fetchQuests,
       loading,
@@ -140,12 +151,14 @@ export const GameProvider = ({ children }) => {
       character,
       playerActivities,
       characterActivities,
+      characterCurrentActivity,
       quests,
       activityTimer,
       activityTimer2,
       questTimer,
       fetchPlayerAndCharacter,
       fetchActivities,
+      fetchCharacterCurrent,
       fetchQuests,
       loading,
       buildNumber,
