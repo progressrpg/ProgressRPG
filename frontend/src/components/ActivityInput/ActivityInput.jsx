@@ -6,7 +6,7 @@ import Button from "../Button/Button";
 import styles from "./ActivityInput.module.scss";
 
 export default function ActivityInput() {
-  const { activityTimer2 } = useGame();
+  const { activityTimer2, fetchCharacterCurrent, fetchActivities } = useGame();
   const {
     status,
     stop,
@@ -17,7 +17,7 @@ export default function ActivityInput() {
   const [name, setName] = useState("");
 
 
-  console.log("timer:", activityTimer2);
+  //console.log("timer:", activityTimer2);
 
   async function handleStart() {
     await startActivity(name);
@@ -31,6 +31,7 @@ export default function ActivityInput() {
   async function handleToggle() {
     if (isActive) {
       await stop(name);
+      await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
       return;
     }
     if (!name.trim()) return;
