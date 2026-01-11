@@ -1,0 +1,23 @@
+/* components/CharacterActivityCurrent/CharacterActivityCurrent.module.scss */
+.line {
+  width: min(100%, 720px);
+
+  margin-bottom: 12px;
+  margin-top: 12px;
+
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 0.95rem;
+
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  padding: 12px;
+
+}
+
+.activity {
+    color: black;
+}
+
+.time {
+  opacity: 0.75;
+}
