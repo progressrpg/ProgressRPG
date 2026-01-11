@@ -27,8 +27,11 @@ export default function ActivityTimeline() {
       : [];
 
     return [...player, ...character].sort(
-      (a, b) => new Date(a.completed_at) - new Date(b.completed_at)
-    );
+      (a, b) => {
+        const at = a.completed_at ? new Date(a.completed_at).getTime() : 0
+        const bt = b.completed_at ? new Date(b.completed_at).getTime() : 0
+        return at - bt;
+  });
   }, [playerActivities, characterActivities]);
 
   const hasAny = unifiedActivities.length > 0;
@@ -43,12 +46,16 @@ export default function ActivityTimeline() {
 
         <List
           items={unifiedActivities}
+          getKey={(act) => `${act.source}-${act.id ?? i}`}
           renderItem={(act) => (
             <>
-            [{act.source}] {act.name || act.kind || act.description || "Untitled"} —{" "}
+            {act.source} finished {act.name || act.kind || "Untitled"} —{" "}
               {act.completed_at
-                ? new Date(act.completed_at).toLocaleTimeString()
-                : "No start time"}
+                ? new Date(act.completed_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : "Not completed"}
             </>
           )}
         />
