@@ -1,0 +1,27 @@
+.card {
+  border: 1px solid black;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s ease;
+  width: 32rem;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.toggleBtn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.cardDetails {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}

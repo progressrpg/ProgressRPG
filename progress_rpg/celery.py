@@ -22,6 +22,8 @@ def debug_task(self):
     print(f"Request: {self.request!r}")
 
 
+CELERY_TIMEZONE = "Europe/London"
+
 app.conf.beat_schedule = {
     # 'update-quests-every-hour': {
     #     'task': 'gameplay.tasks.update_quest_availability',
@@ -42,5 +44,10 @@ app.conf.beat_schedule = {
     "check_user_deletion": {
         "task": "users.tasks.perform_account_wipe",
         "schedule": crontab(minute=0, hour=0),
-    }
+    },
+    "generate_character_days_1am": {
+        "task": "character.tasks.generate_character_days",
+        "schedule": crontab(hour=1, minute=0),
+        "args": (),
+    },
 }

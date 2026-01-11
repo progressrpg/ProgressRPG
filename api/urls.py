@@ -11,22 +11,28 @@ from django_channels_jwt.views import AsgiValidateTokenView
 
 from .views import (
     me_view,
-    maintenance_status,
     CustomRegisterView,
     ConfirmEmailView,
     OnboardingViewSet,
     FetchInfoAPIView,
-    ProfileViewSet,
-    CharacterViewSet,
-    ActivityTimerViewSet,
-    QuestTimerViewSet,
-    ActivityViewSet,
-    QuestViewSet,
     DownloadUserDataAPIView,
     DeleteAccountAPIView,
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
 )
+
+from character.views import CharacterViewSet
+from gameplay.views import ActivityTimerViewSet, QuestTimerViewSet, QuestViewSet
+from progression.views import (
+    PlayerActivityViewSet,
+    CharacterActivityViewSet,
+    CharacterQuestViewSet,
+    PlayerSkillViewSet,
+    CategoryViewSet,
+    TaskViewSet,
+)
+from server_management.views import maintenance_status
+from users.views import ProfileViewSet
 
 
 class KeyConverter:
@@ -48,7 +54,15 @@ register_converter(KeyConverter, "key")
 router = DefaultRouter()
 router.register(r"profile", ProfileViewSet, basename="profile")
 router.register(r"character", CharacterViewSet, basename="character")
-router.register(r"activities", ActivityViewSet, basename="activity")
+router.register(r"skills", PlayerSkillViewSet, basename="skills")
+router.register(r"tasks", TaskViewSet, basename="tasks")
+router.register(r"player-activities", PlayerActivityViewSet, basename="playeractivity")
+router.register(
+    r"character-activities", CharacterActivityViewSet, basename="characteractivity"
+)
+router.register(r"categories", CategoryViewSet, basename="category")
+router.register(r"character_quests", CharacterQuestViewSet, basename="characterquest")
+
 router.register(r"quests", QuestViewSet, basename="quest")
 router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytimer")
 router.register(r"quest_timers", QuestTimerViewSet, basename="questtimer")

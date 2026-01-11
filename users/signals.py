@@ -68,27 +68,15 @@ def update_login_streak(sender, request, user, **kwargs):
     message_text = ""
     if profile.last_login.date() == today:
         message_text = f"Welcome back! You logged in earlier today."
-        logger.debug(
-            f"[UPDATE LOGIN STREAK] Profile {profile.id} already logged in today. No update needed."
-        )
     elif profile.last_login.date() == today - timedelta(days=1):
         profile.login_streak += 1  # Continue the streak
         message_text = f"Welcome back! You logged in yesterday. Your login streak is now {profile.login_streak} days."
-        logger.debug(
-            f"[UPDATE LOGIN STREAK] Profile {profile.id} logged in two days in a row."
-        )
     else:
         profile.login_streak = 1  # Reset streak
         message_text = f"Welcome back, we missed you! Your login streak has been reset."
-        logger.debug(
-            f"[UPDATE LOGIN STREAK] Profile {profile.id} missed a day. Resetting login streak."
-        )
 
     if profile.login_streak_max < profile.login_streak:
         profile.login_streak_max = profile.login_streak
-        logger.debug(
-            f"[UPDATE LOGIN STREAK] Profile {profile.id} has a new max login streak: {profile.login_streak_max}"
-        )
 
     ServerMessage.objects.create(
         group=profile.group_name,
@@ -102,6 +90,3 @@ def update_login_streak(sender, request, user, **kwargs):
     profile.last_login = timezone.now()
     profile.total_logins += 1
     profile.save()
-    logger.debug(
-        f"[UPDATE LOGIN STREAK] Updated login streak for profile {profile.id}: {profile.login_streak}"
-    )

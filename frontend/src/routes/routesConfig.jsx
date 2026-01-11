@@ -10,6 +10,11 @@ const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage
 const Game = lazy(() => import("../pages/Game/Game"));
 const ProfilePage = lazy(() => import("../pages/Profile/Profile"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
+const SkillsPage = lazy(() => import("../pages/SkillsPage"));
+const TasksPage = lazy(() => import("../pages/TasksPage"));
+const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
+const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
+const ActivityTimelinePage = lazy(() => import("../pages/Game2/ActivityTimelinePage"))
 
 import PrivateRoute from "../components/PrivateRoute";
 import RequireOnboardingComplete from "../components/RequireOnboardingComplete";
@@ -62,6 +67,46 @@ export const routes = [
     element: (
       <PrivateRoute>
         <ProfilePage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/skills",
+    element: (
+      <PrivateRoute>
+        <SkillsPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/tasks",
+    element: (
+      <PrivateRoute>
+        <TasksPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/activities",
+    element: (
+      <PrivateRoute>
+        <ActivitiesPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/timeline",
+    element: (
+      <PrivateRoute>
+        <ActivityTimelinePage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/categories",
+    element: (
+      <PrivateRoute>
+        <CategoriesPage />
       </PrivateRoute>
     ),
   },

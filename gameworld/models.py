@@ -7,6 +7,9 @@ from datetime import datetime, date
 import random, math
 import numpy as np
 
+from progression.models import PlayerActivity
+from users.models import Profile
+
 
 # Don't think I actually need this after all!
 # I can use created_at fields which have time too
@@ -69,7 +72,7 @@ class GameWorld(models.Model):
             if self.highest_login_streak_current < profile.login_streak:
                 self.highest_login_streak_current = profile.login_streak
 
-        activities = Activity.objects.all()
+        activities = PlayerActivity.objects.all()
         self.total_activity_num = len(activities)
         total_activity_time = 0
         for activity in activities:
@@ -78,13 +81,6 @@ class GameWorld(models.Model):
 
         activities_num_average = self.total_activity_num / self.num_profiles
         activities_time_average = self.total_activity_time / self.num_profiles
-
-        questsCompleted = QuestCompletion.objects.all()
-        unique_quests = set()
-        total_quests = 0
-        for qc in questsCompleted:
-            unique_quests.add(qc.quest)
-            total_quests += qc.times_completed
 
     def createDailyStats(self):
         ds = DailyStats.objects.create(

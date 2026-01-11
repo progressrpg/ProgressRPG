@@ -7,16 +7,13 @@ export default function useOnboarding() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [characterAvailable, setCharacterAvailable] = useState(false);
 
   // Load current onboarding step on mount
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         const data = await apiFetch('/onboarding/status/');
-        //console.log("useOnboarding 'status' api data:", data);
         setStep(data.step);
-        setCharacterAvailable(data.characters_available ?? true);
         setError('');
       } catch (err) {
         console.error('[Onboarding] Status error:', err);
@@ -36,11 +33,11 @@ export default function useOnboarding() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      //console.log("useOnboarding 'progress' api data:", data);
+
       if (typeof data.step === 'number') {
         setStep(data.step);
       }
-      setCharacterAvailable(data.characters_available ?? true);
+
       setError('');
       return data;
     } catch (err) {
@@ -50,5 +47,5 @@ export default function useOnboarding() {
     }
   };
 
-  return { step, progress, error, loading, characterAvailable };
+  return { step, progress, error, loading };
 }

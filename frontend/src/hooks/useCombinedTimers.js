@@ -2,82 +2,122 @@
 import { useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 
-export default function useCombinedTimers() {
-  const { setPlayer, activityTimer, questTimer, fetchActivities, fetchQuests, showToast } = useGame();
+export default function useCombinedTimers({
+  enableQuest = true,     // onboarding: false, gameplay: true
+  autoStart = true,       // onboarding: false, gameplay: true
+  onActivityComplete,     // callback for UI updates
+  onQuestComplete,        // callback for UI updates
+  onError,                // callback for toast or logging
+}) {
+  const { activityTimer, questTimer } = useGame();
+
   const timersRunningRef = useRef(false);
   const completingRef = useRef(false);
 
-  // Auto-start both if both are ready
-  useEffect(() => {
-    const isReady = (status) => ["waiting", "paused"].includes(status);
-    const bothReady = isReady(activityTimer.status) && isReady(questTimer.status);
-
-    if (bothReady && !timersRunningRef.current) {
-      // console.log('[COMBINED TIMERS] Both ready!');
-      timersRunningRef.current = true;
-
-      (async () => {
-        if (isReady(activityTimer.status)) {
-          await activityTimer.start();
-        }
-        if (isReady(questTimer.status)) {
-          await questTimer.start();
-        }
-      })();
+  // Safe error handler
+  const handleError = (err) => {
+    console.error(err);
+    if (typeof onError === 'function') {
+      onError(err);
     }
+  };
+
+  // Auto-start logic
+  useEffect(() => {
+    if (!autoStart) return;
+
+    const isReady = (status) => ["waiting", "paused"].includes(status);
+
+    const startTimers = async () => {
+      if ((activityTimer && isReady(activityTimer.status)) ||
+        (enableQuest && questTimer && isReady(questTimer.status))) {
+        try {
+          if (activityTimer && isReady(activityTimer.status)) {
+            await activityTimer.start();
+          }
+          if (enableQuest && questTimer && isReady(questTimer.status)) {
+            await questTimer.start();
+          }
+          timersRunningRef.current = true;
+        } catch (err) {
+          handleError(err);
+          timersRunningRef.current = false;
+        }
+      }
+    };
+
+    startTimers();
+
   }, [
-    activityTimer.status,
-    questTimer.status,
+    autoStart,
+    enableQuest,
+    activityTimer,
+    questTimer,
+    onError,
   ]);
 
   // Submit activity
-  const submitActivity = async () => {
-    // console.log('[COMBINED TIMERS] Submit activity');
-
+  const submitActivity = async ( extraData = {} ) => {
     timersRunningRef.current = false;
-    const canComplete = (status) => ["active", "waiting", "paused"].includes(status);
 
-    if (canComplete(activityTimer.status)) {
+    const canComplete = (status) =>
+      ["active", "waiting", "paused"].includes(status);
+
+    if (!activityTimer || !canComplete(activityTimer.status)) return;
+
+    try {
       const data = await activityTimer.complete();
-      console.log("activity timer complete data:", data);
-      if (data.profile) setPlayer(data.profile);
-      await activityTimer.reset();
-      await fetchActivities();
+      onActivityComplete?.(data);
 
-      if (questTimer.status !== "completed") questTimer.pause();
+      await activityTimer.reset();
+
+      if (enableQuest && questTimer && questTimer.status !== "completed") {
+        questTimer.pause();
+      }
+      return data;
+    } catch (err) {
+      handleError(err);
+      console.error("Failed to complete activity:", err);
     }
   };
 
   // Quest auto-complete
   useEffect(() => {
-    /* console.log('[COMBINED TIMERS] Checking quest completion', {
-      status: questTimer.status,
-      remaining: questTimer.remaining,
-      completing: completingRef.current,
+    if (!enableQuest || !questTimer) return;
 
-    }); */
-
-    if (
-      questTimer.status === "active" &&
-      questTimer.remaining === 0 &&
-      !completingRef.current
-    ) {
-      completingRef.current = true;
-      questTimer.complete()
-        .then(() => fetchQuests())
-        .then(() => activityTimer.pause())
-        .then(() => timersRunningRef.current = false)
-        .catch((err) => {
-          console.error('[COMBINED TIMERS] Quest completion error:', err);
-          showToast("Something went wrong:", err);
-        })
-        .finally(() => {
+    const checkQuestCompletion = async () => {
+      if (
+        questTimer.status === "active" &&
+        questTimer.remaining === 0 &&
+        !completingRef.current
+      ) {
+        completingRef.current = true;
+        try {
+          const data = await questTimer.complete();
+          onQuestComplete?.(data);
+          activityTimer?.pause();
+          timersRunningRef.current = false;
+        } catch (err) {
+          handleError(err);
+          console.error("Failed to auto-complete quest:", err);
+        } finally {
           completingRef.current = false;
-        });
-    }
-  }, [questTimer.remaining, questTimer.status]);
+        }
+      }
+    };
+
+    const interval = setInterval(checkQuestCompletion, 500);
+    return () => clearInterval(interval);
+  }, [
+    enableQuest,
+    activityTimer,
+    questTimer,
+    onQuestComplete,
+    onError,
+]);
 
   return {
     submitActivity,
+    mode: enableQuest ? "combined" : "activity-only",
   };
 }

@@ -1,21 +1,34 @@
 from rest_framework import serializers
 
+from .models import Character
+
 
 class CharacterSerializer(serializers.ModelSerializer):
     class Meta:
-        model = None
+        model = Character
         fields = [
             "id",
-            "name",
+            "first_name",
+            "last_name",
+            "backstory",
+            "sex",
             "xp",
             "xp_next_level",
             "xp_modifier",
             "level",
+            "coins",
             "total_quests",
+            "is_npc",
+            "can_link",
         ]
-
-    def __init__(self, *args, **kwargs):
-        from .models import Character
-
-        self.Meta.model = Character
-        super().__init__(*args, **kwargs)
+        read_only_fields = [
+            "id",
+            "xp",
+            "xp_next_level",
+            "xp_modifier",
+            "level",
+            "coins",
+            "total_quests",
+            "is_npc",
+            "can_link",
+        ]

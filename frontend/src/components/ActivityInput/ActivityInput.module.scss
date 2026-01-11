@@ -1,0 +1,50 @@
+.container {
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255,255,255,0.6);
+  width: min(100%, 720px);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  justify-content: flex-start;
+
+  width: min(100%, 720px);
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.timerLine {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.subject {
+  margin: 0;
+}
+
+.timerPill {
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 999px;
+  padding: 10px 12px;
+  line-height: 1;
+  white-space: nowrap;
+  align-self: flex-end;
+  white-space: nowrap;
+}
+.subRow {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  opacity: 0.8;
+  font-size: 0.9em;
+}

@@ -15,21 +15,19 @@ export default function Button({
   const Component = as === 'a' ? 'a' : 'button';
 
   return (
-    <div className={classNames(styles.frame)}>
-      <Component
-        className={classNames(
-          styles.button,
-          styles[variant],
-          className
-        )}
-        href={as === 'a' ? href : undefined}
-        onClick={onClick}
-        {...props}
-      >
-        {icon && <span className={styles.icon}>{icon}</span>}
-        {children}
-      </Component>
-    </div>
+    <Component
+      className={classNames(
+        styles.button,
+        styles[variant],
+        className
+      )}
+      href={as === 'a' ? href : undefined}
+      onClick={onClick}
+      {...props}
+    >
+      {icon && <span className={styles.icon}>{icon}</span>}
+      {children}
+    </Component>
   );
 }
 

@@ -13,15 +13,23 @@ from django.utils.decorators import method_decorator
 from django.utils.timezone import now, timedelta
 from django.views.decorators.cache import cache_page
 from django.views.generic.edit import CreateView, FormView
+from django_filters.rest_framework import DjangoFilterBackend
 from django_ratelimit.decorators import ratelimit
 import json, logging
+from rest_framework import viewsets, mixins, filters
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
+from .filters import ProfileFilter
 from .forms import UserRegisterForm, ProfileForm, EmailAuthenticationForm
 from .models import Profile
+from .serializers import ProfileSerializer
 from .utils import kick_old_sessions, send_signup_email
 
+from api.views import IsOwnerProfile
 from character.models import PlayerCharacterLink
-from gameplay.serializers import ActivitySerializer
+from gameplay.serializers import PlayerActivitySerializer
 
 logger = logging.getLogger("django")
 
@@ -435,7 +443,7 @@ def download_user_data(request):
         logger.error(f"Character not found for user {user.username} (ID: {user.id}).")
         return JsonResponse({"error": "Character data not found."}, status=404)
 
-    activities_json = ActivitySerializer(profile.activities.all(), many=True).data
+    activities_json = PlayerActivitySerializer(profile.activities.all(), many=True).data
     user_data = {
         "username": user.username,
         "email": user.email,
@@ -516,3 +524,19 @@ def delete_account(request):
         return redirect("index")
     else:
         return render(request, "users/delete_account.html")
+
+
+class ProfileViewSet(
+    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
+):
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Profile.objects.filter(user=self.request.user)
+
+    @action(detail=False, methods=["get"])
+    def me(self, request):
+        profile = self.get_queryset().first()
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data)
