@@ -283,6 +283,13 @@ class CharacterActivity(TimeRecord):
     Generated daily, added to a queue, consumes character time.
     """
 
+    scheduled_start = models.DateTimeField(null=True, blank=True)
+    scheduled_end = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        default="future",
+        choices=[("future", "Future"), ("current", "Current"), ("past", "Past")],
+    )
     character = models.ForeignKey(
         "character.Character",
         on_delete=models.CASCADE,
