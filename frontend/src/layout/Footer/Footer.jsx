@@ -5,12 +5,15 @@ import { Link } from 'react-router-dom'; // assuming React Router
 import { API_BASE_URL } from '../../config';
 
 export default function Footer() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+
+  if (loading) return <p>Loading...</p>;
   const now = new Date();
 
+  console.log("Footer, user:", user);
   return (
     <footer className={styles.footer}>
-      {user?.is_superuser && isAuthenticated && (
+      {user?.is_staff && isAuthenticated && (
         <a href={`${API_BASE_URL}/admin`} target="_blank" rel="noopener noreferrer">
           Admin Panel
         </a>
