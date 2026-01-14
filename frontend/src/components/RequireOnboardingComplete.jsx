@@ -1,15 +1,15 @@
 // RequireOnboardingComplete.jsx
 import { Navigate } from 'react-router-dom';
-import useOnboarding from '../hooks/useOnboarding';
-
-
-const COMPLETE_STEP = 2;
-
+import { useGame } from '../context/GameContext';
 
 export default function RequireOnboardingComplete({ children }) {
-  const { step, loading } = useOnboarding();
+  const { player, loading } = useGame();
 
-  if (loading || step === undefined) return <p>Loading…</p>;
+  const completed = Boolean(player?.onboarding_completed);
 
-  return step >= COMPLETE_STEP ? children : <Navigate to="/onboarding" replace />;
+  if (loading || !player) return <p>Loading…</p>;
+
+  return completed
+    ? children
+    : <Navigate to="/onboarding" replace />;
 }

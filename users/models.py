@@ -194,6 +194,9 @@ class Profile(Person):
     ]
     onboarding_step = models.PositiveIntegerField(choices=ONBOARDING_STEPS, default=0)
 
+    onboarding_completed = models.BooleanField(default=False)
+    # onboarding = models.JSONField(default=dict, blank=True)
+
     @property
     def needs_onboarding(self):
         return self.onboarding_step < 2

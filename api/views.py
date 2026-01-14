@@ -145,6 +145,18 @@ class MeViewSet(viewsets.ViewSet):
         serializer = ProfileSerializer(profile)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["post"])
+    def complete_onboarding(self, request):
+        profile = request.user.profile
+
+        profile.onboarding_completed = True
+        profile.save(update_fields=["onboarding_completed"])
+
+        return Response(
+            {"onboarding_completed": True},
+            status=status.HTTP_200_OK,
+        )
+
 
 class CustomRegisterView(RegisterView):
     serializer_class = CustomRegisterSerializer
