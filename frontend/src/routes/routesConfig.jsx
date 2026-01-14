@@ -57,7 +57,7 @@ export const routes = [
     element: (
       <PrivateRoute>
         <RequireOnboardingComplete>
-          <Game />
+          <ActivityTimelinePage />
         </RequireOnboardingComplete>
       </PrivateRoute>
     ),
@@ -95,10 +95,12 @@ export const routes = [
     ),
   },
   {
-    path: "/timeline",
+    path: "/old-game",
     element: (
       <PrivateRoute>
-        <ActivityTimelinePage />
+        <RequireOnboardingComplete>
+          <Game />
+        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },
