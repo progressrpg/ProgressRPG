@@ -19,6 +19,7 @@ export default function ActivityInput() {
   async function handleToggle() {
     if (isActive) {
       await stop(name);
+      setName("");
       await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
       return;
     }
