@@ -1,0 +1,58 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+
+
+.container {
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: v.$border-radius;
+  padding: v.$padding-base;
+  background: rgba(255,255,255,0.6);
+  width: min(100%, 720px);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  justify-content: flex-start;
+
+  width: min(100%, 720px);
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.timerLine {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.subject {
+  margin: 0;
+}
+
+.timerPill {
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: v.$border-radius;
+  padding: 10px 12px;
+  line-height: 1;
+  white-space: nowrap;
+  align-self: flex-end;
+  white-space: nowrap;
+  padding: v.$padding-base;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.subRow {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  opacity: 0.8;
+  font-size: 0.9em;
+}

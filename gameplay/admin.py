@@ -5,14 +5,11 @@ from .models import (
     Quest,
     QuestRequirement,
     QuestCompletion,
-    Activity,
     ActivityTimer,
     QuestTimer,
     QuestResults,
     ServerMessage,
 )
-
-# Register your models here.
 
 
 class QuestResultsInline(admin.TabularInline):
@@ -25,11 +22,11 @@ class QuestAdmin(admin.ModelAdmin):
         "name",
         "description",
         ("intro_text", "outro_text"),
-        ("canRepeat", "is_premium", "frequency"),
+        ("canRepeat", "is_premium", "is_task_support", "frequency"),
         ("levelMin", "levelMax"),
         "duration_choices",
         "created_at",
-        ("stages", "stagesFixed"),
+        ("stages", "stages_fixed"),
     ]
     list_display = [
         "name",
@@ -44,6 +41,7 @@ class QuestAdmin(admin.ModelAdmin):
         # "frequency",
         "levelMin",
         "levelMax",
+        "is_task_support",
     ]
 
     readonly_fields = [
@@ -72,24 +70,6 @@ class QuestCompletionAdmin(admin.ModelAdmin):
         "last_completed",
     ]
     readonly_fields = ["last_completed"]
-
-
-@admin.register(Activity)
-class ActivityAdmin(admin.ModelAdmin):
-    list_display = ["profile", "name", "duration", "created_at"]
-    list_filter = [
-        "created_at",
-        "duration",
-    ]
-    fields = [
-        "profile",
-        ("name", "duration"),
-        ("created_at", "last_updated"),
-    ]
-    readonly_fields = ["created_at", "last_updated"]
-    date_hierarchy = "created_at"
-    # search_fields = ['profile__name']
-    show_full_result_count = False
 
 
 @admin.register(ActivityTimer)

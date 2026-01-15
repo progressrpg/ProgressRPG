@@ -6,7 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.timezone import now
 
-from .models import Activity, Quest, QuestResults, ServerMessage
+from .models import Quest, QuestResults, ServerMessage
 from .utils import send_group_message
 from character.models import Character
 from users.models import Profile
@@ -15,47 +15,6 @@ from events.models import Event, EventContribution
 import logging
 
 logger = logging.getLogger("django")
-
-
-@receiver(post_save, sender=Activity)
-def handle_new_activity(sender, instance, created, **kwargs):
-    """Handles all activity submission jobs"""
-    if created:
-        """try:
-            logger.info(
-                f"[HANDLE NEW ACTIVITY] New activity created: {instance.id}, profile: {instance.profile.id}"
-            )
-            instance.profile.add_activity(instance.duration, 1)
-        except IntegrityError as e:
-            logger.error(
-                f"[HANDLE NEW ACTIVITY] IntegrityError while adding activity for profile {instance.profile.id}: {e}",
-                exc_info=True,
-            )
-        except ObjectDoesNotExist as e:
-            logger.error(
-                f"[HANDLE NEW ACTIVITY] ObjectDoesNotExist error for activity {instance.id}: {e}",
-                exc_info=True,
-            )
-        except Exception as e:
-            logger.error(
-                f"[HANDLE NEW ACTIVITY] Unexpected error for activity {instance.id}: {e}",
-                exc_info=True,
-            )
-        """
-        # Event Progress Updates
-        """
-        try:
-            active_events = Event.objects.filter(is_active=True)
-            for event in active_events:
-                event_progress, _ = EventContribution.objects.get_or_create(
-                    event=event, user=instance.user
-                )
-                event_progress.total_time += instance.duration_seconds
-                event_progress.save()
-                logger.info(f"[HANDLE NEW ACTIVITY] Updated event progress for user {instance.user.id}, event: {event.id}")
-        except Exception as e:
-            logger.error(f"[HANDLE NEW ACTIVITY] Error updating event progress for activity {instance.id}: {e}", exc_info=True)
-        """
 
 
 @receiver(user_logged_in)

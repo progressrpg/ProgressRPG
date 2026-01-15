@@ -1,0 +1,74 @@
+@use '../../styles/base/variables' as v;
+
+/* Navigation Drawer */
+.nav-drawer {
+    position: fixed;
+    top: 0;
+    left: -16rem;
+    /* Hidden by default */
+    width: 16rem;
+    height: 100%;
+    background: white;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+    transition: transform 0.3s ease-out;
+    z-index: v.$z-index-overlay + 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-drawer.drawerOpen {
+    transform: translateX(16rem);
+    /* Slides in */
+}
+
+.nav-drawer-header {
+    padding: v.$spacing-xl;
+    //background: v.$color-secondary;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.nav-drawer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-drawer-links li {
+    padding: v.$spacing-md;
+    border-bottom: 1px solid #ddd;
+}
+
+.nav-drawer-links a {
+    text-decoration: none;
+}
+
+/* Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: v.$z-index-overlay;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-out;
+}
+
+.overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Button to Open Drawer */
+.open-drawer-btn {
+
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 1500;
+}

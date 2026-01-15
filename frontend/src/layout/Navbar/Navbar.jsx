@@ -5,12 +5,30 @@ import ButtonFrame from '../../components/Button/ButtonFrame';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export default function Navbar() {
+export default function Navbar({ onMenuClick }) {
   const { isAuthenticated } = useAuth();
+
   return (
     <header className={styles.header}>
       <nav className={styles.navbar}>
+
         <div className={styles.leftLinks}>
+          {/*
+
+          <button
+            className={styles.menuButton}
+            onClick={onMenuClick}
+            aria-label="Open menu"
+          >
+
+            <div className={styles.menuIcon}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </button>
+          */}
+
           <Link to={isAuthenticated ? '/game' : '/'}>
             <Button variant="primary" className={styles.navLink}>
               {isAuthenticated ? 'Game' : 'Home'}
