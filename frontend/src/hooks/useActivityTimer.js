@@ -113,7 +113,7 @@ export default function useActivityTimer() {
 
 
   const stop = useCallback(async ({ activityName } = {}) => {
-    console.log(`[useActivityTimer] Stop and submit timer`);
+    //console.log(`[useActivityTimer] Stop and submit timer`);
     //console.log("COMPLETE called", { status, duration, elapsed, currentActivity });
     //console.trace();
 
