@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './OnboardingPage.module.scss';
 import Button from '../../components/Button/Button';
-import { apiFetch } from '../../../utils/api';
 import useOnboarding from '../../hooks/useOnboarding';
 
 export default function OnboardingPage() {
@@ -20,8 +19,12 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div>
+    <div className={styles.page}>
       <h1>Welcome</h1>
+      <p>Welcome to Progress RPG ✨</p>
+      <p>Here, your real tasks become in-game progress.</p>
+      <p>Start an activity (as small as you like) and feel the anxiety reduce as you make progress.</p>
+
         {error && <p>{error}</p>}
         <Button
           onClick={enter}
