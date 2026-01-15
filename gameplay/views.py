@@ -955,7 +955,11 @@ class QuestViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             character = PlayerCharacterLink.get_character(profile)
         except ValueError as e:
-            return Response({"error": str(e)}, status=400)
+            logger.warning("Failed to get character for profile %s: %s", profile.id if hasattr(profile, "id") else profile, e)
+            return Response(
+                {"error": "Unable to determine eligible quests for your character."},
+                status=400,
+            )
 
         eligible_quests = check_quest_eligibility(character, profile)
         serializer = self.get_serializer(eligible_quests, many=True)
