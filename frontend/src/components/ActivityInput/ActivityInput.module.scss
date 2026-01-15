@@ -1,7 +1,12 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+
+
 .container {
   border: 1px solid rgba(0,0,0,0.15);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: v.$border-radius;
+  padding: v.$padding-base;
   background: rgba(255,255,255,0.6);
   width: min(100%, 720px);
 }
@@ -34,13 +39,16 @@
 
 .timerPill {
   border: 1px solid rgba(0,0,0,0.15);
-  border-radius: 999px;
+  border-radius: v.$border-radius;
   padding: 10px 12px;
   line-height: 1;
   white-space: nowrap;
   align-self: flex-end;
   white-space: nowrap;
+  padding: v.$padding-base;
+  @include t.apply-text-style(t.$text-body);
 }
+
 .subRow {
   margin-top: 8px;
   display: flex;

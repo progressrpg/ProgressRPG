@@ -80,7 +80,7 @@ export default function useTimers({ mode }) {
 
   const start = useCallback(async () => {
     if (!subject) return;
-    console.log(`[useTimers] Start ${mode}`);
+    //console.log(`[useTimers] Start ${mode}`);
 
     // save previous status for rollback
     const prevStatus = status;
@@ -210,7 +210,7 @@ export default function useTimers({ mode }) {
 
 
   const assignSubject = useCallback(async (newSubject, newDuration = 0, newStatus = "waiting", newElapsed = 0) => {
-    console.log(`[useTimers] Assign ${mode}`);
+    //console.log(`[useTimers] Assign ${mode}`);
     setStatus(newStatus);
     setElapsed(newElapsed);
 
