@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
 
       try {
         const data = await apiFetch('/me/');
-        setUser(data.user);
+        setUser(data);
         setIsAuthenticated(true);
       } catch (err) {
         logout();

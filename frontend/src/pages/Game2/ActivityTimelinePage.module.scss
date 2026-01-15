@@ -3,14 +3,12 @@
 @use '../../styles/semantic/typography' as t;
 
 .page {
-  /* full-height page layout */
-  min-height: 100vh;
+  min-height: 50vh;
+  height: 100%;
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: v.$spacing-gap;
 
-  /* optional: if you have an app shell already applying padding,
-     you can remove this */
   padding: v.$spacing-gap;
 }
 
@@ -45,4 +43,3 @@
   // border-radius: v.$radius-lg;
   // background: v.$surface;
 }
-

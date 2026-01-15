@@ -1,5 +1,5 @@
 // src/components/ActivityInput/ActivityInput.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useGame } from "../../context/GameContext";
 import Input from "../Input/Input";
 import Button from "../Button/Button";
@@ -15,18 +15,6 @@ export default function ActivityInput() {
     elapsed,
   } = activityTimer2;
   const [name, setName] = useState("");
-
-
-  //console.log("timer:", activityTimer2);
-
-  async function handleStart() {
-    await startActivity(name);
-    setName("");
-  }
-
-  async function handleStop() {
-    await stop();
-  }
 
   async function handleToggle() {
     if (isActive) {

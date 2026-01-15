@@ -1,4 +1,9 @@
 /* components/CharacterActivityCurrent/CharacterActivityCurrent.module.scss */
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+
+
 .line {
   width: min(100%, 720px);
 
@@ -9,7 +14,7 @@
   font-size: 0.95rem;
 
   border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 12px;
+  border-radius: v.$border-radius;
   padding: 12px;
 
 }

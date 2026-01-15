@@ -38,8 +38,6 @@ export const GameProvider = ({ children }) => {
   const [characterCurrentActivity, setCharacterCurrentActivity] = useState({});
   const [quests, setQuests] = useState([]);
 
-  const [onboardingStage, setOnboardingStage] = useState(4);
-
   const activityTimer = useTimers({ mode: "activity" });
   const questTimer = useTimers({ mode: "quest" });
 
@@ -52,15 +50,13 @@ export const GameProvider = ({ children }) => {
 
 
   const fetchPlayerAndCharacter = useCallback(async () => {
-    if (!characterOnload?.id) return;
-
-    const [freshPlayer, freshCharacter] = await Promise.all([
-      apiFetch(`/profile/me/`),
-      apiFetch(`/character/${characterOnload.id}/`),
-    ]);
-
+    const freshPlayer = await apiFetch(`/me/profile/`);
     setPlayer(freshPlayer);
-    setCharacter(freshCharacter);
+
+    if (characterOnload?.id) {
+      const freshCharacter = await apiFetch(`/character/${characterOnload.id}/`);
+      setCharacter(freshCharacter);
+    }
   }, [characterOnload?.id]);
 
   const formattedDate = getFormattedDate();
@@ -80,7 +76,7 @@ export const GameProvider = ({ children }) => {
 
   const fetchCharacterCurrent = useCallback(async () => {
     const data = await apiFetch(`/character-activities/current/`);
-    console.log("/current, data:", data);
+    //console.log("/current, data:", data);
     setCharacterCurrentActivity(data.current); // depending on your response shape
     return data.current;
   }, []);
@@ -143,8 +139,6 @@ export const GameProvider = ({ children }) => {
       fetchQuests,
       loading,
       buildNumber,
-      onboardingStage,
-      setOnboardingStage,
     }),
     [
       player,
@@ -162,7 +156,6 @@ export const GameProvider = ({ children }) => {
       fetchQuests,
       loading,
       buildNumber,
-      onboardingStage,
     ]
   );
 

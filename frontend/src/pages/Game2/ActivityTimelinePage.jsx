@@ -7,15 +7,13 @@ export default function ActivityTimelinePage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>Activity Timeline</h1>
-      </header>
+      <h1 className={styles.header}>Activity Timer</h1>
 
-      <main className={styles.main}>
+      <div className={styles.main}>
         <ActivityTimeline />
         <CharacterCurrentActivity />
         <ActivityInput />
-      </main>
+      </div>
     </div>
   );
 }

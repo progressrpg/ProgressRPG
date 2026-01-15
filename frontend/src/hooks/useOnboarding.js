@@ -1,51 +1,41 @@
 // src/hooks/useOnboarding.js
-import { useEffect, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { apiFetch } from '../../utils/api';
+import { useGame } from '../context/GameContext';
 
 export default function useOnboarding() {
-  //console.log('useOnboarding render');
-  const [step, setStep] = useState(1);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const {
+    player,
+    loading,
+    fetchPlayerAndCharacter,
+  } = useGame();
+  const [error, setError] = useState("");
 
-  // Load current onboarding step on mount
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const data = await apiFetch('/onboarding/status/');
-        setStep(data.step);
-        setError('');
-      } catch (err) {
-        console.error('[Onboarding] Status error:', err);
-        setError('Failed to fetch onboarding status.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const completed = useMemo(() => {
+    if (!player) return undefined;
+    return Boolean(player.onboarding_completed);
+  }, [player]);
 
-    fetchStatus();
-  }, []);
-
-
-  const progress = async (payload = {}) => {
+  const completeOnboarding = useCallback(async () => {
     try {
-      const data = await apiFetch('/onboarding/progress/', {
-        method: 'POST',
-        body: JSON.stringify(payload),
+      await apiFetch("/me/complete_onboarding/", {
+        method: "POST",
       });
 
-      if (typeof data.step === 'number') {
-        setStep(data.step);
-      }
-
-      setError('');
-      return data;
+      await fetchPlayerAndCharacter?.();
+      //console.log("player after fetching:", player);
+      return true;
     } catch (err) {
-      console.error('[Onboarding] Progress error:', err);
-      setError(err.message || 'Failed to progress onboarding');
-      return null;
+      console.error("[Onboarding] Complete error:", err);
+      setError(err?.message || "Failed to complete onboarding.");
+      return false;
     }
-  };
+  }, [fetchPlayerAndCharacter]);
 
-  return { step, progress, error, loading };
+  return {
+    completed,
+    completeOnboarding,
+    loading,
+    error,
+  };
 }

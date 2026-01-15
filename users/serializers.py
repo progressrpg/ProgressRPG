@@ -17,6 +17,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "total_activities",
             "is_premium",
             "onboarding_step",
+            "onboarding_completed",
             "login_streak",
         ]
         read_only_fields = [

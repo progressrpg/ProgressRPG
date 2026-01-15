@@ -101,7 +101,7 @@ class PlayerAdmin(admin.ModelAdmin):
         (
             "Other",
             {
-                "fields": ("onboarding_step", "is_premium"),
+                "fields": ("onboarding_completed", "is_premium"),
             },
         ),
     )
