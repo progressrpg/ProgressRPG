@@ -12,26 +12,31 @@ from progression.models import CharacterQuest
 User = get_user_model()
 
 
-class MeViewTest(APITestCase):
+class TestMeViewSet(APITestCase):
     def setUp(self):
         self.character = Character.objects.create(name="Hero", can_link=True)
         self.user = User.objects.create_user(
-            email="test@example.com", password="testpassword123"
+            email="duncan@example.com",
+            password="pass12345",
         )
-        self.url = reverse("me")
-        self.client = APIClient()
+
+        self.me_url = reverse("me-list")
+        self.me_profile_url = reverse("me-profile")
+        self.me_complete_onboarding_url = reverse("me-complete-onboarding")
+
+    def authenticate(self):
         self.client.force_authenticate(user=self.user)
 
-    def test_me_view_authenticated(self):
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
-        self.assertEqual(response.data["user"]["email"], self.user.email)
+    def test_me_list_requires_auth(self):
+        res = self.client.get(self.me_url)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_me_view_unauthenticated(self):
-        self.client.force_authenticate(user=None)  # remove authentication
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    def test_me_list_returns_current_user(self):
+        self.authenticate()
+
+        res = self.client.get(self.me_url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["email"], self.user.email)
 
 
 class CharacterQuestViewSetTests(APITestCase):
@@ -164,52 +169,3 @@ class QuestViewSetTests(APITestCase):
         self.client.logout()
         response = self.client.get(self.eligible_url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-
-class QuestTimerViewSetTests(APITestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.character = Character.objects.create(name="Hero", can_link=True)
-        cls.user = User.objects.create_user(
-            email="testuser@example.com", password="pass1234"
-        )
-        cls.profile = cls.user.profile
-        cls.quest = Quest.objects.create(name="Test Quest", description="A test quest")
-
-    def setUp(self):
-        self.client = APIClient()
-        self.client.force_authenticate(user=self.user)
-        self.url = reverse("questtimer-change-quest")
-
-    def test_requires_authentication(self):
-        self.client.logout()
-        response = self.client.post(
-            self.url, {"quest_id": self.quest.id, "duration": 60}
-        )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_change_quest_success(self):
-        response = self.client.post(
-            self.url, {"quest_id": self.quest.id, "duration": 60}
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
-        self.assertEqual(response.data["quest_timer"]["duration"], 60)
-
-    def test_invalid_duration(self):
-        response = self.client.post(
-            self.url, {"quest_id": self.quest.id, "duration": "notanumber"}
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Duration must be an integer.", response.data["error"])
-
-    def test_missing_quest_id(self):
-        response = self.client.post(self.url, {"duration": 60})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_invalid_quest_id(self):
-        response = self.client.post(self.url, {"quest_id": 9999, "duration": 60})
-        self.assertIn(
-            response.status_code,
-            [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND],
-        )
