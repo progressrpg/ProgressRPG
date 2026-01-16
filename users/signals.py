@@ -1,10 +1,9 @@
 # user.signals
 from allauth.account.signals import email_confirmed
-from asgiref.sync import async_to_sync
 from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 import logging
@@ -12,8 +11,6 @@ import logging
 from .models import Profile
 from .utils import assign_character_to_profile
 
-from character.models import PlayerCharacterLink
-from gameplay.models import ActivityTimer
 from gameplay.models import ServerMessage
 
 logger = logging.getLogger("django")
@@ -34,10 +31,6 @@ def create_profile(sender, instance, created, **kwargs):
     if created:
         profile = Profile.objects.create(user=instance)
         logger.info(f"[CREATE PROFILE] New profile {profile.id} created for {instance}")
-        ActivityTimer.objects.create(profile=profile)
-        logger.info(
-            f"[CREATE PROFILE] New activity timer created for profile {profile.id}"
-        )
 
 
 @receiver(post_save, sender=User)
