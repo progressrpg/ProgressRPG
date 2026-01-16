@@ -48,15 +48,15 @@ export default function ActivityTimeline() {
           items={unifiedActivities}
           getKey={(act) => `${act.source}-${act.id ?? i}`}
           renderItem={(act) => (
-            <>
-            {act.source} finished {act.name || act.kind || "Untitled"} —{" "}
-              {act.completed_at
-                ? new Date(act.completed_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-                : "Not completed"}
-            </>
+            <div className={styles.line}>
+              <strong>{act.source}</strong> finished {act.name.toLowerCase() || act.kind || "Untitled"} —{" "}
+                {act.completed_at
+                  ? new Date(act.completed_at).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                  : "Not completed"}
+            </div>
           )}
         />
       )}

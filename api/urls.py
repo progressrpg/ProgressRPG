@@ -1,9 +1,5 @@
 from dj_rest_auth import urls as auth_urls
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-    TokenVerifyView,
-)
+from rest_framework_simplejwt.views import TokenVerifyView
 
 from django.urls import path, include, register_converter
 from rest_framework.routers import DefaultRouter
