@@ -1,19 +1,16 @@
 # api/views.py
 from asgiref.sync import async_to_sync
 
-# from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth import login, logout, get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
-from django.db import DatabaseError, transaction
+from django.db import transaction
 from django.http import Http404
 
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from django.utils.html import escape
 from django.views.decorators.csrf import csrf_exempt
-from django_filters.rest_framework import DjangoFilterBackend
 from django_ratelimit.decorators import ratelimit
 from urllib.parse import quote, unquote
 
@@ -23,17 +20,14 @@ from allauth.account.models import EmailConfirmation, EmailAddress
 # from allauth.account.utils import complete_signup, send_email_confirmation
 from dj_rest_auth.registration.views import RegisterView
 
-from rest_framework import viewsets, permissions, serializers, status, mixins
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import (
     api_view,
-    permission_classes,
     action,
-    authentication_classes,
 )
-from rest_framework.exceptions import ValidationError
 
 # from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -53,22 +47,16 @@ from api.serializers import (
 from character.models import Character, PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
-from gameplay.models import Quest, ServerMessage
 from gameplay.utils import send_group_message
 from gameplay.serializers import (
-    QuestSerializer,
     ActivityTimerSerializer,
     QuestTimerSerializer,
 )
 
-from progression.models import PlayerActivity, Task
 from progression.serializers import (
     PlayerActivitySerializer,
-    CharacterActivitySerializer,
 )
-from progression.utils import copy_quest
 
-from users.models import Profile
 from users.serializers import ProfileSerializer
 from users.utils import send_email_to_users
 
