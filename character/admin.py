@@ -53,8 +53,36 @@ def mark_as_canlink(modeladmin, request, queryset):
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
     fieldsets = (
-        (None, {"fields": (("first_name", "last_name"), ("is_npc", "can_link"))}),
-        ("Life & Story", {"fields": ("backstory", "parents", "sex")}),
+        (
+            None,
+            {
+                "fields": (
+                    ("first_name", "last_name"),
+                    ("is_npc", "can_link"),
+                    "sex",
+                )
+            },
+        ),
+        ("Dates", {"fields": (("birth_date", "death_date"))}),
+        (
+            "Life & Story",
+            {
+                "classes": ("collapse",),
+                "fields": ("backstory", "parents", "cause_of_death"),
+            },
+        ),
+        (
+            "Stats",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    (
+                        "coins",
+                        "reputation",
+                    )
+                ),
+            },
+        ),
         (
             "Pregnancy Details",
             {
@@ -64,8 +92,6 @@ class CharacterAdmin(admin.ModelAdmin):
                 ),
             },
         ),
-        ("Dates", {"fields": (("birth_date", "death_date"), "cause_of_death")}),
-        ("Stats", {"fields": ("coins", "reputation", "total_quests")}),
     )
 
     list_display = [
@@ -74,6 +100,8 @@ class CharacterAdmin(admin.ModelAdmin):
         "get_profile",
         "is_npc",
         "can_link",
+        "birth_date",
+        "death_date",
     ]
     list_filter = [
         "is_npc",
@@ -90,6 +118,7 @@ class CharacterAdmin(admin.ModelAdmin):
     readonly_fields = [
         "get_profile",
     ]
+    ordering = ["last_name", "first_name"]
     inlines = [LinkInline, BehaviourInline]
     actions = [mark_as_npc, mark_as_canlink]
 
