@@ -30,10 +30,6 @@ def mark_as_npc(modeladmin, request, queryset):
         for link in active_links:
             link.unlink()
 
-        # Mark character as NPC
-        character.is_npc = True
-        character.save(update_fields=["is_npc"])
-
     messages.success(
         request, f"{queryset.count()} character(s) marked as NPC and unlinked."
     )
@@ -104,7 +100,6 @@ class CharacterAdmin(admin.ModelAdmin):
         "death_date",
     ]
     list_filter = [
-        "is_npc",
         "can_link",
         "birth_date",
         "death_date",
@@ -117,6 +112,7 @@ class CharacterAdmin(admin.ModelAdmin):
     ]
     readonly_fields = [
         "get_profile",
+        "is_npc",
     ]
     ordering = ["last_name", "first_name"]
     inlines = [LinkInline, BehaviourInline]
