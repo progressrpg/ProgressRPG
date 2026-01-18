@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 
 import { useBootstrapGameData } from '../hooks/useBootstrapGameData';
 import { apiFetch } from '../../utils/api';
-import useTimers from '../hooks/useTimers';
 import useActivityTimer from '../hooks/useActivityTimer';
 
 const GameContext = createContext();
@@ -25,7 +24,6 @@ export const GameProvider = ({ children }) => {
     player: playerOnload,
     character: characterOnload,
     activityTimerInfo,
-    questTimerInfo,
     buildNumber,
     loading,
   } = useBootstrapGameData();
@@ -38,10 +36,7 @@ export const GameProvider = ({ children }) => {
   const [characterCurrentActivity, setCharacterCurrentActivity] = useState({});
   const [quests, setQuests] = useState([]);
 
-  const activityTimer = useTimers({ mode: "activity" });
-  const questTimer = useTimers({ mode: "quest" });
-
-  const activityTimer2 = useActivityTimer();
+  const activityTimer = useActivityTimer();
 
 
   // ----------------------------------------
@@ -100,10 +95,8 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (activityTimerInfo) {
       activityTimer.loadFromServer(activityTimerInfo);
-      activityTimer2.loadFromServer(activityTimerInfo);
     }
-    if (questTimerInfo) questTimer.loadFromServer(questTimerInfo);
-  }, [activityTimerInfo, questTimerInfo]);
+  }, [activityTimerInfo]);
 
   useEffect(() => {
     fetchActivities();
@@ -127,8 +120,6 @@ export const GameProvider = ({ children }) => {
       setCharacter,
       fetchPlayerAndCharacter,
       activityTimer,
-      activityTimer2,
-      questTimer,
       playerActivities,
       characterActivities,
       fetchActivities,
@@ -148,8 +139,6 @@ export const GameProvider = ({ children }) => {
       characterCurrentActivity,
       quests,
       activityTimer,
-      activityTimer2,
-      questTimer,
       fetchPlayerAndCharacter,
       fetchActivities,
       fetchCharacterCurrent,

@@ -3,13 +3,12 @@ import { useGame } from "../../context/GameContext";
 import Button from "../Button/Button";
 import ButtonFrame from "../Button/ButtonFrame";
 import Input from "../Input/Input";
-import useCombinedTimers from "../../hooks/useCombinedTimers";
+
 import { formatDuration } from "../../../utils/formatUtils.js";
 import TimerDisplay from "./TimerDisplay.jsx";
 import styles from "./ActivityTimer.module.scss";
 
-import { useTasks, useCreateTask, useUpdateTask } from "../../hooks/useTasks.js";
-import { useUpdateActivity, useChangeActivityTask } from "../../hooks/useActivities.js";
+import { useUpdateActivity } from "../../hooks/useActivities.js";
 
 export function ActivityTimer() {
   const [activityName, setActivityName] = useState('');
@@ -18,19 +17,18 @@ export function ActivityTimer() {
   };
 
   const {
-    onboardingStage,
     fetchActivities,
-    fetchQuests,
     setPlayer,
     activityTimer,
     showToast,
   } = useGame();
 
   const {
-    subject: activity,
+    currentActivity: activity,
     status,
     elapsed,
-    assignSubject,
+    startActivity,
+    stop,
   } = activityTimer;
 
   useEffect(() => {
@@ -48,41 +46,29 @@ export function ActivityTimer() {
 
   const displayTime = formatDuration(elapsed);
 
-  const { submitActivity, mode } = useCombinedTimers({
-    enableQuest: onboardingStage >= 2,
-    autoStart: onboardingStage >= 2,
+  const updateActivity = useUpdateActivity();
 
-    onActivityComplete: (data) => {
-      if (data.profile) setPlayer(data.profile);
+  console.log("act timer status:", status);
+
+  const handleSubmitActivity = async () => {
+    try {
+      if (activity?.id) {
+        await updateActivity.mutateAsync({ activityId: activity.id, data: {name: activityName}});
+      }
+
+      const result = await stop();
+
+      if (result?.profile) setPlayer(result.profile);
       fetchActivities();
-    },
-
-    onQuestComplete: (data) => {
-      fetchQuests();
-    },
-
-    onError: (err) => {
+      setActivityName('');
+    } catch (err) {
       if (typeof showToast === "function") {
         showToast("Something went wrong", err);
       } else {
         console.error(err);
       }
-    },
-  });
-
-  const updateActivity = useUpdateActivity();
-  // const { data: tasks = [], isLoading: tasksLoading } = useTasks();
-  // const updateTask = useUpdateTask();
-  // const createTask = useCreateTask();
-  // const changeTask = useChangeActivityTask();
-  // const [creatingTask, setCreatingTask] = useState(false);
-  // const [newTaskName, setNewTaskName] = useState("");
-
-  // //console.log("tasks:", tasks);
-
-  // const incompleteTasks = tasks.filter(task => !task.is_complete);
-
-  console.log("act timer status:", status);
+    }
+  };
 
   return (
     <section className={styles.activityRow}>
@@ -168,33 +154,22 @@ export function ActivityTimer() {
 
       <ButtonFrame>
         <Button
-          onClick={() => assignSubject({
-            text: activityName,
-            taskId: selectedTask || null,
-            })
-          }
-          disabled={status !== "empty"}
-        >
-          Start Activity
-        </Button>
+        onClick={() => startActivity({
+          text: activityName,
+          taskId: selectedTask || null,
+          })
+        }
+        disabled={status !== "empty"}
+      >
+        Start Activity
+      </Button>
 
-        <Button
-          onClick={async () => {
-            if (activity?.id) {
-              await updateActivity.mutateAsync({ activityId: activity.id, data: {name: activityName}});
-            }
-
-            await submitActivity({
-              taskId: selectedTask || null,
-            });
-
-            setActivityName('');
-          }}
-          disabled={status === "empty"}
-        >
-          Submit Activity
-        </Button>
-
+      <Button
+        onClick={handleSubmitActivity}
+        disabled={status === "empty"}
+      >
+        Submit Activity
+      </Button>
 {/*
         <Button
           onClick={async () => {
