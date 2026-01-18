@@ -6,29 +6,82 @@
 
 .toastContainer {
   position: fixed;
-  top: v.$spacing-2xl;
+  top: 33vh;
   left: 50%;
   transform: translateX(-50%);
   z-index: v.$z-index-toast;
-  pointer-events: none; // So it doesn't block clicks
+  pointer-events: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: v.$spacing-gap;
+  width: min(96vw, 720px);
 }
 
 .toast {
-  background-color: c.$color-bg;
+  pointer-events: none;
+  width: 100%;
+  max-width: 620px;
 
-  padding: v.$padding-base;
+  /* Base look */
+  background: rgba(c.$color-bg, 1);
   border-radius: v.$border-radius;
-  margin-bottom: v.$spacing-sm;
-  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.2);
+  padding: 0; /* inner handles padding */
+  overflow: hidden;
+
+  /* Accent rail + subtle outline */
+  border: 1px solid rgba(c.$color-border-primary, 0.8);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.10);
+
+  /* keep your existing timing */
   opacity: 0;
   transform: translateY(-(v.$spacing-sm));
-  animation: fadeInUp 0.3s ease forwards, fadeOut 0.3s ease 3s forwards;
+  animation: fadeInUp 0.25s ease forwards, fadeOut 0.25s ease 3s forwards;
+
+}
+
+
+.inner {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+}
+
+.inner::before {
+  content: "";
+  grid-column: 1;
+  grid-row: 1;
+  background: var(--toast-accent, c.$color-glowing-outline);
+}
+
+/* Content column */
+.content {
+  grid-column: 2;
+  padding: v.$padding-lg;
   @include t.apply-text-style(t.$text-body);
 }
+
+.title {
+  @include t.apply-text-style(t.$text-button);
+  margin-bottom: 2px;
+}
+
+.message {
+  opacity: 0.95;
+  @include t.apply-text-style(t.$text-body);
+}
+
+/* Optional icon slot (kept subtle if you don't set it) */
+.icon {
+  display: none; /* enable later if you actually render an icon */
+}
+
+/* Types (map to your semantic colours) */
+.info    { --toast-accent: c.$color-status-info; }
+.success { --toast-accent: c.$color-status-success; }
+.warning { --toast-accent: c.$color-status-warning; }
+.error   { --toast-accent: c.$color-status-danger; }
 
 @keyframes fadeInUp {
   to {
