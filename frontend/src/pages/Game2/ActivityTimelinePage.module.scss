@@ -12,8 +12,10 @@
 }
 
 /* Centre content consistently */
-.header,
-.main {
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-gap;
   width: 100%;
   margin: 0 auto;
 
@@ -24,21 +26,4 @@
   @include m.respond-to(big) {
     max-width: 1400px;
   }
-}
-
-.title {
-  /* if you already style h1 globally, this can be minimal */
-  margin: 0;
-}
-
-/* Make timeline area the one that scrolls (not the whole page) */
-.main {
-  overflow: auto;
-  /* prevents grid child overflow issues in some browsers */
-  min-height: 0;
-
-  /* Optional: make the timeline feel like a panel */
-  // padding: v.$spacing-gap;
-  // border-radius: v.$radius-lg;
-  // background: v.$surface;
 }
