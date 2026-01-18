@@ -79,6 +79,19 @@ class ActivityTimerAdmin(admin.ModelAdmin):
         "status",
     ]
     actions = ["pause_timers", "reset_timers"]
+    readonly_fields = ["profile"]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "activity":
+            # Get the profile from the object being edited
+            obj = self.get_object(
+                request, request.resolver_match.kwargs.get("object_id")
+            )
+            if obj and obj.profile:
+                kwargs["queryset"] = db_field.remote_field.model.objects.filter(
+                    profile=obj.profile
+                )
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     @admin.display(description="Pause selected timers")
     def pause_timers(self, request, queryset):

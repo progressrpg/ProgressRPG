@@ -61,7 +61,7 @@ class PlayerAdmin(admin.ModelAdmin):
         "get_character",
         "last_login",
         "user_created_at",
-        "is_premium",
+        "level",
     ]
     list_filter = [
         "last_login",
@@ -106,12 +106,9 @@ class PlayerAdmin(admin.ModelAdmin):
         ),
     )
 
-    readonly_fields = [
-        "last_login",
-    ]
-    search_fields = [
-        "name",
-    ]
+    readonly_fields = ["last_login", "user_created_at"]
+    search_fields = ["name", "user__email"]
+    ordering = ("-created_at",)
 
     @admin.display(description="Character")
     def get_character(self, obj):
@@ -151,3 +148,4 @@ class InviteCodeAdmin(admin.ModelAdmin):
         "max_uses",
         "uses",
     ]
+    readonly_fields = ["uses"]
