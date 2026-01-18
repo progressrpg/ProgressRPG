@@ -37,15 +37,13 @@ def assign_character_to_profile(profile):
     Assign a default Character (non-player character) to the given Profile. Deactivates
     any currently active character and associates a new NPC with the Profile. If the
     Profile is recent, assigns a tutorial quest to the newly linked character.
-
-    :param profile: The Profile to which a character will be assigned.
-    :type profile: Profile
-    :raises ValueError: If the tutorial quest is not found in the database.
     """
 
-    character = Character.objects.filter(
-        is_npc=True, can_link=True, death_date__isnull=True
-    ).first()
+    character = (
+        Character.objects.filter(is_npc=True, can_link=True, death_date__isnull=True)
+        .exclude(profile_link__is_active=True)
+        .first()
+    )
 
     if not character:
         logger.warning(f"No available NPC character to assign to profile {profile.id}")

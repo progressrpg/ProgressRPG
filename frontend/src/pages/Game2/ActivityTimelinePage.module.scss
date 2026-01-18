@@ -3,12 +3,7 @@
 @use '../../styles/semantic/typography' as t;
 
 .page {
-  min-height: 50vh;
-  height: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: v.$spacing-gap;
-  padding: v.$padding-base;
+  @include m.page-layout();
 }
 
 /* Centre content consistently */
@@ -17,13 +12,4 @@
   flex-direction: column;
   gap: v.$spacing-gap;
   width: 100%;
-  margin: 0 auto;
-
-  @include m.respond-to(small) {
-    max-width: 576px;
-  }
-
-  @include m.respond-to(big) {
-    max-width: 1400px;
-  }
 }

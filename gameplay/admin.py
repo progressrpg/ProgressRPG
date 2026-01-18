@@ -16,7 +16,7 @@ class QuestResultsInline(admin.TabularInline):
     model = QuestResults
 
 
-@admin.register(Quest)
+# @admin.register(Quest)
 class QuestAdmin(admin.ModelAdmin):
     fields = [
         "name",
@@ -55,12 +55,12 @@ class QuestResultsAdmin(admin.ModelAdmin):
     list_display = ["quest", "xp_rate", "coin_reward", "dynamic_rewards"]
 
 
-@admin.register(QuestRequirement)
+# @admin.register(QuestRequirement)
 class QuestRequirementAdmin(admin.ModelAdmin):
     list_display = ["quest", "prerequisite", "times_required"]
 
 
-@admin.register(QuestCompletion)
+# @admin.register(QuestCompletion)
 class QuestCompletionAdmin(admin.ModelAdmin):
     list_display = ["character", "quest", "times_completed"]
     fields = [

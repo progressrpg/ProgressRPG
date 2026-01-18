@@ -348,6 +348,20 @@ class PlayerCharacterLink(models.Model):
     date_unlinked = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["profile", "is_active"],
+                condition=models.Q(is_active=True),
+                name="one_active_link_per_profile",
+            ),
+            models.UniqueConstraint(
+                fields=["character", "is_active"],
+                condition=models.Q(is_active=True),
+                name="one_active_link_per_character",
+            ),
+        ]
+
     @classmethod
     def get_character(cls, profile: Profile) -> Character:
         links = PlayerCharacterLink.objects.filter(profile=profile, is_active=True)
@@ -386,8 +400,14 @@ class PlayerCharacterLink(models.Model):
             link.unlink()
 
     @classmethod
+    def deactivate_active_links_for_character(cls, character: Character):
+        for link in cls.objects.filter(character=character, is_active=True):
+            link.unlink()
+
+    @classmethod
     def assign_character(cls, profile: Profile, character: Character):
         cls.deactivate_active_links(profile)
+        cls.deactivate_active_links_for_character(character)
         link = cls.objects.create(
             profile=profile,
             character=character,

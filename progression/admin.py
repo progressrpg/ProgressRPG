@@ -20,7 +20,7 @@ from .models import (
 #########################################
 
 
-@admin.register(Category)
+# @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -36,7 +36,7 @@ class CategoryAdmin(admin.ModelAdmin):
     readonly_fields = ("total_time", "total_records", "total_xp")
 
 
-@admin.register(Role)
+# @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -57,7 +57,7 @@ class RoleAdmin(admin.ModelAdmin):
 #########################################
 
 
-@admin.register(PlayerSkill)
+# @admin.register(PlayerSkill)
 class PlayerSkillAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -75,7 +75,7 @@ class PlayerSkillAdmin(admin.ModelAdmin):
     readonly_fields = ("total_time", "total_records", "total_xp")
 
 
-@admin.register(CharacterSkill)
+# @admin.register(CharacterSkill)
 class CharacterSkillAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -102,14 +102,9 @@ class PlayerActivityAdmin(admin.ModelAdmin):
         "id",
         "name",
         "profile",
-        "skill",
-        "project",
-        "task",
         "duration",
-        "is_private",
         "created_at",
         "started_at",
-        "is_complete",
         "completed_at",
     )
     search_fields = ("name", "description", "profile__name")
@@ -121,18 +116,17 @@ class PlayerActivityAdmin(admin.ModelAdmin):
 @admin.register(CharacterActivity)
 class CharacterActivityAdmin(admin.ModelAdmin):
     list_display = (
-        # "id",
+        "id",
         "name",
         "kind",
         "character",
         "is_complete",
         "completed_at",
-        "created_at",
         "scheduled_start",
         "scheduled_end",
     )
-    search_fields = ("name", "description", "profile__name")
-    list_filter = ("is_complete", "kind")
+    search_fields = ("name", "description", "character__name")
+    list_filter = ("created_at", "is_complete", "kind")
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)
     fields = (
@@ -146,7 +140,7 @@ class CharacterActivityAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(CharacterQuest)
+# @admin.register(CharacterQuest)
 class CharacterQuestAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -168,7 +162,7 @@ class CharacterQuestAdmin(admin.ModelAdmin):
 #########################################
 
 
-@admin.register(Project)
+# @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -186,7 +180,7 @@ class ProjectAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
 
-@admin.register(Task)
+# @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = (
         "id",

@@ -53,7 +53,7 @@ def mark_as_canlink(modeladmin, request, queryset):
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
     fieldsets = (
-        (None, {"fields": ("first_name", "last_name", "is_npc", "can_link")}),
+        (None, {"fields": (("first_name", "last_name"), ("is_npc", "can_link"))}),
         ("Life & Story", {"fields": ("backstory", "parents", "sex")}),
         (
             "Pregnancy Details",
@@ -71,7 +71,6 @@ class CharacterAdmin(admin.ModelAdmin):
     list_display = [
         "first_name",
         "last_name",
-        "backstory",
         "get_profile",
         "is_npc",
         "can_link",
@@ -122,7 +121,7 @@ class CharacterInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(CharacterRelationship)
+# @admin.register(CharacterRelationship)
 class CharacterRelationshipAdmin(admin.ModelAdmin):
     list_display = [
         "relationship_type",
@@ -144,7 +143,7 @@ class CharacterRelationshipAdmin(admin.ModelAdmin):
         return ", ".join([str(char) for char in obj.get_members()])
 
 
-@admin.register(CharacterRole)
+# @admin.register(CharacterRole)
 class CharacterRoleAdmin(admin.ModelAdmin):
     list_display = [
         "name",
@@ -152,7 +151,7 @@ class CharacterRoleAdmin(admin.ModelAdmin):
     ]
 
 
-@admin.register(CharacterProgression)
+# @admin.register(CharacterProgression)
 class CharacterProgressionAdmin(admin.ModelAdmin):
     list_display = [
         "character",
