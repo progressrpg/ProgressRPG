@@ -13,6 +13,7 @@ from django.contrib import messages
 
 class LinkInline(admin.TabularInline):
     model = PlayerCharacterLink
+    extra = 0
 
 
 class BehaviourInline(admin.StackedInline):
@@ -57,9 +58,10 @@ class CharacterAdmin(admin.ModelAdmin):
         (
             "Pregnancy Details",
             {
+                "classes": ("collapse",),
                 "fields": (
                     ("is_pregnant", "pregnancy_start_date", "pregnancy_due_date"),
-                )
+                ),
             },
         ),
         ("Dates", {"fields": (("birth_date", "death_date"), "cause_of_death")}),
@@ -73,7 +75,6 @@ class CharacterAdmin(admin.ModelAdmin):
         "get_profile",
         "is_npc",
         "can_link",
-        "birth_date",
     ]
     list_filter = [
         "is_npc",
