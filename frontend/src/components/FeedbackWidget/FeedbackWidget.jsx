@@ -20,16 +20,8 @@ const FeedbackWidget = () => {
               ×
             </Button>
             <h3>Help us improve Progress RPG</h3>
-            <p>Spotted a bug? Got an idea? Choose where to send your feedback:</p>
+            <p>Spotted a bug? Got an idea? Send us your feedback:</p>
             <div className={styles.buttonGroup}>
-              <a
-                href="https://github.com/gaidheal1/ProgressRPG/issues/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.modalButton} ${styles.github}`}
-              >
-                👩‍💻 GitHub Issues
-              </a>
               <a
                 href="https://forms.gle/7MnVUirk25GWhVfy9"
                 target="_blank"
@@ -37,14 +29,6 @@ const FeedbackWidget = () => {
                 className={`${styles.modalButton} ${styles.form}`}
               >
                 💡 Google Form
-              </a>
-              <a
-                href="https://discord.gg/6AEd2zhY"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.modalButton} ${styles.discord}`}
-              >
-                👥 Join Discord
               </a>
             </div>
           </div>
