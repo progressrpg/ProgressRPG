@@ -14,8 +14,8 @@ export default function ActivityTimeline() {
     fetchActivities(); // your apiFetch wrapper
   }, [fetchActivities]);
 
-  //   console.log("playerActivities:", playerActivities);
-  //   console.log("charActivities:", characterActivities);
+  //console.log("playerActivities:", playerActivities);
+  //console.log("charActivities:", characterActivities);
 
   const unifiedActivities = useMemo(() => {
     const player = Array.isArray(playerActivities)

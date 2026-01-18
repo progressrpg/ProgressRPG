@@ -25,7 +25,7 @@
   gap: v.$spacing-gap;
   padding: v.$padding-base;
   background: c.$color-bg;
-  border: 1px solid rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(c.$color-border-primary, 0.8);
   border-radius: v.$border-radius;
   align-self: stretch;
   max-width: 100%;

@@ -4,7 +4,7 @@
 .home-page {
   text-align: center;
   margin-top: 10%;
-  padding: v.$spacing-lg;
+  padding: v.$padding-lg;
 
   h1 {
     @include t.apply-text-style(t.$text-heading-1);

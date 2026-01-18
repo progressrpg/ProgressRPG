@@ -7,9 +7,9 @@ export default function ActivityTimelinePage() {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.header}>Activity Timer</h1>
+      <h1>Activity Timer</h1>
 
-      <div className={styles.main}>
+      <div className={styles.content}>
         <ActivityTimeline />
         <CharacterCurrentActivity />
         <ActivityInput />

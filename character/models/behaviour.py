@@ -13,6 +13,9 @@ class Behaviour(models.Model):
         "character.Character", on_delete=models.CASCADE, related_name="behaviour"
     )
 
+    DAWN_TIME = time(6, 0)
+    DUSK_TIME = time(20, 0)
+
     def _day_window(self, date):
         """
         Return (dawn_dt, dusk_dt, next_dawn_dt) as timezone-aware datetimes in current timezone.
@@ -120,16 +123,28 @@ class Behaviour(models.Model):
             ).delete()
 
         created = []
+        today = timezone.now().date()
+        is_past = date < today
+
         for kind, name, start, end in cleaned:
-            created.append(
-                CharacterActivity.objects.create(
-                    character=self.character,
-                    kind=kind,
-                    name=name,
-                    scheduled_start=start,
-                    scheduled_end=end,
+            activity_kwargs = {
+                "character": self.character,
+                "kind": kind,
+                "name": name,
+                "scheduled_start": start,
+                "scheduled_end": end,
+            }
+            if is_past:
+                activity_kwargs.update(
+                    {
+                        "is_complete": True,
+                        "started_at": start,
+                        "completed_at": end,
+                        "duration": int((end - start).total_seconds()),
+                        # Optionally: "xp_gained": <calculate or default>
+                    }
                 )
-            )
+            created.append(CharacterActivity.objects.create(**activity_kwargs))
 
         return created
 

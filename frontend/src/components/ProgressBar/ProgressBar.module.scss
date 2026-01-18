@@ -37,7 +37,7 @@
   position: relative;
 
   border-radius: v.$border-radius;
-  border: 1px solid c.$color-progress-bar;
+  border: 1px solid rgba(c.$color-border-primary, 0.8);;
 }
 
 .progressBarFill {

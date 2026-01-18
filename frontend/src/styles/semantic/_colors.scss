@@ -16,23 +16,35 @@ $color-light-hover: color.adjust(c.$color-light, $lightness: -5%);
 $color-dark-hover: color.adjust(c.$color-dark, $lightness: 5%);
 
 
-// Semantic aliases
+// Text
 $color-text-body: map.get(c.$neutral-scale, 700);
 $color-text-heading: map.get(c.$neutral-scale, 900);
 
+// Buttons
 $button-bg-prim: map.get(c.$primary-scale, 500);
 $button-bg-prim-hov: map.get(c.$primary-scale, 600);
 
 $color-progress-bar: map.get(c.$primary-scale, 500);
 
 // Backgrounds
-$color-bg: c.$color-light;
+//$color-bg: c.$color-light;
+$color-bg: map.get(c.$secondary-scale, 50);
 $color-bg-green: map.get(c.$secondary-scale, 100);
 $color-bg-invert: c.$color-dark;
 
-// Timer
+// Borders
 $color-border-primary: map.get(c.$primary-scale, 500);
 $color-border-accent: map.get(c.$accent-scale, 200);
+$color-glowing-outline: map.get(c.$primary-scale, 500);
+
+// Status
+$color-status-info: map.get(c.$primary-scale, 500);
+$color-status-success: map.get(c.$primary-scale, 600);
+$color-status-warning: map.get(c.$accent-scale, 200);
+$color-danger: #c62828; // strong, readable red
+$color-status-danger: $color-danger;
+
+
 
 $text-tone: (
   default: (

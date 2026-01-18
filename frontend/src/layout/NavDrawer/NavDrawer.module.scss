@@ -1,4 +1,5 @@
 @use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
 
 /* Navigation Drawer */
 .nav-drawer {
@@ -8,7 +9,7 @@
     /* Hidden by default */
     width: 16rem;
     height: 100%;
-    background: white;
+    background: rgba(c.$color-bg, 0.95);
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
     overflow-y: auto;
     transition: transform 0.3s ease-out;
@@ -37,7 +38,7 @@
 }
 
 .nav-drawer-links li {
-    padding: v.$spacing-md;
+    padding: v.$padding-base;
     border-bottom: 1px solid #ddd;
 }
 

@@ -9,11 +9,10 @@ $breakpoints: (
 );
 
 
-
 // Spacing
 $spacing-xs: 0.25rem;
-$spacing-sm: 0.5rem;
-$spacing-md: 1rem;
+$spacing-sm: 0.5rem; // 8px
+$spacing-md: 1rem; // 16px
 $spacing-lg: 2rem;
 $spacing-xl: 4rem;
 $spacing-2xl: 6rem;
@@ -25,7 +24,7 @@ $padding-vertical: $spacing-sm;
 $padding-horizontal: $spacing-md;
 
 $padding-base: $padding-vertical $padding-horizontal;
-
+$padding-lg: $spacing-md $spacing-lg;
 
 $z-index-base: 1;
 $z-indexdropdown: 10;

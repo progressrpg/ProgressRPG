@@ -1,11 +1,17 @@
 # character.signals
-
+from datetime import timedelta, datetime, time
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
+from django.utils import timezone
+
+import logging
 
 from .models import Character, PlayerCharacterLink, Behaviour
 
 from gameplay.models import QuestTimer
+from progression.models import CharacterActivity
+
+logger = logging.getLogger("django")
 
 
 @receiver(post_save, sender=Character)

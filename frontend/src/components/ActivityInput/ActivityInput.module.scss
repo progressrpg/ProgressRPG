@@ -1,13 +1,20 @@
 @use '../../styles/utilities/mixins' as m;
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
 
+.containerOuter {
+  width: min(100%, 720px);
+}
 
 .container {
-  border: 1px solid rgba(0,0,0,0.15);
+  position: relative;
+  isolation: isolate;
+
+  border: 1px solid rgba(c.$color-border-primary, 0.4);
   border-radius: v.$border-radius;
   padding: v.$padding-base;
-  background: rgba(255,255,255,0.6);
+  background: rgba(c.$color-bg,0.6);
   width: min(100%, 720px);
 }
 
@@ -38,7 +45,7 @@
 }
 
 .timerPill {
-  border: 1px solid rgba(0,0,0,0.15);
+  border: 1px solid rgba(c.$color-border-primary, 0.4);
   border-radius: v.$border-radius;
   padding: 10px 12px;
   line-height: 1;
@@ -55,4 +62,32 @@
   gap: 10px;
   opacity: 0.8;
   font-size: 0.9em;
+}
+
+
+/* --- Animations --- */
+@keyframes running-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.004); }
+}
+
+.isRunning::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2; /* above content */
+
+
+  box-shadow:
+    inset 0 0 0 2px rgba(c.$color-glowing-outline, 0.35),
+    inset 0 0 0.8rem rgba(c.$color-glowing-outline, 0.55);
+
+  animation: pulse 2.5s ease-in-out infinite;
 }
