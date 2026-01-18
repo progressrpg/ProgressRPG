@@ -19,8 +19,6 @@ urlpatterns = [
     path("create_profile/", views.create_profile_view, name="create_profile"),
     path("link_character/", views.link_character_view, name="link_character"),
     path("tutorial/", views.tutorial_view, name="tutorial"),
-    path("download_user_data/", views.download_user_data, name="download_user_data"),
-    path("delete_account", views.delete_account, name="delete_account"),
     path(
         "password_reset/",
         auth_views.PasswordResetView.as_view(

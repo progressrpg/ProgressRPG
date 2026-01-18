@@ -130,6 +130,9 @@ REST_FRAMEWORK = {
         "template_pack": "rest_framework/vertical",
         "DEFAULT_FORM_RENDERER": "rest_framework.renderers.TemplateHTMLRenderer",
     },
+    "JSON_ENCODER_INDENT": 2,  # Pretty-print JSON with 2-space indentation
+    "UNICODE_JSON": True,  # Don't escape Unicode characters
+    "COMPACT_JSON": False,  # Add whitespace for readability
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         #'rest_framework.authentication.SessionAuthentication',

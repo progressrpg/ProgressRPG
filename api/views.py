@@ -452,7 +452,10 @@ class DownloadUserDataAPIView(APIView):
             f"User {user.username} (ID: {user.id}) successfully downloaded their data."
         )
 
-        return Response(user_data)
+        # Return formatted JSON response for download
+        response = Response(user_data)
+        response["Content-Disposition"] = 'attachment; filename="user_data.json"'
+        return response
 
 
 class DeleteAccountAPIView(APIView):
