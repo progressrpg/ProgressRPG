@@ -20,8 +20,8 @@
 
 .toast {
   pointer-events: none;
-  width: 100%;
-  max-width: 620px;
+  width: 80vw;
+  max-width: min(620px, 80vw);
 
   /* Base look */
   background: rgba(c.$color-bg, 1);
@@ -32,8 +32,8 @@
   /* Accent rail + subtle outline */
   border: 1px solid rgba(c.$color-border-primary, 0.8);
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.12),
-    0 2px 6px rgba(0, 0, 0, 0.10);
+    0 10px 20px rgba(0, 0, 0, 0.22),
+    0 2px 8px rgba(0, 0, 0, 0.20);
 
   /* keep your existing timing */
   opacity: 0;
@@ -58,7 +58,7 @@
 /* Content column */
 .content {
   grid-column: 2;
-  padding: v.$padding-lg;
+  padding: 1rem 2rem;
   @include t.apply-text-style(t.$text-body);
 }
 
