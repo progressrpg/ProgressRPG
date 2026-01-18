@@ -336,7 +336,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         Fetch and send all pending messages for the connected WebSocket group.
         Marks successfully sent messages as delivered.
         """
-        logger.info(
+        logger.debug(
             f"[SEND PENDING MESSAGES] Fetching pending messages for group {self.profile_group}."
         )
         from .models import ServerMessage
