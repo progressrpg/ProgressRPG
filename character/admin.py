@@ -112,6 +112,7 @@ class CharacterAdmin(admin.ModelAdmin):
 class PlayerCharacterLinkAdmin(admin.ModelAdmin):
     list_display = ["profile", "character", "is_active"]
     fields = ["profile", "character", "is_active", ("date_linked", "date_unlinked")]
+    readonly_fields = ["date_linked", "date_unlinked"]
 
 
 class CharacterInline(admin.TabularInline):
