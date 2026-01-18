@@ -23,9 +23,8 @@ def create_timer(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Character)
 def create_behaviour(sender, instance, created, **kwargs):
-    """Create a behaviour instance for a new character"""
-    if created:
-        behaviour = Behaviour.objects.create(character=instance)
+    """Ensure every Character has a behaviour instance."""
+    Behaviour.objects.get_or_create(character=instance)
 
 
 @receiver(pre_delete, sender=PlayerCharacterLink)
