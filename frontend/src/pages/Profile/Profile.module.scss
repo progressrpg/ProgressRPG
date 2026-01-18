@@ -1,0 +1,13 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+
+.page {
+  @include m.page-layout();
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-gap;
+  width: 100%;
+}

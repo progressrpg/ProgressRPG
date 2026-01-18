@@ -16,8 +16,10 @@ export default function Game() {
   if (error) return <p>Error: {error}. Please refresh the page!</p>;
 
   return (
-    <div className={styles.gamePage}>
-      <GameContainer />
+    <div className={styles.page}>
+      <div className={styles.content}>
+        <GameContainer />
+      </div>
     </div>
   );
 }

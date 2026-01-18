@@ -2,20 +2,13 @@
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/typography' as t;
 
-.gamePage {
+.page {
+	@include m.page-layout();
+}
+
+.content {
 	display: flex;
 	flex-direction: column;
-	align-items: stretch;
-	align-self: stretch;
 	gap: v.$spacing-gap;
 	width: 100%;
-	margin: 0 auto;
-
-	@include m.respond-to (small) {
-		max-width: 576px;
-	}
-
-	@include m.respond-to (big) {
-		max-width: 1400px;
-	}
 }

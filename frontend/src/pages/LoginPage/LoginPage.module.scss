@@ -1,5 +1,15 @@
+@use '../../styles/utilities/mixins' as m;
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/typography' as t;
+
+.page {
+  @include m.page-layout();
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
 
 .form {
   gap: v.$spacing-gap;
@@ -28,6 +38,9 @@
 
     &:hover {
       text-decoration: underline;
+    }
+  }
+}
     }
   }
 }

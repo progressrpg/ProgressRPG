@@ -2,22 +2,6 @@
 @use '../../styles/base/variables' as v;
 @use '../../styles/utilities/mixins' as m;
 
-
 .page {
-	display: flex;
-	flex-direction: column;
-	align-items: stretch;
-	align-self: stretch;
-	gap: v.$spacing-gap;
-	width: 100%;
-	margin: 0 auto;
-  padding: v.$padding-base;
-
-	@include m.respond-to (small) {
-		max-width: 576px;
-	}
-
-	@include m.respond-to (big) {
-		max-width: 1400px;
-	}
+	@include m.page-layout();
 }
