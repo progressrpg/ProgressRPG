@@ -120,16 +120,28 @@ class Behaviour(models.Model):
             ).delete()
 
         created = []
+        today = timezone.now().date()
+        is_past = date < today
+
         for kind, name, start, end in cleaned:
-            created.append(
-                CharacterActivity.objects.create(
-                    character=self.character,
-                    kind=kind,
-                    name=name,
-                    scheduled_start=start,
-                    scheduled_end=end,
+            activity_kwargs = {
+                "character": self.character,
+                "kind": kind,
+                "name": name,
+                "scheduled_start": start,
+                "scheduled_end": end,
+            }
+            if is_past:
+                activity_kwargs.update(
+                    {
+                        "is_complete": True,
+                        "started_at": start,
+                        "completed_at": end,
+                        "duration": int((end - start).total_seconds()),
+                        # Optionally: "xp_gained": <calculate or default>
+                    }
                 )
-            )
+            created.append(CharacterActivity.objects.create(**activity_kwargs))
 
         return created
 
