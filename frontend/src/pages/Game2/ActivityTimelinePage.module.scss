@@ -8,8 +8,7 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: v.$spacing-gap;
-
-  padding: v.$spacing-gap;
+  padding: v.$padding-base;
 }
 
 /* Centre content consistently */
