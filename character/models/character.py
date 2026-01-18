@@ -198,12 +198,18 @@ class Character(Person, LifeCycleMixin):
     buffs = models.ManyToManyField(
         "gameplay.Buff", related_name="characters", blank=True
     )
-    is_npc = models.BooleanField(default=True)
     can_link = models.BooleanField(default=False)
     position = models.OneToOneField(
         "locations.Position", on_delete=models.SET_NULL, null=True
     )
     # quest_timer = Optional["QuestTimer"]
+
+    @property
+    def is_npc(self):
+        """
+        A character is an NPC if they don't have an active PlayerCharacterLink.
+        """
+        return not self.profile_link.filter(is_active=True).exists()
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -413,9 +419,9 @@ class PlayerCharacterLink(models.Model):
             character=character,
             is_active=True,
         )
-        character.is_npc = False
+        # is_npc is now a property, so just update can_link
         character.can_link = False
-        character.save(update_fields=["is_npc", "can_link"])
+        character.save(update_fields=["can_link"])
         return link
 
 
