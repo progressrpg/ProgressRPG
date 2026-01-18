@@ -11,7 +11,7 @@
 	gap: v.$spacing-gap;
 	width: 100%;
 	margin: 0 auto;
-  padding: v.$spacing-gap;
+  padding: v.$padding-base;
 
 	@include m.respond-to (small) {
 		max-width: 576px;
