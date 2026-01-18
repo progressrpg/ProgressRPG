@@ -1,16 +1,17 @@
 @use '../../styles/utilities/mixins' as m;
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
 
 .container {
   width: min(100%, 720px);
-  margin-top: 16px;
+  margin-top: v.$spacing-md;
 
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(c.$color-border-primary, 0.4);
   border-radius: v.$border-radius;
   padding: v.$padding-base;
 
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(c.$color-bg, 0.6);
 
   // scroll behaviour
   max-height: 60vh;
@@ -21,5 +22,4 @@
 
 .line {
   color: black;
-
 }
