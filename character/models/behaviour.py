@@ -84,14 +84,19 @@ class Behaviour(models.Model):
         sleep_end = next_wake
 
         blocks = [
-            ("sleep", "", aware(date, time(0, 0)), morning_start),  # midnight -> wake
-            ("morning", "", morning_start, morning_end),
-            ("work", "", work1_start, work1_end),
+            (
+                "sleep",
+                "Sleep",
+                aware(date, time(0, 0)),
+                morning_start,
+            ),  # midnight -> wake
+            ("morning", "Morning", morning_start, morning_end),
+            ("work", "Work", work1_start, work1_end),
             ("meal", "Lunch", lunch_start, lunch_end),
             ("work", "", work2_start, work2_end),
             ("meal", "Dinner", dinner_start, dinner_end),
-            ("leisure", "", leisure_start, leisure_end),
-            ("wind_down", "", wind_start, wind_end),
+            ("leisure", "Leisure", leisure_start, leisure_end),
+            ("wind_down", "Wind down", wind_start, wind_end),
             ("sleep", "", sleep_start, sleep_end),
         ]
 
