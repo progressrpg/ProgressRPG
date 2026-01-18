@@ -1,6 +1,6 @@
 # api/views.py
 from asgiref.sync import async_to_sync
-
+from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import login, logout, get_user_model
 from django.core.exceptions import ObjectDoesNotExist
@@ -317,6 +317,22 @@ class FetchInfoAPIView(APIView):
 
         # --- Ensure activity timer is in a valid state ---
         self._ensure_activity_timer_consistency(profile)
+
+        now = timezone.now()
+        last = getattr(profile, "last_login", None)
+
+        if not last or (now - last) > timedelta(minutes=30):
+            logger.info(
+                f"[FETCH INFO] Online sync for profile {profile.id}, character {character.id}"
+            )
+            from character.utils import ensure_day_activities
+
+            character.behaviour.sync_to_now()
+
+            today = now.date()
+            yesterday = today - timedelta(days=1)
+            ensure_day_activities(character, today)
+            ensure_day_activities(character, yesterday)
 
         # --- Serialize everything ---
         try:

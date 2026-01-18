@@ -13,6 +13,9 @@ class Behaviour(models.Model):
         "character.Character", on_delete=models.CASCADE, related_name="behaviour"
     )
 
+    DAWN_TIME = time(6, 0)
+    DUSK_TIME = time(20, 0)
+
     def _day_window(self, date):
         """
         Return (dawn_dt, dusk_dt, next_dawn_dt) as timezone-aware datetimes in current timezone.
