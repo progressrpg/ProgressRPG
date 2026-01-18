@@ -1,0 +1,1 @@
+import{a,u as r,r as u,j as t}from"./main-Dz_-l1Dp.js";function n(){const{logout:e}=a(),s=r();return u.useEffect(()=>{e();const o=setTimeout(()=>{s("/")},800);return()=>clearTimeout(o)},[]),t.jsxs("div",{children:[t.jsx("h2",{children:"👋 Logging you out..."}),t.jsx("p",{children:"Please wait a moment."})]})}export{n as default};
