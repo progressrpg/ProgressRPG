@@ -28,6 +28,7 @@ export const GameProvider = ({ children }) => {
     questTimerInfo,
     buildNumber,
     loading,
+    error,
   } = useBootstrapGameData();
 
 
@@ -159,6 +160,15 @@ export const GameProvider = ({ children }) => {
     ]
   );
 
+
+  // Don't render children until data is loaded
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading game data...</div>;
+  }
+
+  if (error) {
+    return <div style={{ textAlign: 'center', padding: '2rem' }}>Error loading game: {error}</div>;
+  }
 
   return (
     <GameContext.Provider value={value}>
