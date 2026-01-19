@@ -10,6 +10,7 @@ from users.models import Person, Profile
 from gameplay.models import Buff, AppliedBuff, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
 from progression.models import CharacterQuest
+from progress_rpg.exceptions import QuestError
 
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
@@ -240,7 +241,6 @@ class Character(Person, LifeCycleMixin):
                 f"[CHAR.COMPLETE_QUEST] Quest is None for character {self.id}",
                 extra={"character_id": self.id}
             )
-            from progress_rpg.exceptions import QuestError
             raise QuestError(f"No quest found for character {self.id}")
 
         rewards_summary = None

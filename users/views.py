@@ -126,7 +126,8 @@ class LoginView(FormView):
                     logger_errors.error(
                         f"Invalid onboarding step for user {user.id}: {user.profile.onboarding_step}"
                     )
-                    raise ValueError("Onboarding step number incorrect")
+                    # Redirect to game as fallback for invalid step
+                    return redirect("game")
         else:
             return redirect("game")
 

@@ -52,6 +52,8 @@ from users.models import Profile
 
 import logging
 
+from progress_rpg.exceptions import QuestError, CharacterError, TimerError
+
 logger = logging.getLogger("general")  # Get the logger for this module
 
 
@@ -423,8 +425,6 @@ async def send_group_message(group_name: str, message: dict) -> bool:
 
 def validate_quest_completion(character):
     """Validate that a quest can be completed"""
-    from progress_rpg.exceptions import QuestError, CharacterError, TimerError
-    
     if not hasattr(character, 'quest_timer') or not character.quest_timer:
         raise CharacterError("Character has no quest timer")
     
