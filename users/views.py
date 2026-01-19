@@ -31,7 +31,7 @@ from api.views import IsOwnerProfile
 from character.models import PlayerCharacterLink
 from gameplay.serializers import PlayerActivitySerializer
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 # Index view
@@ -122,11 +122,11 @@ class LoginView(FormView):
                 case 4:
                     return redirect("game")
                 case _:
-                    logger.error(
+                    logger_errors = logging.getLogger("errors")
+                    logger_errors.error(
                         f"Invalid onboarding step for user {user.id}: {user.profile.onboarding_step}"
                     )
                     raise ValueError("Onboarding step number incorrect")
-                    return redirect("index")
         else:
             return redirect("game")
 

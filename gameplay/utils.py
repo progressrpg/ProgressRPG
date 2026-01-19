@@ -52,7 +52,7 @@ from users.models import Profile
 
 import logging
 
-logger = logging.getLogger("django")  # Get the logger for this module
+logger = logging.getLogger("general")  # Get the logger for this module
 
 
 def check_quest_eligibility(character: Character, profile: Profile) -> list:
@@ -419,3 +419,20 @@ async def send_group_message(group_name: str, message: dict) -> bool:
             f"[GROUP SEND MESSAGE] No channel layer available for group '{group_name}'"
         )
         return False
+
+
+def validate_quest_completion(character):
+    """Validate that a quest can be completed"""
+    from progress_rpg.exceptions import QuestError, CharacterError, TimerError
+    
+    if not hasattr(character, 'quest_timer') or not character.quest_timer:
+        raise CharacterError("Character has no quest timer")
+    
+    quest = character.quest_timer.quest
+    if not quest:
+        raise QuestError("No active quest to complete")
+    
+    if character.quest_timer.status != "completed":
+        raise TimerError(f"Quest timer is not completed (status: {character.quest_timer.status})")
+    
+    return quest

@@ -64,7 +64,7 @@ from progress_rpg.settings.utils import get_build_number
 
 import logging
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("errors")
 
 
 class IsOwnerProfile(permissions.BasePermission):

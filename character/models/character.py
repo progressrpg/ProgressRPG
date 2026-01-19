@@ -14,7 +14,7 @@ from progression.models import CharacterQuest
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 class CharacterRelationship(models.Model):
@@ -235,8 +235,13 @@ class Character(Person, LifeCycleMixin):
         quest = self.quest_timer.quest
 
         if quest is None:
-            logger.error(f"[CHAR.COMPLETE_QUEST] Quest is None for character {self.id}")
-            return None
+            logger_errors = logging.getLogger("errors")
+            logger_errors.error(
+                f"[CHAR.COMPLETE_QUEST] Quest is None for character {self.id}",
+                extra={"character_id": self.id}
+            )
+            from progress_rpg.exceptions import QuestError
+            raise QuestError(f"No quest found for character {self.id}")
 
         rewards_summary = None
         try:
@@ -251,7 +256,8 @@ class Character(Person, LifeCycleMixin):
                     "levelups": [],
                 }
         except Exception as e:
-            logger.exception(
+            logger_errors = logging.getLogger("errors")
+            logger_errors.exception(
                 f"[CHAR.COMPLETE_QUEST] Error applying rewards for quest {quest.id}: {e}"
             )
 
