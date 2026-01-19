@@ -7,6 +7,7 @@ import logging
 from .models import CustomUser, Profile, InviteCode
 
 logger = logging.getLogger("general")
+logger_errors = logging.getLogger("errors")
 
 
 class UserRegisterForm(UserCreationForm):
@@ -85,7 +86,6 @@ class EmailAuthenticationForm(AuthenticationForm):
             logger.warning(f"[EMAIL AUTHENTICATION FORM] Validation error: {e}")
             raise
         except Exception as e:
-            logger_errors = logging.getLogger("errors")
             logger_errors.exception(f"[EMAIL AUTHENTICATION FORM] Unexpected error: {e}")
             raise forms.ValidationError(
                 "An unexpected error occurred during authentication."

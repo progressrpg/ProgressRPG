@@ -32,6 +32,7 @@ from character.models import PlayerCharacterLink
 from gameplay.serializers import PlayerActivitySerializer
 
 logger = logging.getLogger("general")
+logger_errors = logging.getLogger("errors")
 
 
 # Index view
@@ -122,7 +123,6 @@ class LoginView(FormView):
                 case 4:
                     return redirect("game")
                 case _:
-                    logger_errors = logging.getLogger("errors")
                     logger_errors.error(
                         f"Invalid onboarding step for user {user.id}: {user.profile.onboarding_step}"
                     )

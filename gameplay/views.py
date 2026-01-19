@@ -43,6 +43,7 @@ from progression.serializers import (
 from users.serializers import ProfileSerializer
 
 logger = logging.getLogger("general")
+logger_errors = logging.getLogger("errors")
 
 
 @ensure_csrf_cookie
@@ -106,23 +107,19 @@ def fetch_activities(request):
 
     except ObjectDoesNotExist as e:
         # Raised if `profile` or related objects don't exist.
-        logger_errors = logging.getLogger("errors")
         logger_errors.error(f"[FETCH ACTIVITIES] Object not found: {str(e)}", exc_info=True)
         return JsonResponse({"error": "Requested object not found."}, status=404)
     except ValidationError as e:
         # Handles any serializer-related errors.
-        logger_errors = logging.getLogger("errors")
         logger_errors.error(
             f"[FETCH ACTIVITIES] Serializer validation error: {str(e)}", exc_info=True
         )
         return JsonResponse({"error": "Invalid data provided."}, status=400)
     except DatabaseError as e:
         # Catches broader database-related issues (fallback for OperationalError).
-        logger_errors = logging.getLogger("errors")
         logger_errors.error(f"[FETCH ACTIVITIES] Database error: {str(e)}", exc_info=True)
         return JsonResponse({"error": "A database error occurred."}, status=500)
     except Exception as e:
-        logger_errors = logging.getLogger("errors")
         logger_errors.exception(f"[FETCH ACTIVITIES] Unexpected error: {str(e)}")
         return JsonResponse({"error": "An unexpected error occurred."}, status=500)
 
@@ -163,17 +160,14 @@ def fetch_quests(request):
 
     except ObjectDoesNotExist as e:
         # Raised when `character` or related objects are not found in the database.
-        logger_errors = logging.getLogger("errors")
         logger_errors.error(f"[FETCH QUESTS] Object not found: {str(e)}", exc_info=True)
         return JsonResponse({"error": "Character or profile not found."}, status=404)
     except ValidationError as e:
         # Raised when there's an issue with the serializer validation.
-        logger_errors = logging.getLogger("errors")
         logger_errors.error(f"[FETCH QUESTS] Validation error: {str(e)}", exc_info=True)
         return JsonResponse({"error": "Invalid quest data encountered."}, status=400)
     except OperationalError as e:
         # Handles database operation issues, such as connection failures.
-        logger_errors = logging.getLogger("errors")
         logger_errors.error(
             f"[FETCH QUESTS] Database operational error: {str(e)}", exc_info=True
         )
@@ -182,14 +176,12 @@ def fetch_quests(request):
         )
     except DatabaseError as e:
         # Handles other database-related issues (fallback for OperationalError).
-        logger_errors = logging.getLogger("errors")
         logger_errors.error(f"[FETCH QUESTS] General database error: {str(e)}", exc_info=True)
         return JsonResponse(
             {"error": "A database error occurred. Please try again later."}, status=500
         )
     except Exception as e:
         # Generic fallback for unexpected errors.
-        logger_errors = logging.getLogger("errors")
         logger_errors.exception(f"[FETCH QUESTS] Unexpected error: {str(e)}")
         return JsonResponse(
             {"error": "An unexpected error occurred while fetching quests."}, status=500

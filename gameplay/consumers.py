@@ -12,6 +12,7 @@ from .models import ServerMessage
 from .utils import process_completion, process_initiation, control_timers
 
 logger = logging.getLogger("activity")
+logger_errors = logging.getLogger("errors")
 
 
 class TimerConsumer(AsyncJsonWebsocketConsumer):
@@ -366,7 +367,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                     f"[SEND PENDING MESSAGES] Successfully sent message {message.id}."
                 )
             except Exception as e:
-                logger_errors = logging.getLogger("errors")
                 logger_errors.error(
                     f"[SEND PENDING MESSAGES] Failed to send message {message.id}: {e}"
                 )

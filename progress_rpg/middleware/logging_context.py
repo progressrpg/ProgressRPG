@@ -40,7 +40,15 @@ class RequestLoggingMiddleware:
         # Set request context in thread-local storage
         request.id = str(uuid.uuid4())[:8]
         _thread_locals.request_id = request.id
-        _thread_locals.user_id = getattr(request.user, 'id', 'anonymous') if hasattr(request, 'user') else 'no-user'
+        
+        # Safely get user_id
+        user_id = 'no-user'
+        if hasattr(request, 'user') and request.user:
+            if hasattr(request.user, 'is_authenticated') and request.user.is_authenticated:
+                user_id = getattr(request.user, 'id', 'anonymous')
+            else:
+                user_id = 'anonymous'
+        _thread_locals.user_id = user_id
         
         try:
             response = self.get_response(request)

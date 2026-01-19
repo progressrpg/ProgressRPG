@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from gameplay.models import QuestTimer
 
 logger = logging.getLogger("general")
+logger_errors = logging.getLogger("errors")
 
 
 class CharacterRelationship(models.Model):
@@ -236,7 +237,6 @@ class Character(Person, LifeCycleMixin):
         quest = self.quest_timer.quest
 
         if quest is None:
-            logger_errors = logging.getLogger("errors")
             logger_errors.error(
                 f"[CHAR.COMPLETE_QUEST] Quest is None for character {self.id}",
                 extra={"character_id": self.id}
@@ -256,7 +256,6 @@ class Character(Person, LifeCycleMixin):
                     "levelups": [],
                 }
         except Exception as e:
-            logger_errors = logging.getLogger("errors")
             logger_errors.exception(
                 f"[CHAR.COMPLETE_QUEST] Error applying rewards for quest {quest.id}: {e}"
             )
