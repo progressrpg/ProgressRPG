@@ -77,11 +77,11 @@
 }
 
 .warning {
-  background-color: #ff9800;
+  background-color: c.$color-warning;
 }
 
 .danger {
-  background-color: #f44336;
+  background-color: c.$color-error;
 }
 
 .paused {

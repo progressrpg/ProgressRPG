@@ -31,7 +31,11 @@ select {
   min-width: 5rem;
   padding: v.$spacing-xs v.$spacing-xs;
 
-  border: 1px solid lightgray;
+  @include m.border-interactive(
+    c.$color-border-light,
+    c.$color-border-accent,
+    c.$color-border-accent
+  );
   border-radius: v.$border-radius;
   cursor: pointer;
   transition: border-color 0.2s ease;
@@ -39,13 +43,13 @@ select {
   @include t.apply-text-style(t.$text-body);
 
   &:hover {
-    border-color: orange;
+    border-color: c.$color-border-accent;
   }
 
   &:focus {
     outline: none;
-    border-color: orange;
-    box-shadow: 0 0 0 2px orange;
+    border-color: c.$color-border-accent;
+    box-shadow: 0 0 0 2px c.$color-border-accent;
   }
 }
 
