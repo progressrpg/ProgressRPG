@@ -123,8 +123,14 @@ class LoginView(FormView):
                 case 4:
                     return redirect("game")
                 case _:
+                    # Log invalid onboarding step for monitoring
                     logger_errors.error(
-                        f"Invalid onboarding step for user {user.id}: {user.profile.onboarding_step}"
+                        f"Invalid onboarding step for user {user.id}: {user.profile.onboarding_step}",
+                        extra={
+                            "user_id": user.id,
+                            "onboarding_step": user.profile.onboarding_step,
+                            "severity": "high"
+                        }
                     )
                     # Redirect to game as fallback for invalid step
                     return redirect("game")

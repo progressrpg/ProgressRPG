@@ -232,6 +232,18 @@ class Character(Person, LifeCycleMixin):
 
     @transaction.atomic
     def complete_quest(self, xp_gained):
+        """
+        Complete the character's active quest and apply rewards.
+        
+        Args:
+            xp_gained: Experience points to award
+            
+        Returns:
+            dict: Rewards summary including XP, coins, buffs, and level-ups
+            
+        Raises:
+            QuestError: If no valid quest is found for completion
+        """
         logger.info(f"[CHAR.COMPLETE_QUEST] Starting quest completion for {self}")
 
         quest = self.quest_timer.quest

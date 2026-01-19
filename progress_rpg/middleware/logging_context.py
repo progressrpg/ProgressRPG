@@ -10,6 +10,7 @@ import uuid
 from threading import local
 
 _thread_locals = local()
+_filters_initialized = False
 
 
 def get_request_context():
@@ -27,14 +28,23 @@ class RequestContextFilter(logging.Filter):
         return True
 
 
-class RequestLoggingMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-        # Add the filter to all relevant handlers
+def initialize_logging_filters():
+    """Initialize logging filters once"""
+    global _filters_initialized
+    if not _filters_initialized:
+        # Add the filter to all relevant loggers
         for logger_name in ['errors', 'general', 'activity', 'django']:
             logger = logging.getLogger(logger_name)
             if not any(isinstance(f, RequestContextFilter) for f in logger.filters):
                 logger.addFilter(RequestContextFilter())
+        _filters_initialized = True
+
+
+class RequestLoggingMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Initialize filters once when Django starts
+        initialize_logging_filters()
 
     def __call__(self, request):
         # Set request context in thread-local storage
