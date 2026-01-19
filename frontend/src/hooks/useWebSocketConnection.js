@@ -1,6 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { API_BASE_URL } from '../config';
 
+// WebSocket connection constants
+const WS_AUTH_PATH = '/api/v1/ws_auth/';
+const RECONNECT_DELAY_MS = 3000;
+const RETRY_DELAY_MS = 5000;
+const NORMAL_CLOSURE = 1000;
+const GOING_AWAY = 1001;
+
 export function useWebSocketConnection(playerId, onMessage, onError, onClose, onOpen) {
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
@@ -22,7 +29,7 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
       }
 
       // Get UUID for connection
-      const response = await fetch(`${API_BASE_URL}/api/v1/ws_auth/`, {
+      const response = await fetch(`${API_BASE_URL}${WS_AUTH_PATH}`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -74,14 +81,13 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
         setIsConnected(false);
         onClose?.(event);
 
-        // Auto-reconnect after 3 seconds (except for intentional closes)
-        // Code 1000 = normal closure, 1001 = going away
-        if (!intentionalCloseRef.current && event.code !== 1000 && event.code !== 1001) {
-          console.log('[WS] Scheduling reconnection in 3 seconds...');
+        // Auto-reconnect after delay (except for intentional closes)
+        if (!intentionalCloseRef.current && event.code !== NORMAL_CLOSURE && event.code !== GOING_AWAY) {
+          console.log(`[WS] Scheduling reconnection in ${RECONNECT_DELAY_MS}ms...`);
           reconnectTimeoutRef.current = setTimeout(() => {
             console.log('[WS] Attempting reconnection...');
             connect();
-          }, 3000);
+          }, RECONNECT_DELAY_MS);
         }
       };
 
@@ -89,11 +95,11 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
       console.error('[WS] Connection failed:', err);
       setIsConnected(false);
       
-      // Retry connection after 5 seconds on connection failure
+      // Retry connection after delay on connection failure
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log('[WS] Retrying after connection failure...');
         connect();
-      }, 5000);
+      }, RETRY_DELAY_MS);
     }
   }, [playerId, onMessage, onError, onClose, onOpen]);
 
@@ -107,7 +113,7 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
         clearTimeout(reconnectTimeoutRef.current);
       }
       if (socketRef.current) {
-        socketRef.current.close(1000); // Normal closure
+        socketRef.current.close(NORMAL_CLOSURE);
       }
     };
   }, [connect]);
