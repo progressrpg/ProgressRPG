@@ -34,5 +34,12 @@ export default defineConfig(({ mode }) => {
         input: 'src/main.jsx',
       },
     },
+    test: {
+      globals: true,
+      environment: 'happy-dom',
+      setupFiles: './src/test/setup.js',
+      css: true,
+      exclude: ['node_modules', 'dist', 'tests/**'],
+    },
   }
 })
