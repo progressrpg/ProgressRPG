@@ -9,7 +9,7 @@ from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink
 
-logging.getLogger("django").setLevel(logging.CRITICAL)
+logging.getLogger("general").setLevel(logging.CRITICAL)
 
 
 class UserCreationTest(TestCase):

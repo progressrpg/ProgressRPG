@@ -12,7 +12,7 @@ from .models import Character, PlayerCharacterLink, Behaviour
 from gameplay.models import QuestTimer
 from progression.models import CharacterActivity
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 @receiver(post_save, sender=Character)

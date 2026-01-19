@@ -34,7 +34,7 @@ from gameplay.models import ServerMessage
 if TYPE_CHECKING:
     from character.models import Character
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 # class CustomUserManager(BaseUserManager):

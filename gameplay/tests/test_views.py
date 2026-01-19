@@ -14,7 +14,7 @@ import json, logging
 
 User = get_user_model()
 
-logging.getLogger("django").setLevel(logging.CRITICAL)
+logging.getLogger("general").setLevel(logging.CRITICAL)
 
 
 class GameplayViewTestBase(TestCase):

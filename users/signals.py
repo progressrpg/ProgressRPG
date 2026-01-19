@@ -13,7 +13,7 @@ from .utils import assign_character_to_profile
 
 from gameplay.models import ServerMessage
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 User = get_user_model()
 

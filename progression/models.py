@@ -8,7 +8,7 @@ import logging
 
 from .mixins import ProfileOwnedMixin
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 #########################################

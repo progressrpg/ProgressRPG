@@ -10,7 +10,7 @@ import logging
 from gameplay.utils import send_group_message
 from django.utils.html import format_html
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 @admin.register(MaintenanceWindow)
