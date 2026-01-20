@@ -26,7 +26,7 @@ urlpatterns = [
     path("", include("server_management.urls")),
     re_path(r"^\.well-known/.*$", lambda request: HttpResponseNotFound()),
     re_path(
-        r"^(?!api|admin|static|media).*",
+        r"^(?!api|admin|static|media|ws).*",
         TemplateView.as_view(template_name="index.html"),
     ),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
