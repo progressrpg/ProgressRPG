@@ -9,7 +9,10 @@
     "build:production": "vite build --mode production",
     "heroku-postbuild": "cd frontend && npm install && npm run build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:a11y": "playwright test --project=a11y",
+    "test:a11y:ui": "playwright test --project=a11y --ui",
+    "test:a11y:report": "playwright show-report"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.12",
@@ -27,11 +30,13 @@
     "wscat": "^6.1.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
     "@eslint/js": "^9.29.0",
     "@playwright/test": "^1.56.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "axe-core": "^4.11.1",
     "axe-playwright": "^2.2.2",
     "eslint": "^9.39.0",
     "eslint-plugin-react-hooks": "^7.0.1",
