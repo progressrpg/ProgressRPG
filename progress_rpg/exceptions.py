@@ -11,8 +11,13 @@ class ProgressRPGError(Exception):
     pass
 
 
+class QuestError(ProgressRPGError):
+    """Quest-related errors"""
+    pass
+
+
 class ActivityError(ProgressRPGError):
-    """Activity-related errors"""
+    """Activity-related errors (for player/character activities)"""
     pass
 
 

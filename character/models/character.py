@@ -10,7 +10,7 @@ from users.models import Person, Player
 from gameplay.models import Buff, AppliedBuff, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
 from progression.models import CharacterQuest
-from progress_rpg.exceptions import ActivityError
+from progress_rpg.exceptions import QuestError
 
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
@@ -242,7 +242,7 @@ class Character(Person, LifeCycleMixin):
             dict: Rewards summary including XP, coins, buffs, and level-ups
             
         Raises:
-            ActivityError: If no valid quest is found for completion
+            QuestError: If no valid quest is found for completion
         """
         logger.info(f"[CHAR.COMPLETE_QUEST] Starting quest completion for {self}")
 
@@ -253,7 +253,7 @@ class Character(Person, LifeCycleMixin):
                 f"[CHAR.COMPLETE_QUEST] Quest is None for character {self.id}",
                 extra={"character_id": self.id}
             )
-            raise ActivityError(f"No quest found for character {self.id}")
+            raise QuestError(f"No quest found for character {self.id}")
 
         rewards_summary = None
         try:
