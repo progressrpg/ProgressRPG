@@ -57,7 +57,7 @@ from progression.serializers import (
     PlayerActivitySerializer,
 )
 
-from users.serializers import ProfileSerializer
+from users.serializers import PlayerSerializer
 from users.utils import send_email_to_users
 
 from progress_rpg.settings.utils import get_build_number
@@ -67,31 +67,31 @@ import logging
 logger = logging.getLogger("django")
 
 
-class IsOwnerProfile(permissions.BasePermission):
-    owner_attr = "profile"
+class IsOwnerPlayer(permissions.BasePermission):
+    owner_attr = "player"
 
     def has_object_permission(self, request, view, obj):
-        profile = getattr(request.user, "profile", None)
-        if profile is None:
+        player = getattr(request.user, "player", None)
+        if player is None:
             return False
 
-        # Check if object has 'profile' attribute and compare
-        if hasattr(obj, "profile"):
-            return obj.profile == profile
+        # Check if object has 'player' attribute and compare
+        if hasattr(obj, "player"):
+            return obj.player == player
 
         return False
 
 
 class IsOwnerCharacter(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        profile = getattr(request.user, "profile", None)
-        if profile is None:
+        player = getattr(request.user, "player", None)
+        if player is None:
             return False
 
-        # Check if the object's character is linked to the profile and active
+        # Check if the object's character is linked to the player and active
         if hasattr(obj, "character"):
             return PlayerCharacterLink.objects.filter(
-                profile=profile, character=obj.character, is_active=True
+                player=player, character=obj.character, is_active=True
             ).exists()
 
         return False
@@ -122,23 +122,23 @@ class MeViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
     @action(detail=False, methods=["get", "patch"])
-    def profile(self, request):
-        profile = request.user.profile
+    def player(self, request):
+        player = request.user.player
 
         if request.method == "PATCH":
-            serializer = ProfileSerializer(profile, data=request.data, partial=True)
+            serializer = PlayerSerializer(player, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
-        serializer = ProfileSerializer(profile)
+        serializer = PlayerSerializer(player)
         return Response(serializer.data)
 
     @action(detail=False, methods=["post"])
     def complete_onboarding(self, request):
-        profile = request.user.profile
+        player = request.user.player
 
-        profile.onboarding_completed = True
-        profile.save(update_fields=["onboarding_completed"])
+        player.onboarding_completed = True
+        player.save(update_fields=["onboarding_completed"])
 
         return Response(
             {"onboarding_completed": True},
