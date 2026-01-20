@@ -10,6 +10,10 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     
+    env:
+      DJANGO_SETTINGS_MODULE: progress_rpg.settings.dev
+      SECRET_KEY: type-checking-secret-key
+    
     steps:
     - uses: actions/checkout@v4
     

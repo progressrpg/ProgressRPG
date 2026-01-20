@@ -1,5 +1,20 @@
 # Type Checking Guide
 
+## Setup
+
+Before running type checks, ensure you have the required environment variables set:
+
+```bash
+export DJANGO_SETTINGS_MODULE=progress_rpg.settings.dev
+export SECRET_KEY=${SECRET_KEY:-"type-checking-secret-key"}
+```
+
+Or use the provided script which sets these automatically:
+
+```bash
+./scripts/type_check.sh
+```
+
 ## Running Type Checks
 
 ### Check entire project
@@ -15,6 +30,15 @@ mypy character/
 ### Check specific file
 ```bash
 mypy character/models/character.py
+```
+
+### Using the convenience script
+```bash
+# Check entire project
+./scripts/type_check.sh
+
+# Check specific path
+./scripts/type_check.sh character/
 ```
 
 ## Common Type Annotations

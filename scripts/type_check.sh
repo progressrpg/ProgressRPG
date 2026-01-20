@@ -1,6 +1,10 @@
 #!/bin/bash
 # Quick type checking script
 
+# Set Django environment variables for type checking
+export DJANGO_SETTINGS_MODULE=progress_rpg.settings.dev
+export SECRET_KEY=${SECRET_KEY:-"type-checking-secret-key"}
+
 echo "🔍 Running mypy type checker..."
 echo ""
 
