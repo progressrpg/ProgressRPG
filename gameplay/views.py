@@ -2,38 +2,44 @@ from asgiref.sync import async_to_sync
 
 # from asgiref.sync import sync_to_async
 from channels.layers import get_channel_layer
+from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-
-# from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, OperationalError, DatabaseError
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.utils.html import escape
-
-# from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError, NotFound
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import ValidationError
 import json, logging
 
-from .models import Quest, Activity, ServerMessage
+from .models import Quest, QuestResults, ServerMessage
 
-# from .models import QuestCompletion, ActivityTimer, QuestTimer
 from .serializers import (
-    ActivitySerializer,
     QuestSerializer,
     ActivityTimerSerializer,
     QuestTimerSerializer,
 )
+from .filters import QuestFilter
 from .utils import check_quest_eligibility, send_group_message
 
 from character.models import PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
-# from users.models import Profile
+from progression.models import PlayerActivity, Task
+from progression.serializers import (
+    PlayerActivitySerializer,
+    CharacterActivitySerializer,
+)
+
 from users.serializers import ProfileSerializer
 
 logger = logging.getLogger("django")
@@ -49,25 +55,13 @@ def get_csrf_token(request):
 def game_view(request):
     """
     Render the main game view for the logged-in user.
-
-    :param request: The HTTP request object.
-    :type request: django.http.HttpRequest
-    :return: An HTML response rendering the game view.
-    :rtype: django.http.HttpResponse
     """
-    try:
-        logger.info(f"[GAME VIEW] Accessed by user {request.user.profile.id}")
-        return render(
-            request,
-            "gameplay/game.html",
-            {"profile": request.user.profile, "debug": settings.DEBUG},
-        )
-    except AttributeError as e:  # For user profile issues
-        logger.error(f"[GAME VIEW] User attribute error: {str(e)}", exc_info=True)
-        return JsonResponse({"error": "User information is unavailable."}, status=500)
-    except Exception as e:
-        logger.error(f"[GAME VIEW] Unexpected error: {str(e)}", exc_info=True)
-        return JsonResponse({"error": "An unexpected error occurred"}, status=500)
+    logger.info(f"[GAME VIEW] Accessed by user {request.user.profile.id}")
+    return render(
+        request,
+        "frontend/index.html",
+        {"debug": settings.DEBUG},
+    )
 
 
 # Fetch activities
@@ -91,10 +85,10 @@ def fetch_activities(request):
     logger.info(f"[FETCH ACTIVITIES] Request received from user {profile.id}")
 
     try:
-        activities = Activity.objects.filter(
+        activities = PlayerActivity.objects.filter(
             profile=profile, created_at__date=timezone.now().date()
         )
-        serializer = ActivitySerializer(activities, many=True).data
+        serializer = PlayerActivitySerializer(activities, many=True).data
 
         # Remove current activity
         if profile.activity_timer.status not in ["empty", "completed"]:
@@ -411,7 +405,9 @@ def create_activity(request):
         logger.debug(f"[CREATE ACTIVITY] Received activity name: {activity_name}")
 
         try:
-            activity = Activity.objects.create(profile=profile, name=activity_name)
+            activity = PlayerActivity.objects.create(
+                profile=profile, name=activity_name
+            )
             profile.activity_timer.new_activity(activity)
             profile.activity_timer.refresh_from_db()
             logger.info(
@@ -522,17 +518,17 @@ def submit_activity(request):
             )
 
         try:
-            activities = Activity.objects.filter(
+            activities = PlayerActivity.objects.filter(
                 profile=profile, created_at__date=timezone.now().date()
             ).order_by("-created_at")
             if not activities.exists():
-                activities = Activity.objects.filter(profile=profile).order_by(
+                activities = PlayerActivity.objects.filter(profile=profile).order_by(
                     "-created_at"
                 )[:5]
                 logger.debug(
                     f"[SUBMIT ACTIVITY] No activities for today. Showing recent activities: {activities}"
                 )
-            activities_list = ActivitySerializer(activities, many=True).data
+            activities_list = PlayerActivitySerializer(activities, many=True).data
         except ObjectDoesNotExist as e:
             logger.error(
                 f"[SUBMIT ACTIVITY] Object not found while fetching activities for profile {profile.id}: {e}"
@@ -732,12 +728,8 @@ def choose_quest(request):
 def complete_quest(request):
     """
     Completes the currently active quest for the logged-in user's character and processes rewards.
-
-    :param request: The HTTP POST request to complete the quest.
-    :type request: django.http.HttpRequest
-    :return: A JSON response containing the updated quest list, character info, and timer statuses.
-    :rtype: django.http.JsonResponse
     """
+
     if request.method != "POST":
         logger.warning(
             f"[COMPLETE QUEST] Invalid method {request.method} used by user {request.user.profile.id}"
@@ -937,3 +929,141 @@ def submit_bug_report(request):
         return JsonResponse(
             {"success": False, "error": "An unexpected error occurred"}, status=500
         )
+
+
+class QuestViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only API endpoint for Quest instances.
+    """
+
+    serializer_class = QuestSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Quest.objects.all().order_by("id")
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_class = QuestFilter
+    search_fields = ["name", "description", "intro_text", "outro_text"]
+    ordering_fields = ["id", "name"]
+
+    @action(detail=False, methods=["get"])
+    def eligible(self, request):
+        profile = request.user.profile
+        try:
+            character = PlayerCharacterLink.get_character(profile)
+        except ValueError as e:
+            logger.warning("Failed to get character for profile %s: %s", profile.id if hasattr(profile, "id") else profile, e)
+            return Response(
+                {"error": "Unable to determine eligible quests for your character."},
+                status=400,
+            )
+
+        eligible_quests = check_quest_eligibility(character, profile)
+        serializer = self.get_serializer(eligible_quests, many=True)
+        return Response({"eligible_quests": serializer.data})
+
+
+class BaseTimerViewSet(viewsets.ViewSet):
+    """
+    Abstract base class for timer viewsets. Enforces IsAuthenticated.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = None
+
+    def serialize(self, timer):
+        return self.serializer_class(timer).data
+
+    @action(detail=False, methods=["post"])
+    def start(self, request):
+        timer = self.get_timer(request)
+        timer.start()
+        return Response(self.serialize(timer))
+
+    @action(detail=False, methods=["post"])
+    def pause(self, request):
+        timer = self.get_timer(request)
+        timer.pause()
+        return Response(self.serialize(timer))
+
+    @action(detail=False, methods=["post"])
+    def reset(self, request):
+        timer = self.get_timer(request)
+        timer.reset()
+        return Response(self.serialize(timer))
+
+    @action(detail=False, methods=["post"])
+    def complete(self, request):
+        timer = self.get_timer(request)
+        print("datadata:", request.data)
+        name = request.data.get("activityName")
+
+        result = timer.complete(newName=name)
+        return Response(self.serialize(timer))
+
+
+class ActivityTimerViewSet(BaseTimerViewSet):
+    serializer_class = ActivityTimerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_timer(self, request):
+        timer = request.user.profile.activity_timer
+        if timer is None:
+            raise NotFound(f"Activity timer not found")
+        return timer
+
+    @action(detail=False, methods=["post"])
+    def set_activity(self, request):
+        timer = self.get_timer(request)
+
+        name = request.data.get("activityName")
+        if not name:
+            name = ""
+
+        task_id = request.data.get("task_id")
+        task = None
+        if task_id:
+            task = get_object_or_404(Task, pk=task_id, profile=request.user.profile)
+
+        updated = timer.new_activity(name=name, task=task)
+        updated.refresh_from_db()
+        return Response({"success": True, "activity_timer": self.serialize(updated)})
+
+
+class QuestTimerViewSet(BaseTimerViewSet):
+    serializer_class = QuestTimerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_timer(self, request):
+        character = request.user.profile.current_character
+        timer = character.quest_timer
+        if timer is None:
+            raise NotFound(f"Quest timer not found")
+        return timer
+
+    @action(detail=False, methods=["post"])
+    def change_quest(self, request):
+        timer = self.get_timer(request)
+
+        if not request.data.get("quest_id"):
+            return Response(
+                {"error": "quest_id is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        quest_id = request.data.get("quest_id")
+        duration = request.data.get("duration")
+        try:
+            duration = int(request.data.get("duration"))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Duration must be an integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        quest = get_object_or_404(Quest, id=quest_id)
+        timer.change_quest(quest, duration)
+        timer.refresh_from_db()
+
+        return Response({"success": True, "quest_timer": self.serialize(timer)})

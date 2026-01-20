@@ -3,10 +3,9 @@ from django.shortcuts import render
 from django.http import JsonResponse
 
 from users.models import Profile
-from gameplay.models import Activity, QuestCompletion
+from gameplay.models import QuestCompletion
 from character.models import Character
-
-# Create your views here.
+from progression.models import PlayerActivity
 
 
 @login_required
@@ -18,7 +17,7 @@ def get_game_statistics(request):
             profile.login_streak_max for profile in profiles
         )
         highest_login_streak_current = max(profile.login_streak for profile in profiles)
-        activities = Activity.objects.all()
+        activities = PlayerActivity.objects.all()
         total_activity_num = len(activities)
         total_activity_time = sum(activity.duration for activity in activities)
         activities_num_average = total_activity_num / profiles_num

@@ -2,23 +2,6 @@
 @use '../../styles/base/variables' as v;
 @use '../../styles/utilities/mixins' as m;
 
-.mobileOnly {
-  display: block;
-  max-width: 100%;
-  @include m.respond-to(sm) {
-    display: none;
-  }
-}
-
-.desktopOnly {
-  display: none;
-  max-width: 100%;
-  width: 100%;
-
-  @include m.respond-to(sm) {
-    display: block;
-  }
-  @include m.respond-to(xl) {
-    width: 90%;
-  }
+.page {
+	@include m.page-layout();
 }

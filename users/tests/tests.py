@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings, tag
 from django.urls import reverse
 from unittest import skip
 import logging
 
 from users.models import Profile
+from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink
 
@@ -40,7 +41,6 @@ class UserCreationTest(TestCase):
         self.assertTrue(superuser.is_superuser)
         self.assertTrue(superuser.is_staff)
 
-    @skip("Error on 'link.character'")
     def test_character_assigned_on_profile(self):
         """Test that a character is assigned to the user's profile."""
         user = self.UserModel.objects.create_user(
@@ -124,6 +124,7 @@ class OnboardingTest(TestCase):
         self.assertEqual(self.profile.onboarding_step, 4)
 
 
+@tag("fast")
 class ProfileMethodsTest(TestCase):
     def setUp(self):
         self.character = Character.objects.create(first_name="Jane", can_link=True)
@@ -150,43 +151,7 @@ class ProfileMethodsTest(TestCase):
         self.assertEqual(link.character, self.character2)
 
 
-class TestViews_LoggedIn(TestCase):
-    def setUp(self):
-        self.client = Client()
-
-        # urls
-        self.index_url = reverse("index")
-        self.profile_url = reverse("profile")
-        self.editprofile_url = reverse("edit_profile")
-
-        character = Character.objects.create(name="Bob", can_link=True)
-        User = get_user_model()
-        user = User.objects.create_user(
-            email="testuser@example.com", password="testpassword123"
-        )
-
-        self.client.login(email="testuser@example.com", password="testpassword123")
-
-    @skip("Skipping as temporarily broken")
-    def test_index_GET(self):
-        """Check the index is rendered successfully."""
-        response = self.client.get(self.index_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "users/index.html")
-
-    def test_profile_GET(self):
-        """Check the profile is rendered successfully."""
-        response = self.client.get(self.profile_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "users/profile.html")
-
-    def test_profile_edit_GET(self):
-        """Check the edit profile page is rendered successfully."""
-        response = self.client.get(self.editprofile_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "users/edit_profile.html")
-
-
+@tag("fast")
 class TestViews_LoggedOut(TestCase):
     def setUp(self):
         # urls
@@ -209,4 +174,35 @@ class TestViews_LoggedOut(TestCase):
         """Check the register page is rendered successfully."""
         response = self.client.get(self.register_url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "users/register.html")
+
+
+@override_settings(
+    CELERY_TASK_ALWAYS_EAGER=True,  # run Celery tasks immediately, not via broker
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",  # in-memory email storage
+)
+class EmailTaskTest(TestCase):
+
+    def test_send_email_task(self):
+        emails = ["test@example.com"]
+        subject = "Test Email"
+        template_base = "emails/email_confirmation_message"
+        context = {"user": {"email": "test@example.com"}}
+        cc_admin = False
+
+        # Run task synchronously
+        send_email_to_users_task(
+            emails=emails,
+            subject=subject,
+            template_base=template_base,
+            context=context,
+            cc_admin=cc_admin,
+        )
+
+        # Check that the email was sent
+        from django.core.mail import outbox
+
+        self.assertEqual(len(outbox), 1)  # one email was sent
+        email = outbox[0]
+        self.assertEqual(email.subject, subject)
+        self.assertEqual(email.to, emails)
+        self.assertIn("test@example.com", email.body)

@@ -1,4 +1,5 @@
 import styles from './Input.module.scss';
+import classNames from 'classnames';
 
 export default function Input({
   id,
@@ -14,11 +15,13 @@ export default function Input({
   checked,
   minLength,
   maxLength,
+  className,
+  inputClassName,
 }) {
   const isCheckbox = type === 'checkbox';
 
   return (
-    <div className={styles.inputGroup}>
+    <div className={classNames(styles.inputGroup, className)}>
       {label && (
         <label htmlFor={id} className={styles.label}>
           {label} {required && <span className={styles.required}>*</span>}
@@ -28,12 +31,17 @@ export default function Input({
       <input
         id={id}
         type={type}
-        className={`${styles.inputField} ${error ? styles.inputError : ''}`}
+        className={classNames(styles.inputField, inputClassName, {
+          [styles.inputError]: error,
+        })}
         value={isCheckbox ? undefined : value}
         checked={isCheckbox ? checked : undefined}
         onChange={(e) => {
-          if (onChange) {
-            isCheckbox ? onChange(e) : onChange(e.target.value);
+          if (!onChange) return;
+          if (isCheckbox) {
+            onChange(e.target.checked);
+          } else {
+            onChange(e.target.value);
           }
         }}
         placeholder={placeholder}

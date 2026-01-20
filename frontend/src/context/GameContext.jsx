@@ -1,10 +1,16 @@
 // GameContext.jsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+
 import { useBootstrapGameData } from '../hooks/useBootstrapGameData';
 import { apiFetch } from '../../utils/api';
 import useTimers from '../hooks/useTimers';
+import useActivityTimer from '../hooks/useActivityTimer';
 
 const GameContext = createContext();
+
+export const useGame = () => {
+  return useContext(GameContext);
+}
 
 const getFormattedDate = () => {
   const today = new Date();
@@ -14,79 +20,144 @@ const getFormattedDate = () => {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export const useGame = () => {
-  const context = useContext(GameContext);
-  return context;
-}
-
 export const GameProvider = ({ children }) => {
-  const { player: playerOnload, character: characterOnload, activityTimerInfo, questTimerInfo, loading, error } = useBootstrapGameData();
-  const [activities, setActivities] = useState({ results: [], count: 0 });
-  const [quests, setQuests] = useState([]);
+  const {
+    player: playerOnload,
+    character: characterOnload,
+    activityTimerInfo,
+    questTimerInfo,
+    buildNumber,
+    loading,
+  } = useBootstrapGameData();
+
+
   const [player, setPlayer] = useState(playerOnload);
   const [character, setCharacter] = useState(characterOnload);
+  const [playerActivities, setPlayerActivities] = useState({ results: [], count: 0 });
+  const [characterActivities, setCharacterActivities] = useState({ results: [], count: 0 });
+  const [characterCurrentActivity, setCharacterCurrentActivity] = useState({});
+  const [quests, setQuests] = useState([]);
+
   const activityTimer = useTimers({ mode: "activity" });
   const questTimer = useTimers({ mode: "quest" });
 
+  const activityTimer2 = useActivityTimer();
 
-  //console.log("Playeronload, characteronload:", playerOnload, characterOnload);
-  async function fetchPlayerAndCharacter() {
-    const [freshPlayer, freshCharacter] = await Promise.all([
-      apiFetch(`/profile/${playerOnload.id}/`),
-      apiFetch(`/character/${characterOnload.id}/`),
-    ]);
+
+  // ----------------------------------------
+  //  STABLE CALLBACKS
+  // ----------------------------------------
+
+
+  const fetchPlayerAndCharacter = useCallback(async () => {
+    const freshPlayer = await apiFetch(`/me/profile/`);
     setPlayer(freshPlayer);
-    setCharacter(freshCharacter);
-  }
 
-  useEffect(() => {
-    if (!playerOnload?.id || !characterOnload?.id) return;
-
-    fetchPlayerAndCharacter();
-  }, [playerOnload, characterOnload]);
-
-  //console.log("Player, character:", player, character);
-
-  useEffect(() => {
-    if (activityTimerInfo || questTimerInfo) {
-      activityTimer.loadFromServer(activityTimerInfo);
-      questTimer.loadFromServer(questTimerInfo);
+    if (characterOnload?.id) {
+      const freshCharacter = await apiFetch(`/character/${characterOnload.id}/`);
+      setCharacter(freshCharacter);
     }
-  }, [activityTimerInfo, questTimerInfo]);
+  }, [characterOnload?.id]);
 
   const formattedDate = getFormattedDate();
 
-  async function fetchActivities() {
-    const data = await apiFetch(`/activities/?date_after=${formattedDate}&date_before=${formattedDate}`);
-    setActivities(data);
-  }
+  const fetchActivities = useCallback(async () => {
+    const [playerData, charData] = await Promise.all([
+      apiFetch(
+        `/player-activities/?is_complete=true&completed_at_after=${formattedDate}&completed_at_before=${formattedDate}`
+      ),
+      apiFetch(
+        `/character-activities/?is_complete=true&completed_at_after=${formattedDate}&completed_at_before=${formattedDate}`
+      ),
+    ]);
+    setPlayerActivities(await playerData?.results ?? []);
+    setCharacterActivities(await charData?.results ?? []);
+  }, [formattedDate]);
+
+  const fetchCharacterCurrent = useCallback(async () => {
+    const data = await apiFetch(`/character-activities/current/`);
+    //console.log("/current, data:", data);
+    setCharacterCurrentActivity(data.current); // depending on your response shape
+    return data.current;
+  }, []);
+
+
+  const fetchQuests = useCallback(async () => {
+    const data = await apiFetch(`/quests/eligible`);
+    setQuests(data.eligible_quests);
+  }, []);
+
+
+  // ----------------------------------------
+  //  EFFECTS
+  // ----------------------------------------
+
+
+  useEffect(() => {
+    fetchPlayerAndCharacter();
+  }, [fetchPlayerAndCharacter]);
+
+  useEffect(() => {
+    if (activityTimerInfo) {
+      activityTimer.loadFromServer(activityTimerInfo);
+      activityTimer2.loadFromServer(activityTimerInfo);
+    }
+    if (questTimerInfo) questTimer.loadFromServer(questTimerInfo);
+  }, [activityTimerInfo, questTimerInfo]);
 
   useEffect(() => {
     fetchActivities();
-  }, [formattedDate]);
-
-  async function fetchQuests() {
-    const data = await apiFetch(`/quests/eligible`);
-    setQuests(data.eligible_quests);
-  }
+  }, [fetchActivities]);
 
   useEffect(() => {
     fetchQuests();
-  }, [player, character]);
+  }, [fetchQuests]);
 
-  const value = React.useMemo(() => ({
-    player,
-    setPlayer,
-    character,
-    setCharacter,
-    activityTimer,
-    questTimer,
-    activities,
-    fetchActivities,
-    quests,
-    fetchQuests,
-    loading,
-  }), [player, character, activityTimer, questTimer, activities, fetchActivities, quests, fetchQuests, loading]);
+
+  // ----------------------------------------
+  //  STABLE PROVIDER VALUE
+  // ----------------------------------------
+
+
+  const value = useMemo(
+    () => ({
+      player,
+      setPlayer,
+      character,
+      setCharacter,
+      fetchPlayerAndCharacter,
+      activityTimer,
+      activityTimer2,
+      questTimer,
+      playerActivities,
+      characterActivities,
+      fetchActivities,
+      fetchCharacterCurrent,
+      characterCurrentActivity,
+      setCharacterCurrentActivity,
+      quests,
+      fetchQuests,
+      loading,
+      buildNumber,
+    }),
+    [
+      player,
+      character,
+      playerActivities,
+      characterActivities,
+      characterCurrentActivity,
+      quests,
+      activityTimer,
+      activityTimer2,
+      questTimer,
+      fetchPlayerAndCharacter,
+      fetchActivities,
+      fetchCharacterCurrent,
+      fetchQuests,
+      loading,
+      buildNumber,
+    ]
+  );
 
 
   return (

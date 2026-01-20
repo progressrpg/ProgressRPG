@@ -1,0 +1,25 @@
+/* components/CharacterActivityCurrent/CharacterActivityCurrent.module.scss */
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+
+.line {
+  width: min(100%, 720px);
+
+  background: rgba(c.$color-bg, 0.5);
+  font-size: 0.95rem;
+
+  border: 1px solid rgba(c.$color-border-primary, 0.4);
+  border-radius: v.$border-radius;
+  padding: v.$padding-base;
+
+}
+
+.activity {
+    color: black;
+}
+
+.time {
+  opacity: 0.75;
+}

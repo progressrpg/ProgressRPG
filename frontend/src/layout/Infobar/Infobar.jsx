@@ -5,7 +5,6 @@ import styles from './Infobar.module.scss';
 
 export default function Infobar() {
   const { player, character, loading } = useGame();
-  //console.log("[INFOBAR] Player, character:", player, character);
 
 
   if (loading) return <div className={styles.infoBar}>Loading data...</div>;

@@ -7,9 +7,11 @@ export default function ProfilePage({
 }) {
 
   return (
-    <div className={styles.ProfilePage}>
+    <div className={styles.page}>
       <Infobar />
-      <ProfileContent />
+      <div className={styles.content}>
+        <ProfileContent />
+      </div>
     </div>
   );
 }

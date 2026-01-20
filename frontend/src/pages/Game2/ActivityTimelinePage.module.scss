@@ -1,0 +1,15 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+
+.page {
+  @include m.page-layout();
+}
+
+/* Centre content consistently */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-gap;
+  width: 100%;
+}

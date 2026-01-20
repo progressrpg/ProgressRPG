@@ -11,10 +11,10 @@ export function useBootstrapGameData() {
   const [questTimerInfo, setQuestTimerInfo] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [buildNumber, setBuildNumber] = useState(true);
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) return;
-
 
     const fetchGameData = async () => {
       try {
@@ -23,9 +23,9 @@ export function useBootstrapGameData() {
         const info = await apiFetch('/fetch_info/');
         setPlayer(info.profile);
         setCharacter(info.character);
-        //console.log("info:", info);
         setActivityTimerInfo(info.activity_timer);
         setQuestTimerInfo(info.quest_timer);
+        setBuildNumber(info.build_number);
       } catch (err) {
         console.error('[Bootstrap] Error loading game data:', err);
         setError('Something went wrong while loading game data.');
@@ -42,6 +42,7 @@ export function useBootstrapGameData() {
     character,
     activityTimerInfo,
     questTimerInfo,
+    buildNumber,
     loading,
     error
   };

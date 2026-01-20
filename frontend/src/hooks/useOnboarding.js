@@ -1,54 +1,41 @@
 // src/hooks/useOnboarding.js
-import { useEffect, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { apiFetch } from '../../utils/api';
+import { useGame } from '../context/GameContext';
 
 export default function useOnboarding() {
-  //console.log('useOnboarding render');
-  const [step, setStep] = useState(1);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [characterAvailable, setCharacterAvailable] = useState(false);
+  const {
+    player,
+    loading,
+    fetchPlayerAndCharacter,
+  } = useGame();
+  const [error, setError] = useState("");
 
-  // Load current onboarding step on mount
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const data = await apiFetch('/onboarding/status/');
-        //console.log("useOnboarding 'status' api data:", data);
-        setStep(data.step);
-        setCharacterAvailable(data.characters_available ?? true);
-        setError('');
-      } catch (err) {
-        console.error('[Onboarding] Status error:', err);
-        setError('Failed to fetch onboarding status.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const completed = useMemo(() => {
+    if (!player) return undefined;
+    return Boolean(player.onboarding_completed);
+  }, [player]);
 
-    fetchStatus();
-  }, []);
-
-
-  const progress = async (payload = {}) => {
+  const completeOnboarding = useCallback(async () => {
     try {
-      const data = await apiFetch('/onboarding/progress/', {
-        method: 'POST',
-        body: JSON.stringify(payload),
+      await apiFetch("/me/complete_onboarding/", {
+        method: "POST",
       });
-      //console.log("useOnboarding 'progress' api data:", data);
-      if (typeof data.step === 'number') {
-        setStep(data.step);
-      }
-      setCharacterAvailable(data.characters_available ?? true);
-      setError('');
-      return data;
-    } catch (err) {
-      console.error('[Onboarding] Progress error:', err);
-      setError(err.message || 'Failed to progress onboarding');
-      return null;
-    }
-  };
 
-  return { step, progress, error, loading, characterAvailable };
+      await fetchPlayerAndCharacter?.();
+      //console.log("player after fetching:", player);
+      return true;
+    } catch (err) {
+      console.error("[Onboarding] Complete error:", err);
+      setError(err?.message || "Failed to complete onboarding.");
+      return false;
+    }
+  }, [fetchPlayerAndCharacter]);
+
+  return {
+    completed,
+    completeOnboarding,
+    loading,
+    error,
+  };
 }

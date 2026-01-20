@@ -7,7 +7,7 @@ export default function ActivityList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch('/activities/')
+    apiFetch('/player-activities/')
       .then((data) => {
         setActivities(data.results || data);
         setLoading(false);

@@ -7,6 +7,21 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from .base import *
+from .utils import (
+    get_branch_name,
+    get_branch_db_name,
+    ensure_branch_db_exists,
+    migrate_and_seed,
+)
+import subprocess
+
+
+BRANCH_NAME = get_branch_name()
+print("BRANCH_NAME is:", BRANCH_NAME)
+
+new_db_created = ensure_branch_db_exists()
+
+DB_NAME = get_branch_db_name()
 
 ROOT_URLCONF = "progress_rpg.urls"
 
@@ -65,6 +80,16 @@ LOGGING = {
             "level": "ERROR",
             "propagate": False,
         },
+        "general": {
+            "handlers": ["file_info"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "activity": {
+            "handlers": ["file_debug"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
         "django.db.backends": {
             "level": "WARNING",
             "handlers": ["console", "file_errors"],
@@ -84,20 +109,21 @@ SECRET_KEY_FALLBACKS = [
 
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
-DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    DB_NAME = os.getenv("DB_NAME", default="progress_rpg")
-    DB_USER = os.getenv("DB_USER", default="duncan")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-    DB_HOST = os.getenv("DB_HOST", default="localhost")
-    DB_PORT = os.getenv("DB_PORT", default=5432)
+DB_USER = os.getenv("DB_USER", default="duncan")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = os.getenv("DB_HOST", default="localhost")
+DB_PORT = os.getenv("DB_PORT", default=5432)
 
-    DATABASE_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = os.getenv("EMAIL_PORT")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = "localhost"
+EMAIL_PORT = 1025
+EMAIL_HOST_USER = ""
+EMAIL_HOST_PASSWORD = ""
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = False
 
 print("DEBUG:", DEBUG)
 
@@ -153,7 +179,7 @@ CACHES = {
 
 
 # For local development only
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True

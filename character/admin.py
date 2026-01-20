@@ -5,15 +5,21 @@ from .models import (
     CharacterRelationship,
     CharacterRole,
     CharacterProgression,
+    Behaviour,
 )
-
-# Register your models here.
 
 from django.contrib import messages
 
 
 class LinkInline(admin.TabularInline):
     model = PlayerCharacterLink
+    extra = 0
+
+
+class BehaviourInline(admin.StackedInline):
+    model = Behaviour
+    extra = 1
+    max_num = 1
 
 
 @admin.action(description="Mark selected characters as NPCs and unlink from profiles")
@@ -23,10 +29,6 @@ def mark_as_npc(modeladmin, request, queryset):
         active_links = character.profile_link.filter(is_active=True)
         for link in active_links:
             link.unlink()
-
-        # Mark character as NPC
-        character.is_npc = True
-        character.save(update_fields=["is_npc"])
 
     messages.success(
         request, f"{queryset.count()} character(s) marked as NPC and unlinked."
@@ -46,48 +48,74 @@ def mark_as_canlink(modeladmin, request, queryset):
 
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
-    # def current_player(self, obj):
-    #     link = PlayerCharacterLink.objects.filter(character=obj, is_active=True).first()
-    #     return link.profile.name if link else 'No player linked'
-
-    # current_player.short_description = 'Current Player'
     fieldsets = (
-        (None, {"fields": ("first_name", "last_name", "is_npc", "can_link")}),
-        ("Life & Story", {"fields": ("backstory", "parents", "sex")}),
         (
-            "Pregnancy Details",
+            None,
             {
                 "fields": (
-                    ("is_pregnant", "pregnancy_start_date", "pregnancy_due_date"),
+                    ("first_name", "last_name"),
+                    ("is_npc", "can_link"),
+                    "sex",
                 )
             },
         ),
-        ("Dates", {"fields": (("birth_date", "death_date"), "cause_of_death")}),
-        ("Stats", {"fields": ("coins", "reputation", "total_quests")}),
+        ("Dates", {"fields": (("birth_date", "death_date"))}),
+        (
+            "Life & Story",
+            {
+                "classes": ("collapse",),
+                "fields": ("backstory", "parents", "cause_of_death"),
+            },
+        ),
+        (
+            "Stats",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    (
+                        "coins",
+                        "reputation",
+                    )
+                ),
+            },
+        ),
+        (
+            "Pregnancy Details",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    ("is_pregnant", "pregnancy_start_date", "pregnancy_due_date"),
+                ),
+            },
+        ),
     )
 
     list_display = [
         "first_name",
         "last_name",
-        "backstory",
         "get_profile",
         "is_npc",
         "can_link",
         "birth_date",
+        "death_date",
     ]
     list_filter = [
-        "is_npc",
         "can_link",
+        "birth_date",
+        "death_date",
+        "sex",
     ]
-    # list_editable = ['birth_date']
     search_fields = [
         "first_name",
         "last_name",
+        "profile_link__profile__name",
     ]
     readonly_fields = [
         "get_profile",
+        "is_npc",
     ]
-    inlines = [LinkInline]
+    ordering = ["last_name", "first_name"]
+    inlines = [LinkInline, BehaviourInline]
     actions = [mark_as_npc, mark_as_canlink]
 
     @admin.display(description="Profile")
@@ -104,13 +132,11 @@ class CharacterAdmin(admin.ModelAdmin):
         ).exists()
 
 
-# admin.site.register(Character, CharacterAdmin)
-
-
 @admin.register(PlayerCharacterLink)
 class PlayerCharacterLinkAdmin(admin.ModelAdmin):
     list_display = ["profile", "character", "is_active"]
-    fields = ["profile", "character", "is_active"]  # ('date_linked', 'date_unlinked'),
+    fields = ["profile", "character", "is_active", ("date_linked", "date_unlinked")]
+    readonly_fields = ["date_linked", "date_unlinked"]
 
 
 class CharacterInline(admin.TabularInline):
@@ -120,7 +146,7 @@ class CharacterInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(CharacterRelationship)
+# @admin.register(CharacterRelationship)
 class CharacterRelationshipAdmin(admin.ModelAdmin):
     list_display = [
         "relationship_type",
@@ -136,16 +162,13 @@ class CharacterRelationshipAdmin(admin.ModelAdmin):
     ]
     inlines = [CharacterInline]
     readonly_fields = ["created_at", "last_updated"]
-    filter_horizontal = [
-        "characters",
-    ]
 
     @admin.display(description="Characters")
     def get_linked_characters(self, obj):
         return ", ".join([str(char) for char in obj.get_members()])
 
 
-@admin.register(CharacterRole)
+# @admin.register(CharacterRole)
 class CharacterRoleAdmin(admin.ModelAdmin):
     list_display = [
         "name",
@@ -153,7 +176,7 @@ class CharacterRoleAdmin(admin.ModelAdmin):
     ]
 
 
-@admin.register(CharacterProgression)
+# @admin.register(CharacterProgression)
 class CharacterProgressionAdmin(admin.ModelAdmin):
     list_display = [
         "character",

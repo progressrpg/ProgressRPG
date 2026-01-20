@@ -2,83 +2,13 @@
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/typography' as t;
 
-.gamePage {
-	display: flex;
-	flex-direction: column;
-	align-items: stretch;
-	align-self: stretch;
-	gap: v.$spacing-gap;
-	width: 100%;
-	margin: 0 auto;
-
-	@include m.respond-to (small) {
-		max-width: 576px;
-	}
-
-	@include m.respond-to (big) {
-		max-width: 1400px;
-	}
+.page {
+	@include m.page-layout();
 }
 
-
-.current-item {
-	order: 1;
+.content {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
 	gap: v.$spacing-gap;
+	width: 100%;
 }
-
-#quest-list {
-	list-style-type:none;
-	padding: 0;
-	margin: 0;
-}
-
-#current-quest-section {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: v.$spacing-gap;
-	text-align: left;
-	width: 100%;
-  }
-
-  .quest-label {
-	margin: 0;
-	@include t.apply-text-style(t.$text-body);
-  }
-
-  .quest-text {
-	margin: 0;
-	@include t.apply-text-style(t.$text-body);
-  }
-
-  #quest-stages {
-	display: flex;
-	flex-direction: column;
-	gap: v.$spacing-gap;
-	text-align: left;
-	width: 100%;
-	margin-top: v.$spacing-md;
-  }
-
-  .quest-stage-list {
-	list-style-type: disc;
-	padding-left: v.$spacing-md;
-	margin: 0;
-  }
-
-  .quest-stage {
-	  @include t.apply-text-style(t.$text-body);
-
-	  &.previous {
-			@include t.apply-text-style(t.$text-body);
-		}
-
-		&.current {
-			@include t.apply-text-style(t.$text-body);
-		}
-  }

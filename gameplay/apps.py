@@ -8,6 +8,6 @@ class GameplayConfig(AppConfig):
     def ready(self):
         import gameplay.signals
         from events.listeners import listen_for_events
-        from .models import Activity
+        from progression.models import PlayerActivity
 
-        listen_for_events(Activity)
+        listen_for_events(PlayerActivity)
