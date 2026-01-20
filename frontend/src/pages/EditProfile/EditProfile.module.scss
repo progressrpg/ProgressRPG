@@ -1,0 +1,244 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+
+.page {
+  @include m.page-layout();
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: v.$spacing-lg;
+  gap: v.$spacing-sm;
+
+  h1 {
+    margin: 0;
+    @include t.apply-text-style(t.$text-heading-1);
+    text-align: center;
+  }
+}
+
+.backLink {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  background: transparent;
+  color: c.$color-border-primary;
+  text-decoration: none;
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.1);
+    border-color: #5a4cff;
+    color: #5a4cff;
+  }
+
+  &:active {
+    background: rgba(c.$color-border-primary, 0.2);
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-xl;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.section {
+  padding: v.$padding-lg;
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.4);
+
+  h2 {
+    margin: 0 0 v.$spacing-md 0;
+    @include t.apply-text-style(t.$text-heading-2);
+  }
+}
+
+.description {
+  margin-bottom: v.$spacing-md;
+  color: rgba(0, 0, 0, 0.7);
+  @include t.apply-text-style(t.$text-body);
+}
+
+.currentInfo {
+  display: flex;
+  gap: v.$spacing-sm;
+  align-items: baseline;
+  margin-bottom: v.$spacing-md;
+  padding: v.$spacing-sm;
+  background: rgba(c.$color-border-primary, 0.05);
+  border-radius: v.$border-radius;
+
+  .currentLabel {
+    margin: 0;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+    @include t.apply-text-style(t.$text-body);
+  }
+
+  .currentValue {
+    margin: 0;
+    font-weight: 600;
+    color: c.$color-border-primary;
+    @include t.apply-text-style(t.$text-body);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-md;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-xs;
+
+  label {
+    font-weight: 500;
+    @include t.apply-text-style(t.$text-body);
+  }
+}
+
+.input {
+  padding: v.$spacing-sm;
+  border: 2px solid rgba(c.$color-border-primary, 0.3);
+  border-radius: v.$border-radius;
+  font-size: 1em;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+
+  &:focus {
+    outline: none;
+    border-color: c.$color-border-primary;
+  }
+}
+
+.primaryButton {
+  padding: v.$spacing-sm v.$spacing-md;
+  border: 1px solid #5a4cff;
+  background: #5a4cff;
+  color: white;
+  border-radius: v.$border-radius;
+  cursor: pointer;
+  font-size: 1em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+
+  &:hover:not(:disabled) {
+    background: #6d5fff;
+    border-color: #6d5fff;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.secondaryButton {
+  padding: v.$spacing-sm v.$spacing-md;
+  border: 1px solid c.$color-border-primary;
+  background: transparent;
+  color: c.$color-border-primary;
+  border-radius: v.$border-radius;
+  cursor: pointer;
+  font-size: 1em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+
+  &:hover:not(:disabled) {
+    background: rgba(c.$color-border-primary, 0.1);
+    border-color: #5a4cff;
+    color: #5a4cff;
+  }
+
+  &:active:not(:disabled) {
+    background: rgba(c.$color-border-primary, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.dangerButton {
+  padding: v.$spacing-sm v.$spacing-md;
+  border: 1px solid #d32f2f;
+  background: transparent;
+  color: #d32f2f;
+  border-radius: v.$border-radius;
+  cursor: pointer;
+  font-size: 1em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+
+  &:hover:not(:disabled) {
+    background: rgba(211, 47, 47, 0.1);
+    border-color: #b71c1c;
+    color: #b71c1c;
+  }
+
+  &:active:not(:disabled) {
+    background: rgba(211, 47, 47, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.successMessage {
+  color: #2e7d32;
+  font-weight: 500;
+  margin: 0;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.errorMessage {
+  color: #d32f2f;
+  font-weight: 500;
+  margin: 0;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.deleteConfirmation {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-md;
+  padding: v.$padding-base;
+  border: 2px solid #d32f2f;
+  border-radius: v.$border-radius;
+  background: rgba(211, 47, 47, 0.05);
+}
+
+.warningText {
+  color: #d32f2f;
+  font-weight: 500;
+  margin: 0;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.buttonGroup {
+  display: flex;
+  gap: v.$spacing-sm;
+  flex-wrap: wrap;
+}
