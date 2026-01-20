@@ -7,7 +7,9 @@ export default function ActivityTimelinePage() {
 
   return (
     <div className={styles.page}>
-      <h1>Activity Timer</h1>
+      <div className={styles.header}>
+        <h1>Activity Timer</h1>
+      </div>
 
       <div className={styles.content}>
         <ActivityTimeline />
