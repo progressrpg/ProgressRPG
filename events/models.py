@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.timezone import now, timedelta
 from datetime import datetime
-from users.models import Profile
+from users.models import Player
 import json
 import math
 
@@ -69,8 +69,8 @@ class EventGoal(models.Model):
 
 
 class EventContribution(models.Model):
-    profile = models.ForeignKey(
-        Profile, related_name="contribution", on_delete=models.CASCADE
+    player = models.ForeignKey(
+        Player, related_name="contribution", on_delete=models.CASCADE
     )
     event_goal = models.ForeignKey(
         EventGoal, related_name="contribution", on_delete=models.CASCADE

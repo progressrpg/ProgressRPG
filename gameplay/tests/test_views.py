@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils.timezone import now
 from unittest import skip
 
-from users.models import Profile
+from users.models import Player
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import Quest
 from progression.models import PlayerActivity

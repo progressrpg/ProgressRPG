@@ -118,7 +118,7 @@ class CharacterSkillViewSet(viewsets.ModelViewSet):
 
 class PlayerActivityViewSet(viewsets.ModelViewSet):
     serializer_class = PlayerActivitySerializer
-    permission_classes = [IsAuthenticated, IsOwnerProfile]
+    permission_classes = [IsAuthenticated, IsOwnerPlayer]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
