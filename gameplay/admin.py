@@ -74,12 +74,12 @@ class QuestCompletionAdmin(admin.ModelAdmin):
 
 @admin.register(ActivityTimer)
 class ActivityTimerAdmin(admin.ModelAdmin):
-    list_display = ["profile", "activity", "elapsed_time", "status"]
+    list_display = ["player", "activity", "elapsed_time", "status"]
     list_filter = [
         "status",
     ]
     actions = ["pause_timers", "reset_timers"]
-    readonly_fields = ["profile"]
+    readonly_fields = ["player"]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "activity":

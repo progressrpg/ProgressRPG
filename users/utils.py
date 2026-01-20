@@ -2,7 +2,7 @@
 Utility Functions for User Management
 
 This module provides utility functions to support user-related operations, such as
-assigning characters to profiles and sending user notifications. These utilities
+assigning characters to players and sending user notifications. These utilities
 are designed to streamline key processes in the application, enhancing user experience
 and ensuring consistency in functionality.
 
@@ -32,24 +32,24 @@ from gameplay.models import QuestTimer, Quest
 logger = logging.getLogger("general")
 
 
-def assign_character_to_profile(profile):
+def assign_character_to_player(player):
     """
-    Assign a default Character (non-player character) to the given Profile. Deactivates
-    any currently active character and associates a new NPC with the Profile. If the
-    Profile is recent, assigns a tutorial quest to the newly linked character.
+    Assign a default Character (non-player character) to the given Player. Deactivates
+    any currently active character and associates a new NPC with the Player. If the
+    Player is recent, assigns a tutorial quest to the newly linked character.
     """
 
     character = (
         Character.objects.filter(is_npc=True, can_link=True, death_date__isnull=True)
-        .exclude(profile_link__is_active=True)
+        .exclude(player_link__is_active=True)
         .first()
     )
 
     if not character:
-        logger.warning(f"No available NPC character to assign to profile {profile.id}")
+        logger.warning(f"No available NPC character to assign to player {player.id}")
         return None
 
-    PlayerCharacterLink.assign_character(profile=profile, character=character)
+    PlayerCharacterLink.assign_character(player=player, character=character)
 
     qt, created = QuestTimer.objects.get_or_create(character=character)
 
@@ -57,7 +57,7 @@ def assign_character_to_profile(profile):
         tut_quest = Quest.objects.filter(name="[TUTORIAL] Getting started").first()
         if not tut_quest:
             logger.warning(f"Tutorial quest '[TUTORIAL] Getting started' not found!")
-        elif created or profile.created_at > (
+        elif created or player.created_at > (
             timezone.now() - timezone.timedelta(days=14)
         ):
             qt.change_quest(tut_quest, 60)

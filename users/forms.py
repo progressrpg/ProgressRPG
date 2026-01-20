@@ -4,7 +4,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.core.exceptions import ValidationError
 import logging
 
-from .models import CustomUser, Profile, InviteCode
+from .models import CustomUser, Player, InviteCode
 
 logger = logging.getLogger("general")
 logger_errors = logging.getLogger("errors")
@@ -92,9 +92,9 @@ class EmailAuthenticationForm(AuthenticationForm):
             )
 
 
-class ProfileForm(forms.ModelForm):
+class PlayerForm(forms.ModelForm):
     name = forms.CharField(required=True, label="Required. Enter a username.")
 
     class Meta:
-        model = Profile
+        model = Player
         fields = ["name", "bio"]
