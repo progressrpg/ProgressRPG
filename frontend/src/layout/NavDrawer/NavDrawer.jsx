@@ -15,7 +15,9 @@ export default function NavDrawer({ drawerOpen, onClose }) {
       {/* Drawer */}
       <nav className={`${styles["nav-drawer"]} ${drawerOpen ? styles.drawerOpen : ''}`}>
         <div className={styles["nav-drawer-header"]}>
-          <button onClick={onClose}>✕</button>
+          <button onClick={onClose} className={styles.closeButton} aria-label="Close menu">
+            ✕
+          </button>
         </div>
 
         <ul className={styles["nav-drawer-links"]}>
