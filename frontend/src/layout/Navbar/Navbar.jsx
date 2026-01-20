@@ -50,7 +50,7 @@ export default function Navbar({ onMenuClick }) {
                 </Button>
               </Link>
               </div>
-              <Link to="/profile">
+              <Link to="/account">
                 <Button
                   className={styles.navLink}
                   variant="primary"
@@ -98,7 +98,7 @@ export default function Navbar({ onMenuClick }) {
                   Activities
                 </Button>
               </Link>
-              <Link to="/profile">
+              <Link to="/account">
                 <Button variant="secondary" className={styles.navLink}>
                   Account
                 </Button>
