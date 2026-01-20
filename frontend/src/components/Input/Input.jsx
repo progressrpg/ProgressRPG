@@ -17,14 +17,20 @@ export default function Input({
   maxLength,
   className,
   inputClassName,
+  disabled = false,
+  onBlur,
 }) {
   const isCheckbox = type === 'checkbox';
+  
+  const helpTextId = helpText ? `${id}-help` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
+  const describedBy = [helpTextId, errorId].filter(Boolean).join(' ') || undefined;
 
   return (
     <div className={classNames(styles.inputGroup, className)}>
       {label && (
         <label htmlFor={id} className={styles.label}>
-          {label} {required && <span className={styles.required}>*</span>}
+          {label} {required && <span className={styles.required} aria-label="required">*</span>}
         </label>
       )}
 
@@ -44,18 +50,28 @@ export default function Input({
             onChange(e.target.value);
           }
         }}
+        onBlur={onBlur}
         placeholder={placeholder}
         aria-invalid={!!error}
+        aria-describedby={describedBy}
+        aria-required={required}
         autoComplete={autoComplete}
         required={required}
         minLength={minLength}
         maxLength={maxLength}
+        disabled={disabled}
       />
 
       {helpText && !error && (
-        <p className={styles.helpText}>{helpText}</p>
+        <p id={helpTextId} className={styles.helpText} role="note">
+          {helpText}
+        </p>
       )}
-      {error && <p className={styles.errorText}>{error}</p>}
+      {error && (
+        <p id={errorId} className={styles.errorText} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

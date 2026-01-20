@@ -10,6 +10,10 @@ export default function Button({
   href,
   onClick,
   className,
+  disabled = false,
+  type = 'button',
+  ariaLabel,
+  ariaDescribedBy,
   ...props
 }) {
   const Component = as === 'a' ? 'a' : 'button';
@@ -19,13 +23,20 @@ export default function Button({
       className={classNames(
         styles.button,
         styles[variant],
+        { [styles.disabled]: disabled },
         className
       )}
       href={as === 'a' ? href : undefined}
       onClick={onClick}
+      type={as === 'button' ? type : undefined}
+      disabled={as === 'button' ? disabled : undefined}
+      aria-disabled={disabled}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
+      role={as === 'a' && onClick ? 'button' : undefined}
       {...props}
     >
-      {icon && <span className={styles.icon}>{icon}</span>}
+      {icon && <span className={styles.icon} aria-hidden="true">{icon}</span>}
       {children}
     </Component>
   );
