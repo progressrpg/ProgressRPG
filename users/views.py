@@ -21,13 +21,13 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .filters import ProfileFilter
-from .forms import UserRegisterForm, ProfileForm, EmailAuthenticationForm
-from .models import Profile
-from .serializers import ProfileSerializer
+from .filters import PlayerFilter
+from .forms import UserRegisterForm, PlayerForm, EmailAuthenticationForm
+from .models import Player
+from .serializers import PlayerSerializer
 from .utils import kick_old_sessions, send_signup_email
 
-from api.views import IsOwnerProfile
+from api.views import IsOwnerPlayer
 from character.models import PlayerCharacterLink
 from gameplay.serializers import PlayerActivitySerializer
 
@@ -108,13 +108,13 @@ class LoginView(FormView):
             user.delete_at = None  # Clear the scheduled deletion timestamp
             user.save()
 
-        if user.profile.onboarding_step != 5:
+        if user.player.onboarding_step != 5:
             logger.debug(
-                f"User {user.email} onboarding step: {user.profile.onboarding_step}"
+                f"User {user.email} onboarding step: {user.player.onboarding_step}"
             )
-            match user.profile.onboarding_step:
+            match user.player.onboarding_step:
                 case 0 | 1:
-                    return redirect("create_profile")
+                    return redirect("create_player")
                 case 2:
                     return redirect("link_character")
                 case 3:
@@ -123,7 +123,7 @@ class LoginView(FormView):
                     return redirect("game")
                 case _:
                     logger.error(
-                        f"Invalid onboarding step for user {user.id}: {user.profile.onboarding_step}"
+                        f"Invalid onboarding step for user {user.id}: {user.player.onboarding_step}"
                     )
                     raise ValueError("Onboarding step number incorrect")
                     return redirect("index")
@@ -196,7 +196,7 @@ class RegisterView(CreateView):
     model = get_user_model()
     form_class = UserRegisterForm
     template_name = "users/register.html"
-    success_url = reverse_lazy("create_profile")
+    success_url = reverse_lazy("create_player")
 
     def get(self, request, *args, **kwargs):
         """
@@ -265,63 +265,63 @@ def registration_disabled_view(request):
     return render(request, "users/registration_disabled.html")
 
 
-# Create profile view
+# Create player view
 @transaction.atomic
 @login_required
-def create_profile_view(request):
+def create_player_view(request):
     """
-    Handle the creation and setup of the user's profile, including setting a name
+    Handle the creation and setup of the user's player, including setting a name
     and saving the first onboarding step.
 
     :param request: The HTTP request object.
     :type request: django.http.HttpRequest
-    :return: An HTTP response rendering the profile creation form or redirecting to link_character.
+    :return: An HTTP response rendering the player creation form or redirecting to link_character.
     :rtype: django.http.HttpResponse or django.http.HttpResponseRedirect
     """
-    profile = Profile.objects.get(user=request.user)
+    player = Player.objects.get(user=request.user)
     if request.method == "POST":
-        form = ProfileForm(request.POST, request.FILES, instance=profile)
+        form = PlayerForm(request.POST, request.FILES, instance=player)
         if form.is_valid():
             form.save()
 
             logger.info(
-                f"Profile updated for user {request.user.username} (ID: {request.user.id})"
+                f"Player updated for user {request.user.username} (ID: {request.user.id})"
             )
 
-            profile.name = form.cleaned_data["name"]
-            profile.onboarding_step = 2
-            profile.save()
+            player.name = form.cleaned_data["name"]
+            player.onboarding_step = 2
+            player.save()
 
             logger.debug(
-                f"Name set to '{profile.name}' and onboarding step set to 2 for user {request.user.username}."
+                f"Name set to '{player.name}' and onboarding step set to 2 for user {request.user.username}."
             )
 
             return redirect("link_character")
         else:
             logger.warning(
-                f"Profile form validation failed for user {request.user.username}."
+                f"Player form validation failed for user {request.user.username}."
             )
 
     else:
-        form = ProfileForm(instance=profile)
-    return render(request, "users/create_profile.html", {"form": form})
+        form = PlayerForm(instance=player)
+    return render(request, "users/create_player.html", {"form": form})
 
 
 @transaction.atomic
 @login_required
 def link_character_view(request):
     """
-    Handle the linking of an active character to the user's profile and updating the onboarding step.
+    Handle the linking of an active character to the user's player and updating the onboarding step.
 
     :param request: The HTTP request object.
     :type request: django.http.HttpRequest
-    :return: An HTTP response rendering the link character page or redirecting to the profile creation page.
+    :return: An HTTP response rendering the link character page or redirecting to the player creation page.
     :rtype: django.http.HttpResponse or django.http.HttpResponseRedirect
     """
-    profile = request.user.profile
+    player = request.user.player
     if request.method == "POST":
-        profile.onboarding_step = 3
-        profile.save()
+        player.onboarding_step = 3
+        player.save()
 
         logger.info(
             f"User {request.user.username} (ID: {request.user.id}) updated onboarding_step to 3."
@@ -330,14 +330,14 @@ def link_character_view(request):
         return redirect("tutorial")
     else:
         link = PlayerCharacterLink.objects.filter(
-            profile=profile, is_active=True
+            player=player, is_active=True
         ).first()
 
         if link is None:
             logger.warning(
                 f"User {request.user.username} (ID: {request.user.id}) has no active character link."
             )
-            return redirect("create_profile")  # or any other appropriate redirect
+            return redirect("create_player")  # or any other appropriate redirect
 
         character = link.character
 
@@ -352,72 +352,72 @@ def link_character_view(request):
 def tutorial_view(request):
     user = request.user
     if request.method == "POST":
-        user.profile.onboarding_step = 4
-        user.profile.save()
+        user.player.onboarding_step = 4
+        user.player.save()
         return redirect("game")
     return render(request, "users/tutorial.html")
 
 
-# Profile view
+# Player view
 @login_required
-def profile_view(request):
+def player_view(request):
     """
-    Display the user's profile page with details such as total time spent on activities.
+    Display the user's player page with details such as total time spent on activities.
 
     :param request: The HTTP request object.
     :type request: django.http.HttpRequest
-    :return: An HTTP response rendering the profile page.
+    :return: An HTTP response rendering the player page.
     :rtype: django.http.HttpResponse
     """
-    profile = request.user.profile
-    total_minutes = round(profile.total_time / 60)
+    player = request.user.player
+    total_minutes = round(player.total_time / 60)
 
-    character = PlayerCharacterLink().get_character(profile)
+    character = PlayerCharacterLink().get_character(player)
 
     logger.info(
-        f"User {request.user.username} (ID: {request.user.id}) viewed their profile. Total time spent: {total_minutes} minutes."
+        f"User {request.user.username} (ID: {request.user.id}) viewed their player. Total time spent: {total_minutes} minutes."
     )
 
     return render(
         request,
-        "users/profile.html",
-        {"profile": profile, "character": character, "total_minutes": total_minutes},
+        "users/player.html",
+        {"player": player, "character": character, "total_minutes": total_minutes},
     )
 
 
-# Edit profile view
+# Edit player view
 @transaction.atomic
 @login_required
-def edit_profile_view(request):
+def edit_player_view(request):
     """
-    Allow the user to edit and update their profile information.
+    Allow the user to edit and update their player information.
 
     :param request: The HTTP request object.
     :type request: django.http.HttpRequest
-    :return: An HTTP response rendering the edit profile form or redirecting to the profile page.
+    :return: An HTTP response rendering the edit player form or redirecting to the player page.
     :rtype: django.http.HttpResponse or django.http.HttpResponseRedirect
     """
-    profile = Profile.objects.get(user=request.user)
+    player = Player.objects.get(user=request.user)
 
     logger.info(
-        f"User {request.user.username} (ID: {request.user.id}) is editing their profile."
+        f"User {request.user.username} (ID: {request.user.id}) is editing their player."
     )
 
     if request.method == "POST":
-        form = ProfileForm(request.POST, request.FILES, instance=profile)
+        form = PlayerForm(request.POST, request.FILES, instance=player)
         if form.is_valid():
             form.save()
             logger.info(
-                f"User {request.user.username} (ID: {request.user.id}) successfully updated their profile."
+                f"User {request.user.username} (ID: {request.user.id}) successfully updated their player."
             )
-            return redirect("profile")
+            return redirect("player")
         else:
             logger.warning(
-                f"User {request.user.username} (ID: {request.user.id}) failed to update their profile. Form is invalid."
+                f"User {request.user.username} (ID: {request.user.id}) failed to update their player. Form is invalid."
             )
     else:
-        form = ProfileForm(instance=profile)
-    return render(request, "users/edit_profile.html", {"form": form})
+        form = PlayerForm(instance=player)
+    return render(request, "users/edit_player.html", {"form": form})
 
 
 # Download user data
@@ -427,7 +427,7 @@ def edit_profile_view(request):
 def download_user_data(request):
     """
     Generate and provide a downloadable JSON file containing the user's data,
-    including profile, character, and activity details.
+    including player, character, and activity details.
 
     :param request: The HTTP request object.
     :type request: django.http.HttpRequest
@@ -436,26 +436,26 @@ def download_user_data(request):
     :raises character.DoesNotExist: If no character is found for the user.
     """
     user = request.user
-    profile = user.profile
+    player = user.player
     try:
-        character = PlayerCharacterLink().get_character(profile)
+        character = PlayerCharacterLink().get_character(player)
     except character.DoesNotExist:
         logger.error(f"Character not found for user {user.username} (ID: {user.id}).")
         return JsonResponse({"error": "Character data not found."}, status=404)
 
-    activities_json = PlayerActivitySerializer(profile.activities.all(), many=True).data
+    activities_json = PlayerActivitySerializer(player.activities.all(), many=True).data
     user_data = {
         "username": user.username,
         "email": user.email,
-        "profile": {
-            "id": profile.id,
-            "profile_name": profile.name,
-            "level": profile.level,
-            "xp": profile.xp,
-            "bio": profile.bio,
-            "total_time": profile.total_time,
-            "total_activities": profile.total_activities,
-            "is_premium": profile.is_premium,
+        "player": {
+            "id": player.id,
+            "player_name": player.name,
+            "level": player.level,
+            "xp": player.xp,
+            "bio": player.bio,
+            "total_time": player.total_time,
+            "total_activities": player.total_activities,
+            "is_premium": player.is_premium,
         },
         "activities": activities_json,
         "character": {
@@ -526,17 +526,17 @@ def delete_account(request):
         return render(request, "users/delete_account.html")
 
 
-class ProfileViewSet(
+class PlayerViewSet(
     mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
 ):
-    serializer_class = ProfileSerializer
+    serializer_class = PlayerSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Profile.objects.filter(user=self.request.user)
+        return Player.objects.filter(user=self.request.user)
 
     @action(detail=False, methods=["get"])
     def me(self, request):
-        profile = self.get_queryset().first()
-        serializer = self.get_serializer(profile)
+        player = self.get_queryset().first()
+        serializer = self.get_serializer(player)
         return Response(serializer.data)
