@@ -1,22 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { checkA11y, expectNoA11yViolations } from '../utils/a11y';
+import { routes as routesConfig } from '../../src/routes/routesConfig';
 
 test.describe('Future-Proofing Accessibility Tests', () => {
   test('Any new page should pass basic a11y checks', async ({ page }) => {
-    // This test will run against any route and ensure basic accessibility
-    const routes = [
-      '/',
-      '/login',
-      '/register',
-      '/game',
-      '/profile',
-      '/onboarding',
-      // Add routes as they're created
-      '/settings', // Future
-      '/leaderboard', // Future
-      '/achievements', // Future
-      '/help', // Future
-    ];
+    // Extract routes from routesConfig, filtering out dynamic and wildcard routes
+    const routes = routesConfig
+      .map(route => route.path)
+      .filter(path => !path.includes(':') && path !== '*');
 
     for (const route of routes) {
       try {
