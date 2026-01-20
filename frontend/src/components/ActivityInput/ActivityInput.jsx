@@ -6,8 +6,8 @@ import Button from "../Button/Button";
 import styles from "./ActivityInput.module.scss";
 
 export default function ActivityInput() {
-  const { activityTimer2, fetchCharacterCurrent, fetchActivities } = useGame();
-  const { status, stop, startActivity, elapsed } = activityTimer2;
+  const { activityTimer, fetchCharacterCurrent, fetchActivities } = useGame();
+  const { status, stop, startActivity, elapsed } = activityTimer;
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);

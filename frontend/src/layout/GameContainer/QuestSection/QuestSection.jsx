@@ -6,7 +6,7 @@ import QuestRewards from './QuestRewards';
 import { useGame } from '../../../context/GameContext';
 import Button from '../../../components/Button/Button';
 import ButtonFrame from '../../../components/Button/ButtonFrame';
-import QuestTimer from '../../../components/Timer/QuestTimer';
+
 
 export default function QuestSection() {
   const { questTimer } = useGame();
@@ -34,7 +34,6 @@ export default function QuestSection() {
 
   return (
     <GameSection type="Quest">
-      <QuestTimer />
       <QuestRewards rewards={{ xp: 0, coins: 0 }}/>
 
       {canChooseQuest && (

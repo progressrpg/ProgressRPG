@@ -94,7 +94,6 @@ class CharacterAdmin(admin.ModelAdmin):
         "first_name",
         "last_name",
         "get_player",
-        "is_npc",
         "can_link",
         "birth_date",
         "death_date",
