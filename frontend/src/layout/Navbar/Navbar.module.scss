@@ -2,6 +2,7 @@
 @use '../../styles/utilities/mixins' as m;
 @use '../../styles/semantic/typography' as t;
 @use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/spacing' as sp;
 @use 'sass:map';
 
 .header {
@@ -88,12 +89,12 @@
 .menuButton {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
+  gap: map.get(sp.$gap, xs);
+  padding: map.get(sp.$gap, sm);
   background: none;
   border: none;
   cursor: pointer;
-  margin-right: 1rem; // adjust as needed
+  margin-right: map.get(sp.$gap, md);
 
   &:hover .bar {
     background-color: var(--primary-500);
@@ -111,7 +112,7 @@
 .menuIcon {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: map.get(sp.$gap, xs);
 }
 
 .menuIcon span {

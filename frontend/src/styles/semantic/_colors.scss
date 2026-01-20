@@ -44,6 +44,34 @@ $color-status-warning: map.get(c.$accent-scale, 200);
 $color-danger: #c62828; // strong, readable red
 $color-status-danger: $color-danger;
 
+// Error/Warning states
+$color-error: $color-danger;
+$color-error-bg: #ffebee;
+$color-warning: #ff9800;
+$color-warning-dark: #f57c00;
+
+// Text colors
+$color-text-error: $color-error;
+$color-text-disabled: map.get(c.$neutral-scale, 400);
+$color-text-muted: map.get(c.$neutral-scale, 500);
+$color-text-default: map.get(c.$neutral-scale, 900);
+
+// Border colors
+$color-border-default: map.get(c.$neutral-scale, 300);
+$color-border-light: map.get(c.$neutral-scale, 200);
+$color-border-hover: map.get(c.$primary-scale, 400);
+$color-border-focus: map.get(c.$accent-scale, 200);
+$color-border-error: $color-error;
+
+// Overlay colors
+$color-overlay-backdrop: rgba(0, 0, 0, 0.5);
+$color-overlay-light: rgba(0, 0, 0, 0.4);
+
+// Third-party brand colors
+$color-brand-github: #24292e;
+$color-brand-google: #34a853;
+$color-brand-discord: #5865f2;
+
 
 
 $text-tone: (
@@ -67,6 +95,12 @@ $text-tone: (
   ),
   accent: (
     color: map.get(c.$accent-scale, 200)
+  ),
+  error: (
+    color: $color-error
+  ),
+  disabled: (
+    color: $color-text-disabled
   )
 );
 
