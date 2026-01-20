@@ -18,6 +18,7 @@ from .utils import copy_quest
 
 from character.models import Character
 from gameplay.models import Quest
+from users.models import Player
 
 import logging
 
@@ -32,7 +33,7 @@ class BaseTestCase(TestCase):
         self.character = Character.objects.create(
             name="Test Character",
         )
-        self.profile, _ = Profile.objects.get_or_create(
+        self.profile, _ = Player.objects.get_or_create(
             user=self.user,
         )
         self.profile.name = "Test Profile"
