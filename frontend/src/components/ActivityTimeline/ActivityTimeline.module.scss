@@ -3,6 +3,30 @@
 @use '../../styles/semantic/typography' as t;
 @use '../../styles/semantic/colors' as c;
 
+.activitiesLink {
+  display: inline-block;
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  background: transparent;
+  color: c.$color-border-primary;
+  text-decoration: none;
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+  margin-bottom: v.$spacing-md;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.1);
+    border-color: #5a4cff;
+    color: #5a4cff;
+  }
+
+  &:active {
+    background: rgba(c.$color-border-primary, 0.2);
+  }
+}
+
 .container {
   width: min(100%, 720px);
   margin-top: v.$spacing-md;
@@ -14,12 +38,39 @@
   background: rgba(c.$color-bg, 0.6);
 
   // scroll behaviour
-  max-height: 60vh;
+  min-height: 0;
+  max-height: 45vh;
   overflow-y: auto;
-  overscroll-behavior: contain;
-}
+  overscroll-behavior: contain;  scrollbar-gutter: stable; // Reserve space for scrollbar to prevent border overlap
+
+  // Scrollbar styling
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(c.$color-border-primary, 0.5);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(c.$color-border-primary, 0.8);
+    }
+  }}
 
 
 .line {
   color: black;
+}
+
+.header {
+  font-style: italic;
+  color: rgba(0, 0, 0, 0.6);
+  padding-bottom: v.$spacing-sm;
+  margin-bottom: v.$spacing-sm;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.9em;
 }
