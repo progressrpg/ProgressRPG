@@ -52,7 +52,7 @@ from users.models import Player
 
 import logging
 
-from progress_rpg.exceptions import QuestError, CharacterError, TimerError
+from progress_rpg.exceptions import ActivityError, CharacterError, TimerError
 
 logger = logging.getLogger("general")  # Get the logger for this module
 
@@ -430,7 +430,7 @@ def validate_quest_completion(character):
     
     quest = character.quest_timer.quest
     if not quest:
-        raise QuestError("No active quest to complete")
+        raise ActivityError("No active quest to complete")
     
     if character.quest_timer.status != "completed":
         raise TimerError(f"Quest timer is not completed (status: {character.quest_timer.status})")
