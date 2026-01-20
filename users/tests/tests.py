@@ -27,7 +27,7 @@ class UserCreationTest(TestCase):
         self.assertTrue(user.check_password("testpassword123"))
 
         profile = user.profile
-        self.assertTrue(isinstance(user.profile, Profile))
+        self.assertTrue(isinstance(user.profile, Player))
         self.assertEqual(user, user.profile.user)
         self.assertEqual(user.profile.xp, 0)
 
