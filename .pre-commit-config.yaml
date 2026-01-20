@@ -10,3 +10,11 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [django-stubs, djangorestframework-stubs]
+        args: [--config-file=mypy.ini]
+        exclude: ^(.*migrations/|.*tests/)
