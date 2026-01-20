@@ -8,7 +8,7 @@ import random, math
 import numpy as np
 
 from progression.models import PlayerActivity
-from users.models import Profile
+from users.models import Player
 
 
 # Don't think I actually need this after all!
@@ -64,13 +64,13 @@ class GameWorld(models.Model):
         return now() - self.created_at
 
     def update(self):
-        profiles = Profile.objects.all()
+        players = Player.objects.all()
         self.num_profiles = len(profiles)
-        for profile in profiles:
-            if self.highest_login_streak_ever < profile.login_streak_max:
-                self.highest_login_streak_ever = profile.login_streak_max
-            if self.highest_login_streak_current < profile.login_streak:
-                self.highest_login_streak_current = profile.login_streak
+        for player in players:
+            if self.highest_login_streak_ever < player.login_streak_max:
+                self.highest_login_streak_ever = player.login_streak_max
+            if self.highest_login_streak_current < player.login_streak:
+                self.highest_login_streak_current = player.login_streak
 
         activities = PlayerActivity.objects.all()
         self.total_activity_num = len(activities)

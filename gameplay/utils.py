@@ -46,7 +46,7 @@ from character.models import Character
 
 # from character.serializers import CharacterSerializer
 
-from users.models import Profile
+from users.models import Player
 
 # from users.serializers import ProfileSerializer
 
@@ -55,14 +55,14 @@ import logging
 logger = logging.getLogger("django")  # Get the logger for this module
 
 
-def check_quest_eligibility(character: Character, profile: Profile) -> list:
+def check_quest_eligibility(character: Character, player: Player) -> list:
     """
     Checks the eligibility of quests for a specific character and profile.
 
     :param character: The character instance to evaluate quests for.
     :type character: Character
     :param profile: The profile instance associated with the character.
-    :type profile: Profile
+    :type player: Player
     :return: A list of eligible quests for the given character and profile.
     """
     logger.info(
@@ -82,7 +82,7 @@ def check_quest_eligibility(character: Character, profile: Profile) -> list:
 
 
 def check_individual_quest(
-    quest: Quest, character: Character, profile: Profile, quests_done
+    quest: Quest, character: Character, player: Player, quests_done
 ):
     # logger.debug(f"[CHECK QUEST ELIGIBILITY] Evaluating quest: {quest}")
 
@@ -182,13 +182,13 @@ def pause_server_timers(act_timer: ActivityTimer, quest_timer: QuestTimer):
 
 
 async def control_timers(
-    profile: Profile, act_timer: ActivityTimer, quest_timer: QuestTimer, mode: str
+    player: Player, act_timer: ActivityTimer, quest_timer: QuestTimer, mode: str
 ) -> bool:
     """
     Starts or pauses timers for a specific profile by controlling server-side timers.
 
     :param profile: The profile the timers.
-    :type profile: Profile
+    :type player: Player
     :param act_timer: The activity timer instance.
     :type act_timer: ActivityTimer
     :param quest_timer: The quest timer instance.
@@ -258,12 +258,12 @@ def server_quest_ready(quest_timer: QuestTimer) -> bool:
             return True
 
 
-def process_initiation(profile: Profile, character: Character, action: str) -> bool:
+def process_initiation(player: Player, character: Character, action: str) -> bool:
     """
     Processes the initiation of an activity or quest, starting timers if possible.
 
     :param profile: The profile associated with the quest.
-    :type profile: Profile
+    :type player: Player
     :param character: The character instance completing the quest.
     :type character: Character
     :param action: The action being performed (e.g., "create_activity" or "choose_quest").
@@ -308,12 +308,12 @@ def process_initiation(profile: Profile, character: Character, action: str) -> b
         return True
 
 
-def process_completion(profile: Profile, character: Character, action: str) -> bool:
+def process_completion(player: Player, character: Character, action: str) -> bool:
     """
     Processes the completion of an activity or quest, pausing timers.
 
     :param profile: The profile associated with the quest.
-    :type profile: Profile
+    :type player: Player
     :param character: The character instance completing the quest.
     :type character: Character
     :param action: The action being performed (e.g., "quest_complete" or "submit_activity").

@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import JsonResponse
 
-from users.models import Profile
+from users.models import Player
 from gameplay.models import QuestCompletion
 from character.models import Character
 from progression.models import PlayerActivity

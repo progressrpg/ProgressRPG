@@ -5,7 +5,7 @@ from random import random, randint
 from typing import TYPE_CHECKING, Optional, Dict, Any, cast
 import logging
 
-from users.models import Person, Profile
+from users.models import Person, Player
 
 from gameplay.models import Buff, AppliedBuff, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
@@ -209,7 +209,7 @@ class Character(Person, LifeCycleMixin):
         """
         A character is an NPC if they don't have an active PlayerCharacterLink.
         """
-        return not self.profile_link.filter(is_active=True).exists()
+        return not self.player_link.filter(is_active=True).exists()
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -219,11 +219,11 @@ class Character(Person, LifeCycleMixin):
         return f"{self.first_name} {self.last_name}"
 
     @property
-    def current_profile(self):
+    def current_player(self):
         """
-        Retrieve the profile associated with this character.
+        Retrieve the player associated with this character.
         """
-        return PlayerCharacterLink.get_profile(self)
+        return PlayerCharacterLink.get_player(self)
 
     def start_quest(self, quest):
         self.quest_timer.change_quest(quest)
@@ -311,7 +311,7 @@ class Character(Person, LifeCycleMixin):
 
             for event in levelups:
                 ServerMessage.objects.create(
-                    group=self.current_profile.group_name,
+                    group=self.current_player.group_name,
                     type="notification",
                     action="notification",
                     message=f"Character {self.name} levelled up! Now level {event['new_level']}.",
@@ -344,11 +344,11 @@ class Character(Person, LifeCycleMixin):
 
 
 class PlayerCharacterLink(models.Model):
-    profile = models.ForeignKey(
-        "users.Profile", on_delete=models.CASCADE, related_name="character_link"
+    player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="character_link"
     )
     character = models.ForeignKey(
-        "Character", on_delete=models.CASCADE, related_name="profile_link"
+        "Character", on_delete=models.CASCADE, related_name="player_link"
     )
     date_linked = models.DateField(auto_now_add=True)
     date_unlinked = models.DateField(null=True, blank=True)
@@ -357,9 +357,9 @@ class PlayerCharacterLink(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["profile", "is_active"],
+                fields=["player", "is_active"],
                 condition=models.Q(is_active=True),
-                name="one_active_link_per_profile",
+                name="one_active_link_per_player",
             ),
             models.UniqueConstraint(
                 fields=["character", "is_active"],
@@ -369,30 +369,30 @@ class PlayerCharacterLink(models.Model):
         ]
 
     @classmethod
-    def get_character(cls, profile: Profile) -> Character:
-        links = PlayerCharacterLink.objects.filter(profile=profile, is_active=True)
+    def get_character(cls, player: Player) -> Character:
+        links = PlayerCharacterLink.objects.filter(player=player, is_active=True)
         if not links.exists():
-            raise ValueError("No active Character found for this profile.")
+            raise ValueError("No active Character found for this player.")
 
         if links.count() > 1:
             logger.warning(
-                f"[PROFILE] Multiple active characters found for profile {profile.id} — returning the first one"
+                f"[PLAYER] Multiple active characters found for player {player.id} — returning the first one"
             )
 
         return links.first().character
 
     @classmethod
-    def get_profile(cls, character: Character) -> Profile:
+    def get_player(cls, character: Character) -> Player:
         links = PlayerCharacterLink.objects.filter(character=character, is_active=True)
         if not links.exists():
-            raise ValueError("Character has no active Profile link.")
+            raise ValueError("Character has no active Player link.")
 
         if links.count() > 1:
             logger.warning(
-                f"[PROFILE] Multiple active profile links found for character {character.id} — returning the first one"
+                f"[PLAYER] Multiple active player links found for character {character.id} — returning the first one"
             )
 
-        return links.first().profile
+        return links.first().player
 
     def unlink(self):
         """Marks link as inactive and records unlink date"""
@@ -401,8 +401,8 @@ class PlayerCharacterLink(models.Model):
         self.save()
 
     @classmethod
-    def deactivate_active_links(cls, profile: Profile):
-        for link in cls.objects.filter(profile=profile, is_active=True):
+    def deactivate_active_links(cls, player: Player):
+        for link in cls.objects.filter(player=player, is_active=True):
             link.unlink()
 
     @classmethod
@@ -411,11 +411,11 @@ class PlayerCharacterLink(models.Model):
             link.unlink()
 
     @classmethod
-    def assign_character(cls, profile: Profile, character: Character):
-        cls.deactivate_active_links(profile)
+    def assign_character(cls, player: Player, character: Character):
+        cls.deactivate_active_links(player)
         cls.deactivate_active_links_for_character(character)
         link = cls.objects.create(
-            profile=profile,
+            player=player,
             character=character,
             is_active=True,
         )

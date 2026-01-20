@@ -8,13 +8,13 @@ attributes, and a profile model for tracking gameplay-specific details.
 Classes:
     - CustomUserManager: A custom manager to handle the creation of users and superusers.
     - CustomUser: A custom user model extending Django's AbstractUser with email-based login.
-    - Person: An abstract base model for characters or profiles, tracking levels, XP, and buffs.
-    - Profile: A concrete model for user profiles, extending the Person model to add gameplay-specific
+    - Person: An abstract base model for characters or players, tracking levels, XP, and buffs.
+    - Player: A concrete model for user players, extending the Person model to add gameplay-specific
       attributes like activities, streaks, and buffs.
 
 Usage:
-These models are central to managing user authentication and gameplay profiles in the application.
-CustomUser enables email-based login, while Profile tracks user-specific gameplay progress, subscriptions,
+These models are central to managing user authentication and gameplay players in the application.
+CustomUser enables email-based login, while Player tracks user-specific gameplay progress, subscriptions,
 and linked characters.
 
 Author:
@@ -165,9 +165,9 @@ class Person(models.Model):
         # self.buffs.filter(created_at__lt=now() - timedelta_duration).delete()
 
 
-class Profile(Person):
+class Player(Person):
     """
-    Represents a user's gameplay profile, extending the abstract Person model.
+    Represents a user's gameplay player, extending the abstract Person model.
     Tracks user-specific gameplay data such as total activities, buffs, and characters.
     """
 
@@ -184,12 +184,12 @@ class Profile(Person):
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
     buffs = models.ManyToManyField(
-        "gameplay.AppliedBuff", related_name="profiles", blank=True
+        "gameplay.AppliedBuff", related_name="players", blank=True
     )
 
     ONBOARDING_STEPS = [
         (0, "Not started"),
-        (1, "Step 1: Profile creation"),
+        (1, "Step 1: Player creation"),
         (2, "Completed"),
     ]
     onboarding_step = models.PositiveIntegerField(choices=ONBOARDING_STEPS, default=0)
@@ -203,40 +203,40 @@ class Profile(Person):
 
     @property
     def group_name(self):
-        """Returns the WebSocket group name for this profile."""
-        return f"profile_{self.id}"
+        """Returns the WebSocket group name for this player."""
+        return f"player_{self.id}"
 
     def set_online(self):
-        """Marks profile as online."""
-        logger.debug("[SET ONLINE] Running set_online for profile")
+        """Marks player as online."""
+        logger.debug("[SET ONLINE] Running set_online for player")
         self.is_online = True
         self.save(update_fields=["is_online"])
 
     def set_offline(self):
-        """Marks profile as offline."""
+        """Marks player as offline."""
         self.is_online = False
         self.save(update_fields=["is_online"])
 
     @classmethod
-    def get_online_profiles(cls):
-        """Returns a QuerySet of all currently online profiles."""
+    def get_online_players(cls):
+        """Returns a QuerySet of all currently online players."""
         return cls.objects.filter(is_online=True)
 
     @property
     def current_character(self):
         """
-        Retrieve the active character associated with this profile.
+        Retrieve the active character associated with this player.
         """
         from character.models import PlayerCharacterLink
 
         return PlayerCharacterLink.get_character(self)
 
     def __str__(self):
-        return self.name if self.name else "Unnamed profile"
+        return self.name if self.name else "Unnamed player"
 
     def add_activity(self, time: int = 0, num: int = 1, xp: int = 0):
         """
-        Update the total time and number of activities for this profile.
+        Update the total time and number of activities for this player.
         """
         self.total_time += time
         self.total_activities += num
@@ -258,17 +258,17 @@ class Profile(Person):
 
     def change_character(self, new_character: "Character"):
         """
-        Switch the profile's active character to a new character.
+        Switch the player's active character to a new character.
         """
         from character.models import PlayerCharacterLink
 
         old_link = PlayerCharacterLink.objects.filter(
-            profile=self, is_active=True
+            player=self, is_active=True
         ).first()
         if old_link:
             old_link.unlink()
 
-        PlayerCharacterLink.objects.create(profile=self, character=new_character)
+        PlayerCharacterLink.objects.create(player=self, character=new_character)
         self.save()
 
 

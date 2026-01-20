@@ -40,7 +40,7 @@ from progression.serializers import (
     CharacterActivitySerializer,
 )
 
-from users.serializers import ProfileSerializer
+from users.serializers import PlayerSerializer
 
 logger = logging.getLogger("django")
 
@@ -293,7 +293,7 @@ def fetch_info(request):
                 )
 
         try:
-            profile_serializer = ProfileSerializer(profile).data
+            profile_serializer = PlayerSerializer(profile).data
             character_serializer = CharacterSerializer(character).data
             act_timer = ActivityTimerSerializer(profile.activity_timer).data
             quest_timer = QuestTimerSerializer(qt).data
@@ -553,7 +553,7 @@ def submit_activity(request):
         )
 
         try:
-            profile_serializer = ProfileSerializer(profile).data
+            profile_serializer = PlayerSerializer(profile).data
             response = {
                 "success": True,
                 "message": "Activity submitted",
