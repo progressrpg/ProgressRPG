@@ -8,7 +8,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 import logging
 
-from .filters import PlayerFilter
 from .models import Player
 from .serializers import PlayerSerializer
 

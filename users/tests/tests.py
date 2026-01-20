@@ -4,7 +4,6 @@ from django.urls import reverse
 from unittest import skip
 import logging
 
-from users.models import Player
 from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink

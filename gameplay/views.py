@@ -20,7 +20,6 @@ from .utils import check_quest_eligibility
 from character.models import PlayerCharacterLink
 
 from progression.models import Task
-from users.serializers import PlayerSerializer
 
 logger = logging.getLogger("general")
 logger_errors = logging.getLogger("errors")

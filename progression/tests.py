@@ -18,7 +18,6 @@ from .utils import copy_quest
 
 from character.models import Character
 from gameplay.models import Quest
-from users.models import Player
 
 import logging
 
