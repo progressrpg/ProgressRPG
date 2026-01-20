@@ -1,16 +1,10 @@
-from django.shortcuts import render
-from django.views.decorators.cache import cache_page
+# All non-API Django template views have been removed.
+# The frontend now uses REST API endpoints exclusively.
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .models import MaintenanceWindow
-
-
-# @cache_page(60 * 15)
-def maintenance_view(request):
-    profile = request.user.profile
-
-    return render(request, "server_management/maintenance.html", {"profile": profile})
 
 
 @api_view(["GET"])
