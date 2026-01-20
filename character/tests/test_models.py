@@ -19,7 +19,6 @@ from character.models import (
 )
 
 from gameplay.models import QuestCompletion, Quest, QuestResults, QuestTimer
-from users.models import Person, Player, CustomUser
 
 
 class CharacterRelationshipTests(TestCase):
