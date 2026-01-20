@@ -8,24 +8,24 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 import logging
 
-from .filters import ProfileFilter
-from .models import Profile
-from .serializers import ProfileSerializer
+from .filters import PlayerFilter
+from .models import Player
+from .serializers import PlayerSerializer
 
 logger = logging.getLogger("django")
 
 
-class ProfileViewSet(
+class PlayerViewSet(
     mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
 ):
-    serializer_class = ProfileSerializer
+    serializer_class = PlayerSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Profile.objects.filter(user=self.request.user)
+        return Player.objects.filter(user=self.request.user)
 
     @action(detail=False, methods=["get"])
     def me(self, request):
-        profile = self.get_queryset().first()
-        serializer = self.get_serializer(profile)
+        player = self.get_queryset().first()
+        serializer = self.get_serializer(player)
         return Response(serializer.data)

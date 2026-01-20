@@ -25,14 +25,14 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "profile",
+        "player",
         "total_time",
         "total_records",
         "total_xp",
         "created_at",
     )
-    search_fields = ("name", "description", "profile__name")
-    list_filter = ("profile",)
+    search_fields = ("name", "description", "player__name")
+    list_filter = ("player",)
     readonly_fields = ("total_time", "total_records", "total_xp")
 
 
@@ -62,7 +62,7 @@ class PlayerSkillAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "profile",
+        "player",
         "category",
         "level",
         "is_private",
@@ -70,8 +70,8 @@ class PlayerSkillAdmin(admin.ModelAdmin):
         "total_records",
         "total_xp",
     )
-    search_fields = ("name", "description", "profile__name")
-    list_filter = ("profile", "is_private", "category")
+    search_fields = ("name", "description", "player__name")
+    list_filter = ("player", "is_private", "category")
     readonly_fields = ("total_time", "total_records", "total_xp")
 
 
@@ -101,14 +101,14 @@ class PlayerActivityAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "profile",
+        "player",
         "duration",
         "created_at",
         "started_at",
         "completed_at",
     )
-    search_fields = ("name", "description", "profile__name")
-    list_filter = ("profile", "is_private", "is_complete", "skill", "project", "task")
+    search_fields = ("name", "description", "player__name")
+    list_filter = ("player", "is_private", "is_complete", "skill", "project", "task")
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)
 
@@ -167,15 +167,15 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "profile",
+        "player",
         "total_time",
         "total_records",
         "created_at",
         "is_complete",
         "completed_at",
     )
-    search_fields = ("name", "description", "profile__name")
-    list_filter = ("profile", "is_complete", "completed_at")
+    search_fields = ("name", "description", "player__name")
+    list_filter = ("player", "is_complete", "completed_at")
     readonly_fields = ("total_time", "total_records", "created_at", "completed_at")
     date_hierarchy = "created_at"
 
@@ -185,7 +185,7 @@ class TaskAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "profile",
+        "player",
         "project",
         "total_time",
         "total_records",
@@ -193,7 +193,7 @@ class TaskAdmin(admin.ModelAdmin):
         "is_complete",
         "completed_at",
     )
-    search_fields = ("name", "description", "profile__name", "project__name")
-    list_filter = ("profile", "project", "is_complete", "completed_at")
+    search_fields = ("name", "description", "player__name", "project__name")
+    list_filter = ("player", "project", "is_complete", "completed_at")
     readonly_fields = ("total_time", "total_records", "created_at", "completed_at")
     date_hierarchy = "created_at"

@@ -2,7 +2,7 @@
 from django.utils import timezone
 
 
-class ProfileOwnedMixin:
+class PlayerOwnedMixin:
     """
     Provides common helper methods for models where players
     can perform CRUD operations.
@@ -34,12 +34,12 @@ class ProfileOwnedMixin:
         return [f.name for f in cls._meta.fields]
 
     @classmethod
-    def for_profile(cls, profile):
-        return cls.objects.filter(profile=profile)
+    def for_player(cls, player):
+        return cls.objects.filter(player=player)
 
     @classmethod
-    def for_profile_ids(cls, profile):
-        return list(cls.objects.filter(profile=profile).values_list("id", flat=True))
+    def for_player_ids(cls, player):
+        return list(cls.objects.filter(player=player).values_list("id", flat=True))
 
     def touch(self):
         """Update the last_updated timestamp if present."""

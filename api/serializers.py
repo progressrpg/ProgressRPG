@@ -6,7 +6,7 @@ from rest_framework_simplejwt.serializers import (
     TokenRefreshSerializer,
 )
 
-from users.models import Profile, InviteCode
+from users.models import Player, InviteCode
 
 from django.contrib.auth import get_user_model
 
@@ -56,7 +56,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class Step1Serializer(serializers.ModelSerializer):
     class Meta:
-        model = Profile
+        model = Player
         fields = ["name"]
 
 
@@ -102,8 +102,8 @@ class CustomRegisterSerializer(RegisterSerializer):
         try:
             invite = InviteCode.objects.get(code=code, is_active=True)
             invite.use()
-            user.profile.invited_by_code = code
-            user.profile.save()
+            user.player.invited_by_code = code
+            user.player.save()
         except InviteCode.DoesNotExist:
             # Should not happen due to earlier validation, but fail safe
             pass

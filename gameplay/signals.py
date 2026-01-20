@@ -4,20 +4,20 @@ from django.dispatch import receiver
 
 from .models import Quest, QuestResults, ServerMessage, ActivityTimer
 from .utils import send_group_message
-from users.models import Profile
+from users.models import Player
 
 import logging
 
 logger = logging.getLogger("django")
 
 
-@receiver(post_save, sender=Profile)
+@receiver(post_save, sender=Player)
 def create_activity_timer(sender, instance, created, **kwargs):
-    """Create an activity timer for the profile when a new profile is created"""
+    """Create an activity timer for the player when a new player is created"""
     if created:
-        ActivityTimer.objects.create(profile=instance)
+        ActivityTimer.objects.create(player=instance)
         logger.info(
-            f"[CREATE ACTIVITY TIMER] New activity timer created for profile {instance.id}"
+            f"[CREATE ACTIVITY TIMER] New activity timer created for player {instance.id}"
         )
 
 
