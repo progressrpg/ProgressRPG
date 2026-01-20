@@ -8,7 +8,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from api.views import IsOwnerPlayer
-from users.serializers import PlayerSerializer
 from .models import (
     Category,
     Role,
@@ -39,7 +38,6 @@ from .filters import (
     ProjectFilter,
     TaskFilter,
 )
-
 
 #########################################
 #####      Group viewsets

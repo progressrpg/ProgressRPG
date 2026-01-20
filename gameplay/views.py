@@ -20,7 +20,6 @@ from .utils import check_quest_eligibility
 from character.models import PlayerCharacterLink
 
 from progression.models import Task
-from users.serializers import PlayerSerializer
 
 logger = logging.getLogger("general")
 logger_errors = logging.getLogger("errors")
@@ -54,7 +53,11 @@ class QuestViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             character = PlayerCharacterLink.get_character(profile)
         except ValueError as e:
-            logger.warning("Failed to get character for profile %s: %s", profile.id if hasattr(profile, "id") else profile, e)
+            logger.warning(
+                "Failed to get character for profile %s: %s",
+                profile.id if hasattr(profile, "id") else profile,
+                e,
+            )
             return Response(
                 {"error": "Unable to determine eligible quests for your character."},
                 status=400,
