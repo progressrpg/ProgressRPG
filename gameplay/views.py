@@ -22,7 +22,8 @@ from character.models import PlayerCharacterLink
 from progression.models import Task
 from users.serializers import PlayerSerializer
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
+logger_errors = logging.getLogger("errors")
 
 
 # All non-API Django template views have been removed.

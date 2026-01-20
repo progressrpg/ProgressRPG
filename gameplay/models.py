@@ -24,7 +24,7 @@ from progression.models import PlayerActivity
 if TYPE_CHECKING:
     from character.models import Character
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 class Quest(models.Model):

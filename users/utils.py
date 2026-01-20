@@ -29,7 +29,7 @@ from .tasks import send_email_to_users_task
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import QuestTimer, Quest
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 def assign_character_to_player(player):

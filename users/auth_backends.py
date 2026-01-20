@@ -3,7 +3,7 @@
 from django.contrib.auth import get_user_model
 import logging
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("errors")
 
 User = get_user_model()
 
@@ -15,13 +15,9 @@ class EmailBackend:
             logger.debug("Email or password not provided, returning None")
             return None
 
-        try:
-            user = User.objects.filter(email__iexact=email).first()
-            if not user:
-                logger.debug(f"No user found with email: {email}")
-                return None
-        except Exception as e:
-            logger.error(f"Error during user lookup: {e}")
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            logger.debug(f"No user found with email: {email}")
             return None
 
         if user.check_password(password):

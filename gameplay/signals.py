@@ -8,7 +8,7 @@ from users.models import Player
 
 import logging
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 @receiver(post_save, sender=Player)

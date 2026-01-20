@@ -15,7 +15,7 @@ from character.models import PlayerCharacterLink
 
 User = get_user_model()
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 @shared_task

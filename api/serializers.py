@@ -14,7 +14,7 @@ User = get_user_model()
 
 import logging
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

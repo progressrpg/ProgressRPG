@@ -12,7 +12,8 @@ from .filters import PlayerFilter
 from .models import Player
 from .serializers import PlayerSerializer
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
+logger_errors = logging.getLogger("errors")
 
 
 class PlayerViewSet(

@@ -8,7 +8,7 @@ import logging
 
 from .mixins import PlayerOwnedMixin
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 #########################################

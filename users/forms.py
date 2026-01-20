@@ -6,7 +6,8 @@ import logging
 
 from .models import CustomUser, Player, InviteCode
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
+logger_errors = logging.getLogger("errors")
 
 
 class UserRegisterForm(UserCreationForm):
@@ -82,10 +83,10 @@ class EmailAuthenticationForm(AuthenticationForm):
                     self.confirm_login_allowed(self.user_cache)
             return self.cleaned_data
         except forms.ValidationError as e:
-            logger.error(f"[EMAIL AUTHENTICATION FORM] Validation error: {e}")
+            logger.warning(f"[EMAIL AUTHENTICATION FORM] Validation error: {e}")
             raise
         except Exception as e:
-            logger.error(f"[EMAIL AUTHENTICATION FORM] Unexpected error: {e}")
+            logger_errors.exception(f"[EMAIL AUTHENTICATION FORM] Unexpected error: {e}")
             raise forms.ValidationError(
                 "An unexpected error occurred during authentication."
             )

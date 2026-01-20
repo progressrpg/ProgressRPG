@@ -24,7 +24,7 @@ import logging
 
 User = get_user_model()
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 class BaseTestCase(TestCase):
