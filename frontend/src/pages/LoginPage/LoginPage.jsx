@@ -53,7 +53,7 @@ export default function LoginPage() {
         submitLabel="Log In"
         className={styles.form}
       >
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={styles.error} role="alert">{error}</p>}
         <input
           type="email"
           name="email"

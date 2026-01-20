@@ -25,7 +25,7 @@ export default function OnboardingPage() {
       <p>Here, your real tasks become in-game progress.</p>
       <p>Start an activity (as small as you like) and feel the anxiety reduce as you make progress.</p>
 
-        {error && <p>{error}</p>}
+        {error && <p role="alert">{error}</p>}
         <Button
           onClick={enter}
           disabled={loading}

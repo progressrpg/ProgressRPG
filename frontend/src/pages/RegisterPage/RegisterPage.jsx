@@ -136,7 +136,7 @@ export default function RegisterPage() {
           fieldErrors={fieldErrors}
         />
       )}
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
     </div>
   );
 }
