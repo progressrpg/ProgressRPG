@@ -12,10 +12,18 @@ export default function List({
   className,
   sectionClass,
   getItemClassName,
+  ariaLabel,
 }) {
   if (!Array.isArray(items)) {
     items = Array.isArray(items.results) ? items.results : [];
   }
+
+  const handleKeyPress = (e, item) => {
+    if (selectable && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onSelect?.(item);
+    }
+  };
 
   return (
     <section className={classNames(styles.listSection, sectionClass)}>
@@ -23,6 +31,8 @@ export default function List({
         className={classNames(styles.list, {
           [styles.selectable]: selectable,
         }, className)}
+        role={selectable ? 'listbox' : 'list'}
+        aria-label={ariaLabel}
       >
         {items.map((item, index) => {
           const isSelected = item === selectedItem;
@@ -37,6 +47,10 @@ export default function List({
                 [styles.hidden]: isHidden,
               })}
               onClick={() => selectable && onSelect?.(item)}
+              onKeyPress={(e) => handleKeyPress(e, item)}
+              role={selectable ? 'option' : 'listitem'}
+              aria-selected={selectable ? isSelected : undefined}
+              tabIndex={selectable ? 0 : undefined}
             >
               {renderItem ? renderItem(item, index) : item}
             </li>
