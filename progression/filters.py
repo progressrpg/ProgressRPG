@@ -59,18 +59,18 @@ class PlayerSkillFilter(django_filters.FilterSet):
 
 class CategoryFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
-    profile = django_filters.NumberFilter(field_name="profile_id")
+    player = django_filters.NumberFilter(field_name="player_id")
     created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
     last_updated = django_filters.DateFromToRangeFilter(field_name="last_updated")
 
     class Meta:
         model = Category
-        fields = ["name", "profile", "created_at", "last_updated"]
+        fields = ["name", "player", "created_at", "last_updated"]
 
 
 class ProjectFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
-    profile = django_filters.NumberFilter(field_name="profile_id")
+    player = django_filters.NumberFilter(field_name="player_id")
     created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
     last_updated = django_filters.DateFromToRangeFilter(field_name="last_updated")
 
@@ -78,7 +78,7 @@ class ProjectFilter(django_filters.FilterSet):
         model = Project
         fields = [
             "name",
-            "profile",
+            "player",
             "created_at",
             "last_updated",
             "is_complete",
@@ -88,7 +88,7 @@ class ProjectFilter(django_filters.FilterSet):
 
 class TaskFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
-    profile = django_filters.NumberFilter(field_name="profile_id")
+    player = django_filters.NumberFilter(field_name="player_id")
     project = django_filters.NumberFilter(field_name="project_id")
     created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
     last_updated = django_filters.DateFromToRangeFilter(field_name="last_updated")
@@ -97,7 +97,7 @@ class TaskFilter(django_filters.FilterSet):
         model = Task
         fields = [
             "name",
-            "profile",
+            "player",
             "project",
             "created_at",
             "last_updated",
