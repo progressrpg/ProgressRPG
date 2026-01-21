@@ -1,9 +1,9 @@
 # gameplay/filters.py
 import django_filters
-from .models import Profile
+from .models import Player
 
 
-class ProfileFilter(django_filters.FilterSet):
+class PlayerFilter(django_filters.FilterSet):
     level = django_filters.RangeFilter(field_name="level")
     xp = django_filters.RangeFilter(field_name="xp")
     is_premium = django_filters.BooleanFilter(field_name="is_premium")
@@ -11,5 +11,5 @@ class ProfileFilter(django_filters.FilterSet):
     login_streak = django_filters.RangeFilter(field_name="login_streak")
 
     class Meta:
-        model = Profile
+        model = Player
         fields = ["level", "xp", "is_premium", "onboarding_step", "login_streak"]

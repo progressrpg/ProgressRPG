@@ -15,7 +15,7 @@ export default function Navbar({ onMenuClick }) {
 
   return (
     <header className={styles.header}>
-      <nav className={styles.navbar}>
+      <nav className={styles.navbar} aria-label="Main navigation">
 
         <div className={styles.leftLinks}>
           <button
@@ -30,7 +30,7 @@ export default function Navbar({ onMenuClick }) {
             </div>
           </button>
 
-          <Link to={isAuthenticated ? '/game' : '/'}>
+          <Link to={isAuthenticated ? '/game' : '/'} aria-label={isAuthenticated ? 'Go to game' : 'Go to home'}>
             <Button
               variant={isAuthenticated && isGamePage ? "secondary" : "primary"}
               className={styles.navLink}
@@ -40,17 +40,17 @@ export default function Navbar({ onMenuClick }) {
           </Link>
         </div>
 
-        <div className={styles.rightLinks}>
+        <div className={styles.rightLinks} role="navigation" aria-label="User account">
           {isAuthenticated ? (
             <>
               <div className={styles.link}>
-                <Link to="/logout">
+                <Link to="/logout" aria-label="Log out of your account">
                 <Button variant="secondary" className={styles.navLink}>
                   Log out
                 </Button>
               </Link>
               </div>
-              <Link to="/account">
+              <Link to="/account" aria-label="Go to your account">
                 <Button
                   className={styles.navLink}
                   variant="primary"
@@ -61,12 +61,12 @@ export default function Navbar({ onMenuClick }) {
             </>
           ) : (
             <>
-              <Link to="/login">
+              <Link to="/login" aria-label="Log in to your account">
                 <Button variant="secondary" className={styles.navLink}>
                   Log in
                 </Button>
               </Link>
-              <Link to="/register">
+              <Link to="/register" aria-label="Sign up for an account">
                 <Button variant="primary" className={styles.navLink}>
                   Sign up
                 </Button>
@@ -78,11 +78,11 @@ export default function Navbar({ onMenuClick }) {
           </div>
         </div>
 
-        <div className={styles.icons}>
+        <div className={styles.icons} role="navigation" aria-label="Mobile navigation">
           {isAuthenticated ? (
             <>
               {/* <Link to="/menu">Menu</Link> */}
-              <Link to="/game">
+              <Link to="/game" aria-label="Go to game">
                 <Button
                   variant={isGamePage ? "primary" : "secondary"}
                   className={styles.navLink}
@@ -98,7 +98,7 @@ export default function Navbar({ onMenuClick }) {
                   Activities
                 </Button>
               </Link>
-              <Link to="/account">
+              <Link to="/account" aria-label="Go to your account">
                 <Button variant="secondary" className={styles.navLink}>
                   Account
                 </Button>
@@ -106,17 +106,17 @@ export default function Navbar({ onMenuClick }) {
             </>
           ) : (
             <>
-              <Link to="/home">
+              <Link to="/home" aria-label="Go to home">
                 <Button variant="secondary" className={styles.navLink}>
                   Home
                 </Button>
               </Link>
-              <Link to="/login">
+              <Link to="/login" aria-label="Log in to your account">
                 <Button variant="secondary" className={styles.navLink}>
                   Log in
                 </Button>
               </Link>
-              <Link to="/register">
+              <Link to="/register" aria-label="Sign up for an account">
                 <Button variant="primary" className={styles.navLink}>
                   Register
                 </Button>

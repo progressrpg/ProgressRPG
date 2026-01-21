@@ -10,12 +10,12 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 import logging
 
-from .models import Profile
+from .models import Player
 from character.models import PlayerCharacterLink
 
 User = get_user_model()
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 @shared_task
@@ -33,7 +33,7 @@ def perform_account_wipe():
         user.save()
 
         # Wipe profile data
-        profile: Profile = user.profile
+        player: Player = user.player
         profile.name = f"Deleted User {user.id}"
         profile.bio = ""
         profile.onboarding_step = None

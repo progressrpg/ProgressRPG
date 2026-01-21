@@ -19,8 +19,13 @@ function clearAuthAndRedirect() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
 
-  // Redirect to login or show login modal
-  window.location.href = '/login'; // ✅ Direct browser redirect
+  // Give user feedback before redirect
+  console.warn('[Auth] Session expired, redirecting to login...');
+  
+  // Small delay to allow any error messages to display
+  setTimeout(() => {
+    window.location.href = '/login';
+  }, 500);
 }
 
 

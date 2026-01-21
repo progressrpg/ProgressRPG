@@ -24,7 +24,7 @@ from progression.models import PlayerActivity
 from progression.utils import copy_quest
 from character.models import Character
 
-logging.getLogger("django").setLevel(logging.CRITICAL)
+logging.getLogger("general").setLevel(logging.CRITICAL)
 
 
 class TestQuestCreate(TestCase):

@@ -7,7 +7,13 @@ export default function RequireOnboardingComplete({ children }) {
 
   const completed = Boolean(player?.onboarding_completed);
 
-  if (loading || !player) return <p>Loading…</p>;
+  if (loading || !player) {
+    return (
+      <div role="status" aria-live="polite" aria-busy="true">
+        <span className="sr-only">Loading...</span>
+      </div>
+    );
+  }
 
   return completed
     ? children

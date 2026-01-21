@@ -4,12 +4,11 @@ from django.urls import reverse
 from unittest import skip
 import logging
 
-from users.models import Profile
 from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink
 
-logging.getLogger("django").setLevel(logging.CRITICAL)
+logging.getLogger("general").setLevel(logging.CRITICAL)
 
 
 class UserCreationTest(TestCase):
@@ -28,7 +27,7 @@ class UserCreationTest(TestCase):
         self.assertTrue(user.check_password("testpassword123"))
 
         profile = user.profile
-        self.assertTrue(isinstance(user.profile, Profile))
+        self.assertTrue(isinstance(user.profile, Player))
         self.assertEqual(user, user.profile.user)
         self.assertEqual(user.profile.xp, 0)
 

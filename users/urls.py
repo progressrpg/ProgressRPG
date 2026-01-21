@@ -1,24 +1,11 @@
+# All non-API Django template view URLs have been removed.
+# The frontend now uses REST API endpoints exclusively at /api/v1/
+# Password reset URLs are kept as they may still be needed for email-based flows
+
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views
-from .views import RegisterView, LoginView
-
 urlpatterns = [
-    path("django-index", views.index_view, name="index"),  # stub index
-    path("login/", LoginView.as_view(), name="login"),
-    path("logout/", views.logout_view, name="logout"),  # Use auth_views
-    path("register/", RegisterView.as_view(), name="register"),
-    path(
-        "registration_disabled/",
-        views.registration_disabled_view,
-        name="registration_disabled",
-    ),
-    path("profile/", views.profile_view, name="profile"),
-    path("edit_profile/", views.edit_profile_view, name="edit_profile"),
-    path("create_profile/", views.create_profile_view, name="create_profile"),
-    path("link_character/", views.link_character_view, name="link_character"),
-    path("tutorial/", views.tutorial_view, name="tutorial"),
     path(
         "password_reset/",
         auth_views.PasswordResetView.as_view(
@@ -50,5 +37,4 @@ urlpatterns = [
         ),
         name="password_reset_complete",
     ),
-    # Add other user-related routes
 ]

@@ -49,14 +49,6 @@ body:
     validations:
       required: true
 
-  - type: checkboxes
-    id: where
-    attributes:
-      label: Where does this bug occur?
-      options:
-        - label: Staging (staging.progressrpg.com)
-        - label: Production (app.progressrpg.com)
-
   - type: textarea
     id: context
     attributes:

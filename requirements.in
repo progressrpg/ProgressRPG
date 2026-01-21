@@ -28,7 +28,7 @@ distlib==0.4.0
 dj-database-url==2.3.0
 dj-rest-auth==7.0.1
 Django>5.2,<6
-django-allauth<0.61
+django-allauth<65.14
 django-celery-beat==2.8.1
 django-cf-turnstile==0.1.0
 django-channels-jwt==0.0.3
@@ -46,7 +46,7 @@ djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 docutils==0.20
 drf-spectacular==0.28.0
-filelock==3.20.0
+filelock==3.20.3
 freezegun==1.5.5
 gunicorn==23.0.0
 hyperlink==21.0.0
@@ -80,7 +80,7 @@ prompt_toolkit==3.0.52
 psycopg2==2.9.11
 psycopg2-binary==2.9.11
 psycopg2-pool==1.2
-pyasn1==0.6.1
+pyasn1==0.6.2
 pyasn1_modules==0.4.2
 pycparser==2.23
 Pygments==2.19.2
@@ -120,9 +120,9 @@ types-PyYAML==6.0.12.20250915
 typing_extensions==4.15.0
 tzdata==2025.2
 uritemplate==4.2.0
-urllib3==2.5.0
+urllib3==2.6.3
 vine==5.1.0
-virtualenv==20.35.4
+virtualenv==20.36.1
 wcwidth==0.2.14
 wheel==0.45.1
 whitenoise==6.11.0

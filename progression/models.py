@@ -6,9 +6,9 @@ from django.utils import timezone
 from typing import Dict, Any, cast
 import logging
 
-from .mixins import ProfileOwnedMixin
+from .mixins import PlayerOwnedMixin
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 #########################################
@@ -57,9 +57,9 @@ class Group(models.Model):
         abstract = True
 
 
-class Category(Group, ProfileOwnedMixin):
-    profile = models.ForeignKey(
-        "users.Profile", on_delete=models.CASCADE, related_name="categories"
+class Category(Group, PlayerOwnedMixin):
+    player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="categories"
     )
 
     def __str__(self):
@@ -117,9 +117,9 @@ class Skill(models.Model):
         abstract = True
 
 
-class PlayerSkill(Skill, ProfileOwnedMixin):
-    profile = models.ForeignKey(
-        "users.Profile", on_delete=models.CASCADE, related_name="skills"
+class PlayerSkill(Skill, PlayerOwnedMixin):
+    player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="skills"
     )
     is_private = models.BooleanField(default=False)
     category = models.ForeignKey(
@@ -135,8 +135,8 @@ class PlayerSkill(Skill, ProfileOwnedMixin):
         Return a readable name for the skill, masking private ones.
         """
         if self.is_private:
-            return f"Private skill ({self.profile.name})"
-        return f"{self.name} ({self.profile.name})"
+            return f"Private skill ({self.player.name})"
+        return f"{self.name} ({self.player.name})"
 
 
 class CharacterSkill(Skill):
@@ -214,7 +214,7 @@ class TimeRecord(models.Model):
         abstract = True
 
 
-class PlayerActivity(TimeRecord, ProfileOwnedMixin):
+class PlayerActivity(TimeRecord, PlayerOwnedMixin):
     """
     Represents an activity tracked by a user.
 
@@ -222,8 +222,8 @@ class PlayerActivity(TimeRecord, ProfileOwnedMixin):
     Activities may be linked to a skill or project, and can be private.
     """
 
-    profile = models.ForeignKey(
-        "users.Profile", on_delete=models.CASCADE, related_name="activities"
+    player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="activities"
     )
     is_private = models.BooleanField(default=False)
     skill = models.ForeignKey(
@@ -368,9 +368,9 @@ class CharacterQuest(TimeRecord):
 #########################################
 
 
-class Project(models.Model, ProfileOwnedMixin):
-    profile = models.ForeignKey(
-        "users.Profile", on_delete=models.CASCADE, related_name="projects"
+class Project(models.Model, PlayerOwnedMixin):
+    player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="projects"
     )
     name = models.CharField(max_length=100)
     description = models.TextField(max_length=2000, null=True, blank=True)
@@ -403,9 +403,9 @@ class Project(models.Model, ProfileOwnedMixin):
         return self.name
 
 
-class Task(models.Model, ProfileOwnedMixin):
-    profile = models.ForeignKey(
-        "users.Profile", on_delete=models.CASCADE, related_name="tasks"
+class Task(models.Model, PlayerOwnedMixin):
+    player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="tasks"
     )
     project = models.ForeignKey(
         "progression.Project",

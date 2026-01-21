@@ -1,8 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './NavDrawer.module.scss';
 import { Link } from 'react-router-dom';
 
 export default function NavDrawer({ drawerOpen, onClose }) {
+  const drawerRef = useRef(null);
+
+  useEffect(() => {
+    if (drawerOpen) {
+      // Focus drawer when opened
+      drawerRef.current?.focus();
+
+      // Handle Escape key
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+
+      document.addEventListener('keydown', handleEscape);
+
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [drawerOpen, onClose]);
 
   return (
     <>
@@ -10,20 +31,27 @@ export default function NavDrawer({ drawerOpen, onClose }) {
       <div
         className={`${styles.overlay} ${drawerOpen ? styles.visible : ''}`}
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Drawer */}
-      <nav className={`${styles["nav-drawer"]} ${drawerOpen ? styles.drawerOpen : ''}`}>
+      <nav
+        ref={drawerRef}
+        className={`${styles["nav-drawer"]} ${drawerOpen ? styles.drawerOpen : ''}`}
+        aria-label="Side navigation"
+        aria-hidden={!drawerOpen}
+        tabIndex={-1}
+      >
         <div className={styles["nav-drawer-header"]}>
-          <button onClick={onClose} className={styles.closeButton} aria-label="Close menu">
+          <button onClick={onClose} aria-label="Close navigation drawer" className={styles.closeButton}>
             ✕
           </button>
         </div>
 
-        <ul className={styles["nav-drawer-links"]}>
-          <li><Link to="/account" onClick={onClose}>Your account</Link></li>
-          <li><Link to="/activities" onClick={onClose}>Your activities</Link></li>
-          <li><Link to="/game" onClick={onClose}>Game</Link></li>
+        <ul className={styles["nav-drawer-links"]} role="list">
+          <li><Link to="/account" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Your account</Link></li>
+          <li><Link to="/activities" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Your activities</Link></li>
+          <li><Link to="/game" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Game</Link></li>
         </ul>
       </nav>
     </>

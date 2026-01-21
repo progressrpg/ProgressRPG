@@ -3,7 +3,7 @@ from django.utils import timezone
 from gameplay.models import ActivityTimer, QuestTimer
 import logging
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 class Command(BaseCommand):

@@ -1,5 +1,6 @@
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/colors' as c;
+@use '../../styles/utilities/mixins' as m;
 @use '../../styles/semantic/typography' as t;
 
 /* Navigation Drawer */
@@ -11,7 +12,7 @@
     width: 16rem;
     height: 100%;
     background: c.$color-bg;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    @include m.box-shadow(md);
     overflow-y: auto;
     transition: transform 0.3s ease-out;
     z-index: v.$z-index-overlay + 1;
@@ -68,21 +69,9 @@
 }
 
 .nav-drawer-links li {
-    display: flex;
-    border: 1px solid rgba(c.$color-border-primary, 0.2);
-    border-radius: v.$border-radius;
-    background: rgba(c.$color-bg, 0.4);
-    transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    position: relative;
-
-    &:hover {
-        background: rgba(c.$color-border-primary, 0.06);
-        border-color: rgba(c.$color-border-primary, 0.5);
-        box-shadow:
-            0px 2px 4px rgba(0, 0, 0, 0.1),
-            inset 0px 0px 0px 1px rgba(c.$color-border-primary, 0.2);
-        z-index: 1;
-    }
+    padding: v.$padding-base;
+    @include m.border(c.$color-border-light);
+    border-width: 0 0 1px 0;
 }
 
 .nav-drawer-links a {
@@ -100,7 +89,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
+    background: c.$color-overlay-light;
     z-index: v.$z-index-overlay;
     opacity: 0;
     pointer-events: none;

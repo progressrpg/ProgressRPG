@@ -13,31 +13,60 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s",
+            "format": "[%(asctime)s] [%(request_id)s] [%(user_id)s] [%(levelname)s] [%(name)s:%(lineno)d] %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
         "simple": {
-            "format": "[%(levelname)s] %(message)s",
+            "format": "[%(levelname)s] [%(name)s] %(message)s",
+        },
+    },
+    "filters": {
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
         },
     },
     "handlers": {
         "console": {
             "level": "INFO",
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
         },
     },
     "loggers": {
         "django": {
             "handlers": ["console"],
             "level": "INFO",
-            "propagate": True,
+            "propagate": False,
         },
         "errors": {
             "handlers": ["console"],
             "level": "ERROR",
             "propagate": False,
         },
+        "general": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "activity": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
     },
 }
 

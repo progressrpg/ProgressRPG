@@ -48,8 +48,6 @@ export function ActivityTimer() {
 
   const updateActivity = useUpdateActivity();
 
-  console.log("act timer status:", status);
-
   const handleSubmitActivity = async () => {
     try {
       if (activity?.id) {

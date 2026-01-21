@@ -24,7 +24,7 @@ from progression.models import PlayerActivity
 if TYPE_CHECKING:
     from character.models import Character
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 class Quest(models.Model):
@@ -366,8 +366,8 @@ class ActivityTimer(Timer):
 
     """
 
-    profile = models.OneToOneField(
-        "users.profile", on_delete=models.CASCADE, related_name="activity_timer"
+    player = models.OneToOneField(
+        "users.Player", on_delete=models.CASCADE, related_name="activity_timer"
     )
     activity = models.ForeignKey(
         "progression.PlayerActivity",
@@ -382,7 +382,7 @@ class ActivityTimer(Timer):
         # logger.debug(f"[Activity timer save] Compute elapsed: {self.compute_elapsed()}")
 
     def __str__(self):
-        return f"ActivityTimer {self.id} for {self.profile.name}"
+        return f"ActivityTimer {self.id} for {self.player.name}"
 
     def new_activity(self, name="", task=None):
         """

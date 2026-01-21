@@ -2,6 +2,7 @@
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/typography' as t;
 @use '../../styles/semantic/colors' as c;
+@use 'sass:map';
 
 .activitiesLink {
   display: inline-block;
@@ -63,7 +64,7 @@
 
 
 .line {
-  color: black;
+  @include c.apply-text-tone(map.get(c.$text-tone, default));
 }
 
 .header {

@@ -1,7 +1,6 @@
-from django.urls import path
-from . import views
+# All non-API Django template view URLs have been removed.
+# The frontend now uses REST API endpoints exclusively at /api/v1/
 
-urlpatterns = [
-    path("subscribe/", views.subscribe_view, name="subscribe"),
-    # Add other user-related routes
-]
+from django.urls import path
+
+urlpatterns = []

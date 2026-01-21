@@ -1,5 +1,6 @@
 @use 'sass:map';
 @use '../base/variables' as v;
+@use '../semantic/spacing' as sp;
 
 // Media query mixin for responsive breakpoints
 @mixin respond-to($breakpoint) {
@@ -35,11 +36,97 @@
   }
 }
 
+// Box shadow mixin
+@mixin box-shadow($size: md) {
+  box-shadow: map.get(sp.$shadow, $size);
+}
 
+// Border mixin with optional hover/focus states
+@mixin border($color, $width: 1px, $style: solid) {
+  border: $width $style $color;
+}
+
+@mixin border-interactive($default, $hover, $focus) {
+  border: 1px solid $default;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: $hover;
+  }
+
+  &:focus {
+    border-color: $focus;
+  }
+}
+
+// Focus state mixin for accessibility
+@mixin focus-outline($color, $width: 2px, $offset: 2px) {
+  &:focus-visible {
+    outline: $width solid $color;
+    outline-offset: $offset;
+  }
+}
+
+// Legacy a11y-focus for backward compatibility
 @mixin a11y-focus {
   &:focus-visible {
     outline: 2px solid v.$color-accent;
     outline-offset: 2px;
+  }
+}
+
+// Animation mixins
+@mixin fade-in($duration: 0.25s, $delay: 0s) {
+  opacity: 0;
+  animation: fade-in-animation $duration ease $delay forwards;
+
+  @keyframes fade-in-animation {
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@mixin fade-in-up($duration: 0.25s, $delay: 0s, $distance: 0.5rem) {
+  opacity: 0;
+  transform: translateY(-$distance);
+  animation: fade-in-up-animation $duration ease $delay forwards;
+
+  @keyframes fade-in-up-animation {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@mixin slide-up($duration: 0.2s) {
+  animation: slide-up-animation $duration ease-out;
+
+  @keyframes slide-up-animation {
+    from {
+      opacity: 0;
+      transform: translateY(10%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@mixin pulse($duration: 2.5s) {
+  animation: pulse-animation $duration ease-in-out infinite;
+
+  @keyframes pulse-animation {
+    0%, 100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.004);
+    }
   }
 }
 
