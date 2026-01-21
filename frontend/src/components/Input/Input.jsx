@@ -19,9 +19,10 @@ export default function Input({
   inputClassName,
   disabled = false,
   onBlur,
+  onKeyDown,
 }) {
   const isCheckbox = type === 'checkbox';
-  
+
   const helpTextId = helpText ? `${id}-help` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [helpTextId, errorId].filter(Boolean).join(' ') || undefined;
@@ -51,6 +52,7 @@ export default function Input({
           }
         }}
         onBlur={onBlur}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         aria-invalid={!!error}
         aria-describedby={describedBy}
