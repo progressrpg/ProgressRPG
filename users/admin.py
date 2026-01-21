@@ -7,6 +7,12 @@ from character.models import PlayerCharacterLink, Character
 # Register your models here.
 
 
+class PlayerInline(admin.TabularInline):
+    model = Player
+    extra = 0
+    max_num = 1
+
+
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -51,6 +57,7 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ["email"]
     ordering = ("-created_at",)
     readonly_fields = ["created_at"]
+    inlines = [PlayerInline]
 
 
 @admin.register(Player)
