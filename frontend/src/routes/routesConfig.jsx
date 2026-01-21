@@ -9,7 +9,7 @@ const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage"));
 const ProfilePage = lazy(() => import("../pages/Profile/Profile"));
 const AccountPage = lazy(() => import("../pages/Account/Account"));
-const EditProfile = lazy(() => import("../pages/EditProfile/EditProfile"));
+const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
 const SkillsPage = lazy(() => import("../pages/SkillsPage"));
 const TasksPage = lazy(() => import("../pages/TasksPage"));
@@ -80,10 +80,10 @@ export const routes = [
     ),
   },
   {
-    path: "/edit-profile",
+    path: "/edit-account",
     element: (
       <PrivateRoute>
-        <EditProfile />
+        <EditAccount />
       </PrivateRoute>
     ),
   },

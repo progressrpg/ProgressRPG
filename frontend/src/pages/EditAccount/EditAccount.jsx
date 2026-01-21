@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { updateProfile, downloadUserData, deleteAccount } from "../../api/profile";
-import styles from "./EditProfile.module.scss";
+import { updatePlayer, downloadUserData, deleteAccount } from "../../api/player";
+import styles from "./EditAccount.module.scss";
 
-export default function EditProfile() {
+export default function EditAccount() {
   const { player } = useGame();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -15,8 +15,8 @@ export default function EditProfile() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  const updateProfileMutation = useMutation({
-    mutationFn: updateProfile,
+  const updatePlayerMutation = useMutation({
+    mutationFn: updatePlayer,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
     },
@@ -37,17 +37,17 @@ export default function EditProfile() {
     },
   });
 
-  // Update profile name when player data loads
+  // Update player name when player data loads
   useEffect(() => {
     if (player?.name) {
       setPlayerName(player.name);
     }
   }, [player]);
 
-  const handleUpdateProfile = (e) => {
+  const handleUpdatePlayer = (e) => {
     e.preventDefault();
     if (playerName.trim() && playerName !== player?.name) {
-      updateProfileMutation.mutate({ name: playerName });
+      updatePlayerMutation.mutate({ name: playerName });
     }
   };
 
@@ -64,21 +64,21 @@ export default function EditProfile() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1>Edit Profile</h1>
-        <Link to="/profile" className={styles.backLink}>
-          ← Back to Profile
+        <h1>Edit Player</h1>
+        <Link to="/account" className={styles.backLink}>
+          ← Back to Account
         </Link>
       </div>
 
       <div className={styles.content}>
-        {/* Profile Name Section */}
+        {/* Player Name Section */}
         <section className={styles.section}>
-          <h2>Profile Information</h2>
+          <h2>Player Information</h2>
           <div className={styles.currentInfo}>
             <p className={styles.currentLabel}>Current Username:</p>
             <p className={styles.currentValue}>{player?.name || "Loading..."}</p>
           </div>
-          <form onSubmit={handleUpdateProfile} className={styles.form}>
+          <form onSubmit={handleUpdatePlayer} className={styles.form}>
             <div className={styles.formGroup}>
               <label htmlFor="playerName">Change your name</label>
               <input
@@ -93,18 +93,18 @@ export default function EditProfile() {
             <button
               type="submit"
               className={styles.primaryButton}
-              disabled={updateProfileMutation.isPending || playerName === player?.name}
+              disabled={updatePlayerMutation.isPending || playerName === player?.name}
             >
-              {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+              {updatePlayerMutation.isPending ? "Saving..." : "Save Changes"}
             </button>
-            {updateProfileMutation.isSuccess && (
-              <p className={styles.successMessage}>Profile updated successfully!</p>
+            {updatePlayerMutation.isSuccess && (
+              <p className={styles.successMessage}>Info updated successfully!</p>
             )}
-            {updateProfileMutation.isError && (
+            {updatePlayerMutation.isError && (
               <p className={styles.errorMessage}>
-                {updateProfileMutation.error?.response?.data?.username?.[0] ||
-                 updateProfileMutation.error?.response?.data?.detail ||
-                 "Failed to update profile. Username may already be taken."}
+                {updatePlayerMutation.error?.response?.data?.username?.[0] ||
+                 updatePlayerMutation.error?.response?.data?.detail ||
+                 "Failed to update player. Username may already be taken."}
               </p>
             )}
           </form>
@@ -114,7 +114,7 @@ export default function EditProfile() {
         <section className={styles.section}>
           <h2>Download Your Data</h2>
           <p className={styles.description}>
-            Download a copy of all your data including activities, profile information, and progress.
+            Download a copy of all your data including activities, player information, and progress.
           </p>
           <button
             onClick={handleDownloadData}

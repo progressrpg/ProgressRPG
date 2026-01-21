@@ -46,7 +46,7 @@ export const GameProvider = ({ children }) => {
 
 
   const fetchPlayerAndCharacter = useCallback(async () => {
-    const freshPlayer = await apiFetch(`/me/profile/`);
+    const freshPlayer = await apiFetch(`/me/player/`);
     setPlayer(freshPlayer);
 
     if (characterOnload?.id) {

@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { updateProfile, downloadUserData, deleteAccount } from "../api/profile";
+import { updatePlayer, downloadUserData, deleteAccount } from "../api/player";
 
-export function useUpdateProfile() {
+export function useUpdatePlayer() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateProfile,
+    mutationFn: updatePlayer,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
     },

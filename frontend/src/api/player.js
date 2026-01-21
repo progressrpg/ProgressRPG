@@ -1,7 +1,7 @@
 import { apiFetch } from "../../utils/api";
 
-export const updateProfile = async (data) => {
-  const response = await apiFetch("/me/profile/", {
+export const updatePlayer = async (data) => {
+  const response = await apiFetch("/me/player/", {
     method: "PATCH",
     body: JSON.stringify(data),
   });

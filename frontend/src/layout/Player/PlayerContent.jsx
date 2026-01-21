@@ -1,9 +1,9 @@
 import React from 'react';
-import styles from './ProfileContent.module.scss';
+import styles from './PlayerContent.module.scss';
 import FeatureToggle from '../../components/FeatureToggle';
 import ActivityList from '../ActivityList/ActivityList';
 
-export default function ProfileContent(props) {
+export default function PlayerContent(props) {
 
   return (
     <div className={styles.profileContent}>

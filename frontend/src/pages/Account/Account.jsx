@@ -15,15 +15,15 @@ export default function Account() {
         {/* Quick Actions */}
         <section className={styles.section}>
           <div className={styles.actions}>
-            <Link to="/edit-profile" className={styles.actionButton}>
-              Edit Profile
+            <Link to="/edit-account" className={styles.actionButton}>
+              Edit Player
             </Link>
           </div>
         </section>
 
-        {/* Profile Information */}
+        {/* Player Information */}
         <section className={styles.section}>
-          <h2>Profile</h2>
+          <h2>Player</h2>
           <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
               <span className={styles.label}>Username</span>
