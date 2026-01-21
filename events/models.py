@@ -60,7 +60,7 @@ class EventGoal(models.Model):
         self.progress_value += value
 
         if self.is_completed():
-            self.status = STATUS_CHOICES.completed
+            self.status = "completed"
             self.event.check_completed()
         self.save()
 
