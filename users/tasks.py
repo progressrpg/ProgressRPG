@@ -10,17 +10,17 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 import logging
 
-from .models import Profile
+from .models import Player
 from character.models import PlayerCharacterLink
 
 User = get_user_model()
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 @shared_task
 def perform_account_wipe():
-    # Get profiles marked for deletion
+    # Get players marked for deletion
     users = User.objects.filter(pending_delete=True, delete_at__lte=timezone.now())
 
     for user in users:
@@ -32,30 +32,30 @@ def perform_account_wipe():
         user.delete_at = None
         user.save()
 
-        # Wipe profile data
-        profile: Profile = user.profile
-        profile.name = f"Deleted User {user.id}"
-        profile.bio = ""
-        profile.onboarding_step = None
-        profile.is_premium = False
-        profile.total_time = 0
-        profile.total_activities = 0
-        profile.xp = 0
-        profile.level = 1
-        profile.last_login = None
-        profile.login_streak = 0
-        profile.login_streak_max = 0
-        profile.total_logins = 0
-        profile.activities.all().delete()
-        profile.skills.all().delete()
-        profile.projects.all().delete()
-        profile.save()
+        # Wipe player data
+        player: Player = user.player
+        player.name = f"Deleted User {user.id}"
+        player.bio = ""
+        player.onboarding_step = None
+        player.is_premium = False
+        player.total_time = 0
+        player.total_activities = 0
+        player.xp = 0
+        player.level = 1
+        player.last_login = None
+        player.login_streak = 0
+        player.login_streak_max = 0
+        player.total_logins = 0
+        player.activities.all().delete()
+        player.skills.all().delete()
+        player.projects.all().delete()
+        player.save()
 
-        PlayerCharacterLink.deactivate_active_links(profile=profile)
+        PlayerCharacterLink.deactivate_active_links(player=player)
 
-        profile.is_deleted = True
-        profile.deleted_at = timezone.now()
-        profile.save()
+        player.is_deleted = True
+        player.deleted_at = timezone.now()
+        player.save()
 
         # Log the deletion
         logger.info(f"User {user.username} (ID: {user.id}) was deleted after 14 days.")

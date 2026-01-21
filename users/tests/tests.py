@@ -4,12 +4,12 @@ from django.urls import reverse
 from unittest import skip
 import logging
 
-from users.models import Profile
+from users.models import Player
 from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink
 
-logging.getLogger("django").setLevel(logging.CRITICAL)
+logging.getLogger("general").setLevel(logging.CRITICAL)
 
 
 class UserCreationTest(TestCase):
@@ -27,10 +27,10 @@ class UserCreationTest(TestCase):
         self.assertEqual(user.email, "testuser@example.com")
         self.assertTrue(user.check_password("testpassword123"))
 
-        profile = user.profile
-        self.assertTrue(isinstance(user.profile, Profile))
-        self.assertEqual(user, user.profile.user)
-        self.assertEqual(user.profile.xp, 0)
+        player = user.player
+        self.assertTrue(isinstance(user.player, Player))
+        self.assertEqual(user, user.player.user)
+        self.assertEqual(user.player.xp, 0)
 
     def test_create_superuser(self):
         """Test that a superuser can be created successfully."""
@@ -41,24 +41,24 @@ class UserCreationTest(TestCase):
         self.assertTrue(superuser.is_superuser)
         self.assertTrue(superuser.is_staff)
 
-    def test_character_assigned_on_profile(self):
-        """Test that a character is assigned to the user's profile."""
+    def test_character_assigned_on_player(self):
+        """Test that a character is assigned to the user's player."""
         user = self.UserModel.objects.create_user(
             email="testuser1@example.com", password="testpassword123"
         )
-        link = PlayerCharacterLink.objects.filter(profile=user.profile).first()
+        link = PlayerCharacterLink.objects.filter(player=user.player).first()
         character = link.character
         self.assertEqual(character, self.character)
 
-    def test_profile_defaults(self):
-        """Test default values for a new profile."""
+    def test_player_defaults(self):
+        """Test default values for a new player."""
         user = self.UserModel.objects.create_user(
             email="testuser2@example.com", password="testpassword123"
         )
-        profile = user.profile
-        self.assertEqual(profile.onboarding_step, 0)
-        self.assertEqual(profile.total_time, 0)
-        self.assertEqual(profile.total_activities, 0)
+        player = user.player
+        self.assertEqual(player.onboarding_step, 0)
+        self.assertEqual(player.total_time, 0)
+        self.assertEqual(player.total_activities, 0)
 
 
 class OnboardingTest(TestCase):
@@ -68,15 +68,15 @@ class OnboardingTest(TestCase):
             email="testuser@example.com", password="testpassword123"
         )
         self.client.login(email="testuser@example.com", password="testpassword123")
-        self.profile = self.user.profile
+        self.player = self.user.player
 
     def test_initial_onboarding(self):
         """Test that onboarding starts at step 0."""
-        self.assertEqual(self.user.profile.onboarding_step, 0)
+        self.assertEqual(self.user.player.onboarding_step, 0)
 
     @skip("Need new character onboarding test")
-    def test_onboarding_profile(self):
-        """Test the profile creation step in onboarding."""
+    def test_onboarding_player(self):
+        """Test the player creation step in onboarding."""
         url = reverse("create_profile")
         data = {"name": "Test name"}
         response = self.client.post(url, data)
@@ -85,15 +85,15 @@ class OnboardingTest(TestCase):
         expected_url = reverse("create_character")
         self.assertRedirects(response, expected_url)
 
-        self.profile.refresh_from_db()
-        self.assertEqual(self.profile.onboarding_step, 2)
-        self.assertEqual(self.profile.name, "Test name")
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.onboarding_step, 2)
+        self.assertEqual(self.player.name, "Test name")
 
     @skip("Need new character onboarding test")
     def test_onboarding_character(self):
         """Test the character creation step in onboarding."""
-        self.profile.onboarding_step = 2
-        self.profile.save()
+        self.player.onboarding_step = 2
+        self.player.save()
 
         url = reverse("create_character")
         data = {"character_name": "Test Character"}
@@ -103,15 +103,15 @@ class OnboardingTest(TestCase):
         expected_url = reverse("subscribe")
         self.assertRedirects(response, expected_url)
 
-        self.profile.refresh_from_db()
-        self.assertEqual(self.profile.onboarding_step, 3)
-        self.assertEqual(self.profile.character.first_name, "Test Character")
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.onboarding_step, 3)
+        self.assertEqual(self.player.character.first_name, "Test Character")
 
     @skip("Skipping as temporarily broken")
     def test_onboarding_subscribe(self):
         """Test the subscription step in onboarding."""
-        self.profile.onboarding_step = 3
-        self.profile.save()
+        self.player.onboarding_step = 3
+        self.player.save()
 
         url = reverse("subscribe")
         response = self.client.post(url, {})
@@ -120,12 +120,12 @@ class OnboardingTest(TestCase):
         expected_url = reverse("game")
         self.assertRedirects(response, expected_url)
 
-        self.profile.refresh_from_db()
-        self.assertEqual(self.profile.onboarding_step, 4)
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.onboarding_step, 4)
 
 
 @tag("fast")
-class ProfileMethodsTest(TestCase):
+class PlayerMethodsTest(TestCase):
     def setUp(self):
         self.character = Character.objects.create(first_name="Jane", can_link=True)
         self.character2 = Character.objects.create(first_name="John", can_link=True)
@@ -134,20 +134,18 @@ class ProfileMethodsTest(TestCase):
             email="testuser1@example.com", password="testpassword123"
         )
 
-    def test_profile_addactivity(self):
-        """Test adding activity to a profile."""
-        profile = self.user.profile
-        profile.add_activity(10, 1)
-        self.assertEqual(profile.total_time, 10)
-        self.assertEqual(profile.total_activities, 1)
+    def test_player_add_activity(self):
+        """Test adding activity to a player."""
+        player = self.user.player
+        player.add_activity(10, 1)
+        self.assertEqual(player.total_time, 10)
+        self.assertEqual(player.total_activities, 1)
 
     def test_change_character(self):
-        """Test changing the character linked to a profile."""
-        profile = self.user.profile
-        profile.change_character(self.character2)
-        link = PlayerCharacterLink.objects.filter(
-            profile=profile, is_active=True
-        ).first()
+        """Test changing the character linked to a player."""
+        player = self.user.player
+        player.change_character(self.character2)
+        link = PlayerCharacterLink.objects.filter(player=player, is_active=True).first()
         self.assertEqual(link.character, self.character2)
 
 
@@ -156,13 +154,13 @@ class TestViews_LoggedOut(TestCase):
     def setUp(self):
         # urls
         self.index_url = reverse("index")
-        self.profile_url = reverse("profile")
+        self.player_url = reverse("player")
         self.editprofile_url = reverse("edit_profile")
         self.register_url = reverse("register")
 
     def test_profile_GET_loggedout(self):
         """Check redirect to login if user not logged in."""
-        response = self.client.get(self.profile_url)
+        response = self.client.get(self.player_url)
         self.assertEqual(response.status_code, 302)
 
     def test_editprofile_GET_loggedout(self):

@@ -28,10 +28,13 @@
   align-items: center;
   gap: v.$spacing-sm;
   width: 100%;
-  padding: v.$spacing-xs 0;
+  padding: v.$padding-base;
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
   border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.4);
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
 
-  background-color: c.$color-bg;
   @include t.apply-text-style(t.$text-body);
   @include c.apply-list-variant(default, false);
 
@@ -43,6 +46,14 @@
     @include c.apply-list-variant(default, true);
   }
 
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.06);
+    border-color: rgba(c.$color-border-primary, 0.5);
+    box-shadow:
+      0px 2px 4px rgba(0, 0, 0, 0.1),
+      inset 0px 0px 0px 1px rgba(c.$color-border-primary, 0.2);
+    z-index: 1;
+  }
 }
 
 li:hover {

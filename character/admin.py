@@ -22,11 +22,11 @@ class BehaviourInline(admin.StackedInline):
     max_num = 1
 
 
-@admin.action(description="Mark selected characters as NPCs and unlink from profiles")
+@admin.action(description="Mark selected characters as NPCs and unlink from players")
 def mark_as_npc(modeladmin, request, queryset):
     for character in queryset:
         # Unlink any active PlayerCharacterLink
-        active_links = character.profile_link.filter(is_active=True)
+        active_links = character.player_link.filter(is_active=True)
         for link in active_links:
             link.unlink()
 
@@ -93,8 +93,7 @@ class CharacterAdmin(admin.ModelAdmin):
     list_display = [
         "first_name",
         "last_name",
-        "get_profile",
-        "is_npc",
+        "get_player",
         "can_link",
         "birth_date",
         "death_date",
@@ -108,25 +107,25 @@ class CharacterAdmin(admin.ModelAdmin):
     search_fields = [
         "first_name",
         "last_name",
-        "profile_link__profile__name",
+        "player_link__player__name",
     ]
     readonly_fields = [
-        "get_profile",
+        "get_player",
         "is_npc",
     ]
     ordering = ["last_name", "first_name"]
     inlines = [LinkInline, BehaviourInline]
     actions = [mark_as_npc, mark_as_canlink]
 
-    @admin.display(description="Profile")
-    def get_profile(self, obj):
+    @admin.display(description="Player")
+    def get_player(self, obj):
         try:
-            return PlayerCharacterLink.get_profile(obj)
+            return PlayerCharacterLink.get_player(obj)
         except ValueError:
             return "-"
 
-    @admin.display(boolean=True, description="Has Profile")
-    def has_profile(self, obj):
+    @admin.display(boolean=True, description="Has Player")
+    def has_player(self, obj):
         return PlayerCharacterLink.objects.filter(
             character=obj, is_active=True
         ).exists()
@@ -134,8 +133,8 @@ class CharacterAdmin(admin.ModelAdmin):
 
 @admin.register(PlayerCharacterLink)
 class PlayerCharacterLinkAdmin(admin.ModelAdmin):
-    list_display = ["profile", "character", "is_active"]
-    fields = ["profile", "character", "is_active", ("date_linked", "date_unlinked")]
+    list_display = ["player", "character", "is_active"]
+    fields = ["player", "character", "is_active", ("date_linked", "date_unlinked")]
     readonly_fields = ["date_linked", "date_unlinked"]
 
 

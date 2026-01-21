@@ -7,12 +7,12 @@ messages to clients. These functions enhance core gameplay logic and enable real
 communication between the server and users.
 
 Functions:
-    - check_quest_eligibility(character, profile): Checks which quests a character is eligible for based on their profile and quest history.
+    - check_quest_eligibility(character, player): Checks which quests a character is eligible for based on their player and quest history.
     - start_server_timers(act_timer, quest_timer): Asynchronously starts the server-side activity and quest timers.
     - pause_server_timers(act_timer, quest_timer): Asynchronously pauses the server-side activity and quest timers.
-    - control_timers(profile, act_timer, quest_timer, mode): Asynchronously starts or pauses both server and client timers, with WebSocket feedback.
-    - process_initiation(profile, character, action): Create activity or choose quest, handling timers and WebSocket updates.
-    - process_completion(profile, character, action): Submits activity or completes quest, handling timers and WebSocket updates.
+    - control_timers(player, act_timer, quest_timer, mode): Asynchronously starts or pauses both server and client timers, with WebSocket feedback.
+    - process_initiation(player, character, action): Create activity or choose quest, handling timers and WebSocket updates.
+    - process_completion(player, character, action): Submits activity or completes quest, handling timers and WebSocket updates.
     - send_group_message(group_name, message): Sends a message to a WebSocket group.
 
 Usage:
@@ -46,27 +46,23 @@ from character.models import Character
 
 # from character.serializers import CharacterSerializer
 
-from users.models import Profile
+from users.models import Player
 
 # from users.serializers import ProfileSerializer
 
 import logging
 
-logger = logging.getLogger("django")  # Get the logger for this module
+from progress_rpg.exceptions import QuestError, CharacterError, TimerError
+
+logger = logging.getLogger("general")  # Get the logger for this module
 
 
-def check_quest_eligibility(character: Character, profile: Profile) -> list:
+def check_quest_eligibility(character: Character, player: Player) -> list:
     """
-    Checks the eligibility of quests for a specific character and profile.
-
-    :param character: The character instance to evaluate quests for.
-    :type character: Character
-    :param profile: The profile instance associated with the character.
-    :type profile: Profile
-    :return: A list of eligible quests for the given character and profile.
+    Checks the eligibility of quests for a specific character and player.
     """
     logger.info(
-        f"[CHECK QUEST ELIGIBILITY] Checking eligibility for character {character.id} and profile {profile.id}"
+        f"[CHECK QUEST ELIGIBILITY] Checking eligibility for character {character.id} and player {player.id}"
     )
     char_quests = QuestCompletion.objects.filter(character=character)
     quests_done = {}
@@ -77,17 +73,17 @@ def check_quest_eligibility(character: Character, profile: Profile) -> list:
     return [
         quest
         for quest in Quest.objects.all()
-        if check_individual_quest(quest, character, profile, quests_done)
+        if check_individual_quest(quest, character, player, quests_done)
     ]
 
 
 def check_individual_quest(
-    quest: Quest, character: Character, profile: Profile, quests_done
+    quest: Quest, character: Character, player: Player, quests_done
 ):
     # logger.debug(f"[CHECK QUEST ELIGIBILITY] Evaluating quest: {quest}")
 
     return (
-        quest.checkEligible(character, profile)
+        quest.checkEligible(character, player)
         and quest.not_repeating(character)
         and quest.requirements_met(quests_done)
     )
@@ -182,24 +178,15 @@ def pause_server_timers(act_timer: ActivityTimer, quest_timer: QuestTimer):
 
 
 async def control_timers(
-    profile: Profile, act_timer: ActivityTimer, quest_timer: QuestTimer, mode: str
+    player: Player, act_timer: ActivityTimer, quest_timer: QuestTimer, mode: str
 ) -> bool:
     """
-    Starts or pauses timers for a specific profile by controlling server-side timers.
+    Starts or pauses timers for a specific player by controlling server-side timers.
 
-    :param profile: The profile the timers.
-    :type profile: Profile
-    :param act_timer: The activity timer instance.
-    :type act_timer: ActivityTimer
-    :param quest_timer: The quest timer instance.
-    :type quest_timer: QuestTimer
-    :param mode: Should be "start" or "pause".
-    :type mode: str
-    :return: True if success, otherwise False.
     """
-    profile_id = profile.id
+    player_id = player.id
     logger.info(
-        f"[CONTROL TIMERS] Performing '{mode}' on timers for profile {profile_id}"
+        f"[CONTROL TIMERS] Performing '{mode}' on timers for player {player_id}"
     )
     qt = quest_timer
     logger.debug(
@@ -224,16 +211,16 @@ async def control_timers(
         logger.warning(result_text)
 
     if server_success:
-        logger.info(f"[CONTROL TIMERS] {success_message} for profile {profile_id}")
+        logger.info(f"[CONTROL TIMERS] {success_message} for player {player_id}")
         await send_group_message(
-            f"profile_{profile_id}",
+            f"player_{player_id}",
             {"type": "action", "action": action, "success": True},
         )
         return True
     else:
-        logger.warning(f"[CONTROL TIMERS] {failure_message} for profile {profile_id}")
+        logger.warning(f"[CONTROL TIMERS] {failure_message} for player {player_id}")
         await send_group_message(
-            f"profile_{profile_id}",
+            f"player_{player_id}",
             {
                 "type": "response",
                 "action": "console.log",
@@ -258,26 +245,17 @@ def server_quest_ready(quest_timer: QuestTimer) -> bool:
             return True
 
 
-def process_initiation(profile: Profile, character: Character, action: str) -> bool:
+def process_initiation(player: Player, character: Character, action: str) -> bool:
     """
     Processes the initiation of an activity or quest, starting timers if possible.
-
-    :param profile: The profile associated with the quest.
-    :type profile: Profile
-    :param character: The character instance completing the quest.
-    :type character: Character
-    :param action: The action being performed (e.g., "create_activity" or "choose_quest").
-    :type action: str
-    :return: True if the quest is successfully completed, False otherwise.
-    :rtype: bool
     """
-    profile.refresh_from_db()
-    profile_id = profile.id
-    act_timer = profile.activity_timer
+    player.refresh_from_db()
+    player_id = player.id
+    act_timer = player.activity_timer
     character.refresh_from_db()
     quest_timer = character.quest_timer
     logger.info(
-        f"[PROCESS INITIATION] Initiating {action} for profile {profile_id}, character {character.id}"
+        f"[PROCESS INITIATION] Initiating {action} for player {player_id}, character {character.id}"
     )
     # logger.debug(f"[PROCESS INITIATION] Timers status: {act_timer.status}/{quest_timer.status}")
     qt = quest_timer
@@ -286,10 +264,10 @@ def process_initiation(profile: Profile, character: Character, action: str) -> b
     start_success, result_text = start_server_timers(act_timer, quest_timer)
     if not start_success:
         logger.info(
-            f"[PROCESS INITIATION] Failed to start timers for profile {profile_id}. Result: {result_text}"
+            f"[PROCESS INITIATION] Failed to start timers for player {player_id}. Result: {result_text}"
         )
         async_to_sync(send_group_message)(
-            f"profile_{profile_id}",
+            f"player_{player_id}",
             {"type": "response", "action": "console.log", "message": result_text},
         )
         return False
@@ -297,7 +275,7 @@ def process_initiation(profile: Profile, character: Character, action: str) -> b
         # act_timer.refresh_from_db()
         # quest_timer.refresh_from_db()
         async_to_sync(send_group_message)(
-            f"profile_{profile_id}",
+            f"player_{player_id}",
             {
                 "type": "action",
                 "action": (
@@ -308,26 +286,17 @@ def process_initiation(profile: Profile, character: Character, action: str) -> b
         return True
 
 
-def process_completion(profile: Profile, character: Character, action: str) -> bool:
+def process_completion(player: Player, character: Character, action: str) -> bool:
     """
     Processes the completion of an activity or quest, pausing timers.
-
-    :param profile: The profile associated with the quest.
-    :type profile: Profile
-    :param character: The character instance completing the quest.
-    :type character: Character
-    :param action: The action being performed (e.g., "quest_complete" or "submit_activity").
-    :type action: str
-    :return: True if the quest is successfully completed, False otherwise.
-    :rtype: bool
     """
-    profile.refresh_from_db()
+    player.refresh_from_db()
     character.refresh_from_db()
-    profile_id = profile.id
-    act_timer = profile.activity_timer
+    player_id = player.id
+    act_timer = player.activity_timer
     quest_timer = character.quest_timer
     logger.info(
-        f"[PROCESS COMPLETION] Doing {action} for profile {profile_id}, character {character.id}"
+        f"[PROCESS COMPLETION] Doing {action} for player {player_id}, character {character.id}"
     )
 
     if action == "complete_quest":
@@ -340,10 +309,10 @@ def process_completion(profile: Profile, character: Character, action: str) -> b
         pause_success, result_text = pause_server_timers(act_timer, quest_timer)
         if not pause_success:
             logger.warning(
-                f"[PROCESS COMPLETION] Failed to pause timers for profile {profile_id}"
+                f"[PROCESS COMPLETION] Failed to pause timers for player {player_id}"
             )
             async_to_sync(send_group_message)(
-                f"profile_{profile_id}",
+                f"player_{player_id}",
                 {"type": "error", "action": "warn", "message": "Pausing timers failed"},
             )
             return False
@@ -351,7 +320,7 @@ def process_completion(profile: Profile, character: Character, action: str) -> b
             # act_timer.refresh_from_db()
             # quest_timer.refresh_from_db()
             async_to_sync(send_group_message)(
-                f"profile_{profile_id}",
+                f"player_{player_id}",
                 {
                     "type": "action",
                     "action": (
@@ -367,7 +336,7 @@ def process_completion(profile: Profile, character: Character, action: str) -> b
         logger.warning(f"[PROCESS COMPLETION] Quest not ready for completion")
         serialized_timer = QuestTimerSerializer(quest_timer).data
         async_to_sync(send_group_message)(
-            f"profile_{profile_id}",
+            f"player_{player_id}",
             {
                 "success": True,
                 "type": "action",
@@ -419,3 +388,20 @@ async def send_group_message(group_name: str, message: dict) -> bool:
             f"[GROUP SEND MESSAGE] No channel layer available for group '{group_name}'"
         )
         return False
+
+
+def validate_quest_completion(character):
+    """Validate that a quest can be completed"""
+    if not hasattr(character, "quest_timer") or not character.quest_timer:
+        raise CharacterError("Character has no quest timer")
+
+    quest = character.quest_timer.quest
+    if not quest:
+        raise QuestError("No active quest to complete")
+
+    if character.quest_timer.status != "completed":
+        raise TimerError(
+            f"Quest timer is not completed (status: {character.quest_timer.status})"
+        )
+
+    return quest

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { API_BASE_URL } from '../config';
 
-export default function ProfileSocketListener({ onEvent }) {
+export default function PlayerSocketListener({ onEvent }) {
   const { player } = useGame();
   const socketRef = useRef(null);
 

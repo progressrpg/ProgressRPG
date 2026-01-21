@@ -31,6 +31,6 @@ class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         # Later you might filter by proximity or visibility
-        # location = self.request.user.profile.location
+        # location = self.request.user.player.location
         # return super().get_queryset().filter(location__near=location)
         return super().get_queryset()

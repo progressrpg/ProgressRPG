@@ -6,8 +6,8 @@ import Button from "../Button/Button";
 import styles from "./ActivityInput.module.scss";
 
 export default function ActivityInput() {
-  const { activityTimer2, fetchCharacterCurrent, fetchActivities } = useGame();
-  const { status, stop, startActivity, elapsed } = activityTimer2;
+  const { activityTimer, fetchCharacterCurrent, fetchActivities } = useGame();
+  const { status, stop, startActivity, elapsed } = activityTimer;
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
@@ -28,6 +28,13 @@ export default function ActivityInput() {
     await startActivity(name.trim());
   }
 
+  function handleKeyDown(e) {
+    if (e.key === "Enter" && !isActive && name.trim()) {
+      e.preventDefault();
+      handleToggle();
+    }
+  }
+
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
 
@@ -45,6 +52,7 @@ export default function ActivityInput() {
               id="activity-name"
               value={name}
               onChange={setName}
+              onKeyDown={handleKeyDown}
               placeholder="What are you working on? e.g. washing dishes"
             />
           </div>

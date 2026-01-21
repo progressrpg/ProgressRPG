@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("users", "0019_rename_create_at_customuser_created_at_and_more"),
+        ("users", "0036_rename_profile_to_player"),
     ]
 
     operations = [
@@ -108,11 +108,11 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "profile",
+                    "player",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="contribution",
-                        to="users.profile",
+                        to="users.player",
                     ),
                 ),
             ],

@@ -1,0 +1,259 @@
+@use '../styles/utilities/mixins' as m;
+@use '../styles/base/variables' as v;
+@use '../styles/semantic/typography' as t;
+@use '../styles/semantic/colors' as c;
+@use 'sass:map';
+
+.page {
+  @include m.page-layout();
+}
+
+.header {
+  text-align: center;
+  margin-bottom: v.$spacing-lg;
+
+  h1 {
+    @include t.apply-text-style(t.$text-heading-1);
+    margin-bottom: v.$spacing-md;
+  }
+}
+
+.dateTabs {
+  display: flex;
+  gap: v.$spacing-sm;
+  margin-bottom: v.$spacing-md;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.dateButton {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid rgba(c.$color-border-primary, 0.4);
+  border-radius: v.$border-radius;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+
+  &:hover {
+    border-color: c.$color-border-primary;
+    background: rgba(c.$color-border-primary, 0.1);
+  }
+
+  &.active {
+    @include c.apply-button-variant(primary);
+  }
+}
+
+.activitiesList {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-md;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  max-height: 50vh;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-right: v.$spacing-sm;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(c.$color-border-primary, 0.4);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(c.$color-border-primary, 0.6);
+    }
+  }
+}
+
+.backLink {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  background: transparent;
+  color: c.$color-border-primary;
+  text-decoration: none;
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+  text-align: center;
+  margin-bottom: v.$spacing-md;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.1);
+    border-color: #5a4cff;
+    color: #5a4cff;
+  }
+
+  &:active {
+    background: rgba(c.$color-border-primary, 0.2);
+  }
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: v.$spacing-md;
+  padding: v.$padding-base;
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.4);
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.06);
+    border-color: rgba(c.$color-border-primary, 0.5);
+    box-shadow:
+      0px 2px 4px rgba(0, 0, 0, 0.1),
+      inset 0px 0px 0px 1px rgba(c.$color-border-primary, 0.2);
+    z-index: 1;
+  }
+}
+
+.activityDetails {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-xs;
+  flex: 1;
+
+  .name {
+    font-weight: 500;
+    @include t.apply-text-style(t.$text-body);
+  }
+
+  .meta {
+    font-size: 0.85em;
+    color: rgba(0, 0, 0, 0.6);
+    @include t.apply-text-style(t.$text-caption);
+  }
+}
+
+.editInput {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 2px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  font-size: 1em;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #5a4cff;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: v.$spacing-xs;
+}
+
+.editButton {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  background: transparent;
+  color: c.$color-border-primary;
+  border-radius: v.$border-radius;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-caption);
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.1);
+    border-color: #5a4cff;
+    color: #5a4cff;
+  }
+
+  &:active {
+    background: rgba(c.$color-border-primary, 0.2);
+  }
+}
+
+.saveButton {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid #5a4cff;
+  background: #5a4cff;
+  color: white;
+  border-radius: v.$border-radius;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-caption);
+
+  &:hover {
+    background: #6d5fff;
+    border-color: #6d5fff;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.cancelButton {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid #999;
+  background: transparent;
+  color: #999;
+  border-radius: v.$border-radius;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-caption);
+
+  &:hover {
+    background: rgba(153, 153, 153, 0.1);
+    border-color: #666;
+    color: #666;
+  }
+
+  &:active {
+    background: rgba(153, 153, 153, 0.2);
+  }
+}
+
+.deleteButton {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid #d32f2f;
+  background: transparent;
+  color: #d32f2f;
+  border-radius: v.$border-radius;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-caption);
+
+  &:hover {
+    background: rgba(211, 47, 47, 0.1);
+    border-color: #b71c1c;
+    color: #b71c1c;
+  }
+
+  &:active {
+    background: rgba(211, 47, 47, 0.2);
+  }
+}
+
+.emptyState {
+  text-align: center;
+  padding: v.$padding-lg;
+  color: rgba(0, 0, 0, 0.6);
+
+  p {
+    @include t.apply-text-style(t.$text-body);
+    margin: 0;
+  }
+}

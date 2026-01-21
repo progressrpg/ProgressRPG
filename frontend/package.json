@@ -10,6 +10,9 @@
     "heroku-postbuild": "cd frontend && npm install && npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
     "test:a11y": "playwright test --project=a11y",
     "test:a11y:ui": "playwright test --project=a11y --ui",
     "test:a11y:report": "playwright show-report"
@@ -33,6 +36,9 @@
     "@axe-core/playwright": "^4.11.0",
     "@eslint/js": "^9.29.0",
     "@playwright/test": "^1.56.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
@@ -42,7 +48,9 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.4.0",
+    "happy-dom": "^20.3.3",
     "sass": "^1.93.3",
+    "vitest": "^4.0.17",
     "vite": "^7.3.1"
   }
 }

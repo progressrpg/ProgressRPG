@@ -11,7 +11,7 @@ django.setup()
 
 import logging
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 def restart_services():

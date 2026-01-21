@@ -1,5 +1,7 @@
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/colors' as c;
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/semantic/typography' as t;
 
 /* Navigation Drawer */
 .nav-drawer {
@@ -9,8 +11,8 @@
     /* Hidden by default */
     width: 16rem;
     height: 100%;
-    background: rgba(c.$color-bg, 0.95);
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    background: c.$color-bg;
+    @include m.box-shadow(md);
     overflow-y: auto;
     transition: transform 0.3s ease-out;
     z-index: v.$z-index-overlay + 1;
@@ -24,26 +26,60 @@
 }
 
 .nav-drawer-header {
-    padding: v.$spacing-xl;
-    //background: v.$color-secondary;
+    padding: v.$spacing-md;
     display: flex;
     justify-content: flex-end;
     align-items: center;
 }
 
+.closeButton {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(c.$color-border-primary, 0.3);
+    border-radius: v.$border-radius;
+    background: transparent;
+    color: c.$color-border-primary;
+    font-size: 1.5em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    @include t.apply-text-style(t.$text-body);
+
+    &:hover {
+        background: rgba(c.$color-border-primary, 0.1);
+        border-color: c.$color-border-primary;
+        transform: rotate(90deg);
+    }
+
+    &:active {
+        background: rgba(c.$color-border-primary, 0.2);
+        transform: rotate(90deg) scale(0.95);
+    }
+}
+
 .nav-drawer-links {
     list-style: none;
-    padding: 0;
+    padding: v.$spacing-md;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: v.$spacing-sm;
 }
 
 .nav-drawer-links li {
     padding: v.$padding-base;
-    border-bottom: 1px solid #ddd;
+    @include m.border(c.$color-border-light);
+    border-width: 0 0 1px 0;
 }
 
 .nav-drawer-links a {
     text-decoration: none;
+    width: 100%;
+    padding: v.$padding-base;
+    display: block;
+    @include t.apply-text-style(t.$text-body);
 }
 
 /* Overlay */
@@ -53,7 +89,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
+    background: c.$color-overlay-light;
     z-index: v.$z-index-overlay;
     opacity: 0;
     pointer-events: none;

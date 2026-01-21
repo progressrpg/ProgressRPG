@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import styles from './Navbar.module.scss';
 import Button from '../../components/Button/Button';
 import ButtonFrame from '../../components/Button/ButtonFrame';
@@ -7,30 +8,33 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar({ onMenuClick }) {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  const isGamePage = location.pathname === '/game';
+  const isActivitiesPage = location.pathname === '/activities';
 
   return (
     <header className={styles.header}>
       <nav className={styles.navbar} aria-label="Main navigation">
 
         <div className={styles.leftLinks}>
-          {/*
-
           <button
             className={styles.menuButton}
             onClick={onMenuClick}
             aria-label="Open menu"
           >
-
             <div className={styles.menuIcon}>
               <span></span>
               <span></span>
               <span></span>
             </div>
           </button>
-          */}
 
           <Link to={isAuthenticated ? '/game' : '/'} aria-label={isAuthenticated ? 'Go to game' : 'Go to home'}>
-            <Button variant="primary" className={styles.navLink}>
+            <Button
+              variant={isAuthenticated && isGamePage ? "secondary" : "primary"}
+              className={styles.navLink}
+            >
               {isAuthenticated ? 'Game' : 'Home'}
             </Button>
           </Link>
@@ -46,7 +50,7 @@ export default function Navbar({ onMenuClick }) {
                 </Button>
               </Link>
               </div>
-              <Link to="/profile" aria-label="Go to your account">
+              <Link to="/account" aria-label="Go to your account">
                 <Button
                   className={styles.navLink}
                   variant="primary"
@@ -79,11 +83,22 @@ export default function Navbar({ onMenuClick }) {
             <>
               {/* <Link to="/menu">Menu</Link> */}
               <Link to="/game" aria-label="Go to game">
-                <Button variant="secondary" className={styles.navLink}>
+                <Button
+                  variant={isGamePage ? "primary" : "secondary"}
+                  className={styles.navLink}
+                >
                   Game
                 </Button>
               </Link>
-              <Link to="/profile" aria-label="Go to your account">
+              <Link to="/activities">
+                <Button
+                  variant={isActivitiesPage ? "primary" : "secondary"}
+                  className={styles.navLink}
+                >
+                  Activities
+                </Button>
+              </Link>
+              <Link to="/account" aria-label="Go to your account">
                 <Button variant="secondary" className={styles.navLink}>
                   Account
                 </Button>

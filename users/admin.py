@@ -1,10 +1,16 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import CustomUser, Profile, InviteCode
+from .models import CustomUser, Player, InviteCode
 from character.models import PlayerCharacterLink, Character
 
 # Register your models here.
+
+
+class PlayerInline(admin.TabularInline):
+    model = Player
+    extra = 0
+    max_num = 1
 
 
 @admin.register(CustomUser)
@@ -51,9 +57,10 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ["email"]
     ordering = ("-created_at",)
     readonly_fields = ["created_at"]
+    inlines = [PlayerInline]
 
 
-@admin.register(Profile)
+@admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
     list_display = [
         "user",
@@ -119,7 +126,7 @@ class PlayerAdmin(admin.ModelAdmin):
 
     @admin.display(boolean=True, description="Has Character")
     def has_character(self, obj):
-        return PlayerCharacterLink.objects.filter(profile=obj, is_active=True).exists()
+        return PlayerCharacterLink.objects.filter(player=obj, is_active=True).exists()
 
     @admin.display(
         description="User Created",

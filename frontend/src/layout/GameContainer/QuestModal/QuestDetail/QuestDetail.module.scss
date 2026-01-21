@@ -2,6 +2,7 @@
 @use '../../../two-columns' as tc;
 @use '../../../../styles/semantic/typography' as t;
 @use '../../../../styles/semantic/colors' as c;
+@use '../../../../styles/utilities/mixins' as m;
 
 .questDetail {
   padding: v.$padding-base;
@@ -31,21 +32,19 @@ select {
   min-width: 5rem;
   padding: v.$spacing-xs v.$spacing-xs;
 
-  border: 1px solid lightgray;
+  @include m.border-interactive(
+    c.$color-border-light,
+    c.$color-border-accent,
+    c.$color-border-accent
+  );
   border-radius: v.$border-radius;
   cursor: pointer;
-  transition: border-color 0.2s ease;
 
   @include t.apply-text-style(t.$text-body);
 
-  &:hover {
-    border-color: orange;
-  }
-
   &:focus {
     outline: none;
-    border-color: orange;
-    box-shadow: 0 0 0 2px orange;
+    box-shadow: 0 0 0 2px c.$color-border-accent;
   }
 }
 

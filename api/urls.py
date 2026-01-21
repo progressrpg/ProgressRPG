@@ -27,7 +27,7 @@ from progression.views import (
     TaskViewSet,
 )
 from server_management.views import maintenance_status
-from users.views import ProfileViewSet
+from users.views import PlayerViewSet
 
 
 class KeyConverter:
@@ -48,7 +48,7 @@ register_converter(KeyConverter, "key")
 
 router = DefaultRouter()
 router.register(r"me", MeViewSet, basename="me")
-router.register(r"profile", ProfileViewSet, basename="profile")
+router.register(r"player", PlayerViewSet, basename="player")
 router.register(r"character", CharacterViewSet, basename="character")
 router.register(r"skills", PlayerSkillViewSet, basename="skills")
 router.register(r"tasks", TaskViewSet, basename="tasks")

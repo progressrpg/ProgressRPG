@@ -1,7 +1,7 @@
 """
 Models for the gameplay application, including quests, requirements, completions,
 timers, and server messages. These models are used to manage in-game
-logic, track player progress, and handle rewards and buffs.
+logic, track player progress, and handle rewards.
 
 Author: Duncan Appleby
 """
@@ -24,7 +24,7 @@ from progression.models import PlayerActivity
 if TYPE_CHECKING:
     from character.models import Character
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 class Quest(models.Model):
@@ -154,9 +154,9 @@ class Quest(models.Model):
                                 return False
         return True
 
-    def checkEligible(self, character: "Character", profile):
+    def checkEligible(self, character: "Character", player):
         """
-        Determine if the quest is eligible for the given character and profile.
+        Determine if the quest is eligible for the given character and player.
 
         """
         # Simple comparison checks
@@ -166,7 +166,7 @@ class Quest(models.Model):
         #    return False
         elif character.level < self.levelMin or character.level > self.levelMax:
             return False
-        elif profile.is_premium and self.is_premium:
+        elif player.is_premium and self.is_premium:
             return False
 
         # Quest passed the test
@@ -175,8 +175,8 @@ class Quest(models.Model):
 
 class QuestResults(models.Model):
     """
-    Stores the results and rewards for a quest, including experience points,
-    coins, and buffs.
+    Stores the results and rewards for a quest, including experience points
+    and coins.
 
     """
 
@@ -186,7 +186,6 @@ class QuestResults(models.Model):
     dynamic_rewards = models.JSONField(default=dict, null=True, blank=True)
     xp_rate = models.IntegerField(default=1)
     coin_reward = models.IntegerField(default=0)
-    buffs = models.JSONField(default=list, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -366,8 +365,8 @@ class ActivityTimer(Timer):
 
     """
 
-    profile = models.OneToOneField(
-        "users.profile", on_delete=models.CASCADE, related_name="activity_timer"
+    player = models.OneToOneField(
+        "users.Player", on_delete=models.CASCADE, related_name="activity_timer"
     )
     activity = models.ForeignKey(
         "progression.PlayerActivity",
@@ -382,7 +381,7 @@ class ActivityTimer(Timer):
         # logger.debug(f"[Activity timer save] Compute elapsed: {self.compute_elapsed()}")
 
     def __str__(self):
-        return f"ActivityTimer {self.id} for {self.profile.name}"
+        return f"ActivityTimer {self.id} for {self.player.name}"
 
     def new_activity(self, name="", task=None):
         """
@@ -397,7 +396,7 @@ class ActivityTimer(Timer):
 
         self.activity = PlayerActivity.objects.create(
             name=name,
-            profile=self.profile,
+            player=self.player,
             task=task,
         )
 
@@ -462,11 +461,11 @@ class ActivityTimer(Timer):
         self.update_activity_time()
 
         xp_gained = self.activity.calculate_xp_reward()
-        self.profile.add_activity(self.elapsed_time, xp=xp_gained)
+        self.player.add_activity(self.elapsed_time, xp=xp_gained)
 
         message_text = f"Activity submitted. You got {xp_gained} XP!"
         ServerMessage.objects.create(
-            group=self.profile.group_name,
+            group=self.player.group_name,
             type="notification",
             action="notification",
             data={},
@@ -548,7 +547,7 @@ class QuestTimer(Timer):
         try:
             from character.models import PlayerCharacterLink
 
-            profile = PlayerCharacterLink.get_profile(character)
+            player = PlayerCharacterLink.get_player(character)
 
             character.refresh_from_db()
 
@@ -559,7 +558,7 @@ class QuestTimer(Timer):
             xp_gained = rewards_summary["xp_gained"]
             message_text = f"Quest completed. Character got {xp_gained} XP!"
             ServerMessage.objects.create(
-                group=profile.group_name,
+                group=player.group_name,
                 type="notification",
                 action="notification",
                 data={"completion_data": rewards_summary},
@@ -618,7 +617,7 @@ class QuestTimer(Timer):
 
 class ServerMessage(models.Model):
     """
-    Represents a message sent by the server to a specific user profile. This
+    Represents a message sent by the server to a specific user player. This
     can be used for notifications, responses, or event-driven communication.
 
     """
@@ -695,44 +694,3 @@ class ServerMessage(models.Model):
         """
         cutoff_date = timezone.now() - timezone.timedelta(days=days)
         cls.objects.filter(created_at__lt=cutoff_date).delete()
-
-
-class Buff(models.Model):
-    BUFF_TYPE_CHOICES = [
-        ("additive", "Additive"),
-        ("multiplicative", "Multiplicative"),
-    ]
-
-    name = models.CharField(max_length=100, default="Default buff name")
-    attribute = models.CharField(max_length=50, default="Default buff attribute")
-    duration = models.PositiveIntegerField(default=0)
-    amount = models.FloatField(null=True, blank=True)
-    buff_type = models.CharField(
-        max_length=20, choices=BUFF_TYPE_CHOICES, default="additive"
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_updated = models.DateTimeField(auto_now=True)
-
-
-class AppliedBuff(Buff):
-    applied_at = models.DateTimeField(auto_now_add=True)
-    ends_at = models.DateTimeField(null=True, blank=True)
-
-    def save(self, *args, **kwargs):
-        if not self.ends_at:
-            self.ends_at = timezone.now() + timezone.timedelta(seconds=self.duration)
-        super().save(*args, **kwargs)
-
-    def is_active(self):
-        """Check if buff is still active."""
-        return timezone.now() < self.applied_at + timezone.timedelta(
-            seconds=self.duration
-        )
-
-    def calc_value(self, total_value):
-        if self.is_active():
-            if self.buff_type == "additive":
-                total_value += self.amount
-            elif self.buff_type == "multiplicative":
-                total_value *= self.amount
-        return total_value

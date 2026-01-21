@@ -7,8 +7,9 @@ const LogoutPage = lazy(() => import("../pages/LogoutPage/LogoutPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage/RegisterPage"));
 const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage"));
-const Game = lazy(() => import("../pages/Game/Game"));
-const ProfilePage = lazy(() => import("../pages/Profile/Profile"));
+const ProfilePage = lazy(() => import("../pages/PlayerPage/PlayerPage"));
+const AccountPage = lazy(() => import("../pages/Account/Account"));
+const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
 const SkillsPage = lazy(() => import("../pages/SkillsPage"));
 const TasksPage = lazy(() => import("../pages/TasksPage"));
@@ -71,6 +72,22 @@ export const routes = [
     ),
   },
   {
+    path: "/account",
+    element: (
+      <PrivateRoute>
+        <AccountPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/edit-account",
+    element: (
+      <PrivateRoute>
+        <EditAccount />
+      </PrivateRoute>
+    ),
+  },
+  {
     path: "/skills",
     element: (
       <PrivateRoute>
@@ -91,16 +108,6 @@ export const routes = [
     element: (
       <PrivateRoute>
         <ActivitiesPage />
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/old-game",
-    element: (
-      <PrivateRoute>
-        <RequireOnboardingComplete>
-          <Game />
-        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },

@@ -74,22 +74,22 @@ class QuestCompletionAdmin(admin.ModelAdmin):
 
 @admin.register(ActivityTimer)
 class ActivityTimerAdmin(admin.ModelAdmin):
-    list_display = ["profile", "activity", "elapsed_time", "status"]
+    list_display = ["player", "activity", "elapsed_time", "status"]
     list_filter = [
         "status",
     ]
     actions = ["pause_timers", "reset_timers"]
-    readonly_fields = ["profile"]
+    readonly_fields = ["player"]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "activity":
-            # Get the profile from the object being edited
+            # Get the player from the object being edited
             obj = self.get_object(
                 request, request.resolver_match.kwargs.get("object_id")
             )
-            if obj and obj.profile:
+            if obj and obj.player:
                 kwargs["queryset"] = db_field.remote_field.model.objects.filter(
-                    profile=obj.profile
+                    player=obj.player
                 )
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 

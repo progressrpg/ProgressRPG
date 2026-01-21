@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from api.views import IsOwnerProfile
+from api.views import IsOwnerPlayer
 from .models import (
     Category,
     Role,
@@ -39,7 +39,6 @@ from .filters import (
     TaskFilter,
 )
 
-
 #########################################
 #####      Group viewsets
 #########################################
@@ -47,7 +46,7 @@ from .filters import (
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
-    permission_classes = [IsAuthenticated, IsOwnerProfile]
+    permission_classes = [IsAuthenticated, IsOwnerPlayer]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -58,12 +57,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "last_updated"]
 
     def get_queryset(self):
-        return Category.objects.filter(profile=self.request.user.profile).order_by(
+        return Category.objects.filter(player=self.request.user.player).order_by(
             "-created_at"
         )
 
     def perform_create(self, serializer):
-        serializer.save(profile=self.request.user.profile)
+        serializer.save(player=self.request.user.player)
 
 
 class RoleViewSet(viewsets.ModelViewSet):
@@ -82,7 +81,7 @@ class RoleViewSet(viewsets.ModelViewSet):
 
 class PlayerSkillViewSet(viewsets.ModelViewSet):
     serializer_class = PlayerSkillSerializer
-    permission_classes = [IsAuthenticated, IsOwnerProfile]
+    permission_classes = [IsAuthenticated, IsOwnerPlayer]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -93,12 +92,12 @@ class PlayerSkillViewSet(viewsets.ModelViewSet):
     ordering_fields = ["level", "created_at", "last_updated"]
 
     def get_queryset(self):
-        return PlayerSkill.objects.filter(profile=self.request.user.profile).order_by(
+        return PlayerSkill.objects.filter(player=self.request.user.player).order_by(
             "-created_at"
         )
 
     def perform_create(self, serializer):
-        serializer.save(profile=self.request.user.profile)
+        serializer.save(player=self.request.user.player)
 
 
 class CharacterSkillViewSet(viewsets.ModelViewSet):
@@ -117,7 +116,7 @@ class CharacterSkillViewSet(viewsets.ModelViewSet):
 
 class PlayerActivityViewSet(viewsets.ModelViewSet):
     serializer_class = PlayerActivitySerializer
-    permission_classes = [IsAuthenticated, IsOwnerProfile]
+    permission_classes = [IsAuthenticated, IsOwnerPlayer]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -134,17 +133,17 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
     ordering_fields = ["duration", "created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return PlayerActivity.objects.filter(
-            profile=self.request.user.profile
-        ).order_by("-created_at")
+        return PlayerActivity.objects.filter(player=self.request.user.player).order_by(
+            "-created_at"
+        )
 
     def perform_create(self, serializer):
-        serializer.save(profile=self.request.user.profile)
+        serializer.save(player=self.request.user.player)
 
     def create(self, request, *args, **kwargs):
         serializer = self.serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(profile=request.user.profile)
+        serializer.save(player=request.user.player)
         return Response(
             {
                 "success": True,
@@ -161,7 +160,7 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated],
     )
     def submit(self, request, pk=None):
-        profile = request.user.profile
+        player = request.user.player
         activity = self.get_object()
 
         serializer = self.get_serializer(activity, data=request.data, partial=True)
@@ -170,10 +169,10 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
 
         # Return latest activities (today’s or recent 5)
         activities = PlayerActivity.objects.filter(
-            profile=profile, completed_at__date=timezone.now().date()
+            player=player, completed_at__date=timezone.now().date()
         ).order_by("-completed_at")
         if not activities.exists():
-            activities = PlayerActivity.objects.filter(profile=profile).order_by(
+            activities = PlayerActivity.objects.filter(player=player).order_by(
                 "-completed_at"
             )[:5]
 
@@ -181,7 +180,7 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
             {
                 "success": True,
                 "message": "Activity submitted",
-                "profile": ProfileSerializer(profile).data,
+                "player": PlayerSerializer(player).data,
                 "activities": PlayerActivitySerializer(activities, many=True).data,
             },
             status=status.HTTP_200_OK,
@@ -219,14 +218,14 @@ class CharacterActivityViewSet(viewsets.ModelViewSet):
         """
         Return CharacterActivity objects for the current user's active character.
         """
-        character = self.request.user.profile.current_character
+        character = self.request.user.player.current_character
         if not character:
             return CharacterActivity.objects.none()
         return CharacterActivity.objects.filter(character=character)
 
     @action(detail=False, methods=["get"])
     def current(self, request):
-        character = request.user.profile.current_character
+        character = request.user.player.current_character
 
         behaviour = getattr(character, "behaviour", None)
         if not behaviour:
@@ -262,8 +261,8 @@ class CharacterQuestViewSet(viewsets.ModelViewSet):
         """
         from character.models import PlayerCharacterLink
 
-        profile = self.request.user.profile
-        character = PlayerCharacterLink.get_character(profile)
+        player = self.request.user.player
+        character = PlayerCharacterLink.get_character(player)
         if not character:
             return CharacterQuest.objects.none()
         return CharacterQuest.objects.filter(character=character)
@@ -276,41 +275,41 @@ class CharacterQuestViewSet(viewsets.ModelViewSet):
 
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
-    permission_classes = [IsAuthenticated, IsOwnerProfile]
+    permission_classes = [IsAuthenticated, IsOwnerPlayer]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
     filterset_class = ProjectFilter
-    search_fields = ["name", "description", "profile__name"]
+    search_fields = ["name", "description", "player__name"]
     ordering_fields = ["created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return Project.objects.filter(profile=self.request.user.profile).order_by(
+        return Project.objects.filter(player=self.request.user.player).order_by(
             "-created_at"
         )
 
     def perform_create(self, serializer):
-        serializer.save(profile=self.request.user.profile)
+        serializer.save(player=self.request.user.player)
 
 
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
-    permission_classes = [IsAuthenticated, IsOwnerProfile]
+    permission_classes = [IsAuthenticated, IsOwnerPlayer]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
     filterset_class = TaskFilter
-    search_fields = ["name", "description", "profile__name", "project__name"]
+    search_fields = ["name", "description", "player__name", "project__name"]
     ordering_fields = ["created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return Task.objects.filter(profile=self.request.user.profile).order_by(
+        return Task.objects.filter(player=self.request.user.player).order_by(
             "-created_at"
         )
 
     def perform_create(self, serializer):
-        serializer.save(profile=self.request.user.profile)
+        serializer.save(player=self.request.user.player)

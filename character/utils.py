@@ -3,7 +3,7 @@ from django.utils import timezone
 import logging
 from progression.models import CharacterActivity
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 def window_for_date(date, behaviour):

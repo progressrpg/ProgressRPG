@@ -9,16 +9,16 @@ export default function NavDrawer({ drawerOpen, onClose }) {
     if (drawerOpen) {
       // Focus drawer when opened
       drawerRef.current?.focus();
-      
+
       // Handle Escape key
       const handleEscape = (e) => {
         if (e.key === 'Escape') {
           onClose();
         }
       };
-      
+
       document.addEventListener('keydown', handleEscape);
-      
+
       return () => {
         document.removeEventListener('keydown', handleEscape);
       };
@@ -35,7 +35,7 @@ export default function NavDrawer({ drawerOpen, onClose }) {
       />
 
       {/* Drawer */}
-      <nav 
+      <nav
         ref={drawerRef}
         className={`${styles["nav-drawer"]} ${drawerOpen ? styles.drawerOpen : ''}`}
         aria-label="Side navigation"
@@ -43,19 +43,15 @@ export default function NavDrawer({ drawerOpen, onClose }) {
         tabIndex={-1}
       >
         <div className={styles["nav-drawer-header"]}>
-          <button onClick={onClose} aria-label="Close navigation drawer">✕</button>
+          <button onClick={onClose} aria-label="Close navigation drawer" className={styles.closeButton}>
+            ✕
+          </button>
         </div>
 
         <ul className={styles["nav-drawer-links"]} role="list">
-          <li>
-            <Link 
-              to="/profile" 
-              onClick={onClose}
-              tabIndex={drawerOpen ? 0 : -1}
-            >
-              Profile
-            </Link>
-          </li>
+          <li><Link to="/account" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Your account</Link></li>
+          <li><Link to="/activities" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Your activities</Link></li>
+          <li><Link to="/game" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Game</Link></li>
         </ul>
       </nav>
     </>

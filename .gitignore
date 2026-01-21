@@ -20,6 +20,5 @@ Makefile
 logs/
 staticfiles/
 static/.sass-cache/
-mypy.ini
 celerybeat-schedule
 users.json

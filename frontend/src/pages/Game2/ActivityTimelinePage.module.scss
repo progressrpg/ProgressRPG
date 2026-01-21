@@ -1,9 +1,48 @@
 @use '../../styles/utilities/mixins' as m;
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
 
 .page {
   @include m.page-layout();
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: v.$spacing-lg;
+  gap: v.$spacing-md;
+  width: 100%;
+
+  h1 {
+    margin: 0;
+    @include t.apply-text-style(t.$text-heading-1);
+    text-align: center;
+  }
+}
+
+.activitiesLink {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  background: transparent;
+  color: c.$color-border-primary;
+  text-decoration: none;
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.1);
+    border-color: #5a4cff;
+    color: #5a4cff;
+  }
+
+  &:active {
+    background: rgba(c.$color-border-primary, 0.2);
+  }
 }
 
 /* Centre content consistently */
@@ -12,4 +51,5 @@
   flex-direction: column;
   gap: v.$spacing-gap;
   width: 100%;
+  align-items: center;
 }

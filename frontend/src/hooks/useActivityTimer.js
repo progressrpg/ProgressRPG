@@ -73,18 +73,17 @@ export default function useActivityTimer() {
 
       //console.log("setData:", setData);
       // If server returns canonical activity object, store it
+      // But don't update status yet - keep optimistic "active" state
       const serverActivity = setData?.activity_timer?.activity;
-      const serverStatus = setData?.activity_timer?.status;
       if (serverActivity) setCurrentActivity(serverActivity);
-      if (serverStatus) setStatus(serverStatus);
 
       // 2) Tell server to start timing
       const startData = await apiFetch(`/activity_timers/start/`, {
         method: "POST",
       });
 
-      // Optionally sync from server here if you want:
-      loadFromServer(startData);
+      // Don't load from server here - keep optimistic state to avoid flicker
+      // The timer is already running locally and will sync on next reload
 
       return startData;
     } catch (err) {
