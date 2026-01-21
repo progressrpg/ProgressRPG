@@ -25,7 +25,6 @@ export const GameProvider = ({ children }) => {
     player: playerOnload,
     character: characterOnload,
     activityTimerInfo,
-    buildNumber,
     loading,
     error,
   } = useBootstrapGameData();
