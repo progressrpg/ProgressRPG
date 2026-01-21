@@ -54,7 +54,7 @@ class CharacterAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     ("first_name", "last_name"),
-                    ("is_npc", "can_link"),
+                    "can_link",
                     "sex",
                 )
             },
