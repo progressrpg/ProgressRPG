@@ -23,12 +23,20 @@ const FeedbackWidget = () => {
             <p>Spotted a bug? Got an idea? Send us your feedback:</p>
             <div className={styles.buttonGroup}>
               <a
-                href="https://forms.gle/7MnVUirk25GWhVfy9"
+                href="https://forms.gle/uCCg2grwzgVwwB617"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`${styles.modalButton} ${styles.form}`}
               >
-                💡 Google Form
+                ⌚ Quick feedback (30 seconds)
+              </a>
+              <a
+                href="https://forms.gle/bHPqtd7ukbwF4WGu8"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${styles.modalButton} ${styles.form}`}
+              >
+                💡 First impressions (5 minutes)
               </a>
             </div>
           </div>
