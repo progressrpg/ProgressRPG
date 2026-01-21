@@ -1,7 +1,7 @@
 """
 Models for the gameplay application, including quests, requirements, completions,
 timers, and server messages. These models are used to manage in-game
-logic, track player progress, and handle rewards and buffs.
+logic, track player progress, and handle rewards.
 
 Author: Duncan Appleby
 """
@@ -175,8 +175,8 @@ class Quest(models.Model):
 
 class QuestResults(models.Model):
     """
-    Stores the results and rewards for a quest, including experience points,
-    coins, and buffs.
+    Stores the results and rewards for a quest, including experience points
+    and coins.
 
     """
 
@@ -186,7 +186,6 @@ class QuestResults(models.Model):
     dynamic_rewards = models.JSONField(default=dict, null=True, blank=True)
     xp_rate = models.IntegerField(default=1)
     coin_reward = models.IntegerField(default=0)
-    buffs = models.JSONField(default=list, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -695,44 +694,3 @@ class ServerMessage(models.Model):
         """
         cutoff_date = timezone.now() - timezone.timedelta(days=days)
         cls.objects.filter(created_at__lt=cutoff_date).delete()
-
-
-class Buff(models.Model):
-    BUFF_TYPE_CHOICES = [
-        ("additive", "Additive"),
-        ("multiplicative", "Multiplicative"),
-    ]
-
-    name = models.CharField(max_length=100, default="Default buff name")
-    attribute = models.CharField(max_length=50, default="Default buff attribute")
-    duration = models.PositiveIntegerField(default=0)
-    amount = models.FloatField(null=True, blank=True)
-    buff_type = models.CharField(
-        max_length=20, choices=BUFF_TYPE_CHOICES, default="additive"
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_updated = models.DateTimeField(auto_now=True)
-
-
-class AppliedBuff(Buff):
-    applied_at = models.DateTimeField(auto_now_add=True)
-    ends_at = models.DateTimeField(null=True, blank=True)
-
-    def save(self, *args, **kwargs):
-        if not self.ends_at:
-            self.ends_at = timezone.now() + timezone.timedelta(seconds=self.duration)
-        super().save(*args, **kwargs)
-
-    def is_active(self):
-        """Check if buff is still active."""
-        return timezone.now() < self.applied_at + timezone.timedelta(
-            seconds=self.duration
-        )
-
-    def calc_value(self, total_value):
-        if self.is_active():
-            if self.buff_type == "additive":
-                total_value += self.amount
-            elif self.buff_type == "multiplicative":
-                total_value *= self.amount
-        return total_value

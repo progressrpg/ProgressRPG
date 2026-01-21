@@ -7,7 +7,7 @@ import logging
 
 from users.models import Person, Player
 
-from gameplay.models import Buff, AppliedBuff, QuestCompletion, Quest
+from gameplay.models import QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
 from progression.models import CharacterQuest
 from progress_rpg.exceptions import QuestError
@@ -197,9 +197,6 @@ class Character(Person, LifeCycleMixin):
     sex = models.CharField(max_length=20, null=True)
     coins = models.PositiveIntegerField(default=0)
     reputation = models.IntegerField(default=0)
-    buffs = models.ManyToManyField(
-        "gameplay.Buff", related_name="characters", blank=True
-    )
     can_link = models.BooleanField(default=False)
     position = models.OneToOneField(
         "locations.Position", on_delete=models.SET_NULL, null=True
@@ -234,13 +231,13 @@ class Character(Person, LifeCycleMixin):
     def complete_quest(self, xp_gained):
         """
         Complete the character's active quest and apply rewards.
-        
+
         Args:
             xp_gained: Experience points to award
-            
+
         Returns:
-            dict: Rewards summary including XP, coins, buffs, and level-ups
-            
+            dict: Rewards summary including XP, coins, and level-ups
+
         Raises:
             QuestError: If no valid quest is found for completion
         """
@@ -251,7 +248,7 @@ class Character(Person, LifeCycleMixin):
         if quest is None:
             logger_errors.error(
                 f"[CHAR.COMPLETE_QUEST] Quest is None for character {self.id}",
-                extra={"character_id": self.id}
+                extra={"character_id": self.id},
             )
             raise QuestError(f"No quest found for character {self.id}")
 
@@ -264,7 +261,6 @@ class Character(Person, LifeCycleMixin):
                     "xp_gained": 0,
                     "coins_gained": 0,
                     "dynamic_rewards": {},
-                    "buffs_applied": [],
                     "levelups": [],
                 }
         except Exception as e:

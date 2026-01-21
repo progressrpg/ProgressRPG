@@ -13,8 +13,6 @@ from gameplay.models import (
     QuestRequirement,
     QuestCompletion,
     QuestResults,
-    Buff,
-    AppliedBuff,
     ActivityTimer,
     QuestTimer,
     ServerMessage,
@@ -211,8 +209,6 @@ class TestQuestResults(TestCase):
         self.quest1.refresh_from_db()
         self.char.quest_timer.change_quest(self.quest1, 10)
 
-        # Add buff later when fully implemented
-
 
 class TestQuestCompletionModel(TestCase):
     def test_questcompletion_create(self):
@@ -391,27 +387,3 @@ class TestServerMessageModel(TestCase):
         )
         message.mark_delivered()
         self.assertTrue(message.is_delivered)
-
-
-class TestBuffApplication(TestCase):
-    def setUp(self):
-        self.char = Character.objects.create(name="Bob")
-        self.buff = Buff.objects.create(
-            name="Test Buff",
-            attribute="xp_modifier",
-            duration=10,
-            amount=1.5,
-            buff_type="multiplicative",
-        )
-
-    def test_buff_application(self):
-        applied_buff = AppliedBuff.objects.create(
-            name=self.buff.name,
-            attribute=self.buff.attribute,
-            duration=self.buff.duration,
-            amount=self.buff.amount,
-            buff_type=self.buff.buff_type,
-        )
-        self.char.buffs.add(applied_buff)
-        self.assertTrue(applied_buff.is_active())
-        self.assertEqual(applied_buff.calc_value(10), 15)

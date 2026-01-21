@@ -8,9 +8,9 @@ attributes, and a player model for tracking gameplay-specific details.
 Classes:
     - CustomUserManager: A custom manager to handle the creation of users and superusers.
     - CustomUser: A custom user model extending Django's AbstractUser with email-based login.
-    - Person: An abstract base model for characters or players, tracking levels, XP, and buffs.
+    - Person: An abstract base model for characters or players, tracking levels and XP.
     - Player: A concrete model for user players, extending the Person model to add gameplay-specific
-      attributes like activities, streaks, and buffs.
+      attributes like activities and streaks.
 
 Usage:
 These models are central to managing user authentication and gameplay players in the application.
@@ -98,7 +98,7 @@ class CustomUser(AbstractUser):
 
 class Person(models.Model):
     """
-    An abstract base model representing a generic person with levels, XP, and buffs.
+    An abstract base model representing a generic person with levels and XP.
     """
 
     name = models.CharField(max_length=100, blank=True, null=True)
@@ -148,26 +148,11 @@ class Person(models.Model):
         """
         return 100 * (self.level + 1) if self.level >= 1 else 100
 
-    def apply_buffs(self, base_value: Optional[int], attribute: Optional[str]) -> int:
-        """
-        Apply active buffs to a given attribute (e.g., 'xp').
-        """
-        total_value = base_value
-        for buff in self.buffs.filter(attribute=attribute):
-            total_value = buff.calc_value(total_value)
-        return int(total_value)
-
-    def clear_expired_buffs(self):
-        """Remove expired buffs from person."""
-        # Not working
-        # timedelta_duration = ExpressionWrapper(F('duration'), output_field=fields.DurationField())
-        # self.buffs.filter(created_at__lt=now() - timedelta_duration).delete()
-
 
 class Player(Person):
     """
     Represents a user's gameplay player, extending the abstract Person model.
-    Tracks user-specific gameplay data such as total activities, buffs, and characters.
+    Tracks user-specific gameplay data such as total activities and characters.
     """
 
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -182,9 +167,6 @@ class Player(Person):
     total_logins = models.PositiveIntegerField(default=0)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    buffs = models.ManyToManyField(
-        "gameplay.AppliedBuff", related_name="players", blank=True
-    )
 
     ONBOARDING_STEPS = [
         (0, "Not started"),
