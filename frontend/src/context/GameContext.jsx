@@ -27,6 +27,7 @@ export const GameProvider = ({ children }) => {
     activityTimerInfo,
     loading,
     error,
+    buildNumber,
   } = useBootstrapGameData();
 
 
