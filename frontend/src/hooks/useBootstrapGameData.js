@@ -14,7 +14,12 @@ export function useBootstrapGameData() {
   const [buildNumber, setBuildNumber] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
 
     const fetchGameData = async () => {
       try {

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useBootstrapGameData } from '../hooks/useBootstrapGameData';
 import { apiFetch } from '../../utils/api';
 import useActivityTimer from '../hooks/useActivityTimer';
+import { useAuth } from './AuthContext';
 
 const GameContext = createContext();
 
@@ -88,10 +89,13 @@ export const GameProvider = ({ children }) => {
   //  EFFECTS
   // ----------------------------------------
 
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    fetchPlayerAndCharacter();
-  }, [fetchPlayerAndCharacter]);
+    if (!authLoading && isAuthenticated) {
+      fetchPlayerAndCharacter();
+    }
+  }, [fetchPlayerAndCharacter, isAuthenticated, authLoading]);
 
   useEffect(() => {
     if (activityTimerInfo) {
@@ -100,12 +104,16 @@ export const GameProvider = ({ children }) => {
   }, [activityTimerInfo]);
 
   useEffect(() => {
-    fetchActivities();
-  }, [fetchActivities]);
+    if (!authLoading && isAuthenticated) {
+      fetchActivities();
+    }
+  }, [fetchActivities, isAuthenticated, authLoading]);
 
   useEffect(() => {
-    fetchQuests();
-  }, [fetchQuests]);
+    if (!authLoading && isAuthenticated) {
+      fetchQuests();
+    }
+  }, [fetchQuests, isAuthenticated, authLoading]);
 
 
   // ----------------------------------------
