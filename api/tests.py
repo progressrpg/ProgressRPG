@@ -20,7 +20,7 @@ class TestMeViewSet(APITestCase):
         )
 
         self.me_url = reverse("me-list")
-        self.me_profile_url = reverse("me-profile")
+        self.me_player_url = reverse("me-player")
         self.me_complete_onboarding_url = reverse("me-complete-onboarding")
 
     def authenticate(self):
@@ -46,7 +46,7 @@ class CharacterQuestViewSetTests(APITestCase):
         cls.user = User.objects.create_user(
             email="testuser@example.com", password="pass1234"
         )
-        cls.profile = cls.user.profile
+        cls.player = cls.user.player
 
         cls.quest1 = Quest.objects.create(name="Quest 1", description="Test quest 1")
         cls.quest2 = Quest.objects.create(name="Quest 2", description="Test quest 2")
@@ -92,7 +92,7 @@ class CharacterQuestViewSetTests(APITestCase):
     @skip("No need for character_quest complete method test")
     def test_complete_quest_no_active_character(self):
         """POST returns 400 if user has no active character"""
-        PlayerCharacterLink.objects.filter(profile=self.profile).delete()
+        PlayerCharacterLink.objects.filter(player=self.player).delete()
         response = self.client.post(self.complete_url1)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", response.data)
@@ -118,7 +118,7 @@ class QuestViewSetTests(APITestCase):
         cls.user = User.objects.create_user(
             email="testuser@example.com", password="pass1234"
         )
-        cls.profile = cls.user.profile
+        cls.player = cls.user.player
 
         cls.quest1 = Quest.objects.create(name="Quest 1", description="Test quest 1")
         cls.quest2 = Quest.objects.create(name="Quest 2", description="Test quest 2")
@@ -152,7 +152,7 @@ class QuestViewSetTests(APITestCase):
 
     def test_eligible_quests_no_active_character(self):
         """Eligible returns 400 if user has no active character"""
-        PlayerCharacterLink.objects.filter(profile=self.profile).delete()
+        PlayerCharacterLink.objects.filter(player=self.player).delete()
         response = self.client.get(self.eligible_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", response.data)

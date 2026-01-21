@@ -48,7 +48,7 @@ register_converter(KeyConverter, "key")
 
 router = DefaultRouter()
 router.register(r"me", MeViewSet, basename="me")
-router.register(r"profile", PlayerViewSet, basename="profile")
+router.register(r"player", PlayerViewSet, basename="player")
 router.register(r"character", CharacterViewSet, basename="character")
 router.register(r"skills", PlayerSkillViewSet, basename="skills")
 router.register(r"tasks", TaskViewSet, basename="tasks")

@@ -133,17 +133,17 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
     ordering_fields = ["duration", "created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return PlayerActivity.objects.filter(
-            profile=self.request.user.profile
-        ).order_by("-created_at")
+        return PlayerActivity.objects.filter(player=self.request.user.player).order_by(
+            "-created_at"
+        )
 
     def perform_create(self, serializer):
-        serializer.save(profile=self.request.user.profile)
+        serializer.save(player=self.request.user.player)
 
     def create(self, request, *args, **kwargs):
         serializer = self.serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(profile=request.user.profile)
+        serializer.save(player=request.user.player)
         return Response(
             {
                 "success": True,
@@ -160,7 +160,7 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated],
     )
     def submit(self, request, pk=None):
-        profile = request.user.profile
+        player = request.user.player
         activity = self.get_object()
 
         serializer = self.get_serializer(activity, data=request.data, partial=True)
@@ -169,10 +169,10 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
 
         # Return latest activities (today’s or recent 5)
         activities = PlayerActivity.objects.filter(
-            profile=profile, completed_at__date=timezone.now().date()
+            player=player, completed_at__date=timezone.now().date()
         ).order_by("-completed_at")
         if not activities.exists():
-            activities = PlayerActivity.objects.filter(profile=profile).order_by(
+            activities = PlayerActivity.objects.filter(player=player).order_by(
                 "-completed_at"
             )[:5]
 
@@ -180,7 +180,7 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
             {
                 "success": True,
                 "message": "Activity submitted",
-                "profile": ProfileSerializer(profile).data,
+                "player": PlayerSerializer(player).data,
                 "activities": PlayerActivitySerializer(activities, many=True).data,
             },
             status=status.HTTP_200_OK,

@@ -191,7 +191,7 @@ class TestQuestResults(TestCase):
         user = User.objects.create_user(
             email="testuser1@example.com", password="testpassword123"
         )
-        cls.profile = user.profile
+        cls.player = user.player
 
         cls.quest1 = Quest.objects.create(
             name="Test Quest1",
@@ -245,13 +245,13 @@ class TestActivityTimer(TestCase):
         cls.user = get_user_model().objects.create_user(
             email="user1@gmail.com", password="test"
         )
-        cls.profile = cls.user.profile
+        cls.player = cls.user.player
         cls.activity = PlayerActivity.objects.create(
-            profile=cls.profile, name="Test Activity", duration=10
+            player=cls.player, name="Test Activity", duration=10
         )
 
     def setUp(self):
-        self.timer = self.profile.activity_timer
+        self.timer = self.player.activity_timer
 
     def test_new_activity_sets_state(self):
         self.timer.new_activity("Test activity")
@@ -281,7 +281,7 @@ class TestActivityTimer(TestCase):
         self.timer.start()
 
         activity = self.timer.activity
-        xp_before = self.profile.xp
+        xp_before = self.player.xp
 
         result = self.timer.complete()  # returns the timer itself
 
@@ -290,9 +290,9 @@ class TestActivityTimer(TestCase):
         self.assertIsNotNone(activity.completed_at)
         self.assertTrue(activity.is_complete)
 
-        # Profile should have XP applied
-        self.profile.refresh_from_db()
-        self.assertGreaterEqual(self.profile.xp, xp_before)
+        # Player should have XP applied
+        self.player.refresh_from_db()
+        self.assertGreaterEqual(self.player.xp, xp_before)
 
         self.timer.refresh_from_db()
         # Timer status remains "completed" or however you define post-completion
@@ -314,7 +314,7 @@ class TestQuestTimer(TestCase):
         user = User.objects.create_user(
             email="testuser@example.com", password="testpassword123"
         )
-        cls.profile = user.profile
+        cls.player = user.player
 
     def setUp(self):
         self.timer, _ = QuestTimer.objects.get_or_create(character=self.character)
@@ -363,11 +363,11 @@ class TestServerMessageModel(TestCase):
         user = User.objects.create_user(
             email="testuser@example.com", password="testpassword123"
         )
-        cls.profile = user.profile
+        cls.player = user.player
 
     def test_server_message_create(self):
         message = ServerMessage.objects.create(
-            group=self.profile.group_name,
+            group=self.player.group_name,
             type="notification",
             action="quest_complete",
             data={"quest_id": 1},
@@ -382,7 +382,7 @@ class TestServerMessageModel(TestCase):
 
     def test_server_message_mark_delivered(self):
         message = ServerMessage.objects.create(
-            group=self.profile.group_name,
+            group=self.player.group_name,
             type="notification",
             action="quest_complete",
             data={"quest_id": 1},

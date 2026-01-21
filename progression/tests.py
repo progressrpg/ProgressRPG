@@ -18,6 +18,7 @@ from .utils import copy_quest
 
 from character.models import Character
 from gameplay.models import Quest
+from users.models import Player
 
 import logging
 
@@ -32,10 +33,10 @@ class BaseTestCase(TestCase):
         self.character = Character.objects.create(
             name="Test Character",
         )
-        self.profile, _ = Player.objects.get_or_create(
+        self.player, _ = Player.objects.get_or_create(
             user=self.user,
         )
-        self.profile.name = "Test Profile"
+        self.player.name = "Test Player"
 
 
 class GroupModelTests(BaseTestCase):
@@ -44,7 +45,7 @@ class GroupModelTests(BaseTestCase):
 
     def test_category_rename(self):
         category = Category.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Old Name",
         )
 
@@ -58,13 +59,13 @@ class SkillModelTests(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.category = Category.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Productivity",
         )
 
     def test_player_skill_rename(self):
         skill = PlayerSkill.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Focus",
             category=self.category,
         )
@@ -93,18 +94,18 @@ class ActivityModelTests(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.category = Category.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Work",
         )
         self.skill = PlayerSkill.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Coding",
             category=self.category,
         )
 
     def test_activity_start(self):
         activity = PlayerActivity.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Write tests",
         )
 
@@ -115,7 +116,7 @@ class ActivityModelTests(BaseTestCase):
 
     def test_activity_complete_updates_skill(self):
         activity = PlayerActivity.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Write tests",
             skill=self.skill,
             duration=30,
@@ -163,12 +164,12 @@ class ProjectTaskTests(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.project = Project.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Progress RPG",
             description="Build the app",
         )
         self.task = Task.objects.create(
-            profile=self.profile,
+            player=self.player,
             project=self.project,
             name="Write models",
             description="Django models",
@@ -177,7 +178,7 @@ class ProjectTaskTests(BaseTestCase):
     def test_task_activity_total(self):
         # Activity linked only to task
         activity = PlayerActivity.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Task work",
             task=self.task,
             duration=30,
@@ -194,7 +195,7 @@ class ProjectTaskTests(BaseTestCase):
     def test_project_activity_total(self):
         # Activity linked only to project (not a task)
         activity = PlayerActivity.objects.create(
-            profile=self.profile,
+            player=self.player,
             name="Project work",
             project=self.project,
             duration=50,

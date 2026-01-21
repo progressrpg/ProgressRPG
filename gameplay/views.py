@@ -49,13 +49,13 @@ class QuestViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def eligible(self, request):
-        profile = request.user.profile
+        player = request.user.player
         try:
-            character = PlayerCharacterLink.get_character(profile)
+            character = PlayerCharacterLink.get_character(player)
         except ValueError as e:
             logger.warning(
-                "Failed to get character for profile %s: %s",
-                profile.id if hasattr(profile, "id") else profile,
+                "Failed to get character for player %s: %s",
+                player.id if hasattr(player, "id") else player,
                 e,
             )
             return Response(
@@ -63,7 +63,7 @@ class QuestViewSet(viewsets.ReadOnlyModelViewSet):
                 status=400,
             )
 
-        eligible_quests = check_quest_eligibility(character, profile)
+        eligible_quests = check_quest_eligibility(character, player)
         serializer = self.get_serializer(eligible_quests, many=True)
         return Response({"eligible_quests": serializer.data})
 
@@ -112,7 +112,7 @@ class ActivityTimerViewSet(BaseTimerViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_timer(self, request):
-        timer = request.user.profile.activity_timer
+        timer = request.user.player.activity_timer
         if timer is None:
             raise NotFound(f"Activity timer not found")
         return timer
@@ -128,7 +128,7 @@ class ActivityTimerViewSet(BaseTimerViewSet):
         task_id = request.data.get("task_id")
         task = None
         if task_id:
-            task = get_object_or_404(Task, pk=task_id, profile=request.user.profile)
+            task = get_object_or_404(Task, pk=task_id, player=request.user.player)
 
         updated = timer.new_activity(name=name, task=task)
         updated.refresh_from_db()
@@ -140,7 +140,7 @@ class QuestTimerViewSet(BaseTimerViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_timer(self, request):
-        character = request.user.profile.current_character
+        character = request.user.player.current_character
         timer = character.quest_timer
         if timer is None:
             raise NotFound(f"Quest timer not found")

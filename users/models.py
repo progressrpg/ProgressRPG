@@ -3,7 +3,7 @@ User Management Models
 
 This module contains the models and custom manager for handling user-related data in the application.
 It includes a custom user model for email-based authentication, an abstract base model for shared
-attributes, and a profile model for tracking gameplay-specific details.
+attributes, and a player model for tracking gameplay-specific details.
 
 Classes:
     - CustomUserManager: A custom manager to handle the creation of users and superusers.
@@ -28,7 +28,6 @@ from django.utils import timezone
 from typing import TYPE_CHECKING, Optional
 import logging
 
-1
 from gameplay.models import ServerMessage
 
 if TYPE_CHECKING:

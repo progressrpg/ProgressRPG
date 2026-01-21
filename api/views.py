@@ -262,35 +262,35 @@ class ConfirmEmailView(APIView):
 class OnboardingViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
-    def get_profile(self, request):
-        return request.user.profile
+    def get_player(self, request):
+        return request.user.player
 
     @action(detail=False, methods=["get"])
     def status(self, request):
-        profile = self.get_profile(request)
-        if profile.onboarding_step == 0:
-            profile.onboarding_step = 1
-            profile.save()
+        player = self.get_player(request)
+        if player.onboarding_step == 0:
+            player.onboarding_step = 1
+            player.save()
         return Response(
             {
-                "step": profile.onboarding_step,
+                "step": player.onboarding_step,
             }
         )
 
     @action(detail=False, methods=["post"])
     def progress(self, request):
-        profile = self.get_profile(request)
+        player = self.get_player(request)
 
-        if profile.onboarding_step == 1:
-            serializer = Step1Serializer(profile, data=request.data, partial=True)
+        if player.onboarding_step == 1:
+            serializer = Step1Serializer(player, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
-                profile.onboarding_step = 2
-                profile.save()
+                player.onboarding_step = 2
+                player.save()
                 return Response(
                     {
-                        "message": "Profile named.",
-                        "step": profile.onboarding_step,
+                        "message": "Player named.",
+                        "step": player.onboarding_step,
                     }
                 )
         return Response(serializer.errors, status=400)
@@ -300,30 +300,30 @@ class FetchInfoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, format=None):
-        profile = request.user.profile
+        player = request.user.player
         build_number = get_build_number()
 
         try:
-            character = PlayerCharacterLink.get_character(profile)
+            character = PlayerCharacterLink.get_character(player)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info(
-            f"[FETCH INFO] Fetching data for profile {profile.id}, character {character.id}"
+            f"[FETCH INFO] Fetching data for player {player.id}, character {character.id}"
         )
 
         # --- Auto-complete quest timer if expired ---
-        self._handle_quest_timer_expiry(profile, character)
+        self._handle_quest_timer_expiry(player, character)
 
         # --- Ensure activity timer is in a valid state ---
-        self._ensure_activity_timer_consistency(profile)
+        self._ensure_activity_timer_consistency(player)
 
         now = timezone.now()
-        last = getattr(profile, "last_login", None)
+        last = getattr(player, "last_login", None)
 
         if not last or (now - last) > timedelta(minutes=30):
             logger.info(
-                f"[FETCH INFO] Online sync for profile {profile.id}, character {character.id}"
+                f"[FETCH INFO] Online sync for player {player.id}, character {character.id}"
             )
             from character.utils import ensure_day_activities
 
@@ -338,16 +338,14 @@ class FetchInfoAPIView(APIView):
         try:
             data = {
                 "success": True,
-                "message": "Profile and character fetched",
+                "message": "Player and character fetched",
                 "build_number": build_number,
-                "profile": ProfileSerializer(
-                    profile, context={"request": request}
-                ).data,
+                "player": PlayerSerializer(player, context={"request": request}).data,
                 "character": CharacterSerializer(
                     character, context={"request": request}
                 ).data,
                 "activity_timer": ActivityTimerSerializer(
-                    profile.activity_timer, context={"request": request}
+                    player.activity_timer, context={"request": request}
                 ).data,
                 "quest_timer": QuestTimerSerializer(
                     character.quest_timer, context={"request": request}
@@ -362,7 +360,7 @@ class FetchInfoAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def _handle_quest_timer_expiry(self, profile, character):
+    def _handle_quest_timer_expiry(self, player, character):
         """
         If the quest timer has finished but not marked complete, finalise it.
         """
@@ -375,7 +373,7 @@ class FetchInfoAPIView(APIView):
             qt.save()
 
             async_to_sync(send_group_message)(
-                f"profile_{profile.id}",
+                f"player_{player.id}",
                 {"type": "action", "action": "quest_complete"},
             )
 
@@ -383,10 +381,10 @@ class FetchInfoAPIView(APIView):
             logger.error(f"Error handling quest timer completion: {e}", exc_info=True)
             raise
 
-    def _ensure_activity_timer_consistency(self, profile):
+    def _ensure_activity_timer_consistency(self, player):
         """Ensure activity timer is not in an invalid state."""
         try:
-            at = profile.activity_timer
+            at = player.activity_timer
         except ObjectDoesNotExist:
             return
 
@@ -411,9 +409,9 @@ class DownloadUserDataAPIView(APIView):
     @transaction.atomic
     def get(self, request):
         user = request.user
-        profile = user.profile
+        player = user.player
         try:
-            character_obj = PlayerCharacterLink().get_character(profile)
+            character_obj = PlayerCharacterLink().get_character(player)
         except Character.DoesNotExist:
             logger.error(
                 f"Character not found for user {user.username} (ID: {user.id}).",
@@ -422,19 +420,19 @@ class DownloadUserDataAPIView(APIView):
             raise Http404("Character data not found.")
 
         activities_json = PlayerActivitySerializer(
-            profile.activities.all(), many=True
+            player.activities.all(), many=True
         ).data
         user_data = {
             "email": user.email,
-            "profile": {
-                "id": profile.id,
-                "profile_name": profile.name,
-                "level": profile.level,
-                "xp": profile.xp,
-                "bio": profile.bio,
-                "total_time": profile.total_time,
-                "total_activities": profile.total_activities,
-                "is_premium": profile.is_premium,
+            "player": {
+                "id": player.id,
+                "player_name": player.name,
+                "level": player.level,
+                "xp": player.xp,
+                "bio": player.bio,
+                "total_time": player.total_time,
+                "total_activities": player.total_activities,
+                "is_premium": player.is_premium,
             },
             "activities": activities_json,
             "character": {

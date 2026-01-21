@@ -154,9 +154,9 @@ class Quest(models.Model):
                                 return False
         return True
 
-    def checkEligible(self, character: "Character", profile):
+    def checkEligible(self, character: "Character", player):
         """
-        Determine if the quest is eligible for the given character and profile.
+        Determine if the quest is eligible for the given character and player.
 
         """
         # Simple comparison checks
@@ -166,7 +166,7 @@ class Quest(models.Model):
         #    return False
         elif character.level < self.levelMin or character.level > self.levelMax:
             return False
-        elif profile.is_premium and self.is_premium:
+        elif player.is_premium and self.is_premium:
             return False
 
         # Quest passed the test
@@ -397,7 +397,7 @@ class ActivityTimer(Timer):
 
         self.activity = PlayerActivity.objects.create(
             name=name,
-            profile=self.profile,
+            player=self.player,
             task=task,
         )
 
@@ -462,11 +462,11 @@ class ActivityTimer(Timer):
         self.update_activity_time()
 
         xp_gained = self.activity.calculate_xp_reward()
-        self.profile.add_activity(self.elapsed_time, xp=xp_gained)
+        self.player.add_activity(self.elapsed_time, xp=xp_gained)
 
         message_text = f"Activity submitted. You got {xp_gained} XP!"
         ServerMessage.objects.create(
-            group=self.profile.group_name,
+            group=self.player.group_name,
             type="notification",
             action="notification",
             data={},
@@ -548,7 +548,7 @@ class QuestTimer(Timer):
         try:
             from character.models import PlayerCharacterLink
 
-            profile = PlayerCharacterLink.get_profile(character)
+            player = PlayerCharacterLink.get_player(character)
 
             character.refresh_from_db()
 
@@ -559,7 +559,7 @@ class QuestTimer(Timer):
             xp_gained = rewards_summary["xp_gained"]
             message_text = f"Quest completed. Character got {xp_gained} XP!"
             ServerMessage.objects.create(
-                group=profile.group_name,
+                group=player.group_name,
                 type="notification",
                 action="notification",
                 data={"completion_data": rewards_summary},
@@ -618,7 +618,7 @@ class QuestTimer(Timer):
 
 class ServerMessage(models.Model):
     """
-    Represents a message sent by the server to a specific user profile. This
+    Represents a message sent by the server to a specific user player. This
     can be used for notifications, responses, or event-driven communication.
 
     """

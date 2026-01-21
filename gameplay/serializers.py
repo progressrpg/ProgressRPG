@@ -57,13 +57,13 @@ class ActivityTimerSerializer(serializers.ModelSerializer):
             "last_updated",
             # Activity timer specific fields
             "activity",
-            "profile",
+            "player",
         ]
         read_only_fields = [
             "id",
             "created_at",
             "last_updated",
-            "profile",
+            "player",
         ]
 
     def get_elapsed_time(self, obj):
