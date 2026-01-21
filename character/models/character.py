@@ -353,7 +353,7 @@ class Character(Person, LifeCycleMixin):
 
     @classmethod
     def has_available(cls):
-        return cls.objects.filter(is_npc=True, can_link=True).exists()
+        return cls.objects.filter(can_link=True).exclude(player_link__is_active=True).exists()
 
 
 class PlayerCharacterLink(models.Model):
