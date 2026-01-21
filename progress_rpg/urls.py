@@ -20,7 +20,7 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("api/v1/", include("api.urls")),
     path("", include("users.urls")),
-    path("", include("gameplay.urls")),
+    # path("", include("gameplay.urls")),
     path("", include("payments.urls")),
     path("", include("gameworld.urls")),
     path("", include("server_management.urls")),
