@@ -7,7 +7,7 @@ const LogoutPage = lazy(() => import("../pages/LogoutPage/LogoutPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage/RegisterPage"));
 const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage"));
-const ProfilePage = lazy(() => import("../pages/Profile/Profile"));
+const ProfilePage = lazy(() => import("../pages/Profile/Player"));
 const AccountPage = lazy(() => import("../pages/Account/Account"));
 const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));

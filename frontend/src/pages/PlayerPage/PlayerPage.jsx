@@ -1,9 +1,9 @@
 import React from 'react';
 import styles from './Profile.module.scss';
-import Infobar from '../../layout/Infobar/Infobar';
-import ProfileContent from '../../layout/Profile/ProfileContent.jsx';
+import Infobar from '../../layout/Infobar/Infobar.jsx';
+import ProfileContent from '../../layout/Player/PlayerContent.jsx';
 
-export default function ProfilePage({
+export default function PlayerPage({
 }) {
 
   return (
