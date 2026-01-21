@@ -11,7 +11,7 @@ class CharacterFilter(django_filters.FilterSet):
 
     class Meta:
         model = Character
-        fields = ["level", "xp", "can_link"]
+        fields = ["level", "xp", "is_npc", "can_link"]
     
     def filter_is_npc(self, queryset, name, value):
         """Filter characters based on whether they have active player links"""
