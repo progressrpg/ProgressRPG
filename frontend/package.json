@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
     "test:a11y": "playwright test --project=a11y",
     "test:a11y:ui": "playwright test --project=a11y --ui",
     "test:a11y:report": "playwright show-report"
