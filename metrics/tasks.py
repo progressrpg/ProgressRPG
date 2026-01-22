@@ -18,8 +18,8 @@ def calculate_daily_metrics():
     today = timezone.now().date()
     logger.info(f"Starting daily metrics calculation for {today}")
 
-    # Get all non-deleted players
-    players = Player.objects.filter(is_deleted=False)
+    # Get all non-deleted players (optimize with only() for fields we need)
+    players = Player.objects.filter(is_deleted=False).only('id')
     player_count = players.count()
 
     # Calculate daily snapshots for all players
@@ -46,8 +46,8 @@ def calculate_weekly_metrics():
     today = timezone.now().date()
     logger.info(f"Starting weekly metrics calculation for week of {today}")
 
-    # Get all non-deleted players
-    players = Player.objects.filter(is_deleted=False)
+    # Get all non-deleted players (optimize with only() for fields we need)
+    players = Player.objects.filter(is_deleted=False).only('id')
     player_count = players.count()
 
     # Calculate weekly metrics for all players

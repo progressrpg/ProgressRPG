@@ -16,6 +16,7 @@ from decouple import Config, RepositoryEnv, config
 import os
 from dotenv import load_dotenv
 import logging, ssl, sentry_sdk
+from celery.schedules import crontab
 from .utils import is_vite_running
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -280,8 +281,6 @@ CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = "UTC"
 
 # Celery Beat Schedule
-from celery.schedules import crontab
-
 CELERY_BEAT_SCHEDULE = {
     "calculate-daily-metrics": {
         "task": "metrics.tasks.calculate_daily_metrics",

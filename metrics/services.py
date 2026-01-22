@@ -31,17 +31,17 @@ class MetricsCalculator:
         """
         # Get all completed activities for the target date, ordered by created_at
         start_of_day = datetime.combine(target_date, datetime.min.time())
-        end_of_day = datetime.combine(target_date, datetime.max.time())
+        end_of_day = target_date + timedelta(days=1)
         
         # Make them timezone-aware
         start_of_day = timezone.make_aware(start_of_day)
-        end_of_day = timezone.make_aware(end_of_day)
+        end_of_day = timezone.make_aware(datetime.combine(end_of_day, datetime.min.time()))
         
         activities = PlayerActivity.objects.filter(
             player=player,
             is_complete=True,
             completed_at__gte=start_of_day,
-            completed_at__lte=end_of_day,
+            completed_at__lt=end_of_day,
         ).order_by('completed_at').values_list('completed_at', flat=True)
         
         if not activities:
@@ -77,16 +77,16 @@ class MetricsCalculator:
         
         # Get start and end of day as timezone-aware datetimes
         start_of_day = datetime.combine(target_date, datetime.min.time())
-        end_of_day = datetime.combine(target_date, datetime.max.time())
+        end_of_day = target_date + timedelta(days=1)
         start_of_day = timezone.make_aware(start_of_day)
-        end_of_day = timezone.make_aware(end_of_day)
+        end_of_day = timezone.make_aware(datetime.combine(end_of_day, datetime.min.time()))
         
         # Query PlayerActivity objects for the date range
         activities = PlayerActivity.objects.filter(
             player=player,
             is_complete=True,
             completed_at__gte=start_of_day,
-            completed_at__lte=end_of_day,
+            completed_at__lt=end_of_day,
         )
         
         # Count completed activities
@@ -260,13 +260,13 @@ class MetricsCalculator:
         
         # Count new players created on the date
         start_of_day = datetime.combine(target_date, datetime.min.time())
-        end_of_day = datetime.combine(target_date, datetime.max.time())
+        end_of_day = target_date + timedelta(days=1)
         start_of_day = timezone.make_aware(start_of_day)
-        end_of_day = timezone.make_aware(end_of_day)
+        end_of_day = timezone.make_aware(datetime.combine(end_of_day, datetime.min.time()))
         
         new_users = Player.objects.filter(
             created_at__gte=start_of_day,
-            created_at__lte=end_of_day,
+            created_at__lt=end_of_day,
             is_deleted=False,
         ).count()
         

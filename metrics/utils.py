@@ -24,6 +24,7 @@ def track_user_session(player):
     Returns:
         bool: True if a new session was started, False otherwise
     """
+    # Import here to avoid circular import
     from .models import DailyEngagementSnapshot
     
     cache_key = f"last_activity_{player.id}"

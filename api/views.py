@@ -62,6 +62,8 @@ from users.utils import send_email_to_users
 
 from progress_rpg.settings.utils import get_build_number
 
+from metrics.utils import track_user_session
+
 import logging
 
 logger = logging.getLogger("errors")
@@ -313,7 +315,6 @@ class FetchInfoAPIView(APIView):
         )
 
         # --- Track user session ---
-        from metrics.utils import track_user_session
         track_user_session(player)
 
         # --- Auto-complete quest timer if expired ---
