@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "progression",
     "server_management",
     "users",
+    "metrics",
     "django_ratelimit",
     "decouple",
 ]
@@ -277,3 +278,17 @@ CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = "UTC"
+
+# Celery Beat Schedule
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "calculate-daily-metrics": {
+        "task": "metrics.tasks.calculate_daily_metrics",
+        "schedule": crontab(hour=1, minute=0),  # Daily at 1 AM
+    },
+    "calculate-weekly-metrics": {
+        "task": "metrics.tasks.calculate_weekly_metrics",
+        "schedule": crontab(hour=2, minute=0, day_of_week=1),  # Mondays at 2 AM
+    },
+}

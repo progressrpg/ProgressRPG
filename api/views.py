@@ -312,6 +312,10 @@ class FetchInfoAPIView(APIView):
             f"[FETCH INFO] Fetching data for player {player.id}, character {character.id}"
         )
 
+        # --- Track user session ---
+        from metrics.utils import track_user_session
+        track_user_session(player)
+
         # --- Auto-complete quest timer if expired ---
         self._handle_quest_timer_expiry(player, character)
 
