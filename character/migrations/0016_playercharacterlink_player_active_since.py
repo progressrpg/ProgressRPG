@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name="character",
+            model_name="playercharacterlink",
             name="player_active_since",
             field=models.DateTimeField(
                 blank=True,

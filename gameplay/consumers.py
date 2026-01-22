@@ -102,9 +102,9 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         )
         await database_sync_to_async(self.player.set_offline)()
         
-        # Reset character activity state
+        # Reset character activity state via PlayerCharacterLink
         if hasattr(self, "character"):
-            await database_sync_to_async(self.character.set_player_activity_state)(False)
+            await database_sync_to_async(self._reset_activity_state)()
         
         await self.channel_layer.group_discard("online_users", self.channel_name)
 
@@ -228,9 +228,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             )
             if success:
                 # Player started an activity - set boosted state
-                await database_sync_to_async(
-                    self.character.set_player_activity_state
-                )(is_active=True)
+                await database_sync_to_async(self._set_activity_state)(True)
                 
                 multiplier = await database_sync_to_async(
                     lambda: self.character.xp_multiplier
@@ -263,9 +261,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             
             if success:
                 # Player stopped activity but still online
-                await database_sync_to_async(
-                    self.character.set_player_activity_state
-                )(is_active=False)
+                await database_sync_to_async(self._set_activity_state)(False)
                 
                 multiplier = await database_sync_to_async(
                     lambda: self.character.xp_multiplier
@@ -297,6 +293,26 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
 
             character = PlayerCharacterLink().get_character(user.player)
             return user.player, character
+
+    def _reset_activity_state(self):
+        """Reset the player activity state via PlayerCharacterLink"""
+        from character.models import PlayerCharacterLink
+        
+        link = PlayerCharacterLink.objects.filter(
+            character=self.character, is_active=True
+        ).first()
+        if link:
+            link.set_player_activity_state(False)
+
+    def _set_activity_state(self, is_active):
+        """Set the player activity state via PlayerCharacterLink"""
+        from character.models import PlayerCharacterLink
+        
+        link = PlayerCharacterLink.objects.filter(
+            character=self.character, is_active=True
+        ).first()
+        if link:
+            link.set_player_activity_state(is_active)
 
     @database_sync_to_async
     def get_activity_timer(self):

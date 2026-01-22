@@ -1,6 +1,5 @@
 # from datetime import datetime
 from django.db import models, transaction, IntegrityError
-from django.utils import timezone
 from django.utils.timezone import now
 from random import random, randint
 from typing import TYPE_CHECKING, Optional, Dict, Any, cast
@@ -202,11 +201,6 @@ class Character(Person, LifeCycleMixin):
     position = models.OneToOneField(
         "locations.Position", on_delete=models.SET_NULL, null=True
     )
-    player_active_since = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When the player started an activity with this character"
-    )
     # quest_timer = Optional["QuestTimer"]
 
     @property
@@ -233,8 +227,11 @@ class Character(Person, LifeCycleMixin):
     @property
     def player_is_online(self):
         """Check if the linked player is currently online."""
-        player = self.current_player
-        return player.is_online if player else False
+        try:
+            player = self.current_player
+            return player.is_online if player else False
+        except (ValueError, AttributeError):
+            return False
 
     @property
     def xp_multiplier(self):
@@ -247,26 +244,20 @@ class Character(Person, LifeCycleMixin):
         if not self.player_is_online:
             return 1.0
         
-        if self.player_active_since:
-            # Player is online AND actively doing an activity
-            return 2.5
+        # Check if player has an active link with activity state
+        try:
+            link = PlayerCharacterLink.objects.filter(
+                character=self, is_active=True
+            ).first()
+            
+            if link and link.player_active_since:
+                # Player is online AND actively doing an activity
+                return 2.5
+        except (ValueError, AttributeError):
+            pass
         
         # Player is online but idle
         return 1.5
-
-    def set_player_activity_state(self, is_active):
-        """
-        Update whether the player is actively engaged in an activity.
-        
-        Args:
-            is_active: True if player started an activity, False if stopped
-        """
-        if is_active:
-            self.player_active_since = timezone.now()
-        else:
-            self.player_active_since = None
-        
-        self.save(update_fields=['player_active_since'])
 
     def start_quest(self, quest):
         self.quest_timer.change_quest(quest)
@@ -410,6 +401,11 @@ class PlayerCharacterLink(models.Model):
     date_linked = models.DateField(auto_now_add=True)
     date_unlinked = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    player_active_since = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the player started an activity with this character"
+    )
 
     class Meta:
         constraints = [
@@ -480,6 +476,22 @@ class PlayerCharacterLink(models.Model):
         character.can_link = False
         character.save(update_fields=["can_link"])
         return link
+
+    def set_player_activity_state(self, is_active):
+        """
+        Update whether the player is actively engaged in an activity.
+        
+        Args:
+            is_active: True if player started an activity, False if stopped
+        """
+        from django.utils import timezone
+        
+        if is_active:
+            self.player_active_since = timezone.now()
+        else:
+            self.player_active_since = None
+        
+        self.save(update_fields=['player_active_since'])
 
 
 class CharacterRole(models.Model):

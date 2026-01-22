@@ -366,26 +366,28 @@ class CharacterXPMultiplierTests(TestCase):
     
     def setUp(self):
         from django.contrib.auth import get_user_model
-        from users.models import Player
         
         User = get_user_model()
         
-        # Create user and player
-        self.user = User.objects.create_user(email="test@test.com", password="pass")
-        self.player, _ = Player.objects.get_or_create(user=self.user)
-        self.player.name = "Test Player"
-        self.player.save()
-        
-        # Create character
+        # Create character FIRST with can_link=True so it can be auto-assigned
         self.character = Character.objects.create(
             first_name="Test",
             last_name="Character",
             birth_date=date(2000, 1, 1),
             sex="Female",
+            can_link=True,  # Make it available for linking
         )
         
-        # Link player to character
-        PlayerCharacterLink.assign_character(self.player, self.character)
+        # Create user (this auto-creates player and links to first available character)
+        self.user = User.objects.create_user(email="test@test.com", password="pass")
+        self.player = self.user.player
+        self.player.name = "Test Player"
+        self.player.save()
+        
+        # Get the link that was auto-created
+        self.link = PlayerCharacterLink.objects.filter(
+            player=self.player, character=self.character, is_active=True
+        ).first()
 
     def test_player_is_online_property_when_offline(self):
         """Test player_is_online property returns False when player is offline"""
@@ -405,31 +407,31 @@ class CharacterXPMultiplierTests(TestCase):
     def test_xp_multiplier_online_idle(self):
         """Test XP multiplier is 1.5 when player is online but idle"""
         self.player.set_online()
-        self.character.player_active_since = None
-        self.character.save()
+        self.link.player_active_since = None
+        self.link.save()
         self.assertEqual(self.character.xp_multiplier, 1.5)
 
     def test_xp_multiplier_online_active(self):
         """Test XP multiplier is 2.5 when player is online and active"""
         self.player.set_online()
-        self.character.player_active_since = now()
-        self.character.save()
+        self.link.player_active_since = now()
+        self.link.save()
         self.assertEqual(self.character.xp_multiplier, 2.5)
 
     def test_set_player_activity_state_active(self):
         """Test setting player activity state to active"""
-        self.character.set_player_activity_state(True)
-        self.character.refresh_from_db()
-        self.assertIsNotNone(self.character.player_active_since)
+        self.link.set_player_activity_state(True)
+        self.link.refresh_from_db()
+        self.assertIsNotNone(self.link.player_active_since)
 
     def test_set_player_activity_state_inactive(self):
         """Test setting player activity state to inactive"""
-        self.character.player_active_since = now()
-        self.character.save()
+        self.link.player_active_since = now()
+        self.link.save()
         
-        self.character.set_player_activity_state(False)
-        self.character.refresh_from_db()
-        self.assertIsNone(self.character.player_active_since)
+        self.link.set_player_activity_state(False)
+        self.link.refresh_from_db()
+        self.assertIsNone(self.link.player_active_since)
 
     def test_xp_multiplier_transitions(self):
         """Test XP multiplier transitions through states"""
@@ -442,13 +444,13 @@ class CharacterXPMultiplierTests(TestCase):
         self.assertEqual(self.character.xp_multiplier, 1.5)
         
         # Player starts activity
-        self.character.set_player_activity_state(True)
-        self.character.refresh_from_db()
+        self.link.set_player_activity_state(True)
+        self.link.refresh_from_db()
         self.assertEqual(self.character.xp_multiplier, 2.5)
         
         # Player stops activity
-        self.character.set_player_activity_state(False)
-        self.character.refresh_from_db()
+        self.link.set_player_activity_state(False)
+        self.link.refresh_from_db()
         self.assertEqual(self.character.xp_multiplier, 1.5)
         
         # Player goes offline
@@ -461,27 +463,29 @@ class CharacterActivityXPCalculationTests(TestCase):
     
     def setUp(self):
         from django.contrib.auth import get_user_model
-        from users.models import Player
         from progression.models import CharacterActivity
         
         User = get_user_model()
         
-        # Create user and player
-        self.user = User.objects.create_user(email="test2@test.com", password="pass")
-        self.player, _ = Player.objects.get_or_create(user=self.user)
-        self.player.name = "Test Player 2"
-        self.player.save()
-        
-        # Create character
+        # Create character FIRST with can_link=True
         self.character = Character.objects.create(
             first_name="Test2",
             last_name="Character2",
             birth_date=date(2000, 1, 1),
             sex="Male",
+            can_link=True,
         )
         
-        # Link player to character
-        PlayerCharacterLink.assign_character(self.player, self.character)
+        # Create user (auto-creates player and links)
+        self.user = User.objects.create_user(email="test2@test.com", password="pass")
+        self.player = self.user.player
+        self.player.name = "Test Player 2"
+        self.player.save()
+        
+        # Get the link that was auto-created
+        self.link = PlayerCharacterLink.objects.filter(
+            player=self.player, character=self.character, is_active=True
+        ).first()
 
     def test_xp_calculation_offline(self):
         """Test XP calculation when player is offline (1.0x multiplier)"""
@@ -505,8 +509,8 @@ class CharacterActivityXPCalculationTests(TestCase):
         from progression.models import CharacterActivity
         
         self.player.set_online()
-        self.character.player_active_since = None
-        self.character.save()
+        self.link.player_active_since = None
+        self.link.save()
         
         activity = CharacterActivity.objects.create(
             character=self.character,
@@ -524,8 +528,8 @@ class CharacterActivityXPCalculationTests(TestCase):
         from progression.models import CharacterActivity
         
         self.player.set_online()
-        self.character.player_active_since = now()
-        self.character.save()
+        self.link.player_active_since = now()
+        self.link.save()
         
         activity = CharacterActivity.objects.create(
             character=self.character,
@@ -543,8 +547,8 @@ class CharacterActivityXPCalculationTests(TestCase):
         from progression.models import CharacterActivity
         
         self.player.set_online()
-        self.character.player_active_since = now()
-        self.character.save()
+        self.link.player_active_since = now()
+        self.link.save()
         
         activity = CharacterActivity.objects.create(
             character=self.character,
