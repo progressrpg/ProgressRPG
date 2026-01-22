@@ -81,6 +81,17 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                     "message": "Server: Successful websocket connection",
                 }
             )
+            
+            # Get current multiplier and send boost notification
+            multiplier = await database_sync_to_async(lambda: self.character.xp_multiplier)()
+            await self.send_json({
+                "type": "character.boost",
+                "action": "character.boost",
+                "data": {
+                    "boost_level": "online",
+                    "multiplier": multiplier
+                }
+            })
         else:
             logger.warning(f"[CONNECT] Unauthenticated user attempted connection.")
             await self.close()
@@ -90,6 +101,11 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             f"[DISCONNECT] WebSocket disconnecting. Player: {self.player.id} | Code: {close_code}"
         )
         await database_sync_to_async(self.player.set_offline)()
+        
+        # Reset character activity state
+        if hasattr(self, "character"):
+            await database_sync_to_async(self.character.set_player_activity_state)(False)
+        
         await self.channel_layer.group_discard("online_users", self.channel_name)
 
         if hasattr(self, "player_group"):
@@ -210,7 +226,25 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             success = await database_sync_to_async(process_initiation)(
                 self.player, self.character, action
             )
-            if not success:
+            if success:
+                # Player started an activity - set boosted state
+                await database_sync_to_async(
+                    self.character.set_player_activity_state
+                )(is_active=True)
+                
+                multiplier = await database_sync_to_async(
+                    lambda: self.character.xp_multiplier
+                )()
+                
+                await self.send_json({
+                    "type": "character.boost",
+                    "action": "character.boost",
+                    "data": {
+                        "boost_level": "active",
+                        "multiplier": multiplier
+                    }
+                })
+            else:
                 logger.warning(f"[HANDLE CLIENT REQUEST] Failed to initiate {action}.")
         elif action in ["complete_quest", "submit_activity"]:
             if action == "complete_quest" and self.quest_timer.status not in [
@@ -226,8 +260,26 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             success = await database_sync_to_async(process_completion)(
                 self.player, self.character, action
             )
-            logger.debug(f"[HANDLE CLIENT REQUEST] {action} result: {success}")
-            if not success:
+            
+            if success:
+                # Player stopped activity but still online
+                await database_sync_to_async(
+                    self.character.set_player_activity_state
+                )(is_active=False)
+                
+                multiplier = await database_sync_to_async(
+                    lambda: self.character.xp_multiplier
+                )()
+                
+                await self.send_json({
+                    "type": "character.boost",
+                    "action": "character.boost",
+                    "data": {
+                        "boost_level": "online",
+                        "multiplier": multiplier
+                    }
+                })
+            else:
                 logger.warning(
                     f"[HANDLE CLIENT REQUEST] Failed to complete {action}, result: {success}"
                 )

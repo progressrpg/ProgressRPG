@@ -14,7 +14,20 @@
   border: 1px solid rgba(c.$color-border-primary, 0.4);
   border-radius: v.$border-radius;
   padding: v.$padding-base;
-
+  
+  transition: all 0.3s ease;
+  
+  &.energized {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.6);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  &.boosted {
+    background: rgba(255, 69, 0, 0.15);
+    border-color: rgba(255, 69, 0, 0.8);
+    animation: intensePulse 1s ease-in-out infinite;
+  }
 }
 
 .activity {
@@ -23,4 +36,32 @@
 
 .time {
   opacity: 0.75;
+}
+
+.multiplier {
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(255, 215, 0, 0.2);
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: rgba(255, 215, 0, 1);
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.3); 
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); 
+  }
+}
+
+@keyframes intensePulse {
+  0%, 100% { 
+    box-shadow: 0 0 10px rgba(255, 69, 0, 0.5); 
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255, 69, 0, 0.9); 
+  }
 }

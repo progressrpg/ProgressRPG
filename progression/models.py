@@ -314,10 +314,15 @@ class CharacterActivity(TimeRecord):
     def calculate_xp_reward(self) -> int:
         """
         Calculate and store the XP gained based on duration.
+        Applies character's XP multiplier based on player state.
         """
         base_xp = self.duration // 60
-        multiplier = 0.25 if self.kind == "rest" else 1
-        return int(base_xp * multiplier)
+        activity_multiplier = 0.25 if self.kind == "rest" else 1.0
+        
+        # Apply character's player-influenced multiplier
+        character_multiplier = getattr(self.character, 'xp_multiplier', 1.0)
+        
+        return int(base_xp * activity_multiplier * character_multiplier)
 
 
 class CharacterQuest(TimeRecord):

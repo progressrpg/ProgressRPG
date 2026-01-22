@@ -1,5 +1,6 @@
 # from datetime import datetime
 from django.db import models, transaction, IntegrityError
+from django.utils import timezone
 from django.utils.timezone import now
 from random import random, randint
 from typing import TYPE_CHECKING, Optional, Dict, Any, cast
@@ -201,6 +202,11 @@ class Character(Person, LifeCycleMixin):
     position = models.OneToOneField(
         "locations.Position", on_delete=models.SET_NULL, null=True
     )
+    player_active_since = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the player started an activity with this character"
+    )
     # quest_timer = Optional["QuestTimer"]
 
     @property
@@ -223,6 +229,44 @@ class Character(Person, LifeCycleMixin):
         Retrieve the player associated with this character.
         """
         return PlayerCharacterLink.get_player(self)
+
+    @property
+    def player_is_online(self):
+        """Check if the linked player is currently online."""
+        player = self.current_player
+        return player.is_online if player else False
+
+    @property
+    def xp_multiplier(self):
+        """
+        Calculate XP multiplier based on player connection state.
+        
+        Returns:
+            float: 1.0 (offline), 1.5 (online), 2.5 (active)
+        """
+        if not self.player_is_online:
+            return 1.0
+        
+        if self.player_active_since:
+            # Player is online AND actively doing an activity
+            return 2.5
+        
+        # Player is online but idle
+        return 1.5
+
+    def set_player_activity_state(self, is_active):
+        """
+        Update whether the player is actively engaged in an activity.
+        
+        Args:
+            is_active: True if player started an activity, False if stopped
+        """
+        if is_active:
+            self.player_active_since = timezone.now()
+        else:
+            self.player_active_since = None
+        
+        self.save(update_fields=['player_active_since'])
 
     def start_quest(self, quest):
         self.quest_timer.change_quest(quest)
