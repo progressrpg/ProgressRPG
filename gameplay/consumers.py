@@ -294,23 +294,23 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             character = PlayerCharacterLink().get_character(user.player)
             return user.player, character
 
-    def _reset_activity_state(self):
-        """Reset the player activity state via PlayerCharacterLink"""
+    def _get_active_link(self):
+        """Get the active PlayerCharacterLink for this character"""
         from character.models import PlayerCharacterLink
         
-        link = PlayerCharacterLink.objects.filter(
+        return PlayerCharacterLink.objects.filter(
             character=self.character, is_active=True
         ).first()
+
+    def _reset_activity_state(self):
+        """Reset the player activity state via PlayerCharacterLink"""
+        link = self._get_active_link()
         if link:
             link.set_player_activity_state(False)
 
     def _set_activity_state(self, is_active):
         """Set the player activity state via PlayerCharacterLink"""
-        from character.models import PlayerCharacterLink
-        
-        link = PlayerCharacterLink.objects.filter(
-            character=self.character, is_active=True
-        ).first()
+        link = self._get_active_link()
         if link:
             link.set_player_activity_state(is_active)
 
