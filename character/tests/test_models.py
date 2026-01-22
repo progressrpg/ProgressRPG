@@ -359,3 +359,201 @@ class PersonTests(TestCase):
     def test_person_created_at(self):
         """Test created_at timestamp is set"""
         self.assertIsNotNone(self.character.created_at)
+
+
+class CharacterXPMultiplierTests(TestCase):
+    """Test cases for the symbiotic XP multiplier system"""
+    
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from users.models import Player
+        
+        User = get_user_model()
+        
+        # Create user and player
+        self.user = User.objects.create_user(email="test@test.com", password="pass")
+        self.player, _ = Player.objects.get_or_create(user=self.user)
+        self.player.name = "Test Player"
+        self.player.save()
+        
+        # Create character
+        self.character = Character.objects.create(
+            first_name="Test",
+            last_name="Character",
+            birth_date=date(2000, 1, 1),
+            sex="Female",
+        )
+        
+        # Link player to character
+        PlayerCharacterLink.assign_character(self.player, self.character)
+
+    def test_player_is_online_property_when_offline(self):
+        """Test player_is_online property returns False when player is offline"""
+        self.player.set_offline()
+        self.assertFalse(self.character.player_is_online)
+
+    def test_player_is_online_property_when_online(self):
+        """Test player_is_online property returns True when player is online"""
+        self.player.set_online()
+        self.assertTrue(self.character.player_is_online)
+
+    def test_xp_multiplier_offline(self):
+        """Test XP multiplier is 1.0 when player is offline"""
+        self.player.set_offline()
+        self.assertEqual(self.character.xp_multiplier, 1.0)
+
+    def test_xp_multiplier_online_idle(self):
+        """Test XP multiplier is 1.5 when player is online but idle"""
+        self.player.set_online()
+        self.character.player_active_since = None
+        self.character.save()
+        self.assertEqual(self.character.xp_multiplier, 1.5)
+
+    def test_xp_multiplier_online_active(self):
+        """Test XP multiplier is 2.5 when player is online and active"""
+        self.player.set_online()
+        self.character.player_active_since = now()
+        self.character.save()
+        self.assertEqual(self.character.xp_multiplier, 2.5)
+
+    def test_set_player_activity_state_active(self):
+        """Test setting player activity state to active"""
+        self.character.set_player_activity_state(True)
+        self.character.refresh_from_db()
+        self.assertIsNotNone(self.character.player_active_since)
+
+    def test_set_player_activity_state_inactive(self):
+        """Test setting player activity state to inactive"""
+        self.character.player_active_since = now()
+        self.character.save()
+        
+        self.character.set_player_activity_state(False)
+        self.character.refresh_from_db()
+        self.assertIsNone(self.character.player_active_since)
+
+    def test_xp_multiplier_transitions(self):
+        """Test XP multiplier transitions through states"""
+        # Start offline
+        self.player.set_offline()
+        self.assertEqual(self.character.xp_multiplier, 1.0)
+        
+        # Player comes online
+        self.player.set_online()
+        self.assertEqual(self.character.xp_multiplier, 1.5)
+        
+        # Player starts activity
+        self.character.set_player_activity_state(True)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.xp_multiplier, 2.5)
+        
+        # Player stops activity
+        self.character.set_player_activity_state(False)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.xp_multiplier, 1.5)
+        
+        # Player goes offline
+        self.player.set_offline()
+        self.assertEqual(self.character.xp_multiplier, 1.0)
+
+
+class CharacterActivityXPCalculationTests(TestCase):
+    """Test cases for CharacterActivity XP calculation with multipliers"""
+    
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from users.models import Player
+        from progression.models import CharacterActivity
+        
+        User = get_user_model()
+        
+        # Create user and player
+        self.user = User.objects.create_user(email="test2@test.com", password="pass")
+        self.player, _ = Player.objects.get_or_create(user=self.user)
+        self.player.name = "Test Player 2"
+        self.player.save()
+        
+        # Create character
+        self.character = Character.objects.create(
+            first_name="Test2",
+            last_name="Character2",
+            birth_date=date(2000, 1, 1),
+            sex="Male",
+        )
+        
+        # Link player to character
+        PlayerCharacterLink.assign_character(self.player, self.character)
+
+    def test_xp_calculation_offline(self):
+        """Test XP calculation when player is offline (1.0x multiplier)"""
+        from progression.models import CharacterActivity
+        
+        self.player.set_offline()
+        
+        activity = CharacterActivity.objects.create(
+            character=self.character,
+            name="Work",
+            kind="work",
+            duration=600  # 10 minutes = 10 XP base
+        )
+        
+        xp = activity.calculate_xp_reward()
+        # base_xp = 600 / 60 = 10, activity_multiplier = 1.0, character_multiplier = 1.0
+        self.assertEqual(xp, 10)
+
+    def test_xp_calculation_online_idle(self):
+        """Test XP calculation when player is online but idle (1.5x multiplier)"""
+        from progression.models import CharacterActivity
+        
+        self.player.set_online()
+        self.character.player_active_since = None
+        self.character.save()
+        
+        activity = CharacterActivity.objects.create(
+            character=self.character,
+            name="Work",
+            kind="work",
+            duration=600  # 10 minutes = 10 XP base
+        )
+        
+        xp = activity.calculate_xp_reward()
+        # base_xp = 600 / 60 = 10, activity_multiplier = 1.0, character_multiplier = 1.5
+        self.assertEqual(xp, 15)
+
+    def test_xp_calculation_online_active(self):
+        """Test XP calculation when player is online and active (2.5x multiplier)"""
+        from progression.models import CharacterActivity
+        
+        self.player.set_online()
+        self.character.player_active_since = now()
+        self.character.save()
+        
+        activity = CharacterActivity.objects.create(
+            character=self.character,
+            name="Work",
+            kind="work",
+            duration=600  # 10 minutes = 10 XP base
+        )
+        
+        xp = activity.calculate_xp_reward()
+        # base_xp = 600 / 60 = 10, activity_multiplier = 1.0, character_multiplier = 2.5
+        self.assertEqual(xp, 25)
+
+    def test_xp_calculation_rest_activity_with_boost(self):
+        """Test XP calculation for rest activity (0.25x) with player boost (2.5x)"""
+        from progression.models import CharacterActivity
+        
+        self.player.set_online()
+        self.character.player_active_since = now()
+        self.character.save()
+        
+        activity = CharacterActivity.objects.create(
+            character=self.character,
+            name="Rest",
+            kind="rest",
+            duration=600  # 10 minutes
+        )
+        
+        xp = activity.calculate_xp_reward()
+        # base_xp = 600 / 60 = 10, activity_multiplier = 0.25, character_multiplier = 2.5
+        # 10 * 0.25 * 2.5 = 6.25 -> int = 6
+        self.assertEqual(xp, 6)
