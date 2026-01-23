@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("gameplay", "0052_project_activity_skill_character_gender_and_more"),
         ("gameworld", "0001_initial"),
-        ("users", "0019_rename_create_at_customuser_created_at_and_more"),
+        ("users", "0036_rename_profile_to_player"),
     ]
 
     operations = [
