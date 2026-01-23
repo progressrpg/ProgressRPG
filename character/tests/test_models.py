@@ -359,3 +359,108 @@ class PersonTests(TestCase):
     def test_person_created_at(self):
         """Test created_at timestamp is set"""
         self.assertIsNotNone(self.character.created_at)
+
+
+class CharacterNPCTests(TestCase):
+    """Tests for the is_npc property and related functionality"""
+    
+    def setUp(self):
+        from users.models import CustomUser, Player
+        
+        # Create NPCs
+        self.npc1 = Character.objects.create(
+            first_name="NPC1",
+            last_name="Character",
+            birth_date=date(2000, 1, 1),
+            sex="Male",
+            can_link=True,
+        )
+        self.npc2 = Character.objects.create(
+            first_name="NPC2",
+            last_name="Character",
+            birth_date=date(2000, 1, 1),
+            sex="Female",
+            can_link=True,
+        )
+        
+        # Create a player-linked character
+        self.user = CustomUser.objects.create_user(
+            email="test@example.com",
+            password="testpass123"
+        )
+        self.player = self.user.player
+        self.player_character = Character.objects.create(
+            first_name="Player",
+            last_name="Character",
+            birth_date=date(2000, 1, 1),
+            sex="Male",
+            can_link=False,
+        )
+        PlayerCharacterLink.objects.create(
+            player=self.player,
+            character=self.player_character,
+            is_active=True
+        )
+    
+    def test_is_npc_property_for_npc(self):
+        """Test that a character without an active player link is an NPC"""
+        self.assertTrue(self.npc1.is_npc)
+        self.assertTrue(self.npc2.is_npc)
+    
+    def test_is_npc_property_for_player_character(self):
+        """Test that a character with an active player link is not an NPC"""
+        self.assertFalse(self.player_character.is_npc)
+    
+    def test_is_npc_after_unlinking(self):
+        """Test that a character becomes an NPC after unlinking"""
+        # Unlink the character
+        link = PlayerCharacterLink.objects.get(
+            character=self.player_character,
+            is_active=True
+        )
+        link.unlink()
+        
+        # Refresh from database
+        self.player_character.refresh_from_db()
+        
+        # Should now be an NPC
+        self.assertTrue(self.player_character.is_npc)
+    
+    def test_has_available_classmethod(self):
+        """Test the has_available classmethod returns True when NPCs are available"""
+        # Should return True because we have NPCs with can_link=True and no active links
+        self.assertTrue(Character.has_available())
+    
+    def test_has_available_no_linkable_characters(self):
+        """Test has_available returns False when no linkable characters exist"""
+        # Mark all NPCs as not linkable
+        Character.objects.filter(can_link=True).update(can_link=False)
+        self.assertFalse(Character.has_available())
+    
+    def test_has_available_all_linked(self):
+        """Test has_available returns False when all linkable characters are linked"""
+        from users.models import CustomUser
+        
+        # Link all NPCs
+        user1 = CustomUser.objects.create_user(email="user1@test.com", password="pass")
+        user2 = CustomUser.objects.create_user(email="user2@test.com", password="pass")
+        
+        PlayerCharacterLink.objects.create(
+            player=user1.player,
+            character=self.npc1,
+            is_active=True
+        )
+        PlayerCharacterLink.objects.create(
+            player=user2.player,
+            character=self.npc2,
+            is_active=True
+        )
+        
+        # Mark them as not linkable (as assign_character does)
+        self.npc1.can_link = False
+        self.npc1.save()
+        self.npc2.can_link = False
+        self.npc2.save()
+        
+        # Should return False now
+        self.assertFalse(Character.has_available())

@@ -57,7 +57,6 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ["email"]
     ordering = ("-created_at",)
     readonly_fields = ["created_at"]
-    inlines = [PlayerInline]
 
 
 @admin.register(Player)

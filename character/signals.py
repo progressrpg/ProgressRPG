@@ -52,6 +52,7 @@ def recompute_character_flags(character_id: int) -> None:
     Character.objects.filter(id=character_id).update(
         can_link=can_link,
     )
+    
 
 
 @receiver(pre_save, sender=PlayerCharacterLink)
