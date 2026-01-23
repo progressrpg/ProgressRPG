@@ -316,7 +316,7 @@ class CharacterActivity(TimeRecord):
         """Capture multiplier when activity is created."""
         if not self.pk and not self.is_complete:
             # New activity: capture current multiplier from character
-            self.xp_multiplier_applied = getattr(self.character, 'xp_multiplier', 1.0)
+            self.xp_multiplier_applied = self.character.xp_multiplier
         super().save(*args, **kwargs)
 
     def calculate_xp_reward(self) -> int:

@@ -75,7 +75,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             self.quest_timer = await self.get_quest_timer()
 
             # Player came online - interrupt current activity and restart with boost
-            new_activity = await database_sync_to_async(
+            await database_sync_to_async(
                 self.character.on_player_state_change
             )()
 
@@ -97,7 +97,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         await database_sync_to_async(self.player.set_offline)()
         
         # Player went offline - interrupt current activity and restart without boost
-        new_activity = await database_sync_to_async(
+        await database_sync_to_async(
             self.character.on_player_state_change
         )()
         
