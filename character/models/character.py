@@ -1,6 +1,7 @@
 # from datetime import datetime
 from django.db import models, transaction, IntegrityError
 from django.utils.timezone import now
+from django.utils import timezone
 from random import random, randint
 from typing import TYPE_CHECKING, Optional, Dict, Any, cast
 import logging
@@ -224,6 +225,86 @@ class Character(Person, LifeCycleMixin):
         """
         return PlayerCharacterLink.get_player(self)
 
+    def get_active_link(self):
+        """Get active PlayerCharacterLink for this character."""
+        return PlayerCharacterLink.objects.filter(
+            character=self,
+            is_active=True
+        ).select_related('player').first()
+
+    @property
+    def player_is_online(self):
+        """Check if linked player is online."""
+        link = self.get_active_link()
+        return link.player_is_online if link else False
+
+    @property
+    def xp_multiplier(self):
+        """
+        Get XP multiplier from link.
+        
+        Returns:
+            float: 1.0 (offline), 2.0 (online)
+        """
+        link = self.get_active_link()
+        return link.xp_multiplier if link else 1.0
+
+    def on_player_state_change(self, now=None):
+        """
+        Called when player online/offline state changes.
+        Interrupts current activity and starts a new one with current multiplier.
+        
+        This method handles both login and logout:
+        1. Completes current activity early (with its stored multiplier)
+        2. Starts new activity for remaining time (which captures current multiplier)
+        
+        Returns:
+            CharacterActivity: The new activity (or None if none to interrupt)
+        """
+        now = now or timezone.now()
+        
+        behaviour = getattr(self, 'behaviour', None)
+        if not behaviour:
+            return None
+        
+        # Get current activity
+        current = behaviour.sync_to_now(now)
+        
+        if not current or current.is_complete:
+            return None
+        
+        # Don't interrupt sleep
+        if current.kind == 'sleep':
+            return current
+        
+        # Don't interrupt if less than 5 minutes remaining
+        remaining = (current.scheduled_end - now).total_seconds()
+        if remaining < 300:
+            return current
+        
+        # Complete current activity early
+        current.completed_at = now
+        current.is_complete = True
+        if current.started_at:
+            current.duration = int((now - current.started_at).total_seconds())
+        current.save()
+        
+        # Create new activity for remaining time
+        # Multiplier will be captured automatically in save()
+        from progression.models import CharacterActivity
+        
+        new_activity = CharacterActivity.objects.create(
+            character=self,
+            kind=current.kind,
+            name=current.name or current.kind,
+            scheduled_start=now,
+            scheduled_end=current.scheduled_end,
+            started_at=now,
+            is_complete=False
+        )
+        
+        return new_activity
+
     def start_quest(self, quest):
         self.quest_timer.change_quest(quest)
 
@@ -370,6 +451,11 @@ class PlayerCharacterLink(models.Model):
     date_linked = models.DateField(auto_now_add=True)
     date_unlinked = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    player_came_online_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the player came online while linked to this character"
+    )
 
     class Meta:
         constraints = [
@@ -384,6 +470,37 @@ class PlayerCharacterLink(models.Model):
                 name="one_active_link_per_character",
             ),
         ]
+
+    @property
+    def player_is_online(self):
+        """Is the player currently connected?"""
+        return self.player.is_online
+
+    @property
+    def xp_multiplier(self):
+        """
+        Simple multiplier: player online = 2.0x, offline = 1.0x
+        
+        Returns:
+            float: 1.0 (offline), 2.0 (online)
+        """
+        return 2.0 if self.player_is_online else 1.0
+
+    @classmethod
+    def get_link_for_character(cls, character):
+        """Get active link for a character."""
+        return cls.objects.filter(
+            character=character,
+            is_active=True
+        ).select_related('player').first()
+
+    @classmethod
+    def get_link_for_player(cls, player):
+        """Get active link for a player."""
+        return cls.objects.filter(
+            player=player,
+            is_active=True
+        ).select_related('character').first()
 
     @classmethod
     def get_character(cls, player: Player) -> Character:

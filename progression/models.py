@@ -304,6 +304,7 @@ class CharacterActivity(TimeRecord):
             ("idle", "Idling"),
         ],
     )
+    xp_multiplier_applied = models.FloatField(default=1.0)
 
     class Meta:
         ordering = ["-created_at"]
@@ -311,13 +312,22 @@ class CharacterActivity(TimeRecord):
     def __str__(self):
         return f"character_activity {self.name}"
 
+    def save(self, *args, **kwargs):
+        """Capture multiplier when activity is created."""
+        if not self.pk and not self.is_complete:
+            # New activity: capture current multiplier from character
+            self.xp_multiplier_applied = getattr(self.character, 'xp_multiplier', 1.0)
+        super().save(*args, **kwargs)
+
     def calculate_xp_reward(self) -> int:
         """
-        Calculate and store the XP gained based on duration.
+        Calculate XP using the multiplier that was active when activity started.
         """
         base_xp = self.duration // 60
-        multiplier = 0.25 if self.kind == "rest" else 1
-        return int(base_xp * multiplier)
+        activity_multiplier = 0.25 if self.kind == "rest" else 1.0
+        
+        # Use stored multiplier from when activity was created
+        return int(base_xp * activity_multiplier * self.xp_multiplier_applied)
 
 
 class CharacterQuest(TimeRecord):

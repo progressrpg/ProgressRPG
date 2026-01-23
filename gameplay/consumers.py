@@ -74,6 +74,11 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             self.activity_timer = await self.get_activity_timer()
             self.quest_timer = await self.get_quest_timer()
 
+            # Player came online - interrupt current activity and restart with boost
+            new_activity = await database_sync_to_async(
+                self.character.on_player_state_change
+            )()
+
             await self.send_json(
                 {
                     "type": "console.log",
@@ -90,6 +95,12 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             f"[DISCONNECT] WebSocket disconnecting. Player: {self.player.id} | Code: {close_code}"
         )
         await database_sync_to_async(self.player.set_offline)()
+        
+        # Player went offline - interrupt current activity and restart without boost
+        new_activity = await database_sync_to_async(
+            self.character.on_player_state_change
+        )()
+        
         await self.channel_layer.group_discard("online_users", self.channel_name)
 
         if hasattr(self, "player_group"):
