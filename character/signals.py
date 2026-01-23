@@ -38,15 +38,22 @@ def recompute_character_flags(character_id: int) -> None:
     """
     Recompute denormalised flags for a Character based on current links.
     Adjust the logic here to match your rules.
+    A character can_link if they have no active player links.
     """
     if not character_id:
         return
 
-    can_link = True
+    # Character can link if they don't have any active player links
+    has_active_link = PlayerCharacterLink.objects.filter(
+        character_id=character_id, is_active=True
+    ).exists()
+
+    can_link = not has_active_link
 
     Character.objects.filter(id=character_id).update(
         can_link=can_link,
     )
+    
 
 
 @receiver(pre_save, sender=PlayerCharacterLink)
