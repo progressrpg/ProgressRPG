@@ -6,6 +6,7 @@ from unittest import skip
 import logging
 
 from users.models import Player
+from progression.models import PlayerActivity
 from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink
@@ -138,7 +139,12 @@ class PlayerMethodsTest(TestCase):
     def test_player_add_activity(self):
         """Test adding activity to a player."""
         player = self.user.player
-        player.add_activity(10, 1)
+        activity = PlayerActivity.objects.create(
+            player=player,
+            name="Test activity",
+            duration=10,
+        )
+        activity.complete()
         self.assertEqual(player.total_time, 10)
         self.assertEqual(player.total_activities, 1)
 

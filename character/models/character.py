@@ -193,9 +193,6 @@ class Character(Person, LifeCycleMixin):
     coins = models.PositiveIntegerField(default=0)
     reputation = models.IntegerField(default=0)
     can_link = models.BooleanField(default=False)
-    position = models.OneToOneField(
-        "locations.Position", on_delete=models.SET_NULL, null=True
-    )
     # quest_timer = Optional["QuestTimer"]
 
     @property

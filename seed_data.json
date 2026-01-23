@@ -29,7 +29,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 210,
     "first_name": "Elrond",
     "last_name": "Bob",
     "backstory": "This is the story of Elrond.",
@@ -37,7 +36,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       23
     ]
@@ -61,7 +59,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Gareth",
     "last_name": "Holloway",
     "backstory": "Farmer, former mercenary, settled into rural life.",
@@ -69,7 +66,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -91,7 +87,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Agnes",
     "last_name": "Holloway",
     "backstory": "Gareth’s wife, keeps the household running.",
@@ -99,7 +94,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -121,7 +115,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 2,
     "first_name": "Tristan",
     "last_name": "Holloway",
     "backstory": "Agnes and Gareth's son, dreams of something beyond farming.",
@@ -129,7 +122,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       2,
       3
@@ -154,7 +146,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Mira",
     "last_name": "Holloway",
     "backstory": "Helps with the animals, dislikes farm work.",
@@ -162,7 +153,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       2,
       3
@@ -187,7 +177,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 2,
     "first_name": "Oswin",
     "last_name": "Holloway",
     "backstory": "Youngest child, eager to learn his father’s trade.",
@@ -195,7 +184,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       2,
       3
@@ -220,7 +208,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Callum",
     "last_name": "Drake",
     "backstory": "Shepherd, spends most of his time in the hills.",
@@ -228,7 +215,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -250,7 +236,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Eda",
     "last_name": "Drake",
     "backstory": "Dairy and spinner. Callum's wife.",
@@ -258,7 +243,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -280,7 +264,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Nico",
     "last_name": "Drake",
     "backstory": "Callum and Eda's son, recently discovered as illegitimate.",
@@ -288,7 +271,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       8,
       7
@@ -313,7 +295,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Aldwin",
     "last_name": "Weaver",
     "backstory": "Tavern owner, grew up as a farmer before changing trade.",
@@ -321,7 +302,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -343,7 +323,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Rosalind",
     "last_name": "Weaver",
     "backstory": "Aldwin’s daughter, newlywed to a soldier, currently pregnant.",
@@ -351,7 +330,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       10
     ]
@@ -375,7 +353,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Edric",
     "last_name": "Thornbrook",
     "backstory": "Retired blacksmith, owns a small farm.",
@@ -383,7 +360,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -405,7 +381,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Elias",
     "last_name": "Thornbrook",
     "backstory": "Freya and Edric's son; runs the forge but helps on the farm.",
@@ -413,7 +388,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       12
     ]
@@ -437,7 +411,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Freya",
     "last_name": "Thornbrook",
     "backstory": "Edric's daughter, more interested in farming than smithing.",
@@ -445,7 +418,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       12
     ]
@@ -469,7 +441,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Viggo",
     "last_name": "Stormvale",
     "backstory": "Former soldier, now working land for a noble.",
@@ -477,7 +448,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -499,7 +469,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ella",
     "last_name": "Stormvale",
     "backstory": "Viggo’s orphaned niece, raised by him.",
@@ -507,7 +476,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -529,7 +497,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Dain",
     "last_name": "Mossgrove",
     "backstory": "Goatherd, known for his stubbornness. Anwen's husband.",
@@ -537,7 +504,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -559,7 +525,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Anwen",
     "last_name": "Mossgrove",
     "backstory": "Cheesemaker. Dain's wife.",
@@ -567,7 +532,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -589,7 +553,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ronan",
     "last_name": "Mossgrove",
     "backstory": "Their son, a struggling market trader",
@@ -597,7 +560,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       17,
       18
@@ -622,7 +584,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Elena",
     "last_name": "Fenwick",
     "backstory": "Widow, struggling to raise crops on a poor strip of land",
@@ -630,7 +591,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -652,7 +612,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ivy",
     "last_name": "Fenwick",
     "backstory": "Elena's daughter, more interested in plants than farmwork.",
@@ -660,7 +619,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       20
     ]
@@ -684,7 +642,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ysabet",
     "last_name": "Ashford",
     "backstory": "Seamstress, formerly a noble worker, now living with farmers.",
@@ -692,7 +649,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -714,7 +670,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Rowenna",
     "last_name": "Ashford",
     "backstory": "Ysabet's daughter, works fields for a local landowner.",
@@ -722,7 +677,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": [
       22
     ]
@@ -746,7 +700,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Loralei",
     "last_name": "Dewhurst",
     "backstory": "Ranger, hunts for game and protects woodland.",
@@ -754,7 +707,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -776,7 +728,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ronan",
     "last_name": "Blackthorne",
     "backstory": "Former rogue, now a merchant.",
@@ -784,7 +735,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -806,7 +756,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Marwen",
     "last_name": "Brightwater",
     "backstory": "Herbalist, grows medicinal plants.",
@@ -814,7 +763,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -836,7 +784,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Theo",
     "last_name": "Brightwater",
     "backstory": "Marwen's grandson, helps with the chickens.",
@@ -844,7 +791,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -866,7 +812,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Dain",
     "last_name": "Ironhand",
     "backstory": "Stonemason, lives in a farming village.",
@@ -874,7 +819,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -896,7 +840,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Sylvie",
     "last_name": "Briarwood",
     "backstory": "Orphan raised by monks, training as a scribe.",
@@ -904,7 +847,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -926,7 +868,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Baldric",
     "last_name": "Holt",
     "backstory": "Aspiring knight, former farmhand.",
@@ -934,7 +875,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
@@ -956,7 +896,6 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Thea",
     "last_name": "Lockwood",
     "backstory": "Tavern owner, daughter of farmers.",
@@ -964,7 +903,6 @@
     "coins": 0,
     "reputation": 0,
     "can_link": true,
-    "position": null,
     "parents": []
   }
 },
