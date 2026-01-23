@@ -24,6 +24,7 @@ Author:
 
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
+from django.db.models import Sum
 from django.utils import timezone
 from typing import TYPE_CHECKING, Optional
 import logging
@@ -157,8 +158,6 @@ class Player(Person):
 
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     bio = models.TextField(max_length=1000, blank=True)
-    total_time = models.IntegerField(default=0)
-    total_activities = models.IntegerField(default=0)
     is_premium = models.BooleanField(default=False)
     is_online = models.BooleanField(default=False)
     last_login = models.DateTimeField(default=timezone.now, null=True, blank=True)
@@ -215,17 +214,26 @@ class Player(Person):
     def __str__(self):
         return self.name if self.name else "Unnamed player"
 
+    @property
+    def total_time(self):
+        return (
+            self.activities.filter(is_complete=True).aggregate(total=Sum("duration"))[
+                "total"
+            ]
+            or 0
+        )
+
+    @property
+    def total_activities(self):
+        return self.activities.filter(is_complete=True).count()
+
     def add_activity(self, time: int = 0, num: int = 1, xp: int = 0):
         """
-        Update the total time and number of activities for this player.
+        Apply XP rewards for a completed activity.
         """
-        self.total_time += time
-        self.total_activities += num
-
         levelups = []
         if xp:
             levelups = self.add_xp(xp)
-        self.save(update_fields=["total_time", "total_activities"])
 
         for event in levelups:
             ServerMessage.objects.create(

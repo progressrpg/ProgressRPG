@@ -112,7 +112,12 @@ class PlayerAdmin(admin.ModelAdmin):
         ),
     )
 
-    readonly_fields = ["last_login", "user_created_at"]
+    readonly_fields = [
+        "last_login",
+        "user_created_at",
+        "total_time",
+        "total_activities",
+    ]
     search_fields = ["name", "user__email"]
     ordering = ("-created_at",)
 
