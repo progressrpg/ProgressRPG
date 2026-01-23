@@ -26,8 +26,9 @@ from .views import (
     DeleteAccountAPIView,
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
-    PopulationCentreMapView,
 )
+
+from locations.views import PopulationCentreMapView
 
 
 class KeyConverter:
