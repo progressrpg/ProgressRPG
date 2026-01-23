@@ -63,8 +63,8 @@ class Quest(models.Model):
     # Eligibility criteria
     is_premium = models.BooleanField(default=False)
     is_task_support = models.BooleanField(default=False)
-    levelMin = models.IntegerField(default=0)
-    levelMax = models.IntegerField(default=0)
+    levelMin = models.PositiveIntegerField(default=0)
+    levelMax = models.PositiveIntegerField(default=0)
     canRepeat = models.BooleanField(default=True)
     quest_requirements: QuerySet["QuestRequirement"]
     quest_completions: QuerySet["QuestCompletion"]
@@ -184,8 +184,8 @@ class QuestResults(models.Model):
         "Quest", on_delete=models.CASCADE, related_name="results"
     )
     dynamic_rewards = models.JSONField(default=dict, null=True, blank=True)
-    xp_rate = models.IntegerField(default=1)
-    coin_reward = models.IntegerField(default=0)
+    xp_rate = models.PositiveIntegerField(default=1)
+    coin_reward = models.PositiveIntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -242,7 +242,7 @@ class Timer(models.Model):
     """
 
     start_time = models.DateTimeField(null=True, blank=True)
-    elapsed_time = models.IntegerField(default=0)  # Time in seconds
+    elapsed_time = models.PositiveIntegerField(default=0)  # Time in seconds
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
 
@@ -510,7 +510,7 @@ class QuestTimer(Timer):
         null=True,
         blank=True,
     )
-    duration = models.IntegerField(default=0)
+    duration = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"QuestTimer {self.id} for {self.character.name}"
