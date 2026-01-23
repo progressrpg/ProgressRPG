@@ -17,7 +17,7 @@ import subprocess
 
 
 BRANCH_NAME = get_branch_name()
-print("BRANCH_NAME is:", BRANCH_NAME)
+print("BRANCH_NAME is:", BRANCH_NAME, file=sys.stderr)
 
 new_db_created = ensure_branch_db_exists()
 
@@ -29,6 +29,11 @@ ROOT_URLCONF = "progress_rpg.urls"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "request_context": {
+            "()": "progress_rpg.middleware.logging_context.RequestContextFilter",
+        },
+    },
     "formatters": {
         "verbose": {
             "format": "[%(asctime)s] [%(request_id)s] [%(user_id)s] [%(levelname)s] [%(name)s:%(lineno)d] %(message)s",
@@ -49,6 +54,7 @@ LOGGING = {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "logs/general.log"),
             "formatter": "verbose",
+            "filters": ["request_context"],
             "maxBytes": 5 * 1024 * 1024,  # 5MB per file
             "backupCount": 3,  # Keep last 3 log files
         },
@@ -57,6 +63,7 @@ LOGGING = {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "logs/errors.log"),
             "formatter": "verbose",
+            "filters": ["request_context"],
             "maxBytes": 5 * 1024 * 1024,  # 5MB per file
             "backupCount": 3,  # Keep last 3 log files
         },
@@ -65,6 +72,7 @@ LOGGING = {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "logs/activity.log"),
             "formatter": "verbose",
+            "filters": ["request_context"],
             "maxBytes": 5 * 1024 * 1024,  # 5MB per file
             "backupCount": 6,  # Keep last 5 log files
         },
@@ -125,7 +133,7 @@ EMAIL_HOST_PASSWORD = ""
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = False
 
-print("DEBUG:", DEBUG)
+print("DEBUG:", DEBUG, file=sys.stderr)
 
 
 # Quick-start development settings - unsuitable for production
@@ -143,8 +151,8 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS", "http://127.0.0.1,http://localhost:8000"
 ).split(",")
 
-print("ALLOWED HOSTS:", ALLOWED_HOSTS)
-print("CORS:", CORS_ALLOWED_ORIGINS)
+# print("ALLOWED HOSTS:", ALLOWED_HOSTS, file=sys.stderr)
+# print("CORS:", CORS_ALLOWED_ORIGINS, file=sys.stderr)
 
 
 # Database

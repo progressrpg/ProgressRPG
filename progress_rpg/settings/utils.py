@@ -1,7 +1,9 @@
+import sys
 from django.conf import settings
 import socket, os, subprocess, psycopg2, re
 
 PG_ID_MAX_LENGTH = 63
+
 
 def get_branch_name():
     """Return the current git branch name, safe for DB naming."""
@@ -76,7 +78,7 @@ def ensure_branch_db_exists():
     """Ensure a PostgreSQL database exists for the current branch, creating it if necessary."""
     db_name = get_branch_db_name()
     if db_exists(db_name):
-        print(f"✅ Database already exists: {db_name}")
+        print(f"✅ Database already exists: {db_name}", file=sys.stderr)
         return False
 
     db_user = os.getenv("DB_USER", "duncan")

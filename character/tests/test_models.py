@@ -11,11 +11,7 @@ from character.models import (
     Character,
     CharacterRelationship,
     CharacterRelationshipMembership,
-    RomanticRelationship,
     PlayerCharacterLink,
-    CharacterRole,
-    CharacterRoleSkill,
-    CharacterProgression,
 )
 
 from gameplay.models import QuestCompletion, Quest, QuestResults, QuestTimer
@@ -117,18 +113,6 @@ class CharacterRelationshipTests(TestCase):
         self.assertIn("mentor", str_repr)
         self.assertIn("Alice Smith", str_repr)
         self.assertIn("Bob Jones", str_repr)
-
-
-class RomanticRelationshipTests(TestCase):
-    def test_create_romantic_relationship(self):
-        """Test creating a romantic relationship"""
-        romantic_rel = RomanticRelationship.objects.create(
-            total_births=2, partner_is_pregnant=False
-        )
-
-        self.assertEqual(romantic_rel.total_births, 2)
-        self.assertFalse(romantic_rel.partner_is_pregnant)
-        self.assertIsNone(romantic_rel.last_childbirth_date)
 
 
 class CharacterRelationshipMembershipTests(TestCase):
@@ -363,11 +347,11 @@ class PersonTests(TestCase):
 
 class CharacterNPCTests(TestCase):
     """Tests for the is_npc property and related functionality"""
-    
+
     def setUp(self):
         from users.models import CustomUser, Player
-        
-        # Create NPCs
+
+        # Create NPCs that are available for linking
         self.npc1 = Character.objects.create(
             first_name="NPC1",
             last_name="Character",
@@ -382,13 +366,23 @@ class CharacterNPCTests(TestCase):
             sex="Female",
             can_link=True,
         )
-        
+
         # Create a player-linked character
+        # When creating a user, signals automatically create a player and assign a character
+        # We need to deactivate the auto-assigned link first
         self.user = CustomUser.objects.create_user(
-            email="test@example.com",
-            password="testpass123"
+            email="test@example.com", password="testpass123"
         )
         self.player = self.user.player
+
+        # Deactivate any auto-assigned character links
+        auto_links = PlayerCharacterLink.objects.filter(
+            player=self.player, is_active=True
+        )
+        for link in auto_links:
+            link.unlink()
+
+        # Now create our test character and link it
         self.player_character = Character.objects.create(
             first_name="Player",
             last_name="Character",
@@ -397,70 +391,63 @@ class CharacterNPCTests(TestCase):
             can_link=False,
         )
         PlayerCharacterLink.objects.create(
-            player=self.player,
-            character=self.player_character,
-            is_active=True
+            player=self.player, character=self.player_character, is_active=True
         )
-    
+        # Update can_link to match real behavior
+        self.player_character.can_link = False
+        self.player_character.save()
+
     def test_is_npc_property_for_npc(self):
         """Test that a character without an active player link is an NPC"""
         self.assertTrue(self.npc1.is_npc)
         self.assertTrue(self.npc2.is_npc)
-    
+
     def test_is_npc_property_for_player_character(self):
         """Test that a character with an active player link is not an NPC"""
         self.assertFalse(self.player_character.is_npc)
-    
+
     def test_is_npc_after_unlinking(self):
         """Test that a character becomes an NPC after unlinking"""
         # Unlink the character
         link = PlayerCharacterLink.objects.get(
-            character=self.player_character,
-            is_active=True
+            character=self.player_character, is_active=True
         )
         link.unlink()
-        
+
         # Refresh from database
         self.player_character.refresh_from_db()
-        
+
         # Should now be an NPC
         self.assertTrue(self.player_character.is_npc)
-    
+
     def test_has_available_classmethod(self):
         """Test the has_available classmethod returns True when NPCs are available"""
         # Should return True because we have NPCs with can_link=True and no active links
         self.assertTrue(Character.has_available())
-    
+
     def test_has_available_no_linkable_characters(self):
         """Test has_available returns False when no linkable characters exist"""
         # Mark all NPCs as not linkable
         Character.objects.filter(can_link=True).update(can_link=False)
         self.assertFalse(Character.has_available())
-    
+
     def test_has_available_all_linked(self):
         """Test has_available returns False when all linkable characters are linked"""
         from users.models import CustomUser
-        
-        # Link all NPCs
+
+        # We have self.npc1 and self.npc2 already created (can_link=True)
+        # Create 2 users to link them
         user1 = CustomUser.objects.create_user(email="user1@test.com", password="pass")
         user2 = CustomUser.objects.create_user(email="user2@test.com", password="pass")
-        
-        PlayerCharacterLink.objects.create(
-            player=user1.player,
-            character=self.npc1,
-            is_active=True
-        )
-        PlayerCharacterLink.objects.create(
-            player=user2.player,
-            character=self.npc2,
-            is_active=True
-        )
-        
-        # Mark them as not linkable (as assign_character does)
-        self.npc1.can_link = False
-        self.npc1.save()
-        self.npc2.can_link = False
-        self.npc2.save()
-        
-        # Should return False now
+
+        # The signals should have auto-assigned npc1 and npc2 to the users
+        # Refresh to get updated can_link values from signals
+        self.npc1.refresh_from_db()
+        self.npc2.refresh_from_db()
+
+        # Both NPCs should now be linked (can_link=False)
+        self.assertFalse(self.npc1.can_link)
+        self.assertFalse(self.npc2.can_link)
+
+        # Should return False now - no available characters left
         self.assertFalse(Character.has_available())

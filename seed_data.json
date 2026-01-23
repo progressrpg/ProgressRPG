@@ -29,20 +29,16 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 210,
     "first_name": "Elrond",
     "last_name": "Bob",
     "backstory": "This is the story of Elrond.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       23
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -63,18 +59,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Gareth",
     "last_name": "Holloway",
     "backstory": "Farmer, former mercenary, settled into rural life.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -95,18 +87,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Agnes",
     "last_name": "Holloway",
     "backstory": "Gareth’s wife, keeps the household running.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -127,21 +115,17 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 2,
     "first_name": "Tristan",
     "last_name": "Holloway",
     "backstory": "Agnes and Gareth's son, dreams of something beyond farming.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       2,
       3
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -162,21 +146,17 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Mira",
     "last_name": "Holloway",
     "backstory": "Helps with the animals, dislikes farm work.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       2,
       3
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -197,21 +177,17 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 2,
     "first_name": "Oswin",
     "last_name": "Holloway",
     "backstory": "Youngest child, eager to learn his father’s trade.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       2,
       3
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -232,18 +208,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Callum",
     "last_name": "Drake",
     "backstory": "Shepherd, spends most of his time in the hills.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -264,18 +236,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Eda",
     "last_name": "Drake",
     "backstory": "Dairy and spinner. Callum's wife.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -296,21 +264,17 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Nico",
     "last_name": "Drake",
     "backstory": "Callum and Eda's son, recently discovered as illegitimate.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       8,
       7
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -331,18 +295,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Aldwin",
     "last_name": "Weaver",
     "backstory": "Tavern owner, grew up as a farmer before changing trade.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -363,20 +323,16 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Rosalind",
     "last_name": "Weaver",
     "backstory": "Aldwin’s daughter, newlywed to a soldier, currently pregnant.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       10
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -397,18 +353,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Edric",
     "last_name": "Thornbrook",
     "backstory": "Retired blacksmith, owns a small farm.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -429,20 +381,16 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Elias",
     "last_name": "Thornbrook",
     "backstory": "Freya and Edric's son; runs the forge but helps on the farm.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       12
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -463,20 +411,16 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Freya",
     "last_name": "Thornbrook",
     "backstory": "Edric's daughter, more interested in farming than smithing.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       12
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -497,18 +441,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Viggo",
     "last_name": "Stormvale",
     "backstory": "Former soldier, now working land for a noble.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -529,18 +469,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ella",
     "last_name": "Stormvale",
     "backstory": "Viggo’s orphaned niece, raised by him.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -561,18 +497,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Dain",
     "last_name": "Mossgrove",
     "backstory": "Goatherd, known for his stubbornness. Anwen's husband.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -593,18 +525,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Anwen",
     "last_name": "Mossgrove",
     "backstory": "Cheesemaker. Dain's wife.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -625,21 +553,17 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ronan",
     "last_name": "Mossgrove",
     "backstory": "Their son, a struggling market trader",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       17,
       18
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -660,18 +584,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Elena",
     "last_name": "Fenwick",
     "backstory": "Widow, struggling to raise crops on a poor strip of land",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -692,20 +612,16 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ivy",
     "last_name": "Fenwick",
     "backstory": "Elena's daughter, more interested in plants than farmwork.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       20
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -726,18 +642,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ysabet",
     "last_name": "Ashford",
     "backstory": "Seamstress, formerly a noble worker, now living with farmers.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -758,20 +670,16 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Rowenna",
     "last_name": "Ashford",
     "backstory": "Ysabet's daughter, works fields for a local landowner.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
     "parents": [
       22
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -792,18 +700,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Loralei",
     "last_name": "Dewhurst",
     "backstory": "Ranger, hunts for game and protects woodland.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -824,18 +728,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Ronan",
     "last_name": "Blackthorne",
     "backstory": "Former rogue, now a merchant.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -856,18 +756,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Marwen",
     "last_name": "Brightwater",
     "backstory": "Herbalist, grows medicinal plants.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -888,18 +784,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Theo",
     "last_name": "Brightwater",
     "backstory": "Marwen's grandson, helps with the chickens.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -920,18 +812,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Dain",
     "last_name": "Ironhand",
     "backstory": "Stonemason, lives in a farming village.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -952,18 +840,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Sylvie",
     "last_name": "Briarwood",
     "backstory": "Orphan raised by monks, training as a scribe.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -984,18 +868,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Baldric",
     "last_name": "Holt",
     "backstory": "Aspiring knight, former farmhand.",
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -1016,18 +896,14 @@
     "is_pregnant": false,
     "pregnancy_start_date": null,
     "pregnancy_due_date": null,
-    "total_quests": 0,
     "first_name": "Thea",
     "last_name": "Lockwood",
     "backstory": "Tavern owner, daughter of farmers.",
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
-    "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -1576,216 +1452,6 @@
     "canRepeat": false,
     "frequency": "NONE",
     "is_task_support": true
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 35,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 30,
-    "created_at": "2025-01-02T14:13:13.365Z",
-    "last_updated": "2025-08-20T15:01:33.161Z",
-    "status": "completed",
-    "character": 1,
-    "quest": null,
-    "duration": 30
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 36,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 47,
-    "created_at": "2025-04-01T14:13:25.562Z",
-    "last_updated": "2025-04-01T14:19:45.813Z",
-    "status": "paused",
-    "character": 3,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 69,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 60,
-    "created_at": "2025-04-03T00:41:05.393Z",
-    "last_updated": "2025-06-22T17:05:17.007Z",
-    "status": "completed",
-    "character": 4,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 102,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-04-04T17:40:20.203Z",
-    "last_updated": "2025-04-10T19:48:21.067Z",
-    "status": "paused",
-    "character": 5,
-    "quest": null,
-    "duration": 5
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 135,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 25,
-    "created_at": "2025-05-23T13:08:03.275Z",
-    "last_updated": "2025-06-21T21:29:59.853Z",
-    "status": "paused",
-    "character": 6,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 168,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-06-21T20:23:41.361Z",
-    "last_updated": "2025-06-21T20:45:40.659Z",
-    "status": "paused",
-    "character": 7,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 201,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-15T12:45:29.214Z",
-    "last_updated": "2025-08-15T12:45:29.214Z",
-    "status": "waiting",
-    "character": 8,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 234,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-18T13:14:31.660Z",
-    "last_updated": "2025-08-18T13:14:31.660Z",
-    "status": "waiting",
-    "character": 9,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 235,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-18T13:19:25.168Z",
-    "last_updated": "2025-08-18T13:44:19.259Z",
-    "status": "paused",
-    "character": 10,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 236,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-18T14:54:55.758Z",
-    "last_updated": "2025-08-18T14:55:25.407Z",
-    "status": "paused",
-    "character": 11,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 237,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-18T15:27:59.853Z",
-    "last_updated": "2025-08-18T16:25:03.809Z",
-    "status": "paused",
-    "character": 12,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 267,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-27T17:35:15.675Z",
-    "last_updated": "2025-08-27T17:36:34.508Z",
-    "status": "paused",
-    "character": 13,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 268,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-27T18:09:11.035Z",
-    "last_updated": "2025-08-27T18:09:40.926Z",
-    "status": "paused",
-    "character": 14,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 300,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-29T12:37:24.971Z",
-    "last_updated": "2025-08-29T12:47:51.444Z",
-    "status": "paused",
-    "character": 16,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 333,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-09-21T08:22:11.529Z",
-    "last_updated": "2025-09-21T08:32:25.175Z",
-    "status": "paused",
-    "character": 17,
-    "quest": null,
-    "duration": 60
   }
 },
 {

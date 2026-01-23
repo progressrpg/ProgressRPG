@@ -1,0 +1,10 @@
+{% extends "admin/app_index.html" %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="{% url 'admin:metrics_dashboard' %}" class="button" style="background-color: #417690; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
+        📊 View Metrics Dashboard
+    </a>
+</div>
+{{ block.super }}
+{% endblock %}

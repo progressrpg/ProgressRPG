@@ -37,7 +37,6 @@ def unlink_before_deletion(sender, instance, **kwargs):
 def recompute_character_flags(character_id: int) -> None:
     """
     Recompute denormalised flags for a Character based on current links.
-    Adjust the logic here to match your rules.
     A character can_link if they have no active player links.
     """
     if not character_id:

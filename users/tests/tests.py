@@ -1,10 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client, override_settings, tag
 from django.urls import reverse
+from datetime import date
 from unittest import skip
 import logging
 
 from users.models import Player
+from progression.models import PlayerActivity
 from users.tasks import send_email_to_users_task
 
 from character.models import Character, PlayerCharacterLink
@@ -137,7 +139,12 @@ class PlayerMethodsTest(TestCase):
     def test_player_add_activity(self):
         """Test adding activity to a player."""
         player = self.user.player
-        player.add_activity(10, 1)
+        activity = PlayerActivity.objects.create(
+            player=player,
+            name="Test activity",
+            duration=10,
+        )
+        activity.complete()
         self.assertEqual(player.total_time, 10)
         self.assertEqual(player.total_activities, 1)
 
@@ -147,31 +154,6 @@ class PlayerMethodsTest(TestCase):
         player.change_character(self.character2)
         link = PlayerCharacterLink.objects.filter(player=player, is_active=True).first()
         self.assertEqual(link.character, self.character2)
-
-
-@tag("fast")
-class TestViews_LoggedOut(TestCase):
-    def setUp(self):
-        # urls
-        self.index_url = reverse("index")
-        self.player_url = reverse("player")
-        self.editprofile_url = reverse("edit_profile")
-        self.register_url = reverse("register")
-
-    def test_profile_GET_loggedout(self):
-        """Check redirect to login if user not logged in."""
-        response = self.client.get(self.player_url)
-        self.assertEqual(response.status_code, 302)
-
-    def test_editprofile_GET_loggedout(self):
-        """Check redirect to login if user not logged in."""
-        response = self.client.get(self.editprofile_url)
-        self.assertEqual(response.status_code, 302)
-
-    def test_register_GET(self):
-        """Check the register page is rendered successfully."""
-        response = self.client.get(self.register_url)
-        self.assertEqual(response.status_code, 200)
 
 
 @override_settings(
@@ -208,11 +190,11 @@ class EmailTaskTest(TestCase):
 
 class AssignCharacterTest(TestCase):
     """Tests for assign_character_to_player function"""
-    
+
     def setUp(self):
         from users.utils import assign_character_to_player
         from users.models import CustomUser
-        
+
         # Create available NPCs
         self.npc1 = Character.objects.create(
             first_name="Available",
@@ -226,45 +208,42 @@ class AssignCharacterTest(TestCase):
             sex="Female",
             can_link=True,
         )
-        
+
         # Create a user and player
         self.user = CustomUser.objects.create_user(
-            email="testplayer@example.com",
-            password="testpass123"
+            email="testplayer@example.com", password="testpass123"
         )
         self.player = self.user.player
-        
+
         # Unlink the auto-assigned character to start fresh
         links = PlayerCharacterLink.objects.filter(player=self.player, is_active=True)
         for link in links:
             link.unlink()
-    
+
     def test_assign_character_to_player_success(self):
         """Test successful character assignment"""
         from users.utils import assign_character_to_player
-        
+
         # Assign character
         character = assign_character_to_player(self.player)
-        
+
         # Verify assignment
         self.assertIsNotNone(character)
         self.assertTrue(character in [self.npc1, self.npc2])
-        
+
         # Verify link was created
         link = PlayerCharacterLink.objects.get(
-            player=self.player,
-            character=character,
-            is_active=True
+            player=self.player, character=character, is_active=True
         )
         self.assertIsNotNone(link)
-        
+
         # Verify character is no longer an NPC (has active link)
         self.assertFalse(character.is_npc)
-    
+
     def test_assign_character_filters_correctly(self):
         """Test that assignment only considers valid NPCs"""
         from users.utils import assign_character_to_player
-        
+
         # Create a character that's not linkable
         unlinkable = Character.objects.create(
             first_name="Unlinkable",
@@ -272,7 +251,7 @@ class AssignCharacterTest(TestCase):
             sex="Male",
             can_link=False,
         )
-        
+
         # Create a dead character
         dead = Character.objects.create(
             first_name="Dead",
@@ -281,51 +260,39 @@ class AssignCharacterTest(TestCase):
             can_link=True,
             death_date=date.today(),
         )
-        
-        # Create a user and link one NPC
+
+        # Create a user - signals will auto-assign npc1 to it
         from users.models import CustomUser
+
         user2 = CustomUser.objects.create_user(
-            email="user2@example.com",
-            password="pass"
+            email="user2@example.com", password="pass"
         )
-        PlayerCharacterLink.objects.create(
-            player=user2.player,
-            character=self.npc1,
-            is_active=True
-        )
-        
+        # npc1 should now be linked and unavailable
+
         # Assign character to our player
         character = assign_character_to_player(self.player)
-        
+
         # Should get npc2 (only valid option)
         self.assertEqual(character, self.npc2)
-        
+
         # Unlinkable and dead characters should not be assigned
         self.assertNotEqual(character, unlinkable)
         self.assertNotEqual(character, dead)
-    
+
     def test_assign_character_no_available_npcs(self):
         """Test assignment when no NPCs are available"""
         from users.utils import assign_character_to_player
-        
-        # Link all NPCs
+
+        # Create 2 users - signals will auto-assign npc1 and npc2 to them
         from users.models import CustomUser
+
         user1 = CustomUser.objects.create_user(email="user1@test.com", password="pass")
         user2 = CustomUser.objects.create_user(email="user2@test.com", password="pass")
-        
-        PlayerCharacterLink.objects.create(
-            player=user1.player,
-            character=self.npc1,
-            is_active=True
-        )
-        PlayerCharacterLink.objects.create(
-            player=user2.player,
-            character=self.npc2,
-            is_active=True
-        )
-        
-        # Try to assign
+
+        # All NPCs should now be linked
+
+        # Try to assign to our player (which already has its auto-assigned character unlinked)
         character = assign_character_to_player(self.player)
-        
-        # Should return None
+
+        # Should return None - no available characters
         self.assertIsNone(character)

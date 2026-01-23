@@ -4,6 +4,9 @@ from .models import Player
 
 
 class PlayerSerializer(serializers.ModelSerializer):
+    total_time = serializers.IntegerField(read_only=True)
+    total_activities = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Player
         fields = [

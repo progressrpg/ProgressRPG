@@ -21,27 +21,23 @@ User = get_user_model()
 @receiver(email_confirmed)
 def set_user_confirmed(sender, request, email_address, **kwargs):
     user = email_address.user
-    user.is_confirmed = True
-    user.save()
+    User.objects.filter(pk=user.pk).update(is_confirmed=True)
 
 
 @receiver(post_save, sender=User)
-def create_player(sender, instance, created, **kwargs):
+def create_player(sender, instance, created, raw=False, **kwargs):
     """Create a player for the user when a new user is created"""
+    if raw:
+        return
     if created:
-        player = Player.objects.create(user=instance)
-        logger.info(f"[CREATE PLAYER] New player {player.id} created for {instance}")
-
-
-@receiver(post_save, sender=User)
-def save_player(sender, instance, **kwargs):
-    """Save the player when the user is saved"""
-    instance.player.save()
+        Player.objects.get_or_create(user=instance)
 
 
 @receiver(post_save, sender=Player)
-def assign_character(sender, instance, created, **kwargs):
+def assign_character(sender, instance, created, raw=False, **kwargs):
     """Assign character when player created"""
+    if raw:
+        return
     if created:
         assign_character_to_player(instance)
 

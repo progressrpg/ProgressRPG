@@ -24,12 +24,16 @@ LOGGING = {
         "require_debug_false": {
             "()": "django.utils.log.RequireDebugFalse",
         },
+        "request_context": {
+            "()": "progress_rpg.middleware.logging_context.RequestContextFilter",
+        },
     },
     "handlers": {
         "console": {
             "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
+            "filters": ["request_context"],
         },
     },
     "loggers": {
@@ -88,7 +92,7 @@ EMAIL_USE_TLS = True
 # EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = "Progress RPG <admin@progressrpg.com>"
 
-print("DEBUG:", DEBUG)
+print("DEBUG:", DEBUG, file=sys.stderr)
 
 REGISTRATION_ENABLED = True
 

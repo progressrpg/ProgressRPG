@@ -24,6 +24,8 @@ export default function OnboardingPage() {
       <p>Welcome to Progress RPG ✨</p>
       <p>Here, your real tasks become in-game progress.</p>
       <p>Start an activity (as small as you like) and feel the anxiety reduce as you make progress.</p>
+      <p>Progress RPG is a work in progress, and we appreciate your patience as we continue to improve the experience.</p>
+      <p>Please consider filling out this <a href="https://forms.gle/9EtaqxQoNwTATDMBA" target="_blank" rel="noopener noreferrer">feedback form</a>.</p>
 
         {error && <p role="alert">{error}</p>}
         <Button
