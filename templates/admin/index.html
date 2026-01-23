@@ -1,0 +1,53 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div id="content-main">
+    {% for app in app_list %}
+    <div class="app-{{ app.app_label }} module">
+        <table>
+            <caption>
+                <a href="{{ app.app_url }}" class="section" title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">
+                    {{ app.name }}
+                </a>
+            </caption>
+            {% for model in app.models %}
+            <tr class="model-{{ model.object_name|lower }}">
+                {% if model.admin_url %}
+                <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
+                {% else %}
+                <th scope="row">{{ model.name }}</th>
+                {% endif %}
+
+                {% if model.add_url %}
+                <td><a href="{{ model.add_url }}" class="addlink">{% translate 'Add' %}</a></td>
+                {% else %}
+                <td>&nbsp;</td>
+                {% endif %}
+
+                {% if model.admin_url %}
+                    {% if model.view_only %}
+                    <td><a href="{{ model.admin_url }}" class="viewlink">{% translate 'View' %}</a></td>
+                    {% else %}
+                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %}</a></td>
+                    {% endif %}
+                {% else %}
+                <td>&nbsp;</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            {% if app.app_label == 'metrics' %}
+            {# Add custom dashboard link for metrics app #}
+            <tr class="model-dashboard">
+                <th scope="row"><a href="{% url 'admin:metrics_dashboard' %}"><strong>📊 Dashboard</strong></a></th>
+                <td>&nbsp;</td>
+                <td><a href="{% url 'admin:metrics_dashboard' %}" class="viewlink">{% translate 'View' %}</a></td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+    {% empty %}
+    <p>{% translate "You don't have permission to view or edit anything." %}</p>
+    {% endfor %}
+</div>
+{% endblock %}

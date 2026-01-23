@@ -12,6 +12,8 @@ from .services import MetricsCalculator
 
 @admin.register(GlobalMetrics)
 class GlobalMetricsAdmin(admin.ModelAdmin):
+    change_list_template = "admin/metrics/globalmetrics/change_list.html"
+
     list_display = [
         "date",
         "total_users",
@@ -51,7 +53,11 @@ class GlobalMetricsAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path("dashboard/", self.admin_site.admin_view(self.dashboard_view), name="metrics_dashboard"),
+            path(
+                "dashboard/",
+                self.admin_site.admin_view(self.dashboard_view),
+                name="metrics_dashboard",
+            ),
         ]
         return custom_urls + urls
 
