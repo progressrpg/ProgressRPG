@@ -4,6 +4,8 @@ from .models import Character
 
 
 class CharacterSerializer(serializers.ModelSerializer):
+    total_quests = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Character
         fields = [

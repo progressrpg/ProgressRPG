@@ -1,5 +1,6 @@
 # from datetime import datetime
 from django.db import models, transaction, IntegrityError
+from django.db.models import Sum
 from django.utils.timezone import now
 from random import random, randint
 from typing import TYPE_CHECKING, Optional, Dict, Any, cast
@@ -43,11 +44,8 @@ class CharacterRelationship(models.Model):
     biological = models.BooleanField(
         default=True
     )  # True = blood relative, False = adopted/found family
-    created_at = models.DateTimeField(default=now)
-    last_updated = models.DateTimeField(default=now)
-    romantic_relationship = models.OneToOneField(
-        "RomanticRelationship", on_delete=models.SET_NULL, null=True, blank=True
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
 
     def get_members(self):
         return [char for char in self.characters.all()]
@@ -70,15 +68,6 @@ class CharacterRelationship(models.Model):
         return f"{self.relationship_type} between {', '.join(characters_list)}"
 
 
-class RomanticRelationship(models.Model):
-    last_childbirth_date = models.DateField(null=True, blank=True)
-    total_births = models.PositiveIntegerField(default=0)
-    partner_is_pregnant = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Partnership between {self.partner1} and {self.partner2}"
-
-
 class CharacterRelationshipMembership(models.Model):
     character = models.ForeignKey(
         "Character",
@@ -96,11 +85,11 @@ class LifeCycleMixin(models.Model):
     birth_date = models.DateField(null=True, blank=True)
     death_date = models.DateField(null=True, blank=True)
     cause_of_death = models.CharField(max_length=255, null=True, blank=True)
-    fertility = models.IntegerField(default=50)
+    fertility = models.PositiveIntegerField(default=50)
     last_childbirth_date = models.DateField(null=True, blank=True)
     is_pregnant = models.BooleanField(default=False)
     pregnancy_start_date = models.DateField(null=True, blank=True)
-    pregnancy_due_date = models.DateTimeField(null=True, blank=True)
+    pregnancy_due_date = models.DateField(null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -186,7 +175,11 @@ class Character(Person, LifeCycleMixin):
         through="gameplay.QuestCompletion",
         related_name="completed_by",
     )
-    total_quests = models.PositiveIntegerField(default=0)
+
+    class SexChoices(models.TextChoices):
+        MALE = "Male", "Male"
+        FEMALE = "Female", "Female"
+        OTHER = "Other", "Other"
 
     first_name = models.CharField(max_length=50, default="")
     last_name = models.CharField(max_length=50, default="", null=True, blank=True)
@@ -194,7 +187,9 @@ class Character(Person, LifeCycleMixin):
     parents = models.ManyToManyField(
         "self", related_name="children", symmetrical=False, blank=True
     )
-    sex = models.CharField(max_length=20, null=True)
+    sex = models.CharField(
+        max_length=20, choices=SexChoices.choices, null=True, blank=True
+    )
     coins = models.PositiveIntegerField(default=0)
     reputation = models.IntegerField(default=0)
     can_link = models.BooleanField(default=False)
@@ -212,6 +207,15 @@ class Character(Person, LifeCycleMixin):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def total_quests(self):
+        return (
+            QuestCompletion.objects.filter(character=self).aggregate(
+                total=Sum("times_completed")
+            )["total"]
+            or 0
+        )
 
     @property
     def full_name(self):
@@ -310,8 +314,7 @@ class Character(Person, LifeCycleMixin):
         levelups = []
         try:
             levelups = self.add_xp(final_xp)
-            self.total_quests += 1
-            self.save(update_fields=["coins", "total_quests"])
+            self.save(update_fields=["coins"])
 
         except Exception as e:
             logger.exception(
@@ -443,43 +446,3 @@ class PlayerCharacterLink(models.Model):
         character.can_link = False
         character.save(update_fields=["can_link"])
         return link
-
-
-class CharacterRole(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.name}"
-
-
-class CharacterRoleSkill(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(null=True, blank=True)
-    related_role = models.ForeignKey("CharacterRole", on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"{self.name}"
-
-
-class CharacterProgression(models.Model):
-    character = models.OneToOneField("character.Character", on_delete=models.CASCADE)
-    role = models.ForeignKey(CharacterRole, on_delete=models.CASCADE)
-    experience = models.IntegerField(default=0)
-
-    base_progression_rate = models.PositiveIntegerField(default=1)
-    player_acceleration_factor = models.PositiveIntegerField(default=2)
-    date_started = models.DateField(default=now)
-
-    def __str__(self):
-        return f"{self.character.name} - {self.role.name}"
-
-    def update_progression(self):
-        time_elapsed = (now().date() - self.date_started).days
-        new_experience = time_elapsed * self.base_progression_rate
-        self.experience += new_experience
-
-        if not self.character.is_npc:
-            self.experience *= self.player_acceleration_factor
-
-        self.save()

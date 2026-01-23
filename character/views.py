@@ -27,7 +27,7 @@ class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
     ]
     filterset_class = CharacterFilter
     search_fields = ["first_name", "last_name", "backstory"]
-    ordering_fields = ["level", "xp", "coins", "total_quests"]
+    ordering_fields = ["level", "xp", "coins"]
 
     def get_queryset(self):
         # Later you might filter by proximity or visibility

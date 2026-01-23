@@ -11,11 +11,7 @@ from character.models import (
     Character,
     CharacterRelationship,
     CharacterRelationshipMembership,
-    RomanticRelationship,
     PlayerCharacterLink,
-    CharacterRole,
-    CharacterRoleSkill,
-    CharacterProgression,
 )
 
 from gameplay.models import QuestCompletion, Quest, QuestResults, QuestTimer
@@ -117,18 +113,6 @@ class CharacterRelationshipTests(TestCase):
         self.assertIn("mentor", str_repr)
         self.assertIn("Alice Smith", str_repr)
         self.assertIn("Bob Jones", str_repr)
-
-
-class RomanticRelationshipTests(TestCase):
-    def test_create_romantic_relationship(self):
-        """Test creating a romantic relationship"""
-        romantic_rel = RomanticRelationship.objects.create(
-            total_births=2, partner_is_pregnant=False
-        )
-
-        self.assertEqual(romantic_rel.total_births, 2)
-        self.assertFalse(romantic_rel.partner_is_pregnant)
-        self.assertIsNone(romantic_rel.last_childbirth_date)
 
 
 class CharacterRelationshipMembershipTests(TestCase):

@@ -3,8 +3,6 @@ from .models import (
     Character,
     PlayerCharacterLink,
     CharacterRelationship,
-    CharacterRole,
-    CharacterProgression,
     Behaviour,
 )
 
@@ -165,27 +163,3 @@ class CharacterRelationshipAdmin(admin.ModelAdmin):
     @admin.display(description="Characters")
     def get_linked_characters(self, obj):
         return ", ".join([str(char) for char in obj.get_members()])
-
-
-# @admin.register(CharacterRole)
-class CharacterRoleAdmin(admin.ModelAdmin):
-    list_display = [
-        "name",
-        "description",
-    ]
-
-
-# @admin.register(CharacterProgression)
-class CharacterProgressionAdmin(admin.ModelAdmin):
-    list_display = [
-        "character",
-        "role",
-    ]
-    fields = [
-        "character",
-        "role",
-        "experience",
-        "date_started",
-        "base_progression_rate",
-        "player_acceleration_factor",
-    ]
