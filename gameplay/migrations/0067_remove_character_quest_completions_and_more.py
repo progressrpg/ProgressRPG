@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="character_linkWIP",
-                to="users.profile",
+                to="users.player",
             ),
         ),
         migrations.AlterField(

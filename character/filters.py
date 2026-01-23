@@ -6,9 +6,8 @@ from .models import Character
 class CharacterFilter(django_filters.FilterSet):
     level = django_filters.RangeFilter(field_name="level")
     xp = django_filters.RangeFilter(field_name="xp")
-    is_npc = django_filters.BooleanFilter(field_name="is_npc")
     can_link = django_filters.BooleanFilter(field_name="can_link")
 
     class Meta:
         model = Character
-        fields = ["level", "xp", "is_npc", "can_link"]
+        fields = ["level", "xp", "can_link"]
