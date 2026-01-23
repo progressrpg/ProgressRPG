@@ -29,6 +29,11 @@ ROOT_URLCONF = "progress_rpg.urls"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "request_context": {
+            "()": "progress_rpg.middleware.logging_context.RequestContextFilter",
+        },
+    },
     "formatters": {
         "verbose": {
             "format": "[%(asctime)s] [%(request_id)s] [%(user_id)s] [%(levelname)s] [%(name)s:%(lineno)d] %(message)s",
@@ -49,6 +54,7 @@ LOGGING = {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "logs/general.log"),
             "formatter": "verbose",
+            "filters": ["request_context"],
             "maxBytes": 5 * 1024 * 1024,  # 5MB per file
             "backupCount": 3,  # Keep last 3 log files
         },
@@ -57,6 +63,7 @@ LOGGING = {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "logs/errors.log"),
             "formatter": "verbose",
+            "filters": ["request_context"],
             "maxBytes": 5 * 1024 * 1024,  # 5MB per file
             "backupCount": 3,  # Keep last 3 log files
         },
@@ -65,6 +72,7 @@ LOGGING = {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "logs/activity.log"),
             "formatter": "verbose",
+            "filters": ["request_context"],
             "maxBytes": 5 * 1024 * 1024,  # 5MB per file
             "backupCount": 6,  # Keep last 5 log files
         },
