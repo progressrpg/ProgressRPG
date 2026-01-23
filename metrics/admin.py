@@ -89,6 +89,7 @@ class GlobalMetricsAdmin(admin.ModelAdmin):
         context = {
             **self.admin_site.each_context(request),
             "title": "Metrics Dashboard",
+            "subtitle": None,  # Suppress subtitle in admin template
             "latest_global": latest_global,
             "current_week": {
                 "avg_active_days": current_week_metrics["avg_active_days"] or 0,
