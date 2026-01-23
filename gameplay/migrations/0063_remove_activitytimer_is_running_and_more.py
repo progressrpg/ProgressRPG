@@ -100,7 +100,7 @@ class Migration(migrations.Migration):
             field=models.OneToOneField(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="activity_timer",
-                to="users.profile",
+                to="users.player",
             ),
         ),
         migrations.AlterField(

@@ -36,13 +36,11 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       23
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -70,11 +68,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -102,11 +98,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -134,14 +128,12 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       2,
       3
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -169,14 +161,12 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       2,
       3
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -204,14 +194,12 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       2,
       3
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -239,11 +227,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -271,11 +257,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -303,14 +287,12 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       8,
       7
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -338,11 +320,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -370,13 +350,11 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       10
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -404,11 +382,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -436,13 +412,11 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       12
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -470,13 +444,11 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       12
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -504,11 +476,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -536,11 +506,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -568,11 +536,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -600,11 +566,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -632,14 +596,12 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       17,
       18
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -667,11 +629,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -699,13 +659,11 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       20
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -733,11 +691,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -765,13 +721,11 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
     "parents": [
       22
-    ],
-    "buffs": []
+    ]
   }
 },
 {
@@ -799,11 +753,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -831,11 +783,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -863,11 +813,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -895,11 +843,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -927,11 +873,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -959,11 +903,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -991,11 +933,9 @@
     "sex": "Male",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -1023,11 +963,9 @@
     "sex": "Female",
     "coins": 0,
     "reputation": 0,
-    "is_npc": true,
     "can_link": true,
     "position": null,
-    "parents": [],
-    "buffs": []
+    "parents": []
   }
 },
 {
@@ -1576,216 +1514,6 @@
     "canRepeat": false,
     "frequency": "NONE",
     "is_task_support": true
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 35,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 30,
-    "created_at": "2025-01-02T14:13:13.365Z",
-    "last_updated": "2025-08-20T15:01:33.161Z",
-    "status": "completed",
-    "character": 1,
-    "quest": null,
-    "duration": 30
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 36,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 47,
-    "created_at": "2025-04-01T14:13:25.562Z",
-    "last_updated": "2025-04-01T14:19:45.813Z",
-    "status": "paused",
-    "character": 3,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 69,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 60,
-    "created_at": "2025-04-03T00:41:05.393Z",
-    "last_updated": "2025-06-22T17:05:17.007Z",
-    "status": "completed",
-    "character": 4,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 102,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-04-04T17:40:20.203Z",
-    "last_updated": "2025-04-10T19:48:21.067Z",
-    "status": "paused",
-    "character": 5,
-    "quest": null,
-    "duration": 5
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 135,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 25,
-    "created_at": "2025-05-23T13:08:03.275Z",
-    "last_updated": "2025-06-21T21:29:59.853Z",
-    "status": "paused",
-    "character": 6,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 168,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-06-21T20:23:41.361Z",
-    "last_updated": "2025-06-21T20:45:40.659Z",
-    "status": "paused",
-    "character": 7,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 201,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-15T12:45:29.214Z",
-    "last_updated": "2025-08-15T12:45:29.214Z",
-    "status": "waiting",
-    "character": 8,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 234,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-18T13:14:31.660Z",
-    "last_updated": "2025-08-18T13:14:31.660Z",
-    "status": "waiting",
-    "character": 9,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 235,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-18T13:19:25.168Z",
-    "last_updated": "2025-08-18T13:44:19.259Z",
-    "status": "paused",
-    "character": 10,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 236,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-18T14:54:55.758Z",
-    "last_updated": "2025-08-18T14:55:25.407Z",
-    "status": "paused",
-    "character": 11,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 237,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-18T15:27:59.853Z",
-    "last_updated": "2025-08-18T16:25:03.809Z",
-    "status": "paused",
-    "character": 12,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 267,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-27T17:35:15.675Z",
-    "last_updated": "2025-08-27T17:36:34.508Z",
-    "status": "paused",
-    "character": 13,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 268,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-27T18:09:11.035Z",
-    "last_updated": "2025-08-27T18:09:40.926Z",
-    "status": "paused",
-    "character": 14,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 300,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-08-29T12:37:24.971Z",
-    "last_updated": "2025-08-29T12:47:51.444Z",
-    "status": "paused",
-    "character": 16,
-    "quest": null,
-    "duration": 60
-  }
-},
-{
-  "model": "gameplay.questtimer",
-  "pk": 333,
-  "fields": {
-    "start_time": null,
-    "elapsed_time": 0,
-    "created_at": "2025-09-21T08:22:11.529Z",
-    "last_updated": "2025-09-21T08:32:25.175Z",
-    "status": "paused",
-    "character": 17,
-    "quest": null,
-    "duration": 60
   }
 },
 {

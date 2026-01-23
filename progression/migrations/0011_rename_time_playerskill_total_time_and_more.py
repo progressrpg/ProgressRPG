@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="player_skills",
-                to="users.profile",
+                to="users.player",
             ),
         ),
         migrations.AlterField(

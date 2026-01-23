@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="pending_notifications",
-                        to="users.profile",
+                        to="users.player",
                     ),
                 ),
             ],

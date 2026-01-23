@@ -353,7 +353,11 @@ class Character(Person, LifeCycleMixin):
 
     @classmethod
     def has_available(cls):
-        return cls.objects.filter(is_npc=True, can_link=True).exists()
+        return (
+            cls.objects.filter(can_link=True)
+            .exclude(player_link__is_active=True)
+            .exists()
+        )
 
 
 class PlayerCharacterLink(models.Model):
@@ -412,6 +416,9 @@ class PlayerCharacterLink(models.Model):
         self.date_unlinked = now().date()
         self.is_active = False
         self.save()
+        # Make character available for linking again
+        self.character.can_link = True
+        self.character.save(update_fields=["can_link"])
 
     @classmethod
     def deactivate_active_links(cls, player: Player):
