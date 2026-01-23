@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "progression",
     "server_management",
     "users",
+    "metrics",
     "django_ratelimit",
     "decouple",
 ]

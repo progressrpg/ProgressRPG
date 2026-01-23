@@ -62,6 +62,8 @@ from users.utils import send_email_to_users
 
 from progress_rpg.settings.utils import get_build_number
 
+from metrics.utils import track_user_session
+
 import logging
 
 logger = logging.getLogger("errors")
@@ -311,6 +313,9 @@ class FetchInfoAPIView(APIView):
         logger.info(
             f"[FETCH INFO] Fetching data for player {player.id}, character {character.id}"
         )
+
+        # --- Track user session ---
+        track_user_session(player)
 
         # --- Auto-complete quest timer if expired ---
         self._handle_quest_timer_expiry(player, character)
