@@ -14,11 +14,10 @@ from .views import (
     DeleteAccountAPIView,
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
-    PopulationCentreMapView,
 )
 
 from character.views import CharacterViewSet
-from gameplay.views import ActivityTimerViewSet, QuestTimerViewSet, QuestViewSet
+from gameplay.views import ActivityTimerViewSet
 from progression.views import (
     PlayerActivityViewSet,
     CharacterActivityViewSet,
@@ -29,6 +28,8 @@ from progression.views import (
 )
 from server_management.views import maintenance_status
 from users.views import PlayerViewSet
+
+from locations.views import PopulationCentreMapView
 
 
 class KeyConverter:
