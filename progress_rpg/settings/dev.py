@@ -17,7 +17,7 @@ import subprocess
 
 
 BRANCH_NAME = get_branch_name()
-print("BRANCH_NAME is:", BRANCH_NAME)
+print("BRANCH_NAME is:", BRANCH_NAME, file=sys.stderr)
 
 new_db_created = ensure_branch_db_exists()
 
@@ -133,7 +133,7 @@ EMAIL_HOST_PASSWORD = ""
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = False
 
-print("DEBUG:", DEBUG)
+print("DEBUG:", DEBUG, file=sys.stderr)
 
 
 # Quick-start development settings - unsuitable for production
@@ -151,8 +151,8 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS", "http://127.0.0.1,http://localhost:8000"
 ).split(",")
 
-print("ALLOWED HOSTS:", ALLOWED_HOSTS)
-print("CORS:", CORS_ALLOWED_ORIGINS)
+# print("ALLOWED HOSTS:", ALLOWED_HOSTS, file=sys.stderr)
+# print("CORS:", CORS_ALLOWED_ORIGINS, file=sys.stderr)
 
 
 # Database

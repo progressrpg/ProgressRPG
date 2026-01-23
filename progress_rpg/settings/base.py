@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import sys
 import dj_database_url
 from decouple import Config, RepositoryEnv, config
 import os
@@ -73,7 +74,7 @@ INSTALLED_APPS = [
     "character",
     "gameplay",
     "gameworld",
-    "events",
+    # "events",
     "locations",
     "payments",
     "progression",
@@ -210,7 +211,7 @@ USE_TZ = True
 # Vite settings
 
 DEV_MODE = os.getenv("DJANGO_VITE_DEV_MODE", "True") == "True"
-print("DEV_MODE =", DEV_MODE)
+print("DEV_MODE =", DEV_MODE, file=sys.stderr)
 
 DJANGO_VITE = {
     "default": {
@@ -228,10 +229,10 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost")
 if FRONTEND_URL.startswith("http://localhost"):
     if is_vite_running():
         FRONTEND_URL = f"{FRONTEND_URL}:5173"
-        print("Vite status: Vite server is running!")
+        print("Vite status: Vite server is running!", file=sys.stderr)
     else:
         FRONTEND_URL = f"{FRONTEND_URL}:8000"
-        print("Vite status: Django serving React from static files")
+        print("Vite status: Django serving React from static files", file=sys.stderr)
 
 
 # Static files

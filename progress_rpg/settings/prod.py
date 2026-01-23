@@ -92,7 +92,7 @@ EMAIL_USE_TLS = True
 # EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = "Progress RPG <admin@progressrpg.com>"
 
-print("DEBUG:", DEBUG)
+print("DEBUG:", DEBUG, file=sys.stderr)
 
 REGISTRATION_ENABLED = True
 
