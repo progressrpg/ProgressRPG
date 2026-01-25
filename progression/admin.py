@@ -116,18 +116,18 @@ class PlayerActivityAdmin(admin.ModelAdmin):
 @admin.register(CharacterActivity)
 class CharacterActivityAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "name",
         "kind",
         "character",
         "is_complete",
+        "started_at",
         "completed_at",
         "scheduled_start",
         "scheduled_end",
     )
     search_fields = ("name", "description", "character__name")
     list_filter = ("created_at", "is_complete", "kind")
-    date_hierarchy = "created_at"
+    date_hierarchy = "started_at"
     readonly_fields = ("created_at",)
     fields = (
         "character",
