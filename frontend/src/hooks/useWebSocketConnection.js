@@ -77,7 +77,7 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
       };
 
       socket.onclose = (event) => {
-        console.warn('[WS] Closed. Code:', event.code);
+        console.log('[WS] Closed. Code:', event.code);
         setIsConnected(false);
         onClose?.(event);
 
@@ -94,7 +94,7 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
     } catch (err) {
       console.error('[WS] Connection failed:', err);
       setIsConnected(false);
-      
+
       // Retry connection after delay on connection failure
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log('[WS] Retrying after connection failure...');
@@ -126,5 +126,27 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
     }
   }, []);
 
-  return { send, isConnected };
+  const disconnect = useCallback((code = NORMAL_CLOSURE, reason = 'logout') => {
+    intentionalCloseRef.current = true;
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    if (socketRef.current) {
+      try {
+        socketRef.current.close(code, reason);
+      } catch (e) {
+        // some browsers are fussy about close(reason)
+        socketRef.current.close(code);
+      }
+      socketRef.current = null;
+    }
+
+    setIsConnected(false);
+  }, []);
+
+
+  return { send, isConnected, disconnect };
 }
