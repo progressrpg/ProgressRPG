@@ -319,6 +319,40 @@ class CharacterActivity(TimeRecord):
         multiplier = 0.25 if self.kind == "rest" else 1
         return int(base_xp * multiplier)
 
+    def complete_now(self):
+        """
+        Mark the activity as completed at the current time.
+        """
+        if self.started_at is None:
+            self.started_at = self.scheduled_start
+
+        now = timezone.now()
+        self.completed_at = now
+        self.is_complete = True
+        self.duration = int((now - self.started_at).total_seconds())
+        self.save(
+            update_fields=["completed_at", "is_complete", "duration", "started_at"]
+        )
+        return self.completed_at
+
+    def complete_past(self):
+        """
+        Mark the activity as completed at the scheduled end time.
+        """
+        if self.started_at is None:
+            self.started_at = self.scheduled_start
+
+        self.completed_at = self.scheduled_end
+        self.is_complete = True
+        self.duration = max(
+            0, int((self.completed_at - self.started_at).total_seconds())
+        )
+        self.save(
+            update_fields=["completed_at", "is_complete", "duration", "started_at"]
+        )
+        xp_gained = self.calculate_xp_reward()
+        return self.completed_at
+
 
 class CharacterQuest(TimeRecord):
     """

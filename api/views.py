@@ -326,6 +326,7 @@ class FetchInfoAPIView(APIView):
         now = timezone.now()
         last = getattr(player, "last_login", None)
 
+        # --- Online sync if >30 minutes since last fetch ---
         if not last or (now - last) > timedelta(minutes=30):
             logger.info(
                 f"[FETCH INFO] Online sync for player {player.id}, character {character.id}"
@@ -339,6 +340,8 @@ class FetchInfoAPIView(APIView):
             ensure_day_activities(character, today)
             ensure_day_activities(character, yesterday)
 
+        # --- Interrupt character behaviour if needed ---
+        character.behaviour.interrupt_current_activity()
         # --- Serialize everything ---
         try:
             data = {

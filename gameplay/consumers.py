@@ -8,6 +8,9 @@ from django.db import transaction
 # from django.utils.timezone import now
 import json, logging
 from django.core.cache import cache
+
+from users.models import Player
+
 from .models import ServerMessage
 from .utils import process_completion, process_initiation, control_timers
 
@@ -47,7 +50,9 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 await self.close()  # Reject the new connection
                 return
 
-            self.player, self.character = await self.set_player_and_character(user)
+            self.player, self.character, self.link = (
+                await self.set_player_and_character(user)
+            )
             self.player_group = f"player_{self.player.id}"
 
             await database_sync_to_async(self.player.set_online)()
@@ -104,10 +109,12 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 "completed",
                 "empty",
                 "paused",
-            ] or self.quest_timer.status not in ["completed", "empty", "paused"]:
+            ]:
                 await control_timers(
                     self.player, self.activity_timer, self.quest_timer, "pause"
                 )
+
+            await sync_to_async(self.link.schedule_online_boost_end)()
 
     async def test_message(self, event):
         logger.info(f"[TEST MESSAGE] Received test message: {event}")
@@ -238,13 +245,14 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def set_player_and_character(self, user):
         with transaction.atomic():
-            logger.debug(
-                f"[SET PLAYER] Setting player and character for user: {user.username}"
-            )
             from character.models import PlayerCharacterLink
 
-            character = PlayerCharacterLink().get_character(user.player)
-            return user.player, character
+            link = (
+                PlayerCharacterLink.objects.select_related("player", "character")
+                .filter(player=user.player, is_active=True)
+                .first()
+            )
+            return user.player, link.character, link
 
     @database_sync_to_async
     def get_activity_timer(self):

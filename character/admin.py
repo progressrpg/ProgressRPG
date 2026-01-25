@@ -131,8 +131,12 @@ class CharacterAdmin(admin.ModelAdmin):
 
 @admin.register(PlayerCharacterLink)
 class PlayerCharacterLinkAdmin(admin.ModelAdmin):
-    list_display = ["player", "character", "is_active"]
-    fields = ["player", "character", "is_active", ("date_linked", "date_unlinked")]
+    list_display = ["player", "character", "is_active", "date_linked", "date_unlinked"]
+    fields = [
+        ("player", "character", "is_active"),
+        ("online_boost_active", "online_boost_ends_at"),
+        ("date_linked", "date_unlinked"),
+    ]
     readonly_fields = ["date_linked", "date_unlinked"]
 
 
