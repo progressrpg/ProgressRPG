@@ -203,6 +203,12 @@ class Player(Person):
         return cls.objects.filter(is_online=True)
 
     @property
+    def active_link(self):
+        from character.models import PlayerCharacterLink
+
+        return PlayerCharacterLink.objects.filter(player=self, is_active=True).first()
+
+    @property
     def current_character(self):
         """
         Retrieve the active character associated with this player.
