@@ -127,7 +127,7 @@ class CharacterActivityAdmin(admin.ModelAdmin):
     )
     search_fields = ("name", "description", "character__name")
     list_filter = ("created_at", "is_complete", "kind")
-    date_hierarchy = "started_at"
+    date_hierarchy = "completed_at"
     readonly_fields = ("created_at",)
     fields = (
         "character",
@@ -138,6 +138,7 @@ class CharacterActivityAdmin(admin.ModelAdmin):
         "is_complete",
         "created_at",
     )
+    ordering = ("-completed_at",)
 
 
 # @admin.register(CharacterQuest)
