@@ -271,16 +271,6 @@ class Behaviour(models.Model):
         """
         Interrupt the current activity by completing it and starting a new instance of it.
         """
-        link = PlayerCharacterLink.objects.filter(
-            character=self.character, is_active=True
-        ).first()
-        if not link:
-            print("No active player link: no interrupt.")
-            return None
-        if not link.is_new_login():
-            print("Not new login: no interrupt")
-            return None
-        print("Interrupting current activity.")
         now = timezone.now()
         activity = self.get_current_activity()
         if not activity or activity.is_complete:
