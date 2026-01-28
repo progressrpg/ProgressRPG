@@ -1,5 +1,6 @@
 # from datetime import datetime
 from celery import current_app
+from decimal import Decimal
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
 from django.utils import timezone

@@ -460,7 +460,7 @@ class ActivityTimer(Timer):
             self.rename_activity(newName)
         self.update_activity_time()
 
-        xp_gained = self.activity.calculate_xp_reward()
+        xp_gained = self.activity.complete()
         self.player.add_activity(self.elapsed_time, xp=xp_gained)
 
         message_text = f"Activity submitted. You got {xp_gained} XP!"
@@ -473,7 +473,6 @@ class ActivityTimer(Timer):
             is_draft=False,
         )
 
-        self.activity.complete()
         logger.debug(
             f"[TIMER COMPLETE] Timer {self.id} completed — elapsed_time: {self.elapsed_time}, completed_at: {self.activity.completed_at}"
         )

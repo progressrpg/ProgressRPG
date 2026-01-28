@@ -218,8 +218,9 @@ class Behaviour(models.Model):
                 current.started_at = current.scheduled_start
 
             # If you force-advance early, duration becomes "time spent so far"
-            current.duration = max(0, int((now - current.started_at).total_seconds()))
-            current.xp_gained = current.calculate_xp_reward()
+            duration = max(0, int((now - current.started_at).total_seconds()))
+            self.duration = duration
+            current.xp_gained = current.calculate_base_xp(duration)
             current.completed_at = now
             current.is_complete = True
             current.save(
