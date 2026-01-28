@@ -19,15 +19,7 @@ export default function ActivityTimeline() {
   //console.log("charActivities:", characterActivities);
 
   const unifiedActivities = useMemo(() => {
-    const player = Array.isArray(playerActivities)
-      ? playerActivities.map(a => ({ ...a, source: 'player' }))
-      : [];
-
-    const character = Array.isArray(characterActivities)
-      ? characterActivities.map(a => ({ ...a, source: 'character' }))
-      : [];
-
-    const combined = [...player, ...character].sort(
+    const combined = [...playerActivities, ...characterActivities].sort(
       (a, b) => {
         const at = a.completed_at ? new Date(a.completed_at).getTime() : 0
         const bt = b.completed_at ? new Date(b.completed_at).getTime() : 0
