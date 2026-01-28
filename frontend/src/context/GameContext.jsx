@@ -6,6 +6,7 @@ import { apiFetch } from '../../utils/api';
 import useActivityTimer from '../hooks/useActivityTimer';
 import { useAuth } from './AuthContext';
 
+
 const GameContext = createContext();
 
 export const useGame = () => {
@@ -37,7 +38,6 @@ export const GameProvider = ({ children }) => {
   const [playerActivities, setPlayerActivities] = useState([]);
   const [characterActivities, setCharacterActivities] = useState([]);
   const [characterCurrentActivity, setCharacterCurrentActivity] = useState({});
-  const [quests, setQuests] = useState([]);
 
   const activityTimer = useActivityTimer();
 
@@ -72,15 +72,10 @@ export const GameProvider = ({ children }) => {
   const fetchCharacterCurrent = useCallback(async () => {
     const data = await apiFetch(`/character-activities/current/`);
     //console.log("/current, data:", data);
-    setCharacterCurrentActivity(data.current); // depending on your response shape
+    setCharacterCurrentActivity(data.current);
     return data.current;
   }, []);
 
-
-  const fetchQuests = useCallback(async () => {
-    const data = await apiFetch(`/quests/eligible`);
-    setQuests(data.eligible_quests);
-  }, []);
 
 
   // ----------------------------------------
@@ -107,12 +102,6 @@ export const GameProvider = ({ children }) => {
     }
   }, [fetchActivities, isAuthenticated, authLoading]);
 
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      fetchQuests();
-    }
-  }, [fetchQuests, isAuthenticated, authLoading]);
-
 
   // ----------------------------------------
   //  STABLE PROVIDER VALUE
@@ -133,8 +122,6 @@ export const GameProvider = ({ children }) => {
       fetchCharacterCurrent,
       characterCurrentActivity,
       setCharacterCurrentActivity,
-      quests,
-      fetchQuests,
       loading,
       buildNumber,
     }),
@@ -144,12 +131,10 @@ export const GameProvider = ({ children }) => {
       playerActivities,
       characterActivities,
       characterCurrentActivity,
-      quests,
       activityTimer,
       fetchPlayerAndCharacter,
       fetchActivities,
       fetchCharacterCurrent,
-      fetchQuests,
       loading,
       buildNumber,
     ]

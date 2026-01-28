@@ -48,10 +48,8 @@ from character.models import Character, PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
 from gameplay.utils import send_group_message
-from gameplay.serializers import (
-    ActivityTimerSerializer,
-    QuestTimerSerializer,
-)
+from gameplay.serializers import ActivityTimerSerializer
+from gameplay.services.xp_modifiers import handle_online_login
 
 from progression.serializers import (
     PlayerActivitySerializer,
@@ -332,16 +330,12 @@ class FetchInfoAPIView(APIView):
         # --- Track user session ---
         track_user_session(player)
 
-        # --- Auto-complete quest timer if expired ---
-        self._handle_quest_timer_expiry(player, character)
-
         # --- Ensure activity timer is in a valid state ---
         self._ensure_activity_timer_consistency(player)
 
+        # --- Online sync if >30 minutes since last fetch ---
         now = timezone.now()
         last = getattr(player, "last_login", None)
-
-        # --- Online sync if >30 minutes since last fetch ---
         if not last or (now - last) > timedelta(minutes=30):
             logger.info(
                 f"[FETCH INFO] Online sync for player {player.id}, character {character.id}"
@@ -355,8 +349,8 @@ class FetchInfoAPIView(APIView):
             ensure_day_activities(character, today)
             ensure_day_activities(character, yesterday)
 
-        # --- Interrupt character behaviour if needed ---
-        character.behaviour.interrupt_current_activity()
+        handle_online_login(player)
+
         # --- Serialize everything ---
         try:
             data = {
@@ -370,9 +364,6 @@ class FetchInfoAPIView(APIView):
                 "activity_timer": ActivityTimerSerializer(
                     player.activity_timer, context={"request": request}
                 ).data,
-                "quest_timer": QuestTimerSerializer(
-                    character.quest_timer, context={"request": request}
-                ).data,
             }
             return Response(data)
 
@@ -382,27 +373,6 @@ class FetchInfoAPIView(APIView):
                 {"error": "An error occurred during serialization."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-    def _handle_quest_timer_expiry(self, player, character):
-        """
-        If the quest timer has finished but not marked complete, finalise it.
-        """
-        qt = character.quest_timer
-        if not (qt.time_finished() and qt.status != "completed"):
-            return
-
-        try:
-            qt.elapsed_time = qt.duration
-            qt.save()
-
-            async_to_sync(send_group_message)(
-                f"player_{player.id}",
-                {"type": "action", "action": "quest_complete"},
-            )
-
-        except Exception as e:
-            logger.error(f"Error handling quest timer completion: {e}", exc_info=True)
-            raise
 
     def _ensure_activity_timer_consistency(self, player):
         """Ensure activity timer is not in an invalid state."""
@@ -462,7 +432,7 @@ class DownloadUserDataAPIView(APIView):
                 "id": character_obj.id,
                 "character_name": character_obj.name,
                 "level": character_obj.level,
-                "total_quests": character_obj.total_quests,
+                "total_activities": character_obj.total_activities,
             },
         }
 
