@@ -4,7 +4,7 @@ import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { GameProvider } from './context/GameContext';
 import { BrowserRouter, useLocation } from 'react-router-dom';
-import WebSocketProvider from './context/WebSocketContext';
+import { WebSocketProvider } from './context/WebSocketContext';
 
 import MaintenanceWatcher from './components/MaintenanceWatcher';
 import AppContent from "./AppContent";

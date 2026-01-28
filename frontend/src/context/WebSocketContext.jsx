@@ -1,5 +1,5 @@
 // context/WebSocketContext.jsx
-import React, { createContext, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useRef, useCallback } from 'react';
 import { useGame } from './GameContext';
 import { useToast } from './ToastContext';
 import { useWebSocketConnection } from '../hooks/useWebSocketConnection';
@@ -8,7 +8,11 @@ import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 
 const WebSocketContext = createContext();
 
-export default function WebSocketProvider({ children }) {
+export const useWebSocket = () => {
+  return useContext(WebSocketContext);
+}
+
+export const WebSocketProvider = ({ children }) => {
   const { player } = useGame();
   const { showToast } = useToast();
   const { refetch: maintenanceRefetch } = useMaintenanceStatus();
