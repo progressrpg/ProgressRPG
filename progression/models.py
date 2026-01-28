@@ -289,7 +289,7 @@ class CharacterActivity(TimeRecord):
     character = models.ForeignKey(
         "character.Character",
         on_delete=models.CASCADE,
-        related_name="character_activities",
+        related_name="activities",
     )
     kind = models.CharField(
         max_length=50,

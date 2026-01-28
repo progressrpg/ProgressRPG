@@ -216,6 +216,10 @@ class Character(Person, LifeCycleMixin):
         )
 
     @property
+    def total_activities(self):
+        return self.activities.filter(is_complete=True).count()
+
+    @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 

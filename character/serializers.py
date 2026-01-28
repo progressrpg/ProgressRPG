@@ -4,7 +4,7 @@ from .models import Character
 
 
 class CharacterSerializer(serializers.ModelSerializer):
-    total_quests = serializers.IntegerField(read_only=True)
+    total_activities = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Character
@@ -19,7 +19,7 @@ class CharacterSerializer(serializers.ModelSerializer):
             "xp_modifier",
             "level",
             "coins",
-            "total_quests",
+            "total_activities",
             "is_npc",
             "can_link",
         ]
@@ -30,7 +30,7 @@ class CharacterSerializer(serializers.ModelSerializer):
             "xp_modifier",
             "level",
             "coins",
-            "total_quests",
+            "total_activities",
             "is_npc",
             "can_link",
         ]
