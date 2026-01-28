@@ -31,10 +31,17 @@ export default function CharacterCurrentActivity() {
   const startTime = fmtTime(characterCurrentActivity.started_at || characterCurrentActivity.scheduled_start);
 
   return (
+
     <div className={styles.line}>
-      <strong>{character.first_name}</strong> began{" "}
-      <span className={styles.activity}>{activityName}</span>{" "}
-      at <span className={styles.time}>{startTime}</span>
+      <p>
+        <strong>{character.first_name}</strong> began{" "}
+        <span className={styles.activity}>{activityName}</span>{" "}
+        at <span className={styles.time}>{startTime}</span>
+      </p>
+      <p>
+        ⚡ Online bonus active (+20% XP)
+      </p>
     </div>
+
   );
 }
