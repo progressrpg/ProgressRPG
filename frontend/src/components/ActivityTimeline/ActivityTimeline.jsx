@@ -25,7 +25,7 @@ export default function ActivityTimeline() {
       (a, b) => {
         const at = a.completed_at ? new Date(a.completed_at).getTime() : 0
         const bt = b.completed_at ? new Date(b.completed_at).getTime() : 0
-        return at - bt;
+        return bt - at;
       }
     );
     return combined;
@@ -44,9 +44,12 @@ export default function ActivityTimeline() {
 
   return (
     <div className={styles.container}>
-      <Link to="/activities" className={styles.activitiesLink}>
+      {/* <Link to="/activities" className={styles.activitiesLink}>
         View past activities
-      </Link>
+      </Link> */}
+      <h3>
+        Recent activities
+      </h3>
 
       {!hasAny && (
         <p>No activities found for this period.</p>
