@@ -25,10 +25,6 @@ def debug_task(self):
 CELERY_TIMEZONE = "Europe/London"
 
 app.conf.beat_schedule = {
-    # 'update-quests-every-hour': {
-    #     'task': 'gameplay.tasks.update_quest_availability',
-    #     'schedule': crontab(hour=0, minute=0), # Run every day
-    # },
     # 'daily-character-death-check': {
     #     'task': 'gameworld.tasks.check_character_deaths',
     #     'schedule': crontab(hour=0, minute=0),
@@ -45,11 +41,11 @@ app.conf.beat_schedule = {
         "task": "users.tasks.perform_account_wipe",
         "schedule": crontab(minute=0, hour=0),
     },
-    # "generate_character_days_1am": {
-    #     "task": "character.tasks.generate_character_days",
-    #     "schedule": crontab(hour=1, minute=0),
-    #     "args": (),
-    # },
+    "generate_character_days_1am": {
+        "task": "character.tasks.generate_character_days",
+        "schedule": crontab(hour=1, minute=0),
+        "args": (),
+    },
     "calculate-daily-metrics": {
         "task": "metrics.tasks.calculate_daily_metrics",
         "schedule": crontab(hour=1, minute=0),  # Daily at 1 AM
