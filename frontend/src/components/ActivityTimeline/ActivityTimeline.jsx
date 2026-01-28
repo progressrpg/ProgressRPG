@@ -9,6 +9,8 @@ export default function ActivityTimeline() {
     playerActivities,
     characterActivities,
     fetchActivities,
+    character,
+    loading,
   } = useGame();
 
   useEffect(() => {
@@ -26,12 +28,19 @@ export default function ActivityTimeline() {
         return at - bt;
       }
     );
-
-    // Add header item at the beginning
-    return [{ id: 'header', isHeader: true }, ...combined];
+    return combined;
   }, [playerActivities, characterActivities]);
 
+
   const hasAny = unifiedActivities.length > 0;
+
+  if (loading) {
+    return (
+      <div className={styles.infoBar} role="status" aria-live="polite" aria-busy="true">
+        <span className="sr-only">Loading data...</span>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
