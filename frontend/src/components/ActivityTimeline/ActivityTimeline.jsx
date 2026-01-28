@@ -56,21 +56,15 @@ export default function ActivityTimeline() {
           items={unifiedActivities}
           getKey={(act) => `${act.source}-${act.id ?? i}`}
           renderItem={(act) => (
-            act.isHeader ? (
-              <div className={styles.header}>
-                📅 Beginning of today's activities...
-              </div>
-            ) : (
-              <div className={styles.line}>
-                <strong>{act.source}</strong> finished {act.name.toLowerCase() || act.kind || "Untitled"} —{" "}
-                {act.completed_at
-                  ? new Date(act.completed_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                  : "Not completed"}
-              </div>
-            )
+            <div className={styles.line}>
+              {act.player ? 'You' : character?.first_name || 'Character' } finished <strong>{act.name.toLowerCase() || act.kind || "an activity"}</strong> —{" "}
+              {act.completed_at
+                ? new Date(act.completed_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : "Not completed"}
+            </div>
           )}
         />
       )}
