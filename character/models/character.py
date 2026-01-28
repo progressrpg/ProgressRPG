@@ -374,9 +374,6 @@ class PlayerCharacterLink(models.Model):
     date_linked = models.DateField(auto_now_add=True)
     date_unlinked = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
-    online_boost_active = models.BooleanField(default=False)
-    online_boost_ends_at = models.DateTimeField(null=True, blank=True)
-    online_boost_end_task_id = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -391,39 +388,6 @@ class PlayerCharacterLink(models.Model):
                 name="one_active_link_per_character",
             ),
         ]
-
-    def is_new_login(self):
-        is_new_login = self.online_boost_active is False
-        fields_to_update = []
-
-        if is_new_login:
-            print("Activating online boost.")
-            self.online_boost_active = True
-            fields_to_update.append("online_boost_active")
-
-        if self.online_boost_ends_at:
-            self.online_boost_ends_at = None
-            fields_to_update.append("online_boost_ends_at")
-        if self.online_boost_end_task_id:
-            current_app.control.revoke(self.online_boost_end_task_id)
-            self.online_boost_end_task_id = None
-            fields_to_update.append("online_boost_end_task_id")
-        self.save(update_fields=fields_to_update)
-        return is_new_login
-
-    def schedule_online_boost_end(self):
-        from character.tasks import end_online_boost
-
-        eta = timezone.now() + timezone.timedelta(minutes=30)
-        result = end_online_boost.apply_async(
-            kwargs={"character_id": self.character.id},
-            eta=eta,
-        )
-        self.online_boost_ends_at = eta
-        self.online_boost_end_task_id = result.id
-        self.save(update_fields=["online_boost_ends_at", "online_boost_end_task_id"])
-        print("Scheduled boost end:", result)
-        return result
 
     @classmethod
     def get_character(cls, player: Player) -> Character:
