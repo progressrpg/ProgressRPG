@@ -8,7 +8,7 @@ import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 
 const WebSocketContext = createContext();
 
-export const WebSocketProvider = ({ children }) => {
+export default function WebSocketProvider({ children }) {
   const { player } = useGame();
   const { showToast } = useToast();
   const { refetch: maintenanceRefetch } = useMaintenanceStatus();
