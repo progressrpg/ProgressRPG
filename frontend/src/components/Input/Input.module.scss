@@ -29,6 +29,7 @@
 
 .inputField {
   padding: v.$padding-base;
+  box-sizing: border-box;
   max-width: 30rem;
   @include m.border-interactive(
     rgba(c.$color-border-primary, 0.4),
