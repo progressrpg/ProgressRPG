@@ -13,7 +13,7 @@
 $text-body: (
   base: (
     font-family: token(t.$font-family, base),
-    font-size: token(t.$font-size, base),
+    font-size: token(t.$font-size, sm),
     font-weight: token(t.$font-weight, regular),
     line-height: token(t.$line-height, base),
     letter-spacing: token(t.$letter-spacing, normal),
