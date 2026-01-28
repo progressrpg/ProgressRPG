@@ -12,7 +12,7 @@ export default function ActivityTimeline() {
   } = useGame();
 
   useEffect(() => {
-    fetchActivities(); // your apiFetch wrapper
+    fetchActivities();
   }, [fetchActivities]);
 
   //console.log("playerActivities:", playerActivities);
@@ -44,8 +44,9 @@ export default function ActivityTimeline() {
   return (
     <div className={styles.container}>
       <Link to="/activities" className={styles.activitiesLink}>
-        View All Activities →
+        View past activities
       </Link>
+
       {!hasAny && (
         <p>No activities found for this period.</p>
       )}
