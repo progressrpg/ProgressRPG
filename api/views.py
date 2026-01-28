@@ -135,6 +135,21 @@ class MeViewSet(viewsets.ViewSet):
         serializer = PlayerSerializer(player)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"])
+    def character(self, request):
+        player = request.user.player
+        character = player.current_character  # or however you store it
+
+        if not character:
+            return Response(
+                {"detail": "No current character set for this player."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            CharacterSerializer(character, context={"request": request}).data
+        )
+
     @action(detail=False, methods=["post"])
     def complete_onboarding(self, request):
         player = request.user.player

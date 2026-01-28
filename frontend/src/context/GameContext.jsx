@@ -50,13 +50,9 @@ export const GameProvider = ({ children }) => {
     const freshPlayer = await apiFetch(`/me/player/`);
     setPlayer(freshPlayer);
 
-    if (characterOnload?.id) {
-      const freshCharacter = await apiFetch(`/character/${characterOnload.id}/`);
+    const freshCharacter = await apiFetch(`/me/character/`);
       setCharacter(freshCharacter);
-    }
-  }, [characterOnload?.id]);
-
-  const formattedDate = getFormattedDate();
+  }, []);
 
   const fetchActivities = useCallback(async () => {
     const [playerData, charData] = await Promise.all([

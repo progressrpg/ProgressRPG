@@ -1,6 +1,9 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+import character
 from .models import Character
 from .serializers import CharacterSerializer
 from .filters import CharacterFilter
@@ -18,7 +21,6 @@ class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = CharacterSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Character.objects.all()
 
     filter_backends = [
         DjangoFilterBackend,
@@ -30,7 +32,6 @@ class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["level", "xp", "coins"]
 
     def get_queryset(self):
-        # Later you might filter by proximity or visibility
-        # location = self.request.user.player.location
-        # return super().get_queryset().filter(location__near=location)
-        return super().get_queryset()
+        player = self.request.user.player
+        character = player.current_character
+        return Character.objects.filter(id=character.id)
