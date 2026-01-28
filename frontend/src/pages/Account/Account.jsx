@@ -4,7 +4,6 @@ import styles from "./Account.module.scss";
 
 export default function Account() {
   const { player, character } = useGame();
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -72,15 +71,15 @@ export default function Account() {
                 <span className={styles.value}>{character.level || 0}</span>
               </div>
               <div className={styles.infoItem}>
-                <span className={styles.label}>Total Quests</span>
-                <span className={styles.value}>{character.total_quests || 0}</span>
+                <span className={styles.label}>Total Activities</span>
+                <span className={styles.value}>{character.total_activities || 0}</span>
               </div>
             </div>
           </section>
         )}
 
         {/* Account Information */}
-        <section className={styles.section}>
+        {/* <section className={styles.section}>
           <h2>Account Details</h2>
           {player?.bio && (
             <div className={styles.bioSection}>
@@ -94,7 +93,7 @@ export default function Account() {
               <span className={styles.value}>{player?.id || "—"}</span>
             </div>
           </div>
-        </section>
+        </section> */}
       </div>
     </div>
   );

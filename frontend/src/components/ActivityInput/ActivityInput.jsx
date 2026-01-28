@@ -14,6 +14,7 @@ export default function ActivityInput() {
 
   const isActive = status === "active";
 
+
   useEffect(() => () => timeoutRef.current && clearTimeout(timeoutRef.current), []);
 
   async function handleToggle() {
@@ -44,6 +45,7 @@ export default function ActivityInput() {
       <div
         className={classNames(styles.container, {
           [styles.isRunning]: isActive,
+          [styles.needsAttention]: !isActive,
         })}
       >
         <div className={styles.row}>
@@ -54,16 +56,22 @@ export default function ActivityInput() {
               onChange={setName}
               onKeyDown={handleKeyDown}
               placeholder="What are you working on? e.g. washing dishes"
+              inputClassName={classNames(styles.control, {
+                [styles.inputCTA]: !isActive,
+                [styles.inputMuted]: isActive,
+              })}
             />
           </div>
 
-          <div className={styles.timerPill}>
+          <div className={classNames(styles.timerPill, styles.control)}>
             {minutes}:{seconds.toString().padStart(2, "0")}
           </div>
 
           <Button
             onClick={handleToggle}
             variant="primary"
+            disabled={!isActive && !name.trim()}
+            className={classNames(styles.ctaButton, styles.control)}
           >
             {isActive ? "Stop" : "Start"}
           </Button>

@@ -212,7 +212,13 @@ class CharacterActivityViewSet(viewsets.ModelViewSet):
     ]
     filterset_class = CharacterActivityFilter
     search_fields = ["name", "description", "character__name"]
-    ordering_fields = ["duration", "created_at", "last_updated", "scheduled_start"]
+    ordering_fields = [
+        "duration",
+        "created_at",
+        "last_updated",
+        "scheduled_start",
+        "completed_at",
+    ]
 
     def get_queryset(self):
         """
@@ -235,12 +241,6 @@ class CharacterActivityViewSet(viewsets.ModelViewSet):
                     "message": "No behaviour!",
                 }
             )
-
-        # today = timezone.localdate()
-        # yesterday = today - timedelta(days=1)
-
-        # behaviour.generate_day(yesterday)
-        # behaviour.generate_day(today)
 
         current = behaviour.sync_to_now()
         data = self.get_serializer(current).data if current else None

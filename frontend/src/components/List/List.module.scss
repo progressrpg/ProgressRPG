@@ -19,9 +19,10 @@
   //gap: v.$spacing-xs;
   width: 100%;
   list-style: none;
+  border-radius: v.$border-radius;
 }
 
-.list li {
+.listItem {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -29,8 +30,8 @@
   gap: v.$spacing-sm;
   width: 100%;
   padding: v.$padding-base;
-  border: 1px solid rgba(c.$color-border-primary, 0.2);
-  border-radius: v.$border-radius;
+  //border: 1px solid rgba(c.$color-border-primary, 0.2);
+  //border-radius: v.$border-radius;
   background: rgba(c.$color-bg, 0.4);
   transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   position: relative;
@@ -45,22 +46,26 @@
   &.selected {
     @include c.apply-list-variant(default, true);
   }
-
-  &:hover {
-    background: rgba(c.$color-border-primary, 0.06);
-    border-color: rgba(c.$color-border-primary, 0.5);
-    box-shadow:
-      0px 2px 4px rgba(0, 0, 0, 0.1),
-      inset 0px 0px 0px 1px rgba(c.$color-border-primary, 0.2);
-    z-index: 1;
-  }
 }
 
-li:hover {
+.listItem.tonePlayer:not(.selected) {
+  //border-color: rgba(c.$color-player, 0.45);
+  background: rgba(c.$color-player, 0.08);
+}
+
+.listItem.toneCharacter:not(.selected) {
+  //border-color: rgba(c.$color-character, 0.45);
+  background: rgba(c.$color-character, 0.08);
+}
+
+.canHover .listItem:hover {
+  background: rgba(c.$color-border-primary, 0.06);
+  border-color: rgba(c.$color-border-primary, 0.5);
+  @include m.box-shadow(md);
+  z-index: 1;
   cursor: default;
-
 }
 
-.selectable li:hover {
+.canSelect .listItem:hover {
   cursor: pointer;
 }

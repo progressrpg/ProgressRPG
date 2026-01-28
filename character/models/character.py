@@ -1,7 +1,8 @@
 # from datetime import datetime
+from celery import current_app
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
-from django.utils.timezone import now
+from django.utils import timezone
 from random import random, randint
 from typing import TYPE_CHECKING, Optional, Dict, Any, cast
 import logging
@@ -95,10 +96,10 @@ class LifeCycleMixin(models.Model):
         abstract = True
 
     def get_age(self):
-        return (now().date() - self.birth_date).days
+        return (timezone.now().date() - self.birth_date).days
 
     def die(self):
-        self.death_date = now().date()
+        self.death_date = timezone.now().date()
         self.save()
 
     def is_alive(self):
@@ -137,7 +138,7 @@ class LifeCycleMixin(models.Model):
 
     def start_pregnancy(self, partner):
         self.is_pregnant = True
-        self.pregnancy_start_date = now().date()
+        self.pregnancy_start_date = timezone.now().date()
         self.pregnancy_partner = partner
 
         self.save()
@@ -146,7 +147,7 @@ class LifeCycleMixin(models.Model):
         child_name = f"Child of {self.first_name}"
         child = Character.objects.create(
             name=child_name,
-            birth_date=now().date(),
+            birth_date=timezone.now().date(),
             sex="Male" if randint(0, 1) == 0 else "Female",
             # x_coordinate=self.x_coordinate,
             # y_coordinate=self.y_coordinate,
@@ -215,8 +216,20 @@ class Character(Person, LifeCycleMixin):
         )
 
     @property
+    def total_activities(self):
+        return self.activities.filter(is_complete=True).count()
+
+    @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def active_link(self):
+        from character.models import PlayerCharacterLink
+
+        return PlayerCharacterLink.objects.filter(
+            character=self, is_active=True
+        ).first()
 
     @property
     def current_player(self):
@@ -232,15 +245,6 @@ class Character(Person, LifeCycleMixin):
     def complete_quest(self, xp_gained):
         """
         Complete the character's active quest and apply rewards.
-
-        Args:
-            xp_gained: Experience points to award
-
-        Returns:
-            dict: Rewards summary including XP, coins, and level-ups
-
-        Raises:
-            QuestError: If no valid quest is found for completion
         """
         logger.info(f"[CHAR.COMPLETE_QUEST] Starting quest completion for {self}")
 
@@ -362,14 +366,17 @@ class Character(Person, LifeCycleMixin):
 
 class PlayerCharacterLink(models.Model):
     player = models.ForeignKey(
-        "users.Player", on_delete=models.CASCADE, related_name="character_link"
+        "users.Player", on_delete=models.CASCADE, related_name="links"
     )
     character = models.ForeignKey(
-        "Character", on_delete=models.CASCADE, related_name="player_link"
+        "Character", on_delete=models.CASCADE, related_name="links"
     )
     date_linked = models.DateField(auto_now_add=True)
     date_unlinked = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    online_boost_active = models.BooleanField(default=False)
+    online_boost_ends_at = models.DateTimeField(null=True, blank=True)
+    online_boost_end_task_id = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -384,6 +391,39 @@ class PlayerCharacterLink(models.Model):
                 name="one_active_link_per_character",
             ),
         ]
+
+    def is_new_login(self):
+        is_new_login = self.online_boost_active is False
+        fields_to_update = []
+
+        if is_new_login:
+            print("Activating online boost.")
+            self.online_boost_active = True
+            fields_to_update.append("online_boost_active")
+
+        if self.online_boost_ends_at:
+            self.online_boost_ends_at = None
+            fields_to_update.append("online_boost_ends_at")
+        if self.online_boost_end_task_id:
+            current_app.control.revoke(self.online_boost_end_task_id)
+            self.online_boost_end_task_id = None
+            fields_to_update.append("online_boost_end_task_id")
+        self.save(update_fields=fields_to_update)
+        return is_new_login
+
+    def schedule_online_boost_end(self):
+        from character.tasks import end_online_boost
+
+        eta = timezone.now() + timezone.timedelta(minutes=30)
+        result = end_online_boost.apply_async(
+            kwargs={"character_id": self.character.id},
+            eta=eta,
+        )
+        self.online_boost_ends_at = eta
+        self.online_boost_end_task_id = result.id
+        self.save(update_fields=["online_boost_ends_at", "online_boost_end_task_id"])
+        print("Scheduled boost end:", result)
+        return result
 
     @classmethod
     def get_character(cls, player: Player) -> Character:
@@ -413,7 +453,7 @@ class PlayerCharacterLink(models.Model):
 
     def unlink(self):
         """Marks link as inactive and records unlink date"""
-        self.date_unlinked = now().date()
+        self.date_unlinked = timezone.now().date()
         self.is_active = False
         self.save()
         # Make character available for linking again
@@ -439,7 +479,6 @@ class PlayerCharacterLink(models.Model):
             character=character,
             is_active=True,
         )
-        # is_npc is now a property, so just update can_link
         character.can_link = False
         character.save(update_fields=["can_link"])
         return link

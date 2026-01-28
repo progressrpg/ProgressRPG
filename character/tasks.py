@@ -37,3 +37,11 @@ def generate_character_days(self, date_iso: str | None = None) -> dict:
         "generated_for_characters": generated,
         "skipped_no_behaviour": skipped_no_behaviour,
     }
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=5)
+def end_online_boost(self, character_id: int):
+    now = timezone.now()
+    character = Character.objects.get(id=character_id)
+    character.behaviour.interrupt_current_activity(boost_ended=True)
+    return {"character_id": character_id, "ended_at": str(now)}

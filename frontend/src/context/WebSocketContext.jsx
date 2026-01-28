@@ -1,5 +1,5 @@
 // context/WebSocketContext.jsx
-import React, { createContext, useContext, useRef, useCallback } from 'react';
+import React, { createContext, useRef, useCallback } from 'react';
 import { useGame } from './GameContext';
 import { useToast } from './ToastContext';
 import { useWebSocketConnection } from '../hooks/useWebSocketConnection';
@@ -8,7 +8,7 @@ import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 
 const WebSocketContext = createContext();
 
-export const WebSocketProvider = ({ children }) => {
+export default function WebSocketProvider({ children }) {
   const { player } = useGame();
   const { showToast } = useToast();
   const { refetch: maintenanceRefetch } = useMaintenanceStatus();
@@ -17,7 +17,6 @@ export const WebSocketProvider = ({ children }) => {
   const onMessage = useCallback((data) => {
     //console.log("[WS Provider] showToast:", showToast);
     handleGlobalWebSocketEvent(data, { showToast, maintenanceRefetch });
-
     eventHandlersRef.current.forEach((handler) => handler(data));
   }, [showToast, maintenanceRefetch ]);
 
@@ -33,7 +32,7 @@ export const WebSocketProvider = ({ children }) => {
     //console.log('WebSocket connected!');
   }, []);
 
-  const { send, isConnected } = useWebSocketConnection(
+  const { send, isConnected, disconnect } = useWebSocketConnection(
     player?.id,
     onMessage,
     onError,
@@ -48,12 +47,8 @@ export const WebSocketProvider = ({ children }) => {
 
 
   return (
-    <WebSocketContext.Provider value={{ send, isConnected, addEventHandler }}>
+    <WebSocketContext.Provider value={{ send, isConnected, addEventHandler, disconnect }}>
       {children}
     </WebSocketContext.Provider>
   );
-}
-
-export const useWebSocket = () => {
-  return useContext(WebSocketContext);
 }

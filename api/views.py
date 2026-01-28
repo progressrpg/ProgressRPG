@@ -135,6 +135,21 @@ class MeViewSet(viewsets.ViewSet):
         serializer = PlayerSerializer(player)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"])
+    def character(self, request):
+        player = request.user.player
+        character = player.current_character  # or however you store it
+
+        if not character:
+            return Response(
+                {"detail": "No current character set for this player."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            CharacterSerializer(character, context={"request": request}).data
+        )
+
     @action(detail=False, methods=["post"])
     def complete_onboarding(self, request):
         player = request.user.player
@@ -326,6 +341,7 @@ class FetchInfoAPIView(APIView):
         now = timezone.now()
         last = getattr(player, "last_login", None)
 
+        # --- Online sync if >30 minutes since last fetch ---
         if not last or (now - last) > timedelta(minutes=30):
             logger.info(
                 f"[FETCH INFO] Online sync for player {player.id}, character {character.id}"
@@ -339,6 +355,8 @@ class FetchInfoAPIView(APIView):
             ensure_day_activities(character, today)
             ensure_day_activities(character, yesterday)
 
+        # --- Interrupt character behaviour if needed ---
+        character.behaviour.interrupt_current_activity()
         # --- Serialize everything ---
         try:
             data = {

@@ -50,7 +50,7 @@ class QuestAdmin(admin.ModelAdmin):
     inlines = [QuestResultsInline]
 
 
-@admin.register(QuestResults)
+# @admin.register(QuestResults)
 class QuestResultsAdmin(admin.ModelAdmin):
     list_display = ["quest", "xp_rate", "coin_reward", "dynamic_rewards"]
 
@@ -106,7 +106,7 @@ class ActivityTimerAdmin(admin.ModelAdmin):
         self.message_user(request, "Selected timers have been reset.")
 
 
-@admin.register(QuestTimer)
+# @admin.register(QuestTimer)
 class QuestTimerAdmin(admin.ModelAdmin):
     list_display = ["character", "elapsed_time", "status"]
     list_filter = [

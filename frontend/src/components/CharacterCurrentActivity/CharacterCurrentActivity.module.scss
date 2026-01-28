@@ -8,13 +8,14 @@
 .line {
   width: min(100%, 720px);
 
-  background: rgba(c.$color-bg, 0.5);
+
+  padding: v.$padding-base;
   font-size: 0.95rem;
 
-  border: 1px solid rgba(c.$color-border-primary, 0.4);
+  border: 1px solid rgba(c.$color-character, 0.45);
   border-radius: v.$border-radius;
-  padding: v.$padding-base;
-
+  background: rgba(c.$color-character, 0.08);
+  @include t.apply-text-style(t.$text-body);
 }
 
 .activity {

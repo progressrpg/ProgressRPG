@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import datetime, time, timedelta
 
+from character.models import PlayerCharacterLink
 from progression.models import CharacterActivity
 
 import random
@@ -90,14 +91,14 @@ class Behaviour(models.Model):
                 aware(date, time(0, 0)),
                 morning_start,
             ),  # midnight -> wake
-            ("morning", "Morning", morning_start, morning_end),
-            ("work", "Work", work1_start, work1_end),
-            ("meal", "Lunch", lunch_start, lunch_end),
-            ("work", "", work2_start, work2_end),
-            ("meal", "Dinner", dinner_start, dinner_end),
-            ("leisure", "Leisure", leisure_start, leisure_end),
+            ("morning", "Waking up", morning_start, morning_end),
+            ("work", "Working", work1_start, work1_end),
+            ("meal", "Eating lunch", lunch_start, lunch_end),
+            ("work", "Working", work2_start, work2_end),
+            ("meal", "Eating dinner", dinner_start, dinner_end),
+            ("leisure", "Relaxing", leisure_start, leisure_end),
             ("wind_down", "Wind down", wind_start, wind_end),
-            ("sleep", "", sleep_start, sleep_end),
+            ("sleep", "Sleeping", sleep_start, sleep_end),
         ]
 
         # Ensure monotonic, no negative durations, no overlaps
@@ -174,36 +175,11 @@ class Behaviour(models.Model):
         ended = qs.filter(is_complete=False, scheduled_end__lte=now).order_by(
             "scheduled_end"
         )
-        for a in ended:
-            # set what actually happened
-            if a.started_at is None:
-                a.started_at = a.scheduled_start
-
-            a.duration = max(
-                0, int((a.scheduled_end - a.scheduled_start).total_seconds())
-            )
-            a.xp_gained = a.calculate_xp_reward()
-
-            # use scheduled_end as completion time
-            a.completed_at = a.scheduled_end
-            a.is_complete = True
-
-            a.save(
-                update_fields=[
-                    "started_at",
-                    "duration",
-                    "xp_gained",
-                    "completed_at",
-                    "is_complete",
-                ]
-            )
+        for activity in ended:
+            activity.complete_past()
 
         # 2) Current activity = schedule window containing now
-        current = (
-            qs.filter(scheduled_start__lte=now, scheduled_end__gt=now)
-            .order_by("scheduled_start")
-            .first()
-        )
+        current = self.get_current_activity()
 
         if current:
             if current.started_at is None:
@@ -270,6 +246,56 @@ class Behaviour(models.Model):
             return
         day.delete_all()
         day.delete()
+
+    def get_current_activity(self):
+        """
+        Return the current scheduled activity (or None)
+        """
+        now = timezone.now()
+        activity = (
+            CharacterActivity.objects.filter(
+                character=self.character,
+                scheduled_start__lte=now,
+                scheduled_end__gt=now,
+            )
+            .order_by("scheduled_start")
+            .first()
+        )
+        if not activity:
+            return None
+
+        return activity
+
+    def interrupt_current_activity(self, boost_ended=False):
+        """
+        Interrupt the current activity by completing it and starting a new instance of it.
+        """
+        link = PlayerCharacterLink.objects.filter(
+            character=self.character, is_active=True
+        ).first()
+        if not link:
+            print("No active player link: no interrupt.")
+            return None
+        if not link.is_new_login():
+            print("Not new login: no interrupt")
+            return None
+        print("Interrupting current activity.")
+        now = timezone.now()
+        activity = self.get_current_activity()
+        if not activity or activity.is_complete:
+            return None
+
+        new_activity = CharacterActivity.objects.create(
+            character=self.character,
+            kind=activity.kind,
+            name=activity.name,
+            scheduled_end=activity.scheduled_end,
+        )
+        activity.complete_now()
+
+        new_activity.started_at = now
+        new_activity.save(update_fields=["started_at"])
+        return new_activity
 
     def __str__(self):
         return f"Behaviour for {self.character.name}"

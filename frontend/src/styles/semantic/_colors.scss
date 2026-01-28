@@ -44,6 +44,10 @@ $color-status-warning: map.get(c.$accent-scale, 200);
 $color-danger: #c62828; // strong, readable red
 $color-status-danger: $color-danger;
 
+// Activity categories
+$color-player: map.get(c.$primary-scale, 500);
+$color-character: map.get(c.$accent-scale, 200);
+
 // Error/Warning states
 $color-error: $color-danger;
 $color-error-bg: #ffebee;
@@ -207,9 +211,9 @@ $list-variants: (
   } @else {
     background-color: map.get($variant, bg);
 
-    &:hover {
-      background-color: map.get($variant, hover);
-    }
+    // &:hover {
+    //   background-color: map.get($variant, hover);
+    // }
 
     &:active {
       background-color: map.get($variant, active);

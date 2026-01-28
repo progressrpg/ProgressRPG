@@ -12,13 +12,14 @@ export const useGame = () => {
   return useContext(GameContext);
 }
 
-const getFormattedDate = () => {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-  const dd = String(today.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
+const getActivityWindow = () => {
+  const now = new Date();
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  return {
+    start: since.toISOString(),
+    end: now.toISOString(),
+  };
+};
 
 export const GameProvider = ({ children }) => {
   const {
@@ -33,8 +34,8 @@ export const GameProvider = ({ children }) => {
 
   const [player, setPlayer] = useState(playerOnload);
   const [character, setCharacter] = useState(characterOnload);
-  const [playerActivities, setPlayerActivities] = useState({ results: [], count: 0 });
-  const [characterActivities, setCharacterActivities] = useState({ results: [], count: 0 });
+  const [playerActivities, setPlayerActivities] = useState([]);
+  const [characterActivities, setCharacterActivities] = useState([]);
   const [characterCurrentActivity, setCharacterCurrentActivity] = useState({});
   const [quests, setQuests] = useState([]);
 
@@ -50,26 +51,23 @@ export const GameProvider = ({ children }) => {
     const freshPlayer = await apiFetch(`/me/player/`);
     setPlayer(freshPlayer);
 
-    if (characterOnload?.id) {
-      const freshCharacter = await apiFetch(`/character/${characterOnload.id}/`);
-      setCharacter(freshCharacter);
-    }
-  }, [characterOnload?.id]);
-
-  const formattedDate = getFormattedDate();
+    const freshCharacter = await apiFetch(`/me/character/`);
+    setCharacter(freshCharacter);
+  }, []);
 
   const fetchActivities = useCallback(async () => {
+    const activityWindow = getActivityWindow();
     const [playerData, charData] = await Promise.all([
       apiFetch(
-        `/player-activities/?is_complete=true&completed_at_after=${formattedDate}&completed_at_before=${formattedDate}`
+        `/player-activities/?is_complete=true&completed_at_after=${activityWindow.start}&completed_at_before=${activityWindow.end}`
       ),
       apiFetch(
-        `/character-activities/?is_complete=true&completed_at_after=${formattedDate}&completed_at_before=${formattedDate}`
+        `/character-activities/?is_complete=true&completed_at_after=${activityWindow.start}&completed_at_before=${activityWindow.end}`
       ),
     ]);
     setPlayerActivities(await playerData?.results ?? []);
     setCharacterActivities(await charData?.results ?? []);
-  }, [formattedDate]);
+  }, []);
 
   const fetchCharacterCurrent = useCallback(async () => {
     const data = await apiFetch(`/character-activities/current/`);
