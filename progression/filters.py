@@ -19,7 +19,9 @@ class PlayerActivityFilter(django_filters.FilterSet):
     date = django_filters.DateFromToRangeFilter(field_name="completed_at")
     is_complete = django_filters.BooleanFilter(field_name="is_complete")
     created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
-    completed_at = django_filters.DateFromToRangeFilter(field_name="completed_at")
+    completed_at = django_filters.IsoDateTimeFromToRangeFilter(
+        field_name="completed_at"
+    )
 
     class Meta:
         model = PlayerActivity
@@ -28,7 +30,9 @@ class PlayerActivityFilter(django_filters.FilterSet):
 
 class CharacterActivityFilter(django_filters.FilterSet):
     is_complete = django_filters.BooleanFilter(field_name="is_complete")
-    completed_at = django_filters.DateFromToRangeFilter(field_name="completed_at")
+    completed_at = django_filters.IsoDateTimeFromToRangeFilter(
+        field_name="completed_at"
+    )
     scheduled_start = django_filters.DateFromToRangeFilter(field_name="scheduled_start")
     scheduled_end = django_filters.DateFromToRangeFilter(field_name="scheduled_end")
 
