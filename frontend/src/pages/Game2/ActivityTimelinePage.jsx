@@ -12,9 +12,9 @@ export default function ActivityTimelinePage() {
       </div>
 
       <div className={styles.content}>
-        <ActivityTimeline />
-        <CharacterCurrentActivity />
         <ActivityInput />
+        <CharacterCurrentActivity />
+        <ActivityTimeline />
       </div>
     </div>
   );
