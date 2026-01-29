@@ -372,13 +372,18 @@ class CharacterActivity(TimeRecord):
 
         self.completed_at = self.scheduled_end
         self.is_complete = True
-        self.duration = max(
-            0, int((self.completed_at - self.started_at).total_seconds())
-        )
+        duration = max(0, int((self.scheduled_end - self.started_at).total_seconds()))
+        self.duration = duration
+        self.xp_gained = self.calculate_base_xp(duration)
         self.save(
-            update_fields=["completed_at", "is_complete", "duration", "started_at"]
+            update_fields=[
+                "completed_at",
+                "is_complete",
+                "duration",
+                "started_at",
+                "xp_gained",
+            ]
         )
-        xp_gained = self.calculate_base_xp(self.duration)
         return self.completed_at
 
 
