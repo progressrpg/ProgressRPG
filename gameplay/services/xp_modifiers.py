@@ -1,4 +1,5 @@
 from celery import current_app
+from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction
 
@@ -44,7 +45,13 @@ def end_modifier(mod: XpModifier, *, now=None):
 
 
 @transaction.atomic
-def schedule_modifier_end(*, mod: XpModifier, ends_at):
+def schedule_modifier_end(
+    *,
+    mod: XpModifier,
+    ends_at,
+    task=end_online_boost,
+    task_kwargs=None,
+):
     """
     Set ends_at and schedule a Celery task. Stores task_id on the modifier.
     """
@@ -56,7 +63,10 @@ def schedule_modifier_end(*, mod: XpModifier, ends_at):
     mod.is_active = True
     mod.save(update_fields=["ends_at", "is_active"])
 
-    result = end_online_boost.apply_async(kwargs={"modifier_id": mod.id}, eta=ends_at)
+    if task_kwargs is None:
+        task_kwargs = {"modifier_id": mod.id}
+
+    result = task.apply_async(kwargs=task_kwargs, eta=ends_at)
 
     mod.task_id = result.id
     mod.save(update_fields=["task_id"])
@@ -66,7 +76,7 @@ def schedule_modifier_end(*, mod: XpModifier, ends_at):
 @transaction.atomic
 def schedule_online_end(link: PlayerCharacterLink, cooldown_minutes=30):
     now = timezone.now()
-    ends_at = now + timezone.timedelta(minutes=cooldown_minutes)
+    ends_at = now + timedelta(minutes=cooldown_minutes)
 
     # Upsert your modifier row:
     mod = (
@@ -98,6 +108,8 @@ def schedule_online_end(link: PlayerCharacterLink, cooldown_minutes=30):
 @transaction.atomic
 def handle_online_login(player: Player):
     link = player.active_link
+    if not link:
+        return None
     link = PlayerCharacterLink.objects.get(id=link.id)
     mod = (
         XpModifier.objects.filter(

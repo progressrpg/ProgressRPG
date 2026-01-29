@@ -40,5 +40,7 @@ def end_online_boost(self, modifier_id: int):
     mod.ends_at = now
     mod.save(update_fields=["is_active", "task_id", "ends_at"])
 
-    mod.link.character.behaviour.interrupt_current_activity()
+    behaviour = getattr(mod.link.character, "behaviour", None)
+    if behaviour:
+        behaviour.interrupt_current_activity()
     return "ended"
