@@ -460,7 +460,7 @@ class ActivityTimer(Timer):
             self.rename_activity(newName)
         self.update_activity_time()
 
-        xp_gained = self.activity.calculate_xp_reward()
+        xp_gained = self.activity.complete()
         self.player.add_activity(self.elapsed_time, xp=xp_gained)
 
         message_text = f"Activity submitted. You got {xp_gained} XP!"
@@ -473,7 +473,6 @@ class ActivityTimer(Timer):
             is_draft=False,
         )
 
-        self.activity.complete()
         logger.debug(
             f"[TIMER COMPLETE] Timer {self.id} completed — elapsed_time: {self.elapsed_time}, completed_at: {self.activity.completed_at}"
         )
@@ -694,3 +693,56 @@ class ServerMessage(models.Model):
         """
         cutoff_date = timezone.now() - timezone.timedelta(days=days)
         cls.objects.filter(created_at__lt=cutoff_date).delete()
+
+
+class XpModifier(models.Model):
+    class Scope(models.TextChoices):
+        PLAYER = "PLAYER", "Player"
+        CHARACTER = "CHARACTER", "Character"
+        LINK = "LINK", "Link"
+
+    scope = models.CharField(max_length=20, choices=Scope.choices)
+    player = models.ForeignKey(
+        "users.Player",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="xp_mods",
+    )
+    character = models.ForeignKey(
+        "character.Character",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="xp_mods",
+    )
+    link = models.ForeignKey(
+        "character.PlayerCharacterLink",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="xp_mods",
+    )
+
+    key = models.CharField(
+        max_length=64
+    )  # e.g. "player_online", "focus_streak", "event_weekend"
+    multiplier = models.DecimalField(max_digits=6, decimal_places=3, default=1.0)
+
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField(null=True, blank=True)  # null = indefinite
+    is_active = models.BooleanField(default=True)
+
+    task_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Optional Celery task ID for scheduled end task.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["key", "is_active", "starts_at", "ends_at"]),
+        ]

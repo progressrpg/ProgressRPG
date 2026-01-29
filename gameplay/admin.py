@@ -9,6 +9,7 @@ from .models import (
     QuestTimer,
     QuestResults,
     ServerMessage,
+    XpModifier,
 )
 
 
@@ -183,25 +184,34 @@ class ServerMessageAdmin(admin.ModelAdmin):
     actions = [send_selected_messages]
 
 
-# class CustomAdminSite(admin.AdminSite):
-#     #change_list_template = "admin/combined_timers.html"
-#     def get_urls(self):
-#         urls = super().get_urls()
-#         custom_urls = [
-#             path('combined-timers/', self.admin_view(self.combined_timers_view), name='combined_timers'),
-#         ]
-#         return custom_urls + urls
-
-#     def combined_timers_view(self, request):
-#         activity_timers = ActivityTimer.objects.all()
-#         quest_timers = QuestTimer.objects.all()
-#         context = {
-#             'title': 'Combined Timers',
-#             'activity_timers': activity_timers,
-#             'quest_timers': quest_timers,
-#         }
-#         return render(request, 'admin/combined_timers.html', context)
-
-# custom_admin_site = CustomAdminSite(name='custom_admin')
-# custom_admin_site.register(ActivityTimer)
-# custom_admin_site.register(QuestTimer)
+@admin.register(XpModifier)
+class XpModifierAdmin(admin.ModelAdmin):
+    list_display = [
+        "key",
+        "scope",
+        "player",
+        "character",
+        "link",
+        "multiplier",
+        "starts_at",
+        "ends_at",
+        "is_active",
+        "created_at",
+        "last_updated",
+    ]
+    list_filter = [
+        "scope",
+        "is_active",
+        "starts_at",
+        "ends_at",
+        "created_at",
+    ]
+    search_fields = [
+        "key",
+        "player__name",
+        "character__name",
+    ]
+    readonly_fields = [
+        "created_at",
+        "last_updated",
+    ]

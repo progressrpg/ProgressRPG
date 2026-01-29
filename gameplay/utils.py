@@ -26,35 +26,20 @@ Author:
 """
 
 from asgiref.sync import async_to_sync
-
-# from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
 
-# from django.db import transaction, connection, IntegrityError
-# from django.utils.html import escape
-# from django.utils.timezone import now
-
 from .models import QuestCompletion, Quest, ActivityTimer, QuestTimer
-
-# from .models import ServerMessage
 from .serializers import QuestTimerSerializer
 
-# from .serializers import QuestSerializer, ActivityTimerSerializer
-
 from character.models import Character
-
-# from character.serializers import CharacterSerializer
-
 from users.models import Player
-
-# from users.serializers import ProfileSerializer
 
 import logging
 
 from progress_rpg.exceptions import QuestError, CharacterError, TimerError
 
-logger = logging.getLogger("general")  # Get the logger for this module
+logger = logging.getLogger("general")
 
 
 def check_quest_eligibility(character: Character, player: Player) -> list:
@@ -89,34 +74,16 @@ def check_individual_quest(
     )
 
 
-def start_server_timers(act_timer: ActivityTimer, quest_timer: QuestTimer):
+def start_server_timers(act_timer: ActivityTimer):
     """
     Attempts to start server-side activity and quest timers.
-
-    :param act_timer: The activity timer instance to be started.
-    :type act_timer: ActivityTimer
-    :param quest_timer: The quest timer instance to be started.
-    :type quest_timer: QuestTimer
-    :return: A tuple where the first value is a boolean indicating success,
-        and the second value is a string containing additional information or error details.
     """
     logger.info("[START SERVER TIMERS] Attempting to start server timers")
-    logger.debug(
-        f"[START SERVER TIMERS] Timers status: activity={act_timer.status}, quest={quest_timer.status}"
-    )
-    qt = quest_timer
-    logger.debug(
-        f"[START SERVER TIMERS] Quest timer status/duration/elapsed/remaining: {qt.status}/{qt.duration}/{qt.get_elapsed_time()}/{qt.get_remaining_time()}"
-    )
+    logger.debug(f"[START SERVER TIMERS] Timers status: activity={act_timer.status}")
 
-    if act_timer.status in ["active", "paused", "waiting"] and quest_timer.status in [
-        "active",
-        "paused",
-        "waiting",
-    ]:
+    if act_timer.status in ["active", "paused", "waiting"]:
         try:
             act_timer.start()
-            quest_timer.start()
             result_text = "[START SERVER TIMERS] Timers successfully started"
             logger.info(result_text)
             return True, result_text
@@ -125,30 +92,18 @@ def start_server_timers(act_timer: ActivityTimer, quest_timer: QuestTimer):
             logger.error(error_text, exc_info=True)
             return False, error_text
     else:
-        result_text = f"[START SERVER TIMERS] Timers not in a valid state (activity: {act_timer.status}, quest: {quest_timer.status})"
+        result_text = f"[START SERVER TIMERS] Timers not in a valid state (activity: {act_timer.status})"
         logger.info(result_text)
         return False, result_text
 
 
-def pause_server_timers(act_timer: ActivityTimer, quest_timer: QuestTimer):
+def pause_server_timers(act_timer: ActivityTimer):
     """
     Pauses server-side activity and quest timers.
-
-    :param act_timer: The activity timer instance to be paused.
-    :type act_timer: ActivityTimer
-    :param quest_timer: The quest timer instance to be paused.
-    :type quest_timer: QuestTimer
-    :return: A tuple where the first value is a boolean indicating success,
-        and the second value is a string containing additional information or error details.
     """
     logger.info("[PAUSE SERVER TIMERS] Pausing server timers")
-    logger.debug(
-        f"[PAUSE SERVER TIMERS] Timers status before: {act_timer.status}/{quest_timer.status}"
-    )
-    qt = quest_timer
-    logger.debug(
-        f"[PAUSE SERVER TIMERS] Quest timer status/duration/elapsed/remaining: {qt.status}/{qt.duration}/{qt.get_elapsed_time()}/{qt.get_remaining_time()}"
-    )
+    logger.debug(f"[PAUSE SERVER TIMERS] Timers status before: {act_timer.status}")
+
     try:
         if act_timer.status not in ["completed", "empty"]:
             act_timer.pause()
@@ -157,17 +112,8 @@ def pause_server_timers(act_timer: ActivityTimer, quest_timer: QuestTimer):
             result_text = f"[PAUSE SERVER TIMERS] Activity timer NOT paused, status: {act_timer.status}"
             logger.debug(result_text)
 
-        if quest_timer.status not in ["completed", "empty"]:
-            quest_timer.pause()
-            logger.debug("[PAUSE SERVER TIMERS] Quest timer successfully paused")
-        else:
-            logger.debug(
-                f"[PAUSE SERVER TIMERS] Quest timer NOT paused, status: {act_timer.status}"
-            )
-
-        # logger.debug("[PAUSE SERVER TIMERS] Timers paused (or status is complete/empty)")
         logger.debug(
-            f"[PAUSE SERVER TIMERS] Timers status after pausing: {act_timer.status}/{quest_timer.status}"
+            f"[PAUSE SERVER TIMERS] Timers status after pausing: {act_timer.status}"
         )
 
         return True, "Success"
@@ -177,9 +123,7 @@ def pause_server_timers(act_timer: ActivityTimer, quest_timer: QuestTimer):
         return False, result_text
 
 
-async def control_timers(
-    player: Player, act_timer: ActivityTimer, quest_timer: QuestTimer, mode: str
-) -> bool:
+async def control_timers(player: Player, act_timer: ActivityTimer, mode: str) -> bool:
     """
     Starts or pauses timers for a specific player by controlling server-side timers.
 
@@ -188,20 +132,17 @@ async def control_timers(
     logger.info(
         f"[CONTROL TIMERS] Performing '{mode}' on timers for player {player_id}"
     )
-    qt = quest_timer
-    logger.debug(
-        f"[CONTROL TIMERS] Quest timer status/duration/elapsed/remaining: {qt.status}/{qt.duration}/{qt.get_elapsed_time()}/{qt.get_remaining_time()}"
-    )
+
     if mode == "start":
         server_success, result_text = await database_sync_to_async(start_server_timers)(
-            act_timer, quest_timer
+            act_timer
         )
         action = "start_timers"
         success_message = "Timers successfully started"
         failure_message = "Starting timers failed"
     elif mode == "pause":
         server_success, result_text = await database_sync_to_async(pause_server_timers)(
-            act_timer, quest_timer
+            act_timer
         )
         action = "pause_timers"
         success_message = "Timers successfully paused"
@@ -228,21 +169,6 @@ async def control_timers(
             },
         )
         return False
-
-
-def server_quest_ready(quest_timer: QuestTimer) -> bool:
-    """
-    Checks if server quest timer is (nearly) complete.
-    :param quest_timer: Quest timer
-    :type quest_timer: QuestTimer
-    :return: True if the quest is nearly complete, False otherwise
-    :rtype: bool
-    """
-    if not quest_timer.status == "complete":
-        if quest_timer.get_remaining_time() >= 4:
-            return False
-        else:
-            return True
 
 
 def process_initiation(player: Player, character: Character, action: str) -> bool:
@@ -294,57 +220,33 @@ def process_completion(player: Player, character: Character, action: str) -> boo
     character.refresh_from_db()
     player_id = player.id
     act_timer = player.activity_timer
-    quest_timer = character.quest_timer
     logger.info(
         f"[PROCESS COMPLETION] Doing {action} for player {player_id}, character {character.id}"
     )
 
-    if action == "complete_quest":
-        ready = server_quest_ready(quest_timer)
-        logger.info(f"[PROCESS COMPLETION] Ready is: {ready}")
+    pause_success, result_text = pause_server_timers(act_timer)
+    if not pause_success:
+        logger.warning(
+            f"[PROCESS COMPLETION] Failed to pause timers for player {player_id}"
+        )
+        async_to_sync(send_group_message)(
+            f"player_{player_id}",
+            {"type": "error", "action": "warn", "message": "Pausing timers failed"},
+        )
+        return False
     else:
-        ready = True
-
-    if ready:
-        pause_success, result_text = pause_server_timers(act_timer, quest_timer)
-        if not pause_success:
-            logger.warning(
-                f"[PROCESS COMPLETION] Failed to pause timers for player {player_id}"
-            )
-            async_to_sync(send_group_message)(
-                f"player_{player_id}",
-                {"type": "error", "action": "warn", "message": "Pausing timers failed"},
-            )
-            return False
-        else:  # Success
-            # act_timer.refresh_from_db()
-            # quest_timer.refresh_from_db()
-            async_to_sync(send_group_message)(
-                f"player_{player_id}",
-                {
-                    "type": "action",
-                    "action": (
-                        "quest_complete"
-                        if action == "complete_quest"
-                        else "submit_activity"
-                    ),
-                },
-            )
-            return True
-
-    else:  # Quest timer not near enough to completion
-        logger.warning(f"[PROCESS COMPLETION] Quest not ready for completion")
-        serialized_timer = QuestTimerSerializer(quest_timer).data
         async_to_sync(send_group_message)(
             f"player_{player_id}",
             {
-                "success": True,
                 "type": "action",
-                "action": "correct_quest_timer",
-                "data": serialized_timer,
+                "action": (
+                    "quest_complete"
+                    if action == "complete_quest"
+                    else "submit_activity"
+                ),
             },
         )
-        return False
+        return True
 
 
 async def send_group_message(group_name: str, message: dict) -> bool:
@@ -388,20 +290,3 @@ async def send_group_message(group_name: str, message: dict) -> bool:
             f"[GROUP SEND MESSAGE] No channel layer available for group '{group_name}'"
         )
         return False
-
-
-def validate_quest_completion(character):
-    """Validate that a quest can be completed"""
-    if not hasattr(character, "quest_timer") or not character.quest_timer:
-        raise CharacterError("Character has no quest timer")
-
-    quest = character.quest_timer.quest
-    if not quest:
-        raise QuestError("No active quest to complete")
-
-    if character.quest_timer.status != "completed":
-        raise TimerError(
-            f"Quest timer is not completed (status: {character.quest_timer.status})"
-        )
-
-    return quest

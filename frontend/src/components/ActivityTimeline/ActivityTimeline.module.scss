@@ -27,7 +27,10 @@
     background: rgba(c.$color-border-primary, 0.2);
   }
 }
-
+.heading {
+  margin: v.$spacing-sm 0;
+  margin-bottom: v.$spacing-md;
+}
 .container {
   width: min(100%, 720px);
   margin-top: v.$spacing-md;

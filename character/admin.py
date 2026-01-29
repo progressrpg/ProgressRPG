@@ -57,7 +57,7 @@ class CharacterAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Dates", {"fields": (("birth_date", "death_date"))}),
+        ("Dates", {"fields": (("birth_date", "death_date", "get_age"),)}),
         (
             "Life & Story",
             {
@@ -110,7 +110,9 @@ class CharacterAdmin(admin.ModelAdmin):
     readonly_fields = [
         "get_player",
         "is_npc",
+        "get_age",
     ]
+
     ordering = ["last_name", "first_name"]
     inlines = [LinkInline, BehaviourInline]
     actions = [mark_as_npc, mark_as_canlink]
@@ -127,6 +129,13 @@ class CharacterAdmin(admin.ModelAdmin):
         return PlayerCharacterLink.objects.filter(
             character=obj, is_active=True
         ).exists()
+
+    @admin.display(description="Age")
+    def get_age(self, obj):
+        try:
+            return f"{int(obj.get_age()/365)} years old"
+        except Exception:
+            return "-"
 
 
 @admin.register(PlayerCharacterLink)

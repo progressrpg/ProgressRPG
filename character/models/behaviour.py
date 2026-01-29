@@ -3,6 +3,8 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import datetime, time, timedelta
 
+from character.utils import WORK_ACTIVITIES
+
 from character.models import PlayerCharacterLink
 from progression.models import CharacterActivity
 
@@ -84,17 +86,18 @@ class Behaviour(models.Model):
         sleep_start = aware(date, time(23, 0))
         sleep_end = next_wake
 
+        activities = random.sample(WORK_ACTIVITIES, 2)
         blocks = [
             (
                 "sleep",
-                "Sleep",
+                "Sleeping",
                 aware(date, time(0, 0)),
                 morning_start,
             ),  # midnight -> wake
             ("morning", "Waking up", morning_start, morning_end),
-            ("work", "Working", work1_start, work1_end),
+            ("work", activities[0], work1_start, work1_end),
             ("meal", "Eating lunch", lunch_start, lunch_end),
-            ("work", "Working", work2_start, work2_end),
+            ("work", activities[1], work2_start, work2_end),
             ("meal", "Eating dinner", dinner_start, dinner_end),
             ("leisure", "Relaxing", leisure_start, leisure_end),
             ("wind_down", "Wind down", wind_start, wind_end),
@@ -218,8 +221,9 @@ class Behaviour(models.Model):
                 current.started_at = current.scheduled_start
 
             # If you force-advance early, duration becomes "time spent so far"
-            current.duration = max(0, int((now - current.started_at).total_seconds()))
-            current.xp_gained = current.calculate_xp_reward()
+            duration = max(0, int((now - current.started_at).total_seconds()))
+            self.duration = duration
+            current.xp_gained = current.calculate_base_xp(duration)
             current.completed_at = now
             current.is_complete = True
             current.save(
@@ -270,16 +274,6 @@ class Behaviour(models.Model):
         """
         Interrupt the current activity by completing it and starting a new instance of it.
         """
-        link = PlayerCharacterLink.objects.filter(
-            character=self.character, is_active=True
-        ).first()
-        if not link:
-            print("No active player link: no interrupt.")
-            return None
-        if not link.is_new_login():
-            print("Not new login: no interrupt")
-            return None
-        print("Interrupting current activity.")
         now = timezone.now()
         activity = self.get_current_activity()
         if not activity or activity.is_complete:

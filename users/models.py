@@ -22,6 +22,7 @@ Author:
 
 """
 
+from decimal import Decimal
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
 from django.db.models import Sum
@@ -148,6 +149,21 @@ class Person(models.Model):
         Calculate the XP required to reach the next level.
         """
         return 100 * (self.level + 1) if self.level >= 1 else 100
+
+    def get_xp_multiplier(self, now=None):
+        now = now or timezone.now()
+
+        link = self.active_link
+
+        mods = self.xp_mods.filter(
+            is_active=True,
+            starts_at__lte=now,
+        ).filter(models.Q(ends_at__isnull=True) | models.Q(ends_at__gt=now))
+        mult = Decimal("1.0")
+        for m in mods:
+            mult *= m.multiplier
+
+        return mult
 
 
 class Player(Person):

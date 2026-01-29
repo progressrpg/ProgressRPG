@@ -33,6 +33,8 @@ export default function ActivityInput() {
     if (e.key === "Enter" && !isActive && name.trim()) {
       e.preventDefault();
       handleToggle();
+
+      e.currentTarget.blur();
     }
   }
 

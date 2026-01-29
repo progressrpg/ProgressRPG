@@ -140,6 +140,14 @@ class CharacterActivityAdmin(admin.ModelAdmin):
     )
     ordering = ("-completed_at",)
 
+    actions = ["complete_past"]
+
+    @admin.display(description="Complete past unfinished activities")
+    def complete_past(self, request, queryset):
+        for activity in queryset:
+            activity.complete_past()
+        self.message_user(request, "Activities have been completed.")
+
 
 # @admin.register(CharacterQuest)
 class CharacterQuestAdmin(admin.ModelAdmin):

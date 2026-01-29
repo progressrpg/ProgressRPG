@@ -1,5 +1,5 @@
 # progression/models.py
-
+from decimal import Decimal
 from django.db import models, transaction
 from django.db.models import CheckConstraint, Q, Sum
 from django.utils import timezone
@@ -268,13 +268,29 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         self.name = newName
         self.save(update_fields=["name"])
 
-    def calculate_xp_reward(self) -> int:
+    def calculate_base_xp(self, duration: int) -> int:
         """
         Calculate and store the XP reward based on duration.
         Currently, XP gained equals total duration in seconds.
         """
-        xp = self.duration
+        xp = duration
         return xp
+
+    def complete(self):
+        """
+        Mark the record as completed if not already complete.
+        """
+        if getattr(self, "is_complete", False):
+            return getattr(self, "completed_at", None)
+
+        self.completed_at = timezone.now()
+        self.is_complete = True
+        base_xp = self.calculate_base_xp(self.duration)
+        multiplier = self.player.get_xp_multiplier()
+        self.xp_gained = int(Decimal(base_xp) * multiplier)
+        self.save(update_fields=["completed_at", "is_complete", "xp_gained"])
+
+        return self.xp_gained
 
 
 class CharacterActivity(TimeRecord):
@@ -311,11 +327,11 @@ class CharacterActivity(TimeRecord):
     def __str__(self):
         return f"character_activity {self.name}"
 
-    def calculate_xp_reward(self) -> int:
+    def calculate_base_xp(self, duration: int) -> int:
         """
         Calculate and store the XP gained based on duration.
         """
-        base_xp = self.duration // 60
+        base_xp = duration // 60
         multiplier = 0.25 if self.kind == "rest" else 1
         return int(base_xp * multiplier)
 
@@ -329,11 +345,23 @@ class CharacterActivity(TimeRecord):
         now = timezone.now()
         self.completed_at = now
         self.is_complete = True
-        self.duration = int((now - self.started_at).total_seconds())
+
+        duration = int((now - self.started_at).total_seconds())
+        base_xp = self.calculate_base_xp(duration)
+        multiplier = self.character.get_xp_multiplier()
+        self.xp_gained = int(Decimal(base_xp) * multiplier)
+
+        self.duration = duration
         self.save(
-            update_fields=["completed_at", "is_complete", "duration", "started_at"]
+            update_fields=[
+                "completed_at",
+                "is_complete",
+                "duration",
+                "started_at",
+                "xp_gained",
+            ]
         )
-        return self.completed_at
+        return self.xp_gained
 
     def complete_past(self):
         """
@@ -344,13 +372,18 @@ class CharacterActivity(TimeRecord):
 
         self.completed_at = self.scheduled_end
         self.is_complete = True
-        self.duration = max(
-            0, int((self.completed_at - self.started_at).total_seconds())
-        )
+        duration = max(0, int((self.scheduled_end - self.started_at).total_seconds()))
+        self.duration = duration
+        self.xp_gained = self.calculate_base_xp(duration)
         self.save(
-            update_fields=["completed_at", "is_complete", "duration", "started_at"]
+            update_fields=[
+                "completed_at",
+                "is_complete",
+                "duration",
+                "started_at",
+                "xp_gained",
+            ]
         )
-        xp_gained = self.calculate_xp_reward()
         return self.completed_at
 
 
@@ -387,7 +420,7 @@ class CharacterQuest(TimeRecord):
     def __str__(self):
         return f"character_quest {self.name}"
 
-    def calculate_xp_reward(self) -> int:
+    def calculate_base_xp(self) -> int:
         """
         Calculate and store the XP reward based on duration.
 

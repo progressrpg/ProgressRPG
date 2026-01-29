@@ -9,6 +9,7 @@ from django.db import transaction
 import json, logging
 from django.core.cache import cache
 
+from gameplay.services.xp_modifiers import schedule_online_end
 from users.models import Player
 
 from .models import ServerMessage
@@ -77,7 +78,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             await self._send_pending_messages()
 
             self.activity_timer = await self.get_activity_timer()
-            self.quest_timer = await self.get_quest_timer()
 
             await self.send_json(
                 {
@@ -89,6 +89,10 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         else:
             logger.warning(f"[CONNECT] Unauthenticated user attempted connection.")
             await self.close()
+
+    #########################
+    ##     DISCONNECT
+    #########################
 
     async def disconnect(self, close_code):
         logger.info(
@@ -110,11 +114,9 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 "empty",
                 "paused",
             ]:
-                await control_timers(
-                    self.player, self.activity_timer, self.quest_timer, "pause"
-                )
+                await control_timers(self.player, self.activity_timer, "pause")
 
-            await sync_to_async(self.link.schedule_online_boost_end)()
+            await sync_to_async(schedule_online_end)(self.link)
 
     async def test_message(self, event):
         logger.info(f"[TEST MESSAGE] Received test message: {event}")
@@ -143,7 +145,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 f"[RECEIVE JSON] Message received: {event}, type: {message_type}"
             )
 
-        await database_sync_to_async(self.quest_timer.refresh_from_db)()
         if message_type:
             logger.debug(f"[RECEIVE JSON] Processing type: {message_type}")
             if message_type == "client_request":
@@ -153,20 +154,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 await self.send_json(
                     {"type": "pong", "action": "pong", "message": "pong"}
                 )
-                if self.quest_timer.status != "completed":
-                    logger.debug(
-                        f"[RECEIVE JSON] Quest status: {self.quest_timer.status}"
-                    )
-                    time_finished = await database_sync_to_async(
-                        self.quest_timer.time_finished
-                    )()
-                    if time_finished:
-                        logger.debug(
-                            f"[RECEIVE JSON] Quest timer is finished? {time_finished}"
-                        )
-                        await database_sync_to_async(process_completion)(
-                            self.player, self.character, "complete_quest"
-                        )
 
             else:
                 logger.warning(f"[RECEIVE JSON] Unknown type received: {message_type}")
@@ -204,32 +191,16 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         action = message.get("action")
 
         if action == "start_timers":
-            await control_timers(
-                self.player, self.activity_timer, self.quest_timer, "start"
-            )
+            await control_timers(self.player, self.activity_timer, "start")
         elif action == "pause_timers":
-            await control_timers(
-                self.player, self.activity_timer, self.quest_timer, "pause"
-            )
+            await control_timers(self.player, self.activity_timer, "pause")
         elif action in ["create_activity", "choose_quest"]:
-            # qt = self.quest_timer
-            # logger.debug(f"[HANDLE CLIENT REQUEST] Quest timer status/dur/elapsed/remaining: {qt.status}/{qt.duration}/{qt.get_elapsed_time()}/{qt.get_remaining_time()}")
             success = await database_sync_to_async(process_initiation)(
                 self.player, self.character, action
             )
             if not success:
                 logger.warning(f"[HANDLE CLIENT REQUEST] Failed to initiate {action}.")
         elif action in ["complete_quest", "submit_activity"]:
-            if action == "complete_quest" and self.quest_timer.status not in [
-                "active",
-                "waiting",
-                "paused",
-            ]:
-                logger.warning(
-                    f"[HANDLE CLIENT REQUEST] Cannot complete quest: Invalid status {self.quest_timer.status}"
-                )
-                return
-
             success = await database_sync_to_async(process_completion)(
                 self.player, self.character, action
             )
@@ -263,15 +234,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
 
         return ActivityTimer.objects.filter(player=self.player).first()
 
-    @database_sync_to_async
-    def get_quest_timer(self):
-        logger.debug(
-            f"[GET QUEST TIMER] Fetching quest timer for character: {self.character.id}"
-        )
-        from .models import QuestTimer
-
-        return QuestTimer.objects.filter(character=self.character).first()
-
     async def send_timer_update(self, event):
         logger.debug(f"[SEND TIMER UPDATE] Sending timer update: {event['data']}")
         await self.send(text_data=json.dumps(event["data"]))
@@ -281,11 +243,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         logger.debug(f"[GET ACTIVITY TIME] Fetching elapsed activity time.")
         return self.activity_timer.get_elapsed_time() if self.activity_timer else None
 
-    def get_quest_time(self):
-        """Get the current quest time."""
-        logger.debug(f"[GET QUEST TIME] Fetching elapsed quest time.")
-        return self.quest_timer.get_elapsed_time() if self.quest_timer else None
-
     async def timer_update(self):
         """Receive timer updates from the group."""
         logger.debug(f"[TIMER UPDATE] Sending timer updates to the client.")
@@ -293,7 +250,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             json.dumps(
                 {
                     "activity_time": self.get_activity_time(),
-                    "quest_time": self.get_quest_time(),
                 }
             )
         )

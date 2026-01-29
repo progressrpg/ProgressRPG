@@ -47,7 +47,7 @@ export default function ActivityTimeline() {
       {/* <Link to="/activities" className={styles.activitiesLink}>
         View past activities
       </Link> */}
-      <h3>
+      <h3 className={styles.heading}>
         Recent activities
       </h3>
 
