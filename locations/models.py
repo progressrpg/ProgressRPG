@@ -4,6 +4,7 @@ from django.contrib.gis.db import models as gis_models
 from django.contrib.gis.geos import Point
 from django.contrib.gis.db.models.functions import Distance
 from django.db import models, transaction
+from django.db.models import Q
 from django.utils import timezone
 from math import sqrt
 
@@ -145,6 +146,8 @@ class Movable(models.Model):
     def step_toward(self, time_delta: float = 1.0, speed_modifier: float = 1.0):
         """Move along the current journey toward the next node."""
 
+        if not hasattr(self, "journey"):
+            return False
         if not self.journey or self.journey.is_complete():
             if self.is_moving:
                 self.is_moving = False
@@ -243,7 +246,7 @@ class Movable(models.Model):
 
 class Node(models.Model):
     name = models.CharField(max_length=100, blank=True)
-    location = gis_models.PointField(srid=3857)
+    location = gis_models.PointField(srid=3857, spatial_index=True)
     population_centre = models.ForeignKey(
         "locations.PopulationCentre",
         null=True,
@@ -266,14 +269,50 @@ class Node(models.Model):
         related_name="node",
     )
 
-    def neighbours(self):
-        return Node.objects.filter(paths_from__from_node=self)
+    class Kind(models.TextChoices):
+        CENTRE = "centre", "Centre"
+        OUTSIDE = "outside", "Outside"
+        BUILDING = "building", "Building"
+        BUILDING_ENTRANCE = "building_entrance", "Building Entrance"
+        INTERIOR = "interior", "Interior"
+        POI = "poi", "Point of Interest"
+
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.OUTSIDE)
 
     def paths(self):
-        return Path.objects.filter(models.Q(from_node=self))
+        return Path.objects.filter(Q(from_node=self) | Q(to_node=self))
+
+    def neighbours(self):
+        return Node.objects.filter(
+            Q(paths_from__to_node=self) | Q(paths_to__from_node=self)
+        ).distinct()
 
     def __str__(self):
         return self.name or f"Node {self.pk}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["population_centre"]),
+            models.Index(fields=["kind"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["building", "kind"],
+                condition=Q(building__isnull=False),
+                name="uniq_node_building_kind",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(building__isnull=True, interior_space__isnull=True)
+                    | Q(population_centre__isnull=True)
+                ),
+                name="node_population_centre_xor_location",
+            ),
+            models.CheckConstraint(
+                condition=Q(building__isnull=True) | Q(interior_space__isnull=True),
+                name="node_building_or_interior",
+            ),
+        ]
 
 
 class Path(models.Model):
@@ -290,6 +329,16 @@ class Path(models.Model):
     )
     length = models.FloatField(blank=True, null=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["from_node", "to_node"], name="uniq_path_directed"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["population_centre"]),
+        ]
+
     def save(self, *args, **kwargs):
         if self.from_node_id and self.to_node_id:
             try:
@@ -301,6 +350,8 @@ class Path(models.Model):
     def other_end(self, node: Node):
         if node == self.from_node:
             return self.to_node
+        if node == self.to_node:
+            return self.from_node
         return None
 
     def __str__(self):
@@ -308,7 +359,9 @@ class Path(models.Model):
 
 
 class Journey(models.Model):
-    character = models.ForeignKey("character.Character", on_delete=models.CASCADE)
+    character = models.ForeignKey(
+        "character.Character", on_delete=models.CASCADE, related_name="journeys"
+    )
     start_node = models.ForeignKey(
         "locations.Node", related_name="journeys_started", on_delete=models.CASCADE
     )
@@ -324,9 +377,10 @@ class Journey(models.Model):
 
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(
-        max_length=20, default="ongoing"
-    )  # e.g., ongoing, completed
+    status = models.CharField(max_length=20, default="active")  # e.g., active, complete
+
+    def is_complete(self):
+        return self.status == "complete"
 
     def serialize_for_client(self):
         # convert path_nodes to coordinates
@@ -403,7 +457,10 @@ class Building(models.Model):
     )
     description = models.TextField(blank=True, default="")
     location = gis_models.PointField(
-        srid=3857, default=Point(0, 0, srid=3857), help_text="Entrance location"
+        srid=3857,
+        default=Point(0, 0, srid=3857),
+        help_text="Centre location",
+        spatial_index=True,
     )
     footprint = gis_models.PolygonField(null=True, blank=True, srid=3857)
 
@@ -419,6 +476,11 @@ class Building(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.building_type})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["population_centre"]),
+        ]
 
 
 class InteriorSpace(models.Model):
