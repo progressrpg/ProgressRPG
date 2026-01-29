@@ -68,7 +68,7 @@ class Command(BaseCommand):
         parser.add_argument("--min-distance", type=int, default=3)
 
     def attempt_place_centre(
-        self, centres_positions, min_distance=1000, max_distance=2000
+        self, centres_positions, grid_size=5000, min_distance=1000, max_distance=2000
     ):
         x = random.randint(0, grid_size)
         y = random.randint(0, grid_size)
@@ -152,6 +152,7 @@ class Command(BaseCommand):
             for attempt in range(100):
                 result = self.attempt_place_centre(
                     centres_positions,
+                    grid_size=5000,
                     min_centre_distance=1000,
                     max_centre_distance=2000,
                 )
