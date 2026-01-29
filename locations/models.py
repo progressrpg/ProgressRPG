@@ -432,6 +432,7 @@ class InteriorSpace(models.Model):
         ANIMALS = "animals", "Animals"
         MEETING = "meeting", "Meeting"
         OTHER = "other", "Other"
+
     name = models.CharField(max_length=255)
     building = models.ForeignKey(
         Building, on_delete=models.CASCADE, related_name="interiorspaces"

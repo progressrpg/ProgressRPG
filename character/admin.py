@@ -20,7 +20,6 @@ class BehaviourInline(admin.StackedInline):
     max_num = 1
 
 
-
 @admin.action(description="Mark selected characters as NPCs and unlink from players")
 def mark_as_npc(modeladmin, request, queryset):
     for character in queryset:

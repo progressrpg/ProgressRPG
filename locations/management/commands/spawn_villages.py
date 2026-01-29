@@ -67,31 +67,32 @@ class Command(BaseCommand):
         parser.add_argument("--grid-size", type=int, default=5000)
         parser.add_argument("--min-distance", type=int, default=3)
 
-    def attempt_place_centre(self, centres_positions, min_distance=1000, max_distance=2000):
+    def attempt_place_centre(
+        self, centres_positions, min_distance=1000, max_distance=2000
+    ):
         x = random.randint(0, grid_size)
         y = random.randint(0, grid_size)
         new_point = Point(x, y)
 
         if not centres_positions:
             return new_point
-        
+
         for cp in centres_positions:
             d = distance(new_point, cp)
-            
+
             if d < min_distance or d > max_distance:
                 return False
 
         return new_point
 
-    def attempt_place_building(self, centre_point: Point, placed_buildings, min_distance)
+    def attempt_place_building(
+        self, centre_point: Point, placed_buildings, min_distance
+    ):
         offset_x = random.randint(-5, 5)
         offset_y = random.randint(-5, 5)
         candidate = Point(centre_point.x + offset_x, centre_point.y + offset_y)
-        
-        if all(
-            distance(candidate, bp) >= min_distance
-            for bp in placed_buildings
-        ):
+
+        if all(distance(candidate, bp) >= min_distance for bp in placed_buildings):
             return candidate
 
         return None
@@ -152,7 +153,7 @@ class Command(BaseCommand):
                 result = self.attempt_place_centre(
                     centres_positions,
                     min_centre_distance=1000,
-                    max_centre_distance=2000
+                    max_centre_distance=2000,
                 )
                 if result:
                     new_point = result
@@ -164,7 +165,7 @@ class Command(BaseCommand):
                     )
                 )
                 continue
-            centre_name =  f"Village {i+1}-{random.randint(1000,9999)}"
+            centre_name = f"Village {i+1}-{random.randint(1000,9999)}"
 
             # Place buildings around this centre
             residential_buildings = [

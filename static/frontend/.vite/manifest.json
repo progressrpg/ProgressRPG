@@ -5,6 +5,8 @@
   },
   "_ButtonFrame-BYswzrdn.js": {
     "file": "assets/ButtonFrame-BYswzrdn.js",
+  "_ButtonFrame-aiPaGjCn.js": {
+    "file": "assets/ButtonFrame-aiPaGjCn.js",
     "name": "ButtonFrame",
     "imports": [
       "src/main.jsx"
@@ -33,11 +35,15 @@
   },
   "_Form-RhSYQSVA.js": {
     "file": "assets/Form-RhSYQSVA.js",
+  "_Form-Ca3X-2An.js": {
+    "file": "assets/Form-Ca3X-2An.js",
     "name": "Form",
     "imports": [
       "src/main.jsx",
       "_ButtonFrame-BYswzrdn.js",
       "_Input-CsKeojmC.js"
+      "_ButtonFrame-aiPaGjCn.js",
+      "_Input-C6P0lcMH.js"
     ],
     "css": [
       "assets/Form-BMX8CcLL.css"
@@ -50,6 +56,9 @@
   "_Input-CsKeojmC.js": {
     "file": "assets/Input-CsKeojmC.js",
     "name": "Input",
+  "_Infobar-BR6P4OEP.js": {
+    "file": "assets/Infobar-BR6P4OEP.js",
+    "name": "Infobar",
     "imports": [
       "src/main.jsx"
     ],
@@ -60,6 +69,9 @@
   "_List-CsSP3s95.js": {
     "file": "assets/List-CsSP3s95.js",
     "name": "List",
+  "_Input-C6P0lcMH.js": {
+    "file": "assets/Input-C6P0lcMH.js",
+    "name": "Input",
     "imports": [
       "src/main.jsx"
     ],
@@ -87,6 +99,7 @@
   },
   "src/main.jsx": {
     "file": "assets/main-D1vdwcto.js",
+    "file": "assets/main-DQ5vBPGy.js",
     "name": "main",
     "src": "src/main.jsx",
     "isEntry": true,
@@ -132,6 +145,10 @@
       "src/main.jsx",
       "_useQuery-DZe8PLc5.js",
       "_useMutation-CTDsxV4P.js"
+      "src/pages/Game/Game.jsx",
+      "src/pages/Profile/Profile.jsx",
+      "src/pages/MapPage/MapPage.jsx",
+      "src/pages/MaintenancePage/MaintenancePage.jsx"
     ],
     "css": [
       "assets/ActivitiesPage-eNl9eKmP.css"
@@ -153,6 +170,7 @@
   },
   "src/pages/ConfirmationPage.jsx": {
     "file": "assets/ConfirmationPage-CbhA57iY.js",
+    "file": "assets/ConfirmationPage-DxOyL2mb.js",
     "name": "ConfirmationPage",
     "src": "src/pages/ConfirmationPage.jsx",
     "isDynamicEntry": true,
@@ -177,11 +195,18 @@
     "file": "assets/ActivityTimelinePage-DEbznjFD.js",
     "name": "ActivityTimelinePage",
     "src": "src/pages/Game2/ActivityTimelinePage.jsx",
+  "src/pages/Game/Game.jsx": {
+    "file": "assets/Game-ivmPqSIT.js",
+    "name": "Game",
+    "src": "src/pages/Game/Game.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
       "_List-CsSP3s95.js",
       "_Input-CsKeojmC.js"
+      "_Infobar-BR6P4OEP.js",
+      "_ButtonFrame-aiPaGjCn.js",
+      "_Input-C6P0lcMH.js"
     ],
     "css": [
       "assets/ActivityTimelinePage-DrwcgmK6.css"
@@ -189,6 +214,7 @@
   },
   "src/pages/Home/Home.jsx": {
     "file": "assets/Home-DnuLPSGY.js",
+    "file": "assets/Home-BEW-DC7D.js",
     "name": "Home",
     "src": "src/pages/Home/Home.jsx",
     "isDynamicEntry": true,
@@ -201,6 +227,7 @@
   },
   "src/pages/LoginPage/LoginPage.jsx": {
     "file": "assets/LoginPage-CDtc_qLP.js",
+    "file": "assets/LoginPage-CIDDI5Xb.js",
     "name": "LoginPage",
     "src": "src/pages/LoginPage/LoginPage.jsx",
     "isDynamicEntry": true,
@@ -209,6 +236,9 @@
       "_Form-RhSYQSVA.js",
       "_ButtonFrame-BYswzrdn.js",
       "_Input-CsKeojmC.js"
+      "_Form-Ca3X-2An.js",
+      "_ButtonFrame-aiPaGjCn.js",
+      "_Input-C6P0lcMH.js"
     ],
     "css": [
       "assets/LoginPage-TTeYOt_U.css"
@@ -216,6 +246,7 @@
   },
   "src/pages/LogoutPage/LogoutPage.jsx": {
     "file": "assets/LogoutPage-CKIUn0mH.js",
+    "file": "assets/LogoutPage-Da8HdI3u.js",
     "name": "LogoutPage",
     "src": "src/pages/LogoutPage/LogoutPage.jsx",
     "isDynamicEntry": true,
@@ -225,12 +256,14 @@
   },
   "src/pages/MaintenancePage/MaintenancePage.jsx": {
     "file": "assets/MaintenancePage-9daTbT7B.js",
+    "file": "assets/MaintenancePage-xv3Bn7Cu.js",
     "name": "MaintenancePage",
     "src": "src/pages/MaintenancePage/MaintenancePage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
       "_ButtonFrame-BYswzrdn.js"
+      "_ButtonFrame-aiPaGjCn.js"
     ],
     "css": [
       "assets/MaintenancePage-tn0RQdqM.css"
@@ -250,11 +283,16 @@
   },
   "src/pages/OnboardingPage/OnboardingPage.jsx": {
     "file": "assets/OnboardingPage-BwH5HZL9.js",
+    "file": "assets/OnboardingPage-Chb6vvaU.js",
     "name": "OnboardingPage",
     "src": "src/pages/OnboardingPage/OnboardingPage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx"
+      "src/main.jsx",
+      "_Form-Ca3X-2An.js",
+      "_Input-C6P0lcMH.js",
+      "_ButtonFrame-aiPaGjCn.js"
     ],
     "css": [
       "assets/OnboardingPage-Cx20zcad.css"
@@ -264,10 +302,23 @@
     "file": "assets/PlayerPage-DB6bD6HV.js",
     "name": "PlayerPage",
     "src": "src/pages/PlayerPage/PlayerPage.jsx",
+      "assets/OnboardingPage-DiKdVLJ-.css"
+    ],
+    "assets": [
+      "assets/tutorial-mob-p1-v2-DSRjmsbx.png",
+      "assets/tutorial-mob-p2-v2-D2yXt8FA.png",
+      "assets/tutorial-desktop-v2-Bzq3r1J3.png"
+    ]
+  },
+  "src/pages/Profile/Profile.jsx": {
+    "file": "assets/Profile-D3IXeeoE.js",
+    "name": "Profile",
+    "src": "src/pages/Profile/Profile.jsx",
     "isDynamicEntry": true,
     "imports": [
       "src/main.jsx",
       "_List-CsSP3s95.js"
+      "_Infobar-BR6P4OEP.js"
     ],
     "css": [
       "assets/PlayerPage-CoYFk6Aq.css"
@@ -275,6 +326,7 @@
   },
   "src/pages/RegisterPage/RegisterPage.jsx": {
     "file": "assets/RegisterPage-BKR-4Dw5.js",
+    "file": "assets/RegisterPage-CU8N4url.js",
     "name": "RegisterPage",
     "src": "src/pages/RegisterPage/RegisterPage.jsx",
     "isDynamicEntry": true,
@@ -311,6 +363,9 @@
       "_Card-DHWz4_LX.js",
       "_Input-CsKeojmC.js",
       "_List-CsSP3s95.js"
+      "_Form-Ca3X-2An.js",
+      "_ButtonFrame-aiPaGjCn.js",
+      "_Input-C6P0lcMH.js"
     ]
   }
 }

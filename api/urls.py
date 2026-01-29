@@ -97,4 +97,10 @@ urlpatterns = [
         PopulationCentreMapView.as_view(),
         name="populationcentre-map",
     ),
+    # Other urls
+    path(
+        "population-centres/<int:pk>/map/",
+        PopulationCentreMapView.as_view(),
+        name="populationcentre-map",
+    ),
 ]

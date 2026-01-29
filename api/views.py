@@ -400,6 +400,11 @@ class FetchInfoAPIView(APIView):
 ##########################################################
 
 
+##########################################################
+##### USER DATA MANAGEMENT VIEWS
+##########################################################
+
+
 class DownloadUserDataAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
