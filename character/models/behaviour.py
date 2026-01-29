@@ -3,6 +3,8 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import datetime, time, timedelta
 
+from character.utils import WORK_ACTIVITIES
+
 from character.models import PlayerCharacterLink
 from progression.models import CharacterActivity
 
@@ -84,17 +86,18 @@ class Behaviour(models.Model):
         sleep_start = aware(date, time(23, 0))
         sleep_end = next_wake
 
+        activities = random.sample(WORK_ACTIVITIES, 2)
         blocks = [
             (
                 "sleep",
-                "Sleep",
+                "Sleeping",
                 aware(date, time(0, 0)),
                 morning_start,
             ),  # midnight -> wake
             ("morning", "Waking up", morning_start, morning_end),
-            ("work", "Working", work1_start, work1_end),
+            ("work", activities[0], work1_start, work1_end),
             ("meal", "Eating lunch", lunch_start, lunch_end),
-            ("work", "Working", work2_start, work2_end),
+            ("work", activities[1], work2_start, work2_end),
             ("meal", "Eating dinner", dinner_start, dinner_end),
             ("leisure", "Relaxing", leisure_start, leisure_end),
             ("wind_down", "Wind down", wind_start, wind_end),
