@@ -344,10 +344,10 @@ class FetchInfoAPIView(APIView):
 
             character.behaviour.sync_to_now()
 
-            today = now.date()
-            yesterday = today - timedelta(days=1)
-            ensure_day_activities(character, today)
-            ensure_day_activities(character, yesterday)
+            # today = now.date()
+            # yesterday = today - timedelta(days=1)
+            # ensure_day_activities(character, today)
+            # ensure_day_activities(character, yesterday)
 
         handle_online_login(player)
 
