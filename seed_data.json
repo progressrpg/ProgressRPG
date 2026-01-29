@@ -21,7 +21,7 @@
     "xp_modifier": 1.0,
     "level": 1,
     "created_at": "2025-02-13T17:33:57.319Z",
-    "birth_date": null,
+    "birth_date": "1995-06-12",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -51,7 +51,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:56.956Z",
-    "birth_date": null,
+    "birth_date": "1980-04-03",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -79,7 +79,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:56.977Z",
-    "birth_date": null,
+    "birth_date": "1982-09-21",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -107,7 +107,7 @@
     "xp_modifier": 1.0,
     "level": 1,
     "created_at": "2025-02-13T17:33:57.014Z",
-    "birth_date": null,
+    "birth_date": "2007-08-14",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -138,7 +138,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.025Z",
-    "birth_date": null,
+    "birth_date": "2009-11-02",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -169,7 +169,7 @@
     "xp_modifier": 1.0,
     "level": 1,
     "created_at": "2025-02-13T17:33:57.035Z",
-    "birth_date": null,
+    "birth_date": "2013-02-18",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -200,7 +200,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:56.986Z",
-    "birth_date": null,
+    "birth_date": "1987-01-25",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -228,7 +228,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:56.995Z",
-    "birth_date": null,
+    "birth_date": "1989-07-30",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -256,7 +256,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.051Z",
-    "birth_date": null,
+    "birth_date": "2008-05-09",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -287,7 +287,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.004Z",
-    "birth_date": null,
+    "birth_date": "1970-10-11",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -315,7 +315,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.061Z",
-    "birth_date": null,
+    "birth_date": "2001-03-19",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -345,7 +345,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.173Z",
-    "birth_date": null,
+    "birth_date": "1962-12-05",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -373,7 +373,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.276Z",
-    "birth_date": null,
+    "birth_date": "1992-02-27",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -403,7 +403,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.266Z",
-    "birth_date": null,
+    "birth_date": "1997-09-07",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -433,7 +433,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.187Z",
-    "birth_date": null,
+    "birth_date": "1985-06-01",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -461,7 +461,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.204Z",
-    "birth_date": null,
+    "birth_date": "2010-04-16",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -489,7 +489,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.222Z",
-    "birth_date": null,
+    "birth_date": "1983-11-23",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -517,7 +517,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.238Z",
-    "birth_date": null,
+    "birth_date": "1985-08-28",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -545,7 +545,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.287Z",
-    "birth_date": null,
+    "birth_date": "2003-01-14",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -576,7 +576,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.248Z",
-    "birth_date": null,
+    "birth_date": "1990-12-09",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -604,7 +604,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.297Z",
-    "birth_date": null,
+    "birth_date": "2011-07-05",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -634,7 +634,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.257Z",
-    "birth_date": null,
+    "birth_date": "1995-05-17",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -662,7 +662,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.308Z",
-    "birth_date": null,
+    "birth_date": "2007-10-24",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -692,7 +692,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.156Z",
-    "birth_date": null,
+    "birth_date": "1998-02-11",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -720,7 +720,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.147Z",
-    "birth_date": null,
+    "birth_date": "1991-09-13",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -748,7 +748,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.138Z",
-    "birth_date": null,
+    "birth_date": "1975-03-04",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -776,7 +776,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.126Z",
-    "birth_date": null,
+    "birth_date": "2015-06-20",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -804,7 +804,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.110Z",
-    "birth_date": null,
+    "birth_date": "1988-12-30",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -832,7 +832,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.098Z",
-    "birth_date": null,
+    "birth_date": "2006-04-02",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -860,7 +860,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.083Z",
-    "birth_date": null,
+    "birth_date": "2002-08-26",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -888,7 +888,7 @@
     "xp_modifier": 1.0,
     "level": 0,
     "created_at": "2025-02-13T17:33:57.073Z",
-    "birth_date": null,
+    "birth_date": "1993-01-08",
     "death_date": null,
     "cause_of_death": null,
     "fertility": 50,
@@ -904,664 +904,6 @@
     "reputation": 0,
     "can_link": true,
     "parents": []
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 1,
-  "fields": {
-    "name": "Quest 1 test",
-    "description": "This is description for quest 1",
-    "intro_text": "Intro text for quest 1. Lorem ipsum et dolor. Dolor per semprum.",
-    "outro_text": "Outro text for quest 1. Lorem ipsum et dolor. Dolor per semprum.",
-    "duration_choices": [
-      5,
-      10,
-      30,
-      60,
-      120,
-      300
-    ],
-    "created_at": "2024-12-20T21:45:22.514Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "First stage text for quest 1",
-        "order": 0,
-        "duration": 5
-      },
-      {
-        "text": "Second stage text for quest 1",
-        "order": 1,
-        "duration": 10
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 100,
-    "canRepeat": true,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 2,
-  "fields": {
-    "name": "Quest 2 test",
-    "description": "Description for quest 2 test",
-    "intro_text": "",
-    "outro_text": "",
-    "duration_choices": [
-      300,
-      600,
-      900,
-      1200,
-      1500,
-      1800
-    ],
-    "created_at": "2024-12-20T21:46:30.106Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "First stage text for quest 2",
-        "order": 0,
-        "duration": 3
-      },
-      {
-        "text": "Tooth stage text for quest 2",
-        "order": 1,
-        "duration": 5
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 100,
-    "canRepeat": true,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 3,
-  "fields": {
-    "name": "Harvest the fields",
-    "description": "The fields are ripe with crops, and it's time to gather the harvest. The work is tough, but the rewards are plenty. Whether you're gathering wheat, barley, or vegetables, your contribution will ensure the village has enough food for the coming months.",
-    "intro_text": "As the sun rises over the fields, you can see the golden crops swaying gently in the breeze. The harvest is upon us, and the work is as important as it is demanding. The grains, fruits, and vegetables are ready for picking, and it's your task to gather as much as you can. If the harvest is successful, the village will thrive throughout the winter. But be warned, this is not an easy task. It will take time, but the rewards will be worth it.",
-    "outro_text": "After hours in the fields, you finally stand tall with baskets full of fresh produce. The grains have been harvested, and the village now has food to sustain itself. There's a deep sense of satisfaction in knowing your work will feed your people. With the harvest complete, it's time to rest until the next task is upon us.",
-    "duration_choices": [
-      300,
-      600,
-      900,
-      1200,
-      1500,
-      1800
-    ],
-    "created_at": "2025-02-02T02:13:40.025Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Gather Wheat – Collect wheat from the fields.",
-        "order": 0,
-        "duration": 300
-      },
-      {
-        "text": "Pick Vegetables – Gather vegetables from the nearby garden.",
-        "order": 1,
-        "duration": 300
-      },
-      {
-        "text": "Store the Produce – Help store the harvest in the barn.",
-        "order": 2,
-        "duration": 900
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 100,
-    "canRepeat": true,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 4,
-  "fields": {
-    "name": "Plant the seeds",
-    "description": "With the changing season, it's time to prepare the fields for the next crop. Planting seeds may seem simple, but the right care is needed for them to grow. Help the farm get a good start for the coming harvest.",
-    "intro_text": "The air is crisp, and the soil is ready for the next growing season. You've been tasked with planting the seeds for the next harvest. While it seems like a straightforward task, it requires attention and patience. Each seed must be placed carefully in the ground, ensuring they have enough space to sprout and grow. In a few weeks, these small seeds will turn into tall, thriving crops, ready for harvest.",
-    "outro_text": "With the seeds planted, you take a step back and look at the freshly prepared fields. The hard work is done for now, and all that’s left is to wait. Soon, the seeds will begin to sprout, and you'll watch them grow, knowing your efforts have laid the foundation for the village's next bountiful harvest.",
-    "duration_choices": [
-      300,
-      600,
-      900,
-      1200,
-      1500,
-      1800
-    ],
-    "created_at": "2025-02-02T02:14:55.034Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Prepare the soil in the planting areas.",
-        "order": 0,
-        "duration": 420
-      },
-      {
-        "text": "Plant the seeds carefully in the soil.",
-        "order": 1,
-        "duration": 300
-      },
-      {
-        "text": "Water the newly planted seeds.",
-        "order": 2,
-        "duration": 300
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 100,
-    "canRepeat": true,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 5,
-  "fields": {
-    "name": "Maintain the crops",
-    "description": "Crops need constant care, and it’s your job to ensure they remain healthy. Whether it’s weeding the garden or checking for pests, your attention can make all the difference in the success of the season’s yield.",
-    "intro_text": "The fields are planted, but your work is far from over. The crops need your care. It's not enough to simply plant them; they must be tended to, nurtured, and protected. Weeds threaten to choke the young plants, and pests are always lurking, waiting for a chance to destroy the crops. It's time to grab your tools and head back to the fields",
-    "outro_text": "The day’s labor is done, and the crops are in better shape than before. The weeds have been pulled, the pests have been dealt with, and the fields now look more vibrant. It’s a small victory, but a significant one. With your work complete, you can rest easy knowing the crops are one step closer to their full potential.",
-    "duration_choices": [
-      300,
-      600,
-      900,
-      1200,
-      1500,
-      1800
-    ],
-    "created_at": "2025-02-02T02:15:39.134Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Weed the garden to remove unwanted plants.",
-        "order": 0,
-        "duration": 180
-      },
-      {
-        "text": "Inspect the crops for any signs of pests or damage.",
-        "order": 1,
-        "duration": 180
-      },
-      {
-        "text": "Water the crops to ensure they stay hydrated.",
-        "order": 2,
-        "duration": 180
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 100,
-    "canRepeat": true,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 6,
-  "fields": {
-    "name": "Fertilize the land",
-    "description": "Fertilizing the fields is essential for healthy crops. You must gather manure, compost, and other organic materials to ensure the soil is rich in nutrients for the next season.",
-    "intro_text": "The soil needs replenishing if it’s going to produce a good harvest. The land has been worked hard, and the nutrients have been drained. It’s time to add organic matter to the fields to rejuvenate them. Whether it's spreading manure or compost, you’ll need to work the land with care to ensure it will support the crops for the season ahead.",
-    "outro_text": "The land has been fertilized, and it’s ready for the next round of planting. The soil feels richer, and the promise of healthy crops feels closer than before. As you step back and admire the freshly fertilized fields, you know that the foundation has been laid for another fruitful season.",
-    "duration_choices": [
-      300,
-      600,
-      900,
-      1200,
-      1500,
-      1800
-    ],
-    "created_at": "2025-02-02T02:16:22.937Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Gather manure or compost for fertilization.",
-        "order": 0,
-        "duration": 480
-      },
-      {
-        "text": "Spread the fertilizer evenly across the fields.",
-        "order": 1,
-        "duration": 480
-      },
-      {
-        "text": "Water the fertilized land to help the nutrients settle.",
-        "order": 2,
-        "duration": 480
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 100,
-    "canRepeat": false,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 7,
-  "fields": {
-    "name": "Repair the barn",
-    "description": "The barn is a vital part of the farm, but over time, it’s started to fall into disrepair. It’s your job to fix the roof, patch the walls, and ensure the barn is ready for the next season of harvests.",
-    "intro_text": "As you walk toward the barn, you can see the signs of wear and tear. The roof leaks, the walls are cracked, and the once-sturdy structure now seems fragile. It’s time to roll up your sleeves and get to work. With the harvest season approaching, the barn must be in top condition to store all the crops you’ve worked so hard to grow.",
-    "outro_text": "After hours of hard labor, the barn looks as good as new. The roof is fixed, the walls are patched, and it’s ready to store the season’s bounty. You stand back and take a deep breath, feeling a sense of accomplishment. The farm is ready for whatever the next season brings.",
-    "duration_choices": [
-      300,
-      600,
-      900,
-      1200,
-      1500,
-      1800
-    ],
-    "created_at": "2025-02-02T02:17:07.328Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Gather wood, nails, and other necessary tools.",
-        "order": 0,
-        "duration": 420
-      },
-      {
-        "text": "Repair the barn roof by fixing leaks and patches.",
-        "order": 1,
-        "duration": 300
-      },
-      {
-        "text": "Patch the walls of the barn to cover cracks and holes.",
-        "order": 2,
-        "duration": 300
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 100,
-    "canRepeat": true,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 8,
-  "fields": {
-    "name": "[TUTORIAL] Getting started",
-    "description": "Description for TUTORIAL quest",
-    "intro_text": "Intro text for TUTORIAL quest",
-    "outro_text": "Outro text for TUTORIAL quest",
-    "duration_choices": [
-      60
-    ],
-    "created_at": "2025-03-02T22:37:32.003Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "First stage text for tut quest",
-        "order": 0,
-        "duration": 15
-      },
-      {
-        "text": "Second stage text for tut quest",
-        "order": 1,
-        "duration": 15
-      }
-    ],
-    "stages_fixed": true,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 5,
-    "canRepeat": true,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 9,
-  "fields": {
-    "name": "[INTRO] A new beginning",
-    "description": "Help Farmer Rick plant the first batch of crops to kickstart the farming season.",
-    "intro_text": "Welcome to Greenvale, traveler! The soil is rich and ready for planting, but there's a lot of work to do. Let's get these seeds into the ground and begin our journey towards a bountiful harvest.",
-    "outro_text": "With the seeds planted, we’ve taken the first step towards a fruitful season. Great job out there, partner! Let's keep the momentum going.",
-    "duration_choices": [
-      300,
-      600,
-      900
-    ],
-    "created_at": "2025-03-02T23:00:48.622Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Planting planting planting",
-        "order": 0,
-        "duration": 5
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 10,
-    "canRepeat": false,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 10,
-  "fields": {
-    "name": "[INTRO] The watering challenge",
-    "description": "Ensure the newly planted crops get enough water to thrive.",
-    "intro_text": "Those seeds won’t grow on their own. The irrigation system's been acting up, so we’ll need to water the fields ourselves. Grab a bucket and let’s make sure our crops get the drink they need.",
-    "outro_text": "Look at those plants soak it up! Your hard work is paying off already. Let’s keep nurturing them.",
-    "duration_choices": [
-      300,
-      600,
-      900
-    ],
-    "created_at": "2025-03-02T23:02:08.411Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Watering Watering Watering",
-        "order": 0,
-        "duration": 15
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 10,
-    "canRepeat": false,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 11,
-  "fields": {
-    "name": "[INTRO] Pest patrol",
-    "description": "Protect the growing crops from pests that threaten the harvest.",
-    "intro_text": "Crops are coming along nicely, but now the pests are eyeing our hard work. We need to put up defenses and keep those critters at bay. Are you with me?",
-    "outro_text": "We did it! The crops are safe, and we’re one step closer to a great harvest. Thanks for your vigilance.",
-    "duration_choices": [
-      300,
-      600,
-      900
-    ],
-    "created_at": "2025-03-02T23:03:07.215Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Planting planting planting",
-        "order": 0,
-        "duration": 5
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 10,
-    "canRepeat": false,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 12,
-  "fields": {
-    "name": "[INTRO] The harvest begins",
-    "description": "Help Farmer Rick harvest the first batch of crops.",
-    "intro_text": "It’s time! The crops are ready for harvest. Let’s get out there and bring in the fruits of our labor. Ready your sickle and let’s get to work.",
-    "outro_text": "First harvest done! Thanks to your help, we’ve gathered a fine bounty. This is just the beginning—there’s more to come.",
-    "duration_choices": [
-      300,
-      600,
-      900
-    ],
-    "created_at": "2025-03-02T23:04:01.291Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Planting planting planting",
-        "order": 0,
-        "duration": 5
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 10,
-    "canRepeat": false,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 13,
-  "fields": {
-    "name": "[INTRO] Market day",
-    "description": "Prepare the harvested crops for sale at the local market.",
-    "intro_text": "With the harvest in, it’s time to prepare for market day. We need to sort, package, and transport our goods. Let’s make sure everything’s in top shape for the sale.",
-    "outro_text": "The crops are off to market, and they look fantastic. Your efforts are truly appreciated, and I couldn’t have done it without you. Here’s to many more successful seasons!",
-    "duration_choices": [
-      300,
-      600,
-      900
-    ],
-    "created_at": "2025-03-02T23:04:55.736Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Planting planting planting",
-        "order": 0,
-        "duration": 5
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 10,
-    "canRepeat": false,
-    "frequency": "NONE"
-  }
-},
-{
-  "model": "gameplay.quest",
-  "pk": 14,
-  "fields": {
-    "name": "Task Support Quest",
-    "description": "This is a placeholder quest for the Task Support feature.",
-    "intro_text": "You can do it!",
-    "outro_text": "You did it!",
-    "duration_choices": [
-      30,
-      60,
-      120,
-      180
-    ],
-    "created_at": "2025-12-02T23:04:55.736Z",
-    "start_date": null,
-    "end_date": null,
-    "is_active": true,
-    "stages": [
-      {
-        "text": "Supporting supporting supporting",
-        "order": 0,
-        "duration": 15
-      }
-    ],
-    "stages_fixed": false,
-    "category": "NONE",
-    "is_premium": false,
-    "levelMin": 0,
-    "levelMax": 10,
-    "canRepeat": false,
-    "frequency": "NONE",
-    "is_task_support": true
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 1,
-  "fields": {
-    "quest": 2,
-    "prerequisite": 1,
-    "times_required": 2,
-    "last_updated": "2025-01-01T22:50:25.648Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 2,
-  "fields": {
-    "quest": 9,
-    "prerequisite": 8,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:05:26.102Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 3,
-  "fields": {
-    "quest": 10,
-    "prerequisite": 9,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:05:46.078Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 4,
-  "fields": {
-    "quest": 11,
-    "prerequisite": 10,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:05:52.918Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 5,
-  "fields": {
-    "quest": 12,
-    "prerequisite": 11,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:06:39.233Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 6,
-  "fields": {
-    "quest": 13,
-    "prerequisite": 12,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:06:53.951Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 7,
-  "fields": {
-    "quest": 5,
-    "prerequisite": 13,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:22:02.210Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 8,
-  "fields": {
-    "quest": 4,
-    "prerequisite": 13,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:22:08.719Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 9,
-  "fields": {
-    "quest": 7,
-    "prerequisite": 13,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:23:02.352Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 10,
-  "fields": {
-    "quest": 6,
-    "prerequisite": 13,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:23:11.785Z"
-  }
-},
-{
-  "model": "gameplay.questrequirement",
-  "pk": 11,
-  "fields": {
-    "quest": 3,
-    "prerequisite": 13,
-    "times_required": 1,
-    "last_updated": "2025-03-02T23:23:19.602Z"
   }
 }
 ]
