@@ -248,14 +248,14 @@ class Node(models.Model):
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name="node",
+        related_name="nodes",
     )
     interior_space = models.ForeignKey(
         "locations.InteriorSpace",
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name="node",
+        related_name="nodes",
     )
 
     class Kind(models.TextChoices):
@@ -281,8 +281,8 @@ class Node(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["population_centre"]),
-            models.Index(fields=["kind"]),
+            models.Index(fields=["population_centre"], name="node_pc_idx"),
+            models.Index(fields=["kind"], name="node_kind_idx"),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -421,8 +421,25 @@ class Journey(models.Model):
         Stop any movement in progress and clear the target.
         """
         self.status = "complete"
-        self.is_moving = False
-        self.save(update_fields=["status"])
+        self.finished_at = timezone.now()
+        self.save(update_fields=["status", "finished_at"])
+
+        self.character.is_moving = False
+        self.character.save(update_fields=["is_moving"])
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["character"],
+                condition=Q(status="active"),
+                name="uniq_active_journey_per_character",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["character", "status"], name="journey_char_status_idx"
+            ),
+        ]
 
 
 ##########################################################
