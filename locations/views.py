@@ -1,5 +1,7 @@
-from django.shortcuts import render
+from pyexpat import features
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -20,7 +22,14 @@ from .serializers import (
     LandAreaSerializer,
     SubzoneSerializer,
     JourneySerializer,
-    LineFeatureSerializer,
+    LineStringFeatureSerializer,
+    PathFeatureSerializer,
+    PolygonFeatureSerializer,
+    PointFeatureSerializer,
+    BoundaryFeatureSerializer,
+    FeatureCollectionSerializer,
+    CharacterPointFeatureSerializer,
+    BuildingFeatureSerializer,
 )
 
 ##########################################################
@@ -28,13 +37,54 @@ from .serializers import (
 ##########################################################
 
 
-from .models import PopulationCentre
-from .serializers import (
-    ObjectLocationSerializer,
-    LineFeatureSerializer,
-    PolygonFeatureSerializer,
-    BoundaryFeatureSerializer,
-)
+class PopulationCentreMapView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        population_centre = get_object_or_404(PopulationCentre, pk=pk)
+        buildings = population_centre.buildings.all()
+
+        paths = (
+            population_centre.paths.all()
+            .select_related("from_node", "to_node")
+            .only(
+                "id",
+                "from_node__location",
+                "to_node__location",
+            )
+        )
+        characters = population_centre.residents.only(
+            "id", "first_name", "last_name", "location"
+        )
+
+        features = []
+        features.append(BoundaryFeatureSerializer(population_centre).data)
+        features.extend(CharacterPointFeatureSerializer(characters, many=True).data)
+        features.extend(BuildingFeatureSerializer(buildings, many=True).data)
+        features.extend(PathFeatureSerializer(paths, many=True).data)
+
+        bbox = list(population_centre.boundary.extent)
+        meta = {
+            "population_centre_id": population_centre.id,
+            "feature_count": len(features),
+        }
+        return Response(
+            FeatureCollectionSerializer.from_features(
+                features, bbox=bbox, meta=meta
+            ).data
+        )
+
+
+class JourneyViewSet(viewsets.ViewSet):
+    def list(self, request):
+        journeys = Journey.objects.filter(status="active")
+        serializer = JourneySerializer(journeys, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        journey = get_object_or_404(Journey, pk=pk)
+        serializer = JourneySerializer(journey)
+        return Response(serializer.data)
 
 
 class InteriorSpaceViewSet(viewsets.ReadOnlyModelViewSet):
@@ -60,43 +110,3 @@ class LandAreaViewSet(viewsets.ReadOnlyModelViewSet):
 class SubzoneViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Subzone.objects.all()
     serializer_class = SubzoneSerializer
-
-
-class PopulationCentreMapView(APIView):
-    def get(self, request, pk):
-        population_centre = PopulationCentre.objects.get(pk=pk)
-        buildings = population_centre.buildings.all()
-        paths = population_centre.paths.all()
-        characters = population_centre.residents.all()
-
-        features = []
-
-        features.append(BoundaryFeatureSerializer(population_centre).data)
-
-        character_features = ObjectLocationSerializer(characters, many=True).data
-        features.extend(character_features)
-
-        building_features = PolygonFeatureSerializer(buildings, many=True).data
-        features.extend(building_features)
-
-        path_features = LineFeatureSerializer(paths, many=True).data
-        features.extend(path_features)
-
-        return Response(
-            {
-                "type": "FeatureCollection",
-                "features": features,
-            }
-        )
-
-
-class JourneyViewSet(viewsets.ViewSet):
-    def list(self, request):
-        journeys = Journey.objects.filter(status="active")
-        serializer = JourneySerializer(journeys, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        journey = Journey.objects.get(pk=pk)
-        serializer = JourneySerializer(journey)
-        return Response(serializer.data)
