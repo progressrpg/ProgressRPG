@@ -54,17 +54,6 @@ class Movable(models.Model):
         related_name="movables_targeting",
     )
 
-    # LEGACY - Generic FKs
-    current_content_type = models.ForeignKey(
-        ContentType,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="current_movables",
-    )
-    current_object_id = models.PositiveIntegerField(null=True, blank=True)
-    current_object = GenericForeignKey("current_content_type", "current_object_id")
-
     @property
     def current_building(self):
         return self.current_node.building if self.current_node else None
