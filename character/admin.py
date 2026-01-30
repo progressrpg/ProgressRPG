@@ -118,7 +118,7 @@ class CharacterAdmin(admin.ModelAdmin):
     search_fields = [
         "first_name",
         "last_name",
-        "player_link__player__name",
+        "links__player__name",
     ]
     readonly_fields = [
         "get_player",

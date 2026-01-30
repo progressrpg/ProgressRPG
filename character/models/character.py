@@ -191,7 +191,7 @@ class Character(Person, LifeCycleMixin, Movable):
         """
         A character is an NPC if they don't have an active PlayerCharacterLink.
         """
-        return not self.player_link.filter(is_active=True).exists()
+        return not self.links.filter(is_active=True).exists()
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

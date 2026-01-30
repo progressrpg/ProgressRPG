@@ -135,7 +135,5 @@ def character_apply_quest_results(character, quest):
 
 def character_has_available(model_cls) -> bool:
     return (
-        model_cls.objects.filter(can_link=True)
-        .exclude(player_link__is_active=True)
-        .exists()
+        model_cls.objects.filter(can_link=True).exclude(links__is_active=True).exists()
     )
