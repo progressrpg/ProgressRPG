@@ -283,16 +283,20 @@ class Character(Person, LifeCycleMixin, Movable):
             print(f"{self.name} has no home to go to!")
             return
 
-        home_node = self.building.node.first()
-        if not home_node:
+        destination_node = self.building.node.first()
+        if not destination_node:
             print(f"{self.name} has no node! Skipping.")
             return
 
-        if self.current_node == home_node:
+        if self.current_node == destination_node:
             print(f"{self.name} cannot go home, they're already there!")
             return
 
-        self.set_destination(node=home_node)
+        rooms = self.building.interior_spaces.all()
+        room = random.choice(rooms) if rooms else None
+        if room:
+            destination_node = room.nodes.first() or destination_node
+        self.set_destination(node=destination_node)
         print(f"{self.name} is going home.")
 
     def get_outside_nodes(self):
@@ -304,7 +308,7 @@ class Character(Person, LifeCycleMixin, Movable):
 
         return Node.objects.filter(
             population_centre=self.building.population_centre,
-            building__isnull=True,
+            kind=Node.Kind.OUTSIDE,
         )
 
     def pick_random_outside_node(self, radius=100):
@@ -324,8 +328,8 @@ class Character(Person, LifeCycleMixin, Movable):
         # weighted randomness: closer nodes more likely
         return random.choice(nodes[: max(3, len(nodes))])
 
-    def go_outside(self, radius=10):
-        node = self.pick_random_outside_node()
+    def go_outside(self, radius=100):
+        node = self.pick_random_outside_node(radius=radius)
         if not node:
             print(f"{self.name} couldn't find anywhere to go outside")
             return False
