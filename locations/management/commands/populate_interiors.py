@@ -1,7 +1,10 @@
 from django.core.management.base import BaseCommand
 from locations.models import Building, InteriorSpace, Node
 from django.contrib.gis.geos import Polygon, Point
+from locations.models import Path
 import random
+
+from locations.utils import create_hub_and_spoke
 
 BUILDING_INTERIORS_PROPORTIONS = {
     "residential": {
@@ -50,7 +53,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         centre_name = options.get("centre")
-        overwrite = options.get("overwrite")
 
         buildings = Building.objects.all()
         if centre_name:
@@ -61,7 +63,27 @@ class Command(BaseCommand):
         )
 
         for building in buildings:
-            self.create_interiors_for_building(building)
+            nodes = self.create_interiors_for_building(building)
+            central_node = building.node.filter(kind=Node.Kind.BUILDING).first()
+
+            if central_node:
+                paths = create_hub_and_spoke(self, central_node, nodes)
+
+            for p in paths:
+                p.population_centre = building.population_centre
+            Path.objects.bulk_update(paths, ["population_centre"])
+
+            entrance_node = building.node.filter(
+                kind=Node.Kind.BUILDING_ENTRANCE
+            ).first()
+            if entrance_node:
+                for node in nodes:
+                    Path.objects.get_or_create(
+                        from_node=entrance_node, to_node=central_node
+                    )
+                    Path.objects.get_or_create(
+                        from_node=central_node, to_node=entrance_node
+                    )
 
         self.stdout.write(self.style.SUCCESS("Done!"))
 
@@ -79,6 +101,7 @@ class Command(BaseCommand):
             minx = miny = 0
             maxx = maxy = 5
 
+        nodes = []
         for info in subspaces_info:
             name = info["usage"]
             space = InteriorSpace.objects.create(
@@ -96,12 +119,14 @@ class Command(BaseCommand):
             # Don't set building here to avoid circular FK issues
             # node.building = building
             node.save(update_fields=["interior_space", "building"])
+            nodes.append(node)
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"Created {len(subspaces_info)} interior spaces for building {building.name}"
             )
         )
+        return nodes
 
     # ------------------------------------------------------
 

@@ -7,6 +7,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 
 from locations.models import PopulationCentre, Node, Path
+from locations.utils import create_hub_and_spoke
 
 
 class Command(BaseCommand):
@@ -105,11 +106,7 @@ class Command(BaseCommand):
         paths = []
         # 1 Create hub-and-spoke connections
         for node in building_nodes:
-            if node == central_node:
-                continue
-            path1, _ = Path.objects.get_or_create(from_node=node, to_node=central_node)
-            path2, _ = Path.objects.get_or_create(from_node=central_node, to_node=node)
-            paths.extend([path1, path2])
+            paths.extend(create_hub_and_spoke(self, central_node, building_nodes))
 
         # Connect each building node to its nearest neighbours
         for node in building_nodes:
