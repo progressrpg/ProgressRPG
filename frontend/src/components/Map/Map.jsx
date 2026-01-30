@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { computeBounds } from "./utils";
+import { computeTransformFromBBox } from "./utils";
 import styles from "./Map.module.scss";
 
 export default function PopulationCentreMap({
@@ -10,12 +10,11 @@ export default function PopulationCentreMap({
   const features = geojson?.features || [];
 
   // ---- 1. Compute bounds from pc boundary ----
-  const relevantFeatures = features.filter(
-    f => f.properties?.type === "boundary"
-  );
-
-  const { scale, offsetX, offsetY } =
-    computeBounds(relevantFeatures, width, height);
+  const { scale, offsetX, offsetY } = useMemo(() => {
+    if (geojson?.bbox) {
+      return computeTransformFromBBox(geojson.bbox, width, height);
+    }
+  }, [geojson, width, height]);
 
   // ---- 2. Transform coordinates ----
   const transformPoint = (x, y) => [
@@ -44,7 +43,7 @@ export default function PopulationCentreMap({
           .map(([x, y]) => transformPoint(x, y).join(","))
           .join(" ");
 
-        const isBoundary = f.properties?.type === "boundary";
+        const isBoundary = f.properties?.feature_type === "boundary";
 
         return (
           <polygon
@@ -52,7 +51,9 @@ export default function PopulationCentreMap({
             points={transformed}
             fill={isBoundary ? "none" : "#ddd"}
             stroke={isBoundary ? "#888" : "#333"}
-            strokeWidth={isBoundary ? 2 : 1}
+            strokeWidth={isBoundary ? 2.5 : 1}
+            strokeLinejoin="round"
+            strokeLinecap="round"
           >
             <title>{f.properties?.name}</title>
           </polygon>
@@ -71,18 +72,18 @@ export default function PopulationCentreMap({
               .map(([x, y]) => transformPoint(x, y).join(","))
               .join(" ");
 
-            const isMainRoad = f.properties?.type === "main_road";
+            const isPath = f.properties?.feature_type === "path";
 
             return (
               <polyline
                 key={`line-${i}`}
                 points={transformed}
                 fill="none"
-                stroke={isMainRoad ? "#8b5a2b" : "#666"}
-                strokeWidth={isMainRoad ? 3 : 1.5}
+                stroke={isPath ? "#8b5a2b" : "#666"}
+                strokeWidth={isPath ? 3 : 1.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity={0.9}
+                opacity={0.1}
               >
                 <title>{f.properties?.name}</title>
               </polyline>
