@@ -55,7 +55,7 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=2, minute=0, day_of_week=1),  # Mondays at 2 AM
     },
     "move_characters_tick": {
-        "task": "character.tasks.move_characters_tick",
+        "task": "locations.tasks.move_characters_tick",
         "schedule": 5.0,  # every 5 seconds
     },
     "precompute-sun-times-daily": {
