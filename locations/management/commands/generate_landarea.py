@@ -62,7 +62,10 @@ class Command(BaseCommand):
 
         for usage, fraction in breakdown.items():
             Subzone.objects.create(
-                land_area=landarea, usage=usage, size=landarea.size * fraction
+                name=f"{landarea.name} - {usage.capitalize()}",
+                land_area=landarea,
+                usage=usage,
+                size=landarea.size * fraction,
             )
 
     def assign_subzone_geometry(self, landarea: LandArea):
@@ -100,10 +103,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         overwrite = options["overwrite"]
 
-        if overwrite:
-            self.stdout.write("Deleting existing LandAreas and Subzones...")
-            Subzone.objects.all().delete()
-            LandArea.objects.all().delete()
+        # if overwrite:
+        self.stdout.write("Deleting existing LandAreas and Subzones...")
+        Subzone.objects.all().delete()
+        LandArea.objects.all().delete()
 
         population_centres = PopulationCentre.objects.all()
 

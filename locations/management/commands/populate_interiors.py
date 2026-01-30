@@ -7,7 +7,7 @@ BUILDING_INTERIORS_PROPORTIONS = {
     "residential": {
         "living": 0.25,
         "sleeping": 0.40,
-        "cooking": 0.20,
+        "kitchen": 0.20,
         "hygiene": 0.10,
         "storage": 0.05,
     },
@@ -80,8 +80,10 @@ class Command(BaseCommand):
             maxx = maxy = 5
 
         for info in subspaces_info:
+            name = info["usage"]
             space = InteriorSpace.objects.create(
                 building=building,
+                name=f"{name} of {building.name}",
                 usage=info["usage"],
                 area=info["area"],
             )
@@ -91,7 +93,8 @@ class Command(BaseCommand):
             )
 
             node.interior_space = space
-            node.building = building
+            # Don't set building here to avoid circular FK issues
+            # node.building = building
             node.save(update_fields=["interior_space", "building"])
 
         self.stdout.write(
@@ -104,7 +107,7 @@ class Command(BaseCommand):
 
     def random_point_in_polygon(
         self, polygon, minx, miny, maxx, maxy, max_attempts=50, node_kwargs=None
-    ):
+    ) -> Node:
         """
         Generate a random Point inside the given polygon.
         """
@@ -114,6 +117,7 @@ class Command(BaseCommand):
         if not polygon:
             return Node.objects.create(
                 location=Point(0, 0, srid=3857),
+                kind=Node.Kind.INTERIOR,
                 **node_kwargs,
             )
 
@@ -124,13 +128,16 @@ class Command(BaseCommand):
 
             if polygon.contains(p):
                 return Node.objects.create(
+                    name="Interior Node",
                     location=p,
+                    kind=Node.Kind.INTERIOR,
                     **node_kwargs,
                 )
 
         # fallback: return centroid if random sampling fails
         return Node.objects.create(
             location=polygon.centroid,
+            kind=Node.Kind.INTERIOR,
             **node_kwargs,
         )
 

@@ -1,13 +1,11 @@
 # locations/management/commands/generate_nodes.py
 
-import random
-import math
 from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.db.models import Union
+from django.contrib.gis.geos import Point
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from datetime import date, timedelta
-from locations.models import PopulationCentre, Point, Node, Path, Building
-from character.models import Character, PlayerCharacterLink
+from locations.models import PopulationCentre, Node, Path
 
 
 class Command(BaseCommand):
@@ -23,18 +21,53 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         centres = PopulationCentre.objects.all()
+
         if options["centre"]:
             centres = centres.filter(id=options["centre"])
 
         for centre in centres:
-            self.create_street_network(centre, num_attempts=50)
+            Path.objects.filter(
+                from_node__population_centre=centre,
+            ).delete()
+            Path.objects.filter(
+                to_node__population_centre=centre,
+            ).delete()
 
-        paths = self.create_street_network(central_node, created_nodes)
+            building_nodes = list(
+                Node.objects.filter(
+                    building__population_centre=centre,
+                    kind=Node.Kind.BUILDING_ENTRANCE,
+                )
+            )
+
+            if not building_nodes:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"No building nodes found for centre {centre.name} (ID {centre.id}) – skipping"
+                    )
+                )
+                continue
+
+            central_node = Node.objects.get(
+                population_centre=centre,
+                kind=Node.Kind.CENTRE,
+            )
+
+            paths = self.create_street_network(central_node, building_nodes)
+
+            outside_nodes = Node.objects.filter(
+                population_centre=centre,
+                kind=Node.Kind.OUTSIDE,
+            ).exclude(pk=central_node.pk)
+            paths.extend(self.connect_outside_nodes(outside_nodes))
+
             for path in paths:
                 path.population_centre = centre
             Path.objects.bulk_update(paths, ["population_centre"])
 
-
+        self.stdout.write(
+            self.style.SUCCESS("All nodes and paths generated successfully.")
+        )
 
     def create_street_network(self, central_node, building_nodes, max_neighbours=2):
         """
@@ -73,7 +106,6 @@ class Command(BaseCommand):
 
         return paths
 
-
     def connect_outside_nodes(self, outside_nodes, max_neighbours=2):
         paths = []
 
@@ -96,8 +128,8 @@ class Command(BaseCommand):
     def nearest_building_nodes(self, outside_node, max_neighbours=2):
         return (
             Node.objects.filter(
-                population_centre=outside_node.population_centre,
-                building__isnull=False,
+                building__population_centre=outside_node.population_centre,
+                kind=Node.Kind.BUILDING_ENTRANCE,
             )
             .annotate(dist=Distance("location", outside_node.location))
             .order_by("dist")[:max_neighbours]

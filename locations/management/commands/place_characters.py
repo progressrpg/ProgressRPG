@@ -8,60 +8,40 @@ from locations.models import Building
 
 
 class Command(BaseCommand):
-    help = "Randomly distribute characters around their home building"
+    help = "Assign existing characters to random buildings and move them there"
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--radius",
-            type=int,
-            default=20,
-            help="Max distance from the home to place characters",
-        )
-        parser.add_argument(
-            "--assign",
-            action="store_true",
-            help="Also assign buildings to characters without",
-        )
+        pass
 
     def handle(self, *args, **options):
-        radius = options["radius"]
-
-        if options["assign"]:
-            characters = Character.objects.select_related("building")
-        else:
-            characters = Character.objects.select_related("building").filter(
-                building__isnull=False
-            )
-
+        characters = Character.objects.all()
         if not characters.exists():
             self.stdout.write(self.style.WARNING("No characters found"))
             return
 
-        for char in characters:
-            if char.is_moving:
-                char.journey.cancel()
-            if options["assign"]:
-                if not char.building:
-                    char.building = random.choice(Building.objects.all())
-                    self.stdout.write(
-                        f"No building for character {char.id}: now in {char.building.name}"
-                    )
-                    char.save(update_fields=["building"])
+        buildings = Building.objects.filter(building_type="residential")
+        if not buildings.exists():
+            self.stdout.write(self.style.WARNING("No buildings found"))
+            return
 
-            if not char.building.location:
+        for char in characters:
+            building = random.choice(buildings)
+            if not building.node.exists():
                 self.stdout.write(
                     self.style.WARNING(
-                        f"Building {home.id} has no location – skipping character placement"
+                        f"Building {building.id} has no node – skipping character placement"
                     )
                 )
                 continue
 
-            home = char.building.node.first()
-            print(f"home node: {home}")
-            char.move_to(home)
+            if char.is_moving:
+                char.journeys.filter(status="active").update(status="cancelled")
+
+            char.assign_home(building)
+            char.move_to(building.node.first())
 
             self.stdout.write(
-                f"{char.full_name} at home at ({home.location.x:.0f}, {home.location.y:.0f})"
+                f"{char.full_name} moved to building {building.name} (ID {building.id})"
             )
 
         self.stdout.write(self.style.SUCCESS("Characters have been placed"))

@@ -202,10 +202,6 @@ class Command(BaseCommand):
             char.move_to(building.node.first())
             char.save()
 
-        # Moving node and path creation elsewhere
-        # outside_nodes = self.generate_nodes(centre, buildings, num_chars)
-        # paths = self.connect_outside_nodes(outside_nodes)
-
     def generate_nodes(self, pop_centre: PopulationCentre, buildings, num: int):
         outside_nodes = []
         building_footprints = [b.footprint for b in buildings if b.footprint]
@@ -226,6 +222,7 @@ class Command(BaseCommand):
                 node = Node.objects.create(
                     name=f"Outside node {i+1} for ({pop_centre.name})",
                     location=point,
+                    kind=Node.Kind.OUTSIDE,
                     population_centre=pop_centre,
                 )
                 outside_nodes.append(node)
