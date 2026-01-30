@@ -25,7 +25,9 @@ def lifecycle_get_age(instance) -> int:
 def lifecycle_die(instance) -> None:
     instance.death_date = timezone.now().date()
     instance.save(update_fields=["death_date"])
-    instance.cancel_journey()
+    journey = instance.current_journey
+    if journey:
+        journey.cancel()
 
 
 def lifecycle_is_alive(instance) -> bool:

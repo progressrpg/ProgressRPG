@@ -45,6 +45,10 @@ class Movable(models.Model):
     def is_inside(self):
         return bool(self.current_node and self.current_node.building)
 
+    @property
+    def current_journey(self):
+        return self.journeys.filter(status="active").first()
+
     class Meta:
         abstract = True
 
