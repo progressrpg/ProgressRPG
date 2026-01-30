@@ -1,14 +1,10 @@
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.gis.db import models as gis_models
 from django.contrib.gis.geos import Point
 from django.contrib.gis.db.models.functions import Distance
 from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
-from math import sqrt
-
-from .tasks import move_characters_tick
+from .services import movement as movement_service
 from .utils import relative_distance_direction
 
 ##########################################################
@@ -17,20 +13,7 @@ from .utils import relative_distance_direction
 
 
 def find_path(start_node: "Node", end_node: "Node"):
-    # very dumb: pick first outgoing path until we reach the end
-    # or you can implement BFS for shortest segment count
-    visited = set()
-    queue = [(start_node, [start_node])]
-
-    while queue:
-        node, path = queue.pop(0)
-        if node == end_node:
-            return path
-        visited.add(node)
-        for neighbor in node.neighbours():
-            if neighbor not in visited:
-                queue.append((neighbor, path + [neighbor]))
-    return None
+    return movement_service.find_path(start_node, end_node)
 
 
 class Movable(models.Model):
@@ -65,62 +48,21 @@ class Movable(models.Model):
     class Meta:
         abstract = True
 
+    def go_home(self):
+        return movement_service.go_home(self)
+
+    def get_nearby_outside_nodes(self, radius=50):
+        return movement_service.get_nearby_outside_nodes(self, radius=radius)
+
+    def pick_random_outside_node(self, radius=50):
+        return movement_service.pick_random_outside_node(self, radius=radius)
+
+    def go_outside(self, radius=100):
+        return movement_service.go_outside(self, radius=radius)
+
+    @transaction.atomic
     def set_destination(self, *, node=None, obj=None, point=None):
-        """
-        Assign a destination by resolving to a target Node and creating a Journey.
-        """
-
-        # ---- Resolve target_node ----
-
-        if node is not None:
-            target_node = node
-
-        elif obj is not None:
-            # Prefer explicit node relationship if you add one later
-            target_node = Node.objects.filter(building=obj).get()
-            # ^ .get() on purpose: wrong data should explode
-
-        elif point is not None:
-            target_node = (
-                Node.objects.annotate(distance=Distance("location", point))
-                .order_by("distance")
-                .first()
-            )
-
-        else:
-            raise ValueError("Must provide node, obj, or point")
-
-        if not target_node:
-            raise ValueError("Could not resolve target node")
-
-        # ---- Pathfinding ----
-
-        if not self.current_node:
-            raise ValueError("Movable has no current_node")
-
-        path = find_path(self.current_node, target_node)
-        if not path:
-            raise ValueError(f"No path found from {self.current_node} to {target_node}")
-
-        Journey.objects.create(
-            character=self,
-            start_node=self.current_node,
-            destination_node=target_node,
-            path_nodes=[node.pk for node in path],
-            current_index=0,
-        )
-
-        self.is_moving = True
-        self.save(update_fields=["is_moving"])
-
-        from character.models import Character
-
-        with transaction.atomic():
-            Character.objects.select_for_update().filter(is_moving=True)
-            moving_count = Character.objects.filter(is_moving=True).count()
-
-        if moving_count == 1:
-            move_characters_tick.apply_async()
+        return movement_service.set_destination(self, node=node, obj=obj, point=point)
 
     def move_to(self, new_node: "Node"):
         """
@@ -133,91 +75,12 @@ class Movable(models.Model):
         return
 
     def step_toward(self, time_delta: float = 1.0, speed_modifier: float = 1.0):
-        """Move along the current journey toward the next node."""
-
-        if not hasattr(self, "journey"):
-            return False
-        if not self.journey or self.journey.is_complete():
-            if self.is_moving:
-                self.is_moving = False
-            return False
-
-        # Determine the next target node
-        next_node = self.journey.next_node()
-        if not next_node:
-            # Reached end of journey: finalise via arrive()
-            self.is_moving = False
-            return self.arrive()
-
-        dx = next_node.location.x - self.location.x
-        dy = next_node.location.y - self.location.y
-        distance = (dx**2 + dy**2) ** 0.5
-        max_distance = self.movement_speed * speed_modifier * time_delta
-
-        if distance <= max_distance:
-            # Arrive at node
-            self.location = Point(next_node.location.x, next_node.location.y, srid=3857)
-            self.journey.advance_index()  # move to next node in path
-            if self.journey.is_complete():
-                self.is_moving = False
-                return self.arrive()
-        else:
-            # Move partway toward next node
-            factor = max_distance / distance
-            new_x = self.location.x + dx * factor
-            new_y = self.location.y + dy * factor
-            self.location = Point(new_x, new_y, srid=3857)
-            if not self.is_moving:
-                self.is_moving = True
-
-        # No save here: done in move tick bulk update
-        return True
-
-    def arrive(self):
-        """
-        Called when the Movable reaches the final node of its Journey.
-        Finalises the Journey and updates semantic location state.
-        """
-        journey = self.journey
-        if not journey:
-            return False
-
-        final_node = journey.destination_node
-
-        # Snap to node
-        self.location = final_node.location
-
-        # Update semantic "where am I?"
-        if final_node.building:
-            self.current_object = final_node.building
-            self.current_content_type = ContentType.objects.get_for_model(
-                final_node.building
-            )
-            self.current_object_id = final_node.building.pk
-        else:
-            self.current_object = None
-            self.current_content_type = None
-            self.current_object_id = None
-
-        # Finalise journey
-        journey.finished_at = timezone.now()
-        journey.status = "complete"
-        journey.save(update_fields=["finished_at", "status"])
-
-        self.journey = None
-        self.is_moving = False
-
-        self.save(
-            update_fields=[
-                "location",
-                "current_content_type",
-                "current_object_id",
-                "is_moving",
-                "journey",
-            ]
+        return movement_service.step_toward(
+            self, time_delta=time_delta, speed_modifier=speed_modifier
         )
 
-        return True
+    def arrive(self, journey):
+        return movement_service.arrive(self, journey)
 
     def nearby_objects(self, queryset, radius: float):
         """Return objects from queryset within radius of self."""
@@ -267,6 +130,16 @@ class Node(models.Model):
         POI = "poi", "Point of Interest"
 
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.OUTSIDE)
+
+    @property
+    def pc(self):
+        if self.population_centre:
+            return self.population_centre
+        if self.building:
+            return self.building.population_centre
+        if self.interior_space:
+            return self.interior_space.building.population_centre
+        return None
 
     def paths(self):
         return Path.objects.filter(Q(from_node=self) | Q(to_node=self))
@@ -368,6 +241,7 @@ class Journey(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, default="active")  # e.g., active, complete
 
+    @property
     def is_complete(self):
         return self.status == "complete"
 
@@ -402,7 +276,6 @@ class Journey(models.Model):
         self.status = "complete"
         self.finished_at = timezone.now()
         self.save(update_fields=["status", "finished_at"])
-        self.character.arrive()  # set final location
         return False
 
     def current_node(self):
@@ -603,3 +476,12 @@ class PopulationCentre(models.Model):
 
     def relative_to_centre(self, obj):
         return relative_distance_direction(self.location, obj.location)
+
+    def get_outside_nodes(self):
+        """
+        Return outside nodes in the same population centre.
+        """
+        return Node.objects.filter(
+            population_centre=self,
+            kind=Node.Kind.OUTSIDE,
+        )

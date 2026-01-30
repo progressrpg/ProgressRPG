@@ -5,17 +5,30 @@ from django.core.management import call_command
 @shared_task
 def move_characters_tick(time_delta=1.0):
     from character.models import Character
+    from .models import Journey
 
-    movers = Character.objects.filter(is_moving=True).select_related(
-        "current_node",
-        "target_node",
+    movers = list(
+        Character.objects.filter(is_moving=True).select_related(
+            "current_node",
+            "target_node",
+        )
     )
 
-    if not movers.exists():
-        return
+    mover_ids = [c.id for c in movers]
+    journeys = {
+        j.character_id: j
+        for j in Journey.objects.filter(character_id__in=mover_ids, status="active")
+    }
 
     for char in movers:
-        changed = char.step_toward(time_delta)
+        journey = journeys.get(char.id)
+        if not journey:
+            char.is_moving = False
+            char.target_node = None
+            continue
+
+        char._journey = journey
+        char.step_toward(time_delta)
 
     Character.objects.bulk_update(
         movers,
@@ -24,8 +37,6 @@ def move_characters_tick(time_delta=1.0):
             "current_node",
             "target_node",
             "is_moving",
-            "current_content_type",
-            "current_object_id",
         ),
     )
 
