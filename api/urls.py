@@ -61,9 +61,7 @@ router.register(
 router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"character_quests", CharacterQuestViewSet, basename="characterquest")
 
-router.register(r"quests", QuestViewSet, basename="quest")
 router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytimer")
-router.register(r"quest_timers", QuestTimerViewSet, basename="questtimer")
 
 urlpatterns = [
     # General urls
