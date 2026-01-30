@@ -6,7 +6,10 @@ from django.core.management import call_command
 def move_characters_tick(time_delta=1.0):
     from character.models import Character
 
-    movers = Character.objects.filter(is_moving=True)
+    movers = Character.objects.filter(is_moving=True).select_related(
+        "current_node",
+        "target_node",
+    )
 
     if not movers.exists():
         return
@@ -18,12 +21,11 @@ def move_characters_tick(time_delta=1.0):
         movers,
         (
             "location",
-            "target_location",
+            "current_node",
+            "target_node",
             "is_moving",
             "current_content_type",
             "current_object_id",
-            "target_content_type",
-            "target_object_id",
         ),
     )
 
