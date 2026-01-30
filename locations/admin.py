@@ -14,8 +14,9 @@ from character.models import Character
 
 @admin.register(Node)
 class NodeAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "location")
+    list_display = ("id", "name", "kind")
     search_fields = ("name",)
+    list_filter = ("kind",)
 
 
 @admin.register(Path)
@@ -29,14 +30,12 @@ class PathAdmin(admin.ModelAdmin):
 class InteriorSpaceAdmin(admin.ModelAdmin):
     list_display = ["name", "id", "usage", "building"]
     list_filter = [
-        "area",
         "usage",
     ]
     readonly_fields = [
         "building",
     ]
     fields = [
-        "id",
         "name",
         "usage",
         "building",
@@ -74,6 +73,7 @@ class BuildingAdmin(admin.ModelAdmin):
         "name",
         "description",
         "population_centre",
+        "building_type",
     ]
     search_field = [
         "name",
@@ -95,7 +95,7 @@ class PopulationCentreAdmin(admin.ModelAdmin):
     inlines = [BuildingInline, LandAreaInline]
     search_field = ["name"]
     list_display = ["name", "building_count"]
-    readonly_fields = []
+    readonly_fields = ["building_count"]
     fields = [
         "name",
         "description",

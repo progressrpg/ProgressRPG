@@ -11,7 +11,10 @@ from django.contrib import messages
 
 class LinkInline(admin.TabularInline):
     model = PlayerCharacterLink
+    fields = ("player", "date_linked", "is_active")
+    readonly_fields = ("date_linked",)
     extra = 0
+    max_num = 1
 
 
 class BehaviourInline(admin.StackedInline):
@@ -24,7 +27,7 @@ class BehaviourInline(admin.StackedInline):
 def mark_as_npc(modeladmin, request, queryset):
     for character in queryset:
         # Unlink any active PlayerCharacterLink
-        active_links = character.player_link.filter(is_active=True)
+        active_links = character.links.filter(is_active=True)
         for link in active_links:
             link.unlink()
 
@@ -104,13 +107,13 @@ class CharacterAdmin(admin.ModelAdmin):
         "get_player",
         "can_link",
         "birth_date",
-        "death_date",
     ]
     list_filter = [
         "can_link",
         "birth_date",
         "death_date",
         "sex",
+        "population_centre",
     ]
     search_fields = [
         "first_name",
