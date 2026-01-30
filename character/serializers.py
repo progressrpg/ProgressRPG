@@ -9,7 +9,7 @@ class CharacterSerializer(serializers.ModelSerializer):
     population_centre_id = serializers.PrimaryKeyRelatedField(
         source="population_centre", read_only=True
     )
-    location = serializers.SerializerMethodField()  # use method
+    location = serializers.SerializerMethodField()
 
     class Meta:
         model = Character
@@ -27,6 +27,10 @@ class CharacterSerializer(serializers.ModelSerializer):
             "total_activities",
             "is_npc",
             "can_link",
+            "population_centre_id",
+            "location",
+            "current_node",
+            "target_node",
         ]
         read_only_fields = [
             "id",
@@ -37,9 +41,8 @@ class CharacterSerializer(serializers.ModelSerializer):
             "coins",
             "total_activities",
             "can_link",
-            "total_quests",
             "population_centre_id",
-            "location",  # this is calculated with a method!
+            "location",
             "current_node",
             "target_node",
         ]
@@ -47,6 +50,9 @@ class CharacterSerializer(serializers.ModelSerializer):
 
     def get_location(self, obj):
         # obj must have x and y attributes, or replace with obj.position.x / obj.position.y
+        if not obj.current_node:
+            return None
+
         return {
             "type": "Point",
             "coordinates": [
