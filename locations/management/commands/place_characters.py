@@ -26,10 +26,10 @@ class Command(BaseCommand):
 
         for char in characters:
             building = random.choice(buildings)
-            if not building.node.exists():
+            if not building.nodes.exists():
                 self.stdout.write(
                     self.style.WARNING(
-                        f"Building {building.id} has no node – skipping character placement"
+                        f"Building {building.id} has no nodes – skipping character placement"
                     )
                 )
                 continue
@@ -38,7 +38,17 @@ class Command(BaseCommand):
                 char.journeys.filter(status="active").update(status="cancelled")
 
             char.assign_home(building)
-            char.move_to(building.node.first())
+
+            node = None
+            rooms = list(char.building.interiorspaces.all())
+
+            if rooms:
+                room = random.choice(rooms)
+                node = room.nodes.first()
+            if not node:
+                node = building.nodes.filter(kind=Building.Node.Kind.BUILDING).first()
+
+            char.move_to(node)
 
             self.stdout.write(
                 f"{char.full_name} moved to building {building.name} (ID {building.id})"
