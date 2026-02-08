@@ -19,17 +19,17 @@ $row-control-height: 44px;
   position: relative;
   isolation: isolate;
 
-  border: 1px solid rgba(c.$color-border-primary, 0.4);
+  border: 1px solid rgba(c.$color-border-primary, 0.15);
   border-radius: v.$border-radius;
   padding: v.$padding-base;
-  background: rgba(c.$color-bg,0.6);
+  background: rgba(c.$color-player, 0.14);
   width: min(100%, 720px);
 }
 
 .row {
   display: flex;
   gap: map.get(sp.$gap, sm);
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
 
   width: min(100%, 720px);
@@ -55,21 +55,39 @@ $row-control-height: 44px;
 .timerPill {
   display: flex;
   align-items: center;
-  @include m.border(rgba(c.$color-border-primary, 0.4));
+  @include m.border(rgba(c.$color-border-primary, 0.3));
   border-radius: v.$border-radius;
   padding: v.$padding-base;
   line-height: 1;
   white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1.1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
-  @include t.apply-text-style(t.$text-body);
+  //@include t.apply-text-style(t.$text-body);
 }
 
-.subRow {
-  margin-top: map.get(sp.$gap, sm);
-  display: flex;
-  gap: map.get(sp.$gap, sm);
-  opacity: 0.8;
-  font-size: 0.9em;
+
+.inputText {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  height: auto;
+  min-height: 1.4em;
+  padding: v.$padding-sm;
+
+  border: none;
+  border-radius: v.$border-radius;
+  background: transparent;
+  box-shadow: none;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.inputText:not(:focus):hover {
+  background: rgba(white, 0.86);
 }
 
 
@@ -88,6 +106,12 @@ $row-control-height: 44px;
   //@include m.pulse(2.5s);
 }
 
+.isRunning .timerPill {
+  border-color: rgba(c.$color-border-primary, 0.8);
+  box-shadow: 0 0 0 2px rgba(c.$color-border-primary, 0.25);
+  animation: timerPulse 1.6s ease-in-out infinite;
+}
+
 .ctaButton {
   height: 100%;
   display: flex;
@@ -95,12 +119,13 @@ $row-control-height: 44px;
 }
 
 .inputCTA {
-  border-color: rgba(c.$color-glowing-outline, 0.7);
-  background: rgba(c.$color-bg, 0.9);
+  border: 2px solid rgba(c.$color-player, 0.52);
+  //border-color: rgba(white, 1);
+  background: rgba(white, 0.78);
 
-  box-shadow:
-    0 0 0 2px rgba(c.$color-glowing-outline, 0.25),
-    0 0 1.2rem rgba(c.$color-glowing-outline, 0.2);
+  // box-shadow:
+  //   0 0 0 1px rgba(white, 0.65),
+  //   0 0 1.5rem rgba(white, 1);
 
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 
@@ -111,14 +136,42 @@ $row-control-height: 44px;
 
   &:focus {
     box-shadow:
-      0 0 0 3px rgba(c.$color-glowing-outline, 0.35),
-      0 0 1.5rem rgba(c.$color-glowing-outline, 0.25);
+      0 0 0 3px rgba(255, 255, 255, 0.75),
+      0 0 1.5rem rgba(255, 255, 255, 0.45);
+    border-color: rgba(255, 255, 255, 0.85);
+  }
+
+  &:not(:focus):hover {
+    //border-color: transparent;
+    //box-shadow: none;
+    background: rgba(white, 1);
   }
 }
 
 .inputMuted {
   opacity: 0.85;
-  background: rgba(c.$color-bg, 0.6);
+  background: rgba(c.$color-player, 0.06);
   box-shadow: none;
-  border-color: rgba(c.$color-border-primary, 0.3);
+  border-color: transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.isRunning .inputMuted {
+  border-color: transparent;
+}
+
+.inputMuted:not(:focus):hover {
+  border-color: transparent;
+  box-shadow: none;
+  background: rgba(c.$color-player, 0.12);
+}
+
+@keyframes timerPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(c.$color-border-primary, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(c.$color-border-primary, 0.4);
+  }
 }
