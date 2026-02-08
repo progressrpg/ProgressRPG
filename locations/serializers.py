@@ -179,14 +179,17 @@ class InteriorSpaceSerializer(serializers.ModelSerializer):
 
 
 class BuildingSerializer(serializers.ModelSerializer):
+    population_centre_id = serializers.IntegerField(
+        source="population_centre.id", read_only=True
+    )
+
     class Meta:
         model = Building
         fields = [
             "id",
             "name",
+            "description",
             "population_centre_id",
-            "node_id",
-            "interior_space_id",
             "building_type",
         ]
 
