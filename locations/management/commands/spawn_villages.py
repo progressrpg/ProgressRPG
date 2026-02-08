@@ -7,7 +7,8 @@ from math import sqrt
 
 SPECIAL_BUILDINGS = ["granary", "inn", "mill", "bakery", "communal"]
 RESIDENTIAL_PER_VILLAGE = 5
-IRREGULARITY = 0.01
+IRREGULARITY = 0
+BUILDING_BUFFER = 2
 
 
 VILLAGE_NAMES = [
@@ -205,8 +206,11 @@ class Command(BaseCommand):
                     footprint = create_building_footprint(
                         building_point, min_size=10, max_size=25, irregularity=0
                     )
+                    buffered_footprint = footprint.buffer(BUILDING_BUFFER)
                     if all(
-                        not footprint.intersects(existing_fp)
+                        not buffered_footprint.intersects(
+                            existing_fp.buffer(BUILDING_BUFFER)
+                        )
                         for existing_fp in placed_footprints
                     ):
                         if btype_or_name in SPECIAL_BUILDINGS:
