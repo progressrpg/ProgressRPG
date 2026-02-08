@@ -83,7 +83,7 @@ export default function PopulationCentreMap({
                 strokeWidth={isPath ? 3 : 1.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity={0.1}
+                opacity={0} // hide paths for now
               >
                 <title>{f.properties?.name}</title>
               </polyline>
