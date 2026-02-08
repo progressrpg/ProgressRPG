@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from character.serializers import CharacterSerializer
+
 from locations.models import (
     InteriorSpace,
     Building,
@@ -195,9 +197,25 @@ class BuildingSerializer(serializers.ModelSerializer):
 
 
 class PopulationCentreSerializer(serializers.ModelSerializer):
+    village_points = serializers.IntegerField(read_only=True)
+    progress = serializers.IntegerField(read_only=True)
+    state = serializers.CharField(read_only=True)
+
+    residents = CharacterSerializer(many=True, read_only=True)
+    buildings = BuildingSerializer(many=True, read_only=True)
+
     class Meta:
         model = PopulationCentre
-        fields = "__all__"
+        fields = [
+            "id",
+            "name",
+            "description",
+            "village_points",
+            "progress",
+            "state",
+            "residents",
+            "buildings",
+        ]
 
 
 class LandAreaSerializer(serializers.ModelSerializer):
