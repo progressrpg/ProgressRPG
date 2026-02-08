@@ -64,26 +64,33 @@ class Command(BaseCommand):
 
         for building in buildings:
             nodes = self.create_interiors_for_building(building)
-            central_node = building.node.filter(kind=Node.Kind.BUILDING).first()
+            central_node = building.nodes.filter(kind=Node.Kind.BUILDING).first()
+            entrance_node = building.nodes.filter(
+                kind=Node.Kind.BUILDING_ENTRANCE
+            ).first()
 
-            if central_node:
-                paths = create_hub_and_spoke(self, central_node, nodes)
+            paths = []
+            if entrance_node and nodes:
+                paths.extend(create_hub_and_spoke(self, entrance_node, nodes))
+            if entrance_node and central_node and entrance_node != central_node:
+                path1, _ = Path.objects.get_or_create(
+                    from_node=entrance_node, to_node=central_node
+                )
+                path2, _ = Path.objects.get_or_create(
+                    from_node=central_node, to_node=entrance_node
+                )
+                paths.extend([path1, path2])
 
             for p in paths:
                 p.population_centre = building.population_centre
             Path.objects.bulk_update(paths, ["population_centre"])
 
-            entrance_node = building.node.filter(
-                kind=Node.Kind.BUILDING_ENTRANCE
-            ).first()
-            if entrance_node:
-                for node in nodes:
-                    Path.objects.get_or_create(
-                        from_node=entrance_node, to_node=central_node
+            if not entrance_node and nodes:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Building {building.name} has no entrance node; interior nodes not connected"
                     )
-                    Path.objects.get_or_create(
-                        from_node=central_node, to_node=entrance_node
-                    )
+                )
 
         self.stdout.write(self.style.SUCCESS("Done!"))
 
