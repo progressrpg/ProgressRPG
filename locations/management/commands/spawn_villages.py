@@ -10,6 +10,30 @@ RESIDENTIAL_PER_VILLAGE = 5
 IRREGULARITY = 0.01
 
 
+VILLAGE_NAMES = [
+    "Bramblewick",
+    "Ashenford",
+    "Willowmere",
+    "Thornhollow",
+    "Eldergate",
+    "Stonebrook",
+    "Ravenshade",
+    "Oakenshire",
+    "Driftmoor",
+    "Coldwater Reach",
+    "Millhaven",
+    "Blackthorn Vale",
+    "Foxglove Crossing",
+    "Hallowmere",
+    "Ironholt",
+    "Mossbury",
+    "Windmere",
+    "Greycliff",
+    "Barrowden",
+    "Kingsmere",
+]
+
+
 def distance(p1: Point, p2: Point):
     """Euclidean distance between two Points."""
     dx = p1.x - p2.x
@@ -158,7 +182,7 @@ class Command(BaseCommand):
                     )
                 )
                 continue
-            centre_name = f"Village {i+1}-{random.randint(1000,9999)}"
+            centre_name = f"{random.choice(VILLAGE_NAMES)} village"
 
             # Place buildings around this centre
             residential_buildings = [
