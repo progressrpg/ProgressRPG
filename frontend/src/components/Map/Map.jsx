@@ -25,12 +25,15 @@ export default function PopulationCentreMap({
 
   // ---- 3. Render ----
   return (
-    <svg
-      className={styles.mapSvg}
-      viewBox={`0 0 1000 1000`}
-      preserveAspectRatio="xMidYMid meet"
-
+    <div
+      className={styles.mapWrapper}
+      style={{ maxWidth: `${width}px`, height: `${height}px` }}
     >
+      <svg
+        className={styles.mapSvg}
+        viewBox={`0 0 1000 1000`}
+        preserveAspectRatio="xMidYMid meet"
+      >
       {/* Polygons */}
       {features
         .filter((f) => f.geometry.type === "Polygon")
@@ -103,7 +106,7 @@ export default function PopulationCentreMap({
               key={`pt-${i}`}
               cx={cx}
               cy={cy}
-              r={5} // radius
+              r={7} // radius
               fill={f.properties?.icon || "red"}
               stroke="#000"
               strokeWidth={1}
@@ -113,6 +116,7 @@ export default function PopulationCentreMap({
             </circle>
           );
         })}
-    </svg>
+      </svg>
+    </div>
   );
 }
