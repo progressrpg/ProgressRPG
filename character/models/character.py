@@ -285,6 +285,36 @@ class PlayerCharacterLink(models.Model):
             ),
         ]
 
+    @property
+    def days_linked(self):
+        end_date = self.unlinked_at or timezone.now()
+        return (end_date - self.linked_at).days
+
+    @property
+    def player_time(self):
+        """
+        Total completed activity time for this link (in seconds).
+        """
+        qs = self.player.activities.filter(
+            is_complete=True, completed_at__gte=self.linked_at
+        )
+
+        if self.unlinked_at:
+            qs = qs.filter(completed_at__lte=self.unlinked_at)
+
+        total_seconds = qs.aggregate(total=Sum("duration"))["total"] or 0
+        return int(total_seconds // 60)
+
+    @property
+    def link_points(self):
+        total_days_points = self.days_linked * 20
+        login_points = self.player.total_logins * 5
+        time_points = (
+            self.player_time // 10
+        )  # 1 point for every 10 minutes of completed activities during the link period
+
+        return total_days_points + login_points + time_points
+
     @classmethod
     def get_character(cls, player: Player) -> Character:
         return link_services.player_link_get_character(cls, player)
@@ -310,3 +340,7 @@ class PlayerCharacterLink(models.Model):
     @classmethod
     def assign_character(cls, player: Player, character: Character):
         return link_services.player_link_assign_character(cls, player, character)
+
+    @classmethod
+    def total_link_points(cls, list_of_links):
+        return sum(link.link_points for link in list_of_links)
