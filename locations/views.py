@@ -98,11 +98,6 @@ class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BuildingSerializer
 
 
-class PopulationCentreViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = PopulationCentre.objects.all()
-    serializer_class = PopulationCentreSerializer
-
-
 class LandAreaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = LandArea.objects.all()
     serializer_class = LandAreaSerializer
@@ -111,3 +106,8 @@ class LandAreaViewSet(viewsets.ReadOnlyModelViewSet):
 class SubzoneViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Subzone.objects.all()
     serializer_class = SubzoneSerializer
+
+
+class PopulationCentreViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = PopulationCentre.objects.all()
+    serializer_class = PopulationCentreSerializer
