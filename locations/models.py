@@ -478,6 +478,42 @@ class PopulationCentre(models.Model):
     def building_count(self):
         return self.buildings.count()
 
+    @property
+    def resident_count(self):
+        return self.residents.count()
+
+    @property
+    def village_points(self):
+        from character.models import PlayerCharacterLink
+
+        points = 0
+
+        for resident in self.residents.all():
+            points += PlayerCharacterLink.total_link_points(resident.links.all())
+
+        village_multiplier = 2 / (1 + self.residents.count())
+        scaled_points = points * village_multiplier
+        return int(scaled_points)
+
+    @property
+    def progress(self):
+        points = self.village_points
+        if points >= 400:
+            return 100
+        return points % 100
+
+    @property
+    def state(self):
+        points = self.village_points
+        if points < 100:
+            return "Struggling"
+        elif points < 200:
+            return "Recovering"
+        elif points < 300:
+            return "Stable"
+        else:
+            return "Thriving"
+
     def relative_to_centre(self, obj):
         return relative_distance_direction(self.location, obj.location)
 
