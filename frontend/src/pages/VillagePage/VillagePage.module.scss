@@ -26,3 +26,17 @@
   width: 100%;
   align-items: center;
 }
+
+.progressInfo {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto v.$spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.residentsSection {
+  width: 100%;
+  margin-top: v.$spacing-lg;
+}
