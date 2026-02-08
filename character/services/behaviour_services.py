@@ -80,7 +80,7 @@ def generate_day(behaviour, date, replace_future=True):
         ("work", activities[1], work2_start, work2_end),
         ("meal", "Eating dinner", dinner_start, dinner_end),
         ("leisure", "Relaxing", leisure_start, leisure_end),
-        ("wind_down", "Wind down", wind_start, wind_end),
+        ("wind_down", "Winding down", wind_start, wind_end),
         ("sleep", "Sleeping", sleep_start, sleep_end),
     ]
 
