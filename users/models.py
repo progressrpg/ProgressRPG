@@ -262,7 +262,7 @@ class Player(Person):
                 group=self.group_name,
                 type="notification",
                 action="notification",
-                message=f"{self.name} levelled up! Now level {event['new_level']}.",
+                message=f"You levelled up! Now level {event['new_level']}.",
                 data={"level": event["new_level"]},
                 is_draft=False,
             )
