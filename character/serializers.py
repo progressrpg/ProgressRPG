@@ -4,8 +4,9 @@ from .models import Character
 
 
 class CharacterSerializer(serializers.ModelSerializer):
+    age = serializers.SerializerMethodField()
     total_activities = serializers.IntegerField(read_only=True)
-
+    current_activity = serializers.SerializerMethodField()
     population_centre_id = serializers.PrimaryKeyRelatedField(
         source="population_centre", read_only=True
     )
@@ -18,6 +19,7 @@ class CharacterSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "backstory",
+            "age",
             "sex",
             "xp",
             "xp_next_level",
@@ -25,6 +27,7 @@ class CharacterSerializer(serializers.ModelSerializer):
             "level",
             "coins",
             "total_activities",
+            "current_activity",
             "is_npc",
             "can_link",
             "population_centre_id",
@@ -32,21 +35,15 @@ class CharacterSerializer(serializers.ModelSerializer):
             "current_node",
             "target_node",
         ]
-        read_only_fields = [
-            "id",
-            "xp",
-            "xp_next_level",
-            "xp_modifier",
-            "level",
-            "coins",
-            "total_activities",
-            "can_link",
-            "population_centre_id",
-            "location",
-            "current_node",
-            "target_node",
-        ]
+
         read_only_fields = fields
+
+    def get_age(self, obj):
+        return int(obj.get_age() // 365)
+
+    def get_current_activity(self, obj):
+        activity = obj.behaviour.get_current_activity()
+        return activity.name if activity else None
 
     def get_location(self, obj):
         # obj must have x and y attributes, or replace with obj.position.x / obj.position.y
