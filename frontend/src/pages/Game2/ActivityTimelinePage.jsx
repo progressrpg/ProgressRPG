@@ -1,6 +1,5 @@
 import ActivityTimeline from "../../components/ActivityTimeline/ActivityTimeline";
-import CharacterCurrentActivity from "../../components/CharacterCurrentActivity/CharacterCurrentActivity";
-import ActivityInput from "../../components/ActivityInput/ActivityInput";
+import CurrentActivity from "../../components/CurrentActivity/CurrentActivity";
 import styles from "./ActivityTimelinePage.module.scss";
 
 export default function ActivityTimelinePage() {
@@ -12,8 +11,7 @@ export default function ActivityTimelinePage() {
       </div>
 
       <div className={styles.content}>
-        <ActivityInput />
-        <CharacterCurrentActivity />
+        <CurrentActivity />
         <ActivityTimeline />
       </div>
     </div>
