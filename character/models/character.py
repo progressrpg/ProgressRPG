@@ -267,8 +267,8 @@ class PlayerCharacterLink(models.Model):
     character = models.ForeignKey(
         "Character", on_delete=models.CASCADE, related_name="links"
     )
-    date_linked = models.DateField(auto_now_add=True)
-    date_unlinked = models.DateField(null=True, blank=True)
+    linked_at = models.DateTimeField(default=timezone.now)
+    unlinked_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
