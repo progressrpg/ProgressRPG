@@ -34,7 +34,7 @@ def player_link_get_player(model_cls, character):
 
 
 def player_link_unlink(link) -> None:
-    link.date_unlinked = timezone.now().date()
+    link.unlinked_at = timezone.now()
     link.is_active = False
     link.save()
     link.character.can_link = True
