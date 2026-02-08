@@ -11,8 +11,8 @@ from django.contrib import messages
 
 class LinkInline(admin.TabularInline):
     model = PlayerCharacterLink
-    fields = ("player", "date_linked", "is_active")
-    readonly_fields = ("date_linked",)
+    fields = ("player", "linked_at", "is_active")
+    readonly_fields = ("linked_at",)
     extra = 0
     max_num = 1
 
@@ -173,13 +173,13 @@ class CharacterAdmin(admin.ModelAdmin):
 
 @admin.register(PlayerCharacterLink)
 class PlayerCharacterLinkAdmin(admin.ModelAdmin):
-    list_display = ["player", "character", "is_active", "date_linked", "date_unlinked"]
+    list_display = ["player", "character", "is_active", "linked_at", "unlinked_at"]
     fields = [
         ("player", "character", "is_active"),
         ("online_boost_active", "online_boost_ends_at"),
-        ("date_linked", "date_unlinked"),
+        ("linked_at", "unlinked_at"),
     ]
-    readonly_fields = ["date_linked", "date_unlinked"]
+    readonly_fields = ["linked_at", "unlinked_at"]
 
 
 class CharacterInline(admin.TabularInline):
