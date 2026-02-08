@@ -1,10 +1,11 @@
-// src/pages/MapPage.jsx
+// src/pages/VillagePage.jsx
 import { useEffect, useState } from "react";
 import PopulationCentreMap from "../../components/Map/Map";
 import { useGame } from "../../context/GameContext";
 import { apiFetch } from "../../../utils/api";
+import styles from "./VillagePage.module.scss";
 
-export default function MapPage() {
+export default function VillagePage() {
   const [geojson, setGeojson] = useState(null);
   const { character } = useGame();
   const pcId = character?.population_centre_id;
@@ -26,13 +27,20 @@ export default function MapPage() {
     fetchData();
   }, [pcId]);
 
+  console.log("geojson:", geojson);
   return (
-    <div>
-      {geojson ? (
-        <PopulationCentreMap geojson={geojson} width={800} height={600} />
-      ) : (
-        "Loading..."
-      )}
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <h1>{geojson?.meta?.population_centre_name || "Activity timer"}</h1>
+      </div>
+
+      <div className={styles.content}>
+        {geojson ? (
+          <PopulationCentreMap geojson={geojson} width={600} height={300} />
+        ) : (
+          "Loading..."
+        )}
+      </div>
     </div>
   );
 }

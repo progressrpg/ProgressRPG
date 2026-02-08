@@ -67,6 +67,7 @@ class PopulationCentreMapView(APIView):
         meta = {
             "population_centre_id": population_centre.id,
             "feature_count": len(features),
+            "population_centre_name": population_centre.name,
         }
         return Response(
             FeatureCollectionSerializer.from_features(
