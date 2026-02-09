@@ -311,6 +311,11 @@ class OnboardingViewSet(viewsets.ViewSet):
         return Response(serializer.errors, status=400)
 
 
+##########################################################
+##### FETCH INFO VIEW
+##########################################################
+
+
 class FetchInfoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -394,11 +399,6 @@ class FetchInfoAPIView(APIView):
                     f"[FETCH INFO] Error resetting activity timer: {e}", exc_info=True
                 )
                 raise
-
-
-##########################################################
-##### USER DATA MANAGEMENT VIEWS
-##########################################################
 
 
 ##########################################################
