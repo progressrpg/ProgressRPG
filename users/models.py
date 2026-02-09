@@ -262,7 +262,7 @@ class Player(Person):
                 group=self.group_name,
                 type="notification",
                 action="notification",
-                message=f"{self.name} levelled up! Now level {event['new_level']}.",
+                message=f"You levelled up! Now level {event['new_level']}.",
                 data={"level": event["new_level"]},
                 is_draft=False,
             )
@@ -304,7 +304,7 @@ class InviteCode(models.Model):
         self.uses += 1
         if self.max_uses and self.uses >= self.max_uses:
             self.is_active = False
-        self.save()
+        self.save(update_fields=["uses", "is_active"])
 
     def __str__(self):
         return self.code

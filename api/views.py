@@ -51,9 +51,9 @@ from gameplay.utils import send_group_message
 from gameplay.serializers import ActivityTimerSerializer
 from gameplay.services.xp_modifiers import handle_online_login
 
-from progression.serializers import (
-    PlayerActivitySerializer,
-)
+from locations.serializers import PopulationCentreSerializer
+
+from progression.serializers import PlayerActivitySerializer
 
 from users.serializers import PlayerSerializer
 from users.utils import send_email_to_users
@@ -311,6 +311,11 @@ class OnboardingViewSet(viewsets.ViewSet):
         return Response(serializer.errors, status=400)
 
 
+##########################################################
+##### FETCH INFO VIEW
+##########################################################
+
+
 class FetchInfoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -322,6 +327,10 @@ class FetchInfoAPIView(APIView):
             character = PlayerCharacterLink.get_character(player)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        population_centre = None
+        if hasattr(character, "population_centre") and character.population_centre:
+            population_centre = character.population_centre
 
         logger.info(
             f"[FETCH INFO] Fetching data for player {player.id}, character {character.id}"
@@ -340,14 +349,8 @@ class FetchInfoAPIView(APIView):
             logger.info(
                 f"[FETCH INFO] Online sync for player {player.id}, character {character.id}"
             )
-            from character.utils import ensure_day_activities
 
             character.behaviour.sync_to_now()
-
-            # today = now.date()
-            # yesterday = today - timedelta(days=1)
-            # ensure_day_activities(character, today)
-            # ensure_day_activities(character, yesterday)
 
         handle_online_login(player)
 
@@ -363,6 +366,9 @@ class FetchInfoAPIView(APIView):
                 ).data,
                 "activity_timer": ActivityTimerSerializer(
                     player.activity_timer, context={"request": request}
+                ).data,
+                "population_centre": PopulationCentreSerializer(
+                    population_centre, context={"request": request}
                 ).data,
             }
             return Response(data)
@@ -393,6 +399,11 @@ class FetchInfoAPIView(APIView):
                     f"[FETCH INFO] Error resetting activity timer: {e}", exc_info=True
                 )
                 raise
+
+
+##########################################################
+##### USER DATA MANAGEMENT VIEWS
+##########################################################
 
 
 class DownloadUserDataAPIView(APIView):

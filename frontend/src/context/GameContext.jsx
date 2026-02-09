@@ -27,6 +27,7 @@ export const GameProvider = ({ children }) => {
     player: playerOnload,
     character: characterOnload,
     activityTimerInfo,
+    populationCentreInfo,
     loading,
     error,
     buildNumber,
@@ -38,6 +39,7 @@ export const GameProvider = ({ children }) => {
   const [playerActivities, setPlayerActivities] = useState([]);
   const [characterActivities, setCharacterActivities] = useState([]);
   const [characterCurrentActivity, setCharacterCurrentActivity] = useState({});
+  const [populationCentre, setPopulationCentre] = useState(populationCentreInfo);
 
   const activityTimer = useActivityTimer();
 
@@ -76,7 +78,11 @@ export const GameProvider = ({ children }) => {
     return data.current;
   }, []);
 
-
+  const fetchPopulationCentre = useCallback(async (pcId) => {
+    const data = await apiFetch(`/population-centres/${pcId}/`);
+    setPopulationCentre(data);
+    return data;
+  }, []);
 
   // ----------------------------------------
   //  EFFECTS
@@ -122,6 +128,8 @@ export const GameProvider = ({ children }) => {
       fetchCharacterCurrent,
       characterCurrentActivity,
       setCharacterCurrentActivity,
+      populationCentre,
+      fetchPopulationCentre,
       loading,
       buildNumber,
     }),
@@ -137,6 +145,8 @@ export const GameProvider = ({ children }) => {
       fetchCharacterCurrent,
       loading,
       buildNumber,
+      populationCentre,
+      fetchPopulationCentre,
     ]
   );
 
