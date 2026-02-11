@@ -18,6 +18,10 @@ const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
 const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
 const ActivityTimelinePage = lazy(() => import("../pages/Game2/ActivityTimelinePage"))
 
+const SuccessPage = lazy(() => import("../pages/SuccessPage"));
+const CancelPage = lazy(() => import("../pages/CancelPage"));
+const CheckoutPage = lazy(() => import("../pages/Checkout/CheckoutPage"));
+
 import PrivateRoute from "../components/PrivateRoute";
 import RequireOnboardingComplete from "../components/RequireOnboardingComplete";
 
@@ -87,6 +91,30 @@ export const routes = [
     element: (
       <PrivateRoute>
         <AccountPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/checkout",
+    element: (
+      <PrivateRoute>
+        <CheckoutPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/payment-success",
+    element: (
+      <PrivateRoute>
+        <SuccessPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/payment-cancelled",
+    element: (
+      <PrivateRoute>
+        <CancelPage />
       </PrivateRoute>
     ),
   },

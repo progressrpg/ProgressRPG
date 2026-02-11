@@ -62,7 +62,9 @@ def perform_account_wipe():
 
 
 @shared_task(bind=True, retry_backoff=True, max_retries=3)
-def send_email_to_users_task(self, emails, subject, template_base, context, cc_admin):
+def send_email_to_users_task(
+    self, emails: list, subject: str, template_base, context, cc_admin: bool
+):
     """
     Celery task to send emails asynchronously.
     """

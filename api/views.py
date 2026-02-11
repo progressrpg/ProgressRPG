@@ -248,6 +248,11 @@ class ConfirmEmailView(APIView):
 
             user = email_address.user
 
+            from payments.services import provision_free_subscription
+
+            if not user.stripe_customer_id:
+                provision_free_subscription(user)
+
             """
             # Optional: set custom user field if you're tracking confirmation manually
             if hasattr(user, 'is_confirmed'):
