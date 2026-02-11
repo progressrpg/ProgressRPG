@@ -30,7 +30,11 @@ def create_player(sender, instance, created, raw=False, **kwargs):
     if raw:
         return
     if created:
-        Player.objects.get_or_create(user=instance)
+        email_prefix = (instance.email or "").split("@", 1)[0].strip()
+        Player.objects.get_or_create(
+            user=instance,
+            defaults={"name": email_prefix or None},
+        )
 
 
 @receiver(post_save, sender=Player)
