@@ -29,6 +29,7 @@ class CustomUserAdmin(UserAdmin):
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Personal Info", {"fields": ("date_of_birth",)}),
+        ("Important dates", {"fields": ("last_login", "created_at")}),
         (
             "Permissions",
             {
@@ -43,17 +44,17 @@ class CustomUserAdmin(UserAdmin):
                 ),
             },
         ),
-        ("Important dates", {"fields": ("last_login", "created_at")}),
         (
             "Billing",
             {
+                "classes": ("collapse",),
                 "fields": (
                     "stripe_customer_id",
                     "stripe_subscription_id",
                     "subscription_status",
                     "subscription_current_period_end",
                     "current_price_id",
-                )
+                ),
             },
         ),
     )
