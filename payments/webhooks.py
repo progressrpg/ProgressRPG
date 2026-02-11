@@ -1,15 +1,17 @@
 import stripe
 from django.conf import settings
 from users.models import CustomUser
-from django.utils import timezone
+
+from datetime import datetime, timezone
 import logging
+from stripe import Subscription
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 logger = logging.getLogger("general")
 
 
-def handle_subscription_event(subscription):
+def handle_subscription_event(subscription: Subscription):
     customer_id = subscription["customer"]
 
     try:
@@ -24,7 +26,7 @@ def handle_subscription_event(subscription):
 
     # Optional but recommended
     if subscription.get("current_period_end"):
-        user.subscription_current_period_end = timezone.datetime.fromtimestamp(
+        user.subscription_current_period_end = datetime.fromtimestamp(
             subscription["current_period_end"],
             tz=timezone.utc,
         )

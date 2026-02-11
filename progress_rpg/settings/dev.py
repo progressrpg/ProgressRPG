@@ -147,6 +147,7 @@ CORS_ALLOWED_ORIGINS = os.getenv(
 CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS", "http://127.0.0.1,http://localhost:8000"
 ).split(",")
+CORS_ALLOW_CREDENTIALS = True
 
 # print("ALLOWED HOSTS:", ALLOWED_HOSTS, file=sys.stderr)
 # print("CORS:", CORS_ALLOWED_ORIGINS, file=sys.stderr)
