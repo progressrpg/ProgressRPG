@@ -90,9 +90,19 @@ class CustomUser(AbstractUser):
     delete_at = models.DateTimeField(null=True, blank=True)
     is_confirmed = models.BooleanField(default=False)
 
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+    subscription_status = models.CharField(max_length=50, blank=True, null=True)
+    subscription_current_period_end = models.DateTimeField(blank=True, null=True)
+    current_price_id = models.CharField(max_length=255, blank=True, null=True)
+
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+
+    @property
+    def has_active_subscription(self):
+        return self.subscription_status in ["active", "trialing"]
 
     def __str__(self):
         return self.email

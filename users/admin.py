@@ -44,7 +44,20 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
         ("Important dates", {"fields": ("last_login", "created_at")}),
+        (
+            "Billing",
+            {
+                "fields": (
+                    "stripe_customer_id",
+                    "stripe_subscription_id",
+                    "subscription_status",
+                    "subscription_current_period_end",
+                    "current_price_id",
+                )
+            },
+        ),
     )
+
     add_fieldsets = (
         (
             None,

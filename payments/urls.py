@@ -3,4 +3,8 @@
 
 from django.urls import path
 
-urlpatterns = []
+from payments.views import stripe_webhook
+
+urlpatterns = [
+    path("webhook/", stripe_webhook, name="stripe-webhook"),
+]
