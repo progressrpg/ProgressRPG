@@ -43,16 +43,16 @@ def assign_character(sender, instance, created, raw=False, **kwargs):
 
 
 @receiver(user_logged_in)
-def update_login_streak(sender, request, user, **kwargs):
+def update_login_streak(sender, request, user: User, **kwargs):
     if request.path.startswith("/admin/"):
         return  # skip admin logins
     if user.last_login and timezone.now() - user.last_login < timedelta(hours=24):
         return
-    player = user.player
+    player = Player.objects.filter(user=user).first()
     today = timezone.now().date()
 
     logger.info(
-        f"[UPDATE LOGIN STREAK] Updating login streak for {user.username}. Last login: {player.last_login}"
+        f"[UPDATE LOGIN STREAK] Updating login streak for {user.email}. Last login: {player.last_login}"
     )
     message_text = ""
     if player.last_login.date() == today:
