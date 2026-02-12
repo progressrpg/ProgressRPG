@@ -54,4 +54,13 @@ app.conf.beat_schedule = {
         "task": "metrics.tasks.calculate_weekly_metrics",
         "schedule": crontab(hour=2, minute=0, day_of_week=1),  # Mondays at 2 AM
     },
+    # "move_characters_tick": {
+    #     "task": "locations.tasks.move_characters_tick",
+    #     "schedule": 5.0,  # every 5 seconds
+    # },
+    # "precompute-sun-times-daily": {
+    #     "task": "gameworld.tasks.precompute_sun_times",
+    #     "schedule": crontab(hour=0, minute=0),
+    #     "args": (7,),  # keep 7 days ahead
+    # },
 }

@@ -16,12 +16,11 @@ from django.views.generic import TemplateView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # path('admin/timers/', custom_admin_site.urls),
     path("accounts/", include("allauth.urls")),
     path("api/v1/", include("api.urls")),
     path("", include("users.urls")),
     # path("", include("gameplay.urls")),
-    path("", include("payments.urls")),
+    path("api/v1/payments/", include("payments.urls")),
     path("", include("gameworld.urls")),
     path("", include("server_management.urls")),
     re_path(r"^\.well-known/.*$", lambda request: HttpResponseNotFound()),

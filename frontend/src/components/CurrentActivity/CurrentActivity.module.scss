@@ -1,0 +1,103 @@
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/utilities/mixins' as m;
+
+.wrapper {
+  width: min(100%, 720px);
+  border: 1px solid rgba(c.$color-border-default, 0.7);
+  border-radius: v.$border-radius;
+  padding: v.$padding-base;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+  background: rgba(c.$color-bg, 0.5);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.wrapper > * {
+  position: relative;
+  z-index: 1;
+}
+
+.playerCard,
+.characterCard {
+  width: 100%;
+}
+
+.connector {
+  height: 16px;
+  width: 2px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    c.$color-player 0%,
+    c.$color-player 100%
+  );
+  background-size: 100% 200%;
+  background-position: 50% 50%;
+  opacity: 0;
+  transform: scaleY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.connectorActive {
+  opacity: 1;
+  transform: scaleY(1);
+  animation: connectorPulse 1.6s ease-in-out infinite;
+}
+
+.isActive {
+  border-color: transparent;
+  box-shadow:
+    0 0 10px rgba(c.$color-player, 0.35);
+}
+
+.isActive::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(#{v.$border-radius} + 1px);
+  padding: 1px;
+  background: linear-gradient(
+    to bottom,
+    c.$color-player 0%,
+    c.$color-player 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderPulse 2s ease-in-out infinite;
+}
+
+.isActive .playerCard,
+.isActive .characterCard {
+  filter: saturate(1.2);
+}
+
+@keyframes borderPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 6px rgba(c.$color-player, 0.2));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px rgba(c.$color-player, 0.35));
+  }
+}
+
+@keyframes connectorPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    background-position: 50% 30%;
+  }
+  50% {
+    opacity: 1;
+    background-position: 50% 70%;
+  }
+}

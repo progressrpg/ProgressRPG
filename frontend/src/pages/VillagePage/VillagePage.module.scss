@@ -1,0 +1,42 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+
+
+.page {
+  @include m.page-layout();
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: v.$spacing-lg;
+  gap: v.$spacing-md;
+  width: 100%;
+}
+
+
+/* Centre content consistently */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-gap;
+  width: 100%;
+  align-items: center;
+}
+
+.progressInfo {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto v.$spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.residentsSection {
+  width: 100%;
+  margin-top: v.$spacing-lg;
+}

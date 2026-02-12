@@ -42,10 +42,6 @@ def perform_account_wipe():
         player.total_activities = 0
         player.xp = 0
         player.level = 1
-        player.last_login = None
-        player.login_streak = 0
-        player.login_streak_max = 0
-        player.total_logins = 0
         player.activities.all().delete()
         player.skills.all().delete()
         player.projects.all().delete()
@@ -62,7 +58,9 @@ def perform_account_wipe():
 
 
 @shared_task(bind=True, retry_backoff=True, max_retries=3)
-def send_email_to_users_task(self, emails, subject, template_base, context, cc_admin):
+def send_email_to_users_task(
+    self, emails: list, subject: str, template_base, context, cc_admin: bool
+):
     """
     Celery task to send emails asynchronously.
     """

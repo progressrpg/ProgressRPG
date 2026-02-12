@@ -17,6 +17,8 @@ from decouple import Config, RepositoryEnv, config
 import os
 from dotenv import load_dotenv
 import logging, ssl, sentry_sdk
+import stripe
+
 from .utils import is_vite_running
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -47,7 +49,6 @@ APP_VERSION = "0.6.0-alpha"
 TOKEN_MODEL = None
 
 # Application definition
-# Test for Ruth
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -67,6 +68,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.gis",
     "django_celery_beat",
     "django_extensions",
     "channels",
@@ -269,8 +271,15 @@ ADMINS = [
 LOGIN_REDIRECT_URL = "/"  # Or wherever you want to go after login
 LOGIN_URL = "/login/"  # Customize the login URL
 
-STRIPE_PUBLIC_KEY = "pk_test_51QNRgsGHaENuGVuPh70KmxNTGK3iQPJgjGO2gVcdE0dlRDG7LOZfY3zQxvEdR2hmXDKaEILIRKEnJdn69arGwKCi00bSZWzrzW"
-STRIPE_SECRET_KEY = "nope"
+STRIPE_PUBLIC_KEY = "pk_test_51SzfKmQCFC8LlZgCgE79s5sQMKoKBNWsJdgg8Xg8l3mXH4SzU8o5Pxk0n5guF8OTpykQOWbe7N8kpliZoffVoaxQ00ZiY1nMDO"
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+stripe.api_key = STRIPE_SECRET_KEY
+STRIPE_FREE_PRICE_ID = "price_1SzfLuQCFC8LlZgCxV4IsVYE"
+STRIPE_PREMIUM_MONTHLY_PRICE_ID = "price_1SzgxTQCFC8LlZgCcwkCOotQ"
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_SUCCESS_URL = f"{FRONTEND_URL}/payment-success"
+STRIPE_CANCEL_URL = f"{FRONTEND_URL}/payment-cancelled"
+
 
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
