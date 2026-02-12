@@ -37,7 +37,6 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.serializers import (
-    UserSerializer,
     Step1Serializer,
     CustomRegisterSerializer,
     CustomTokenObtainPairSerializer,
@@ -55,7 +54,7 @@ from locations.serializers import PopulationCentreSerializer
 
 from progression.serializers import PlayerActivitySerializer
 
-from users.serializers import PlayerSerializer
+from users.serializers import UserSerializer, PlayerSerializer
 from users.utils import send_email_to_users
 
 from progress_rpg.settings.utils import get_build_number

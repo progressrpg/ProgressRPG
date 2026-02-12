@@ -42,10 +42,6 @@ def perform_account_wipe():
         player.total_activities = 0
         player.xp = 0
         player.level = 1
-        player.last_login = None
-        player.login_streak = 0
-        player.login_streak_max = 0
-        player.total_logins = 0
         player.activities.all().delete()
         player.skills.all().delete()
         player.projects.all().delete()
