@@ -5,6 +5,7 @@ import { useGame } from "../../context/GameContext";
 import { apiFetch } from "../../../utils/api";
 import ProgressBar from "../../components/ProgressBar/ProgressBar";
 import PopulationCentreResidents from "../../components/PopulationCentreResidents/PopulationCentreResidents";
+import { useWebSocket } from "../../context/WebSocketContext";
 
 import styles from "./VillagePage.module.scss";
 
@@ -12,6 +13,7 @@ export default function VillagePage() {
   const [geojson, setGeojson] = useState(null);
   const { character, populationCentre, fetchPopulationCentre } = useGame();
   const pcId = character?.population_centre_id;
+  const { onlinePlayers } = useWebSocket();
   //console.log("character:", character);
   //console.log("pcId:", pcId);
 
@@ -36,6 +38,7 @@ export default function VillagePage() {
   }, [pcId, fetchPopulationCentre]);
 
   console.log("village:", populationCentre);
+  console.log("online players:", onlinePlayers);
 
   return (
     <div className={styles.page}>
@@ -63,7 +66,13 @@ export default function VillagePage() {
           "Loading..."
         )}
       </div>
-
+      {/* {onlinePlayers.length > 0 && (
+        <ul>
+          {onlinePlayers.map(player => (
+            <li key={player.id}>{player.display_name}</li>
+          ))}
+        </ul>
+      )} */}
       {populationCentre && (
         <div className={styles.residentsSection}>
           <PopulationCentreResidents

@@ -15,6 +15,16 @@ export async function handleGlobalWebSocketEvent(data, { showToast, maintenanceR
     case 'action':
       switch (data.action) {
 
+        case 'online_players_update':
+          if (data.players) {
+            window.dispatchEvent(
+              new CustomEvent('onlinePlayersUpdate', {
+                detail: data.players
+              })
+            );
+          }
+          return;
+
         case 'refresh':
           if (data.maintenance_active !== undefined) {
             if (data.maintenance_active) {
