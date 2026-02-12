@@ -216,6 +216,7 @@ class PopulationCentreSerializer(serializers.ModelSerializer):
             "residents",
             "buildings",
         ]
+        read_only_fields = fields
 
 
 class LandAreaSerializer(serializers.ModelSerializer):
