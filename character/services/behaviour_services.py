@@ -219,8 +219,9 @@ def get_current_activity(behaviour):
     activity = (
         CharacterActivity.objects.filter(
             character=behaviour.character,
-            scheduled_start__lte=now,
+            started_at__lte=now,
             scheduled_end__gt=now,
+            completed_at__isnull=True,
         )
         .order_by("scheduled_start")
         .first()
