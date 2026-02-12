@@ -11,16 +11,16 @@ class Command(BaseCommand):
         self.stdout.write("=== Populating interiors ===")
         call_command("populate_interiors")
 
-        self.stdout.write("=== Generating points ===")
-        call_command("generate_points")
+        # self.stdout.write("=== Generating points ===")
+        # call_command("generate_points")
 
-        self.stdout.write("=== Generating paths ===")
-        call_command("generate_paths")
+        # self.stdout.write("=== Generating paths ===")
+        # call_command("generate_paths")
 
         self.stdout.write("=== Placing characters ===")
         call_command("place_characters")
 
-        self.stdout.write("=== Generating land areas ===")
-        call_command("generate_landarea")
+        # self.stdout.write("=== Generating land areas ===")
+        # call_command("generate_landarea")
 
         self.stdout.write(self.style.SUCCESS("All setup tasks completed!"))
