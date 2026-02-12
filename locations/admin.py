@@ -92,20 +92,39 @@ class LandAreaInline(admin.TabularInline):
 
 @admin.register(PopulationCentre)
 class PopulationCentreAdmin(admin.ModelAdmin):
-    inlines = [BuildingInline, LandAreaInline]
+    inlines = [BuildingInline]  # LandAreaInline
     search_field = ["name"]
     list_display = ["name", "building_count"]
-    readonly_fields = ["building_count"]
-    fields = [
-        "name",
-        "description",
+    readonly_fields = [
         "building_count",
+        "resident_count",
+        "village_points",
+        "progress",
+        "state",
     ]
+    fieldsets = (
+        (None, {"fields": ("name", "description")}),
+        ("Stats", {"fields": ("building_count", "resident_count")}),
+        ("Points", {"fields": ("village_points", "progress", "state")}),
+    )
 
     def building_count(self, obj):
-        return obj.buildings.count()
+        return obj.building_count
+
+    def resident_count(self, obj):
+        return obj.resident_count
+
+    def village_points(self, obj):
+        return obj.village_points
+
+    def progress(self, obj):
+        return obj.progress
+
+    def state(self, obj):
+        return obj.state
 
     building_count.short_description = "Buildings"
+    resident_count.short_description = "Residents"
 
 
 class SubzoneInline(admin.TabularInline):
