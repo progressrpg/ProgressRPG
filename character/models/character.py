@@ -286,6 +286,10 @@ class PlayerCharacterLink(models.Model):
         ]
 
     @property
+    def end_at(self):
+        return self.unlinked_at or timezone.now()
+
+    @property
     def days_linked(self):
         end_date = self.unlinked_at or timezone.now()
         return (end_date - self.linked_at).days
@@ -296,24 +300,57 @@ class PlayerCharacterLink(models.Model):
         Total completed activity time for this link (in seconds).
         """
         qs = self.player.activities.filter(
-            is_complete=True, completed_at__gte=self.linked_at
+            is_complete=True,
+            completed_at__gte=self.linked_at,
+            completed_at__lte=self.end_at,
         )
-
-        if self.unlinked_at:
-            qs = qs.filter(completed_at__lte=self.unlinked_at)
 
         total_seconds = qs.aggregate(total=Sum("duration"))["total"] or 0
         return int(total_seconds // 60)
 
+    def update_points(self):
+        # Get or create link-specific currency
+        currency = self.get_link_points_currency()
+        last_calc = currency.last_calculated_at or self.linked_at
+
+        # Only calculate points for overlapping period of this link
+        period_start = max(last_calc, self.linked_at)
+        period_end = self.end_at
+
+        days_delta = max((period_end.date() - period_start.date()).days, 0)
+        day_points = days_delta
+
+        new_logins = self.player.user.logins.filter(
+            timestamp__gt=period_start, timestamp__lte=period_end
+        ).count()
+        login_points = new_logins * 5
+
+        new_activity_seconds = (
+            self.character.activities.filter(
+                is_complete=True,
+                completed_at__gt=period_start,
+                completed_at__lte=period_end,
+            ).aggregate(total=Sum("duration"))["total"]
+            or 0
+        )
+        time_points = (new_activity_seconds // 60) // 60
+
+        total_new_points = day_points + login_points + time_points
+
+        # Premium multiplier
+        if self.player.user.subscription_status == "active":
+            total_new_points *= 2
+
+        # Credit currency
+        currency.earn(total_new_points)
+        return total_new_points
+
+    def get_link_points_currency(self):
+        return self.player.get_currency(f"link_points")
+
     @property
     def link_points(self):
-        total_days_points = self.days_linked * 20
-        login_points = self.player.total_logins * 5
-        time_points = (
-            self.player_time // 10
-        )  # 1 point for every 10 minutes of completed activities during the link period
-
-        return total_days_points + login_points + time_points
+        return self.get_link_points_currency().earned
 
     @classmethod
     def get_character(cls, player: Player) -> Character:
@@ -328,14 +365,10 @@ class PlayerCharacterLink(models.Model):
         return link_services.player_link_unlink(self)
 
     @classmethod
-    def deactivate_active_links(cls, player: Player):
-        return link_services.player_link_deactivate_active_links(cls, player)
-
-    @classmethod
-    def deactivate_active_links_for_character(cls, character: Character):
-        return link_services.player_link_deactivate_active_links_for_character(
-            cls, character
-        )
+    def deactivate_active_links(
+        cls, player: Player = None, character: Character = None
+    ):
+        return link_services.player_link_deactivate_active_links(cls, player, character)
 
     @classmethod
     def assign_character(cls, player: Player, character: Character):

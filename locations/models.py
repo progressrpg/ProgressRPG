@@ -484,12 +484,11 @@ class PopulationCentre(models.Model):
 
     @property
     def village_points(self):
-        from character.models import PlayerCharacterLink
-
         points = 0
 
         for resident in self.residents.all():
-            points += PlayerCharacterLink.total_link_points(resident.links.all())
+            for link in resident.links.all():
+                points += link.link_points
 
         village_multiplier = 2 / (1 + self.residents.count())
         scaled_points = points * village_multiplier
