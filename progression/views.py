@@ -175,6 +175,7 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
             activities = PlayerActivity.objects.filter(player=player).order_by(
                 "-completed_at"
             )[:5]
+        from users.serializers import PlayerSerializer
 
         return Response(
             {
