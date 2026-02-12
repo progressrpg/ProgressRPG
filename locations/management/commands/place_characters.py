@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 continue
 
             if char.is_moving:
-                char.journeys.filter(status="active").update(status="cancelled")
+                char.journeys.filter(status="active").cancel()
 
             char.assign_home(building)
 
