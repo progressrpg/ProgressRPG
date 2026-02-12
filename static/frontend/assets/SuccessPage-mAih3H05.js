@@ -1,0 +1,1 @@
+import{j as e,L as s}from"./main-Ce5kVT1e.js";const t=()=>e.jsxs("div",{style:{textAlign:"center",padding:"2rem"},children:[e.jsx("h1",{children:"Payment Successful!"}),e.jsx("p",{children:"Thank you for upgrading to Progress RPG Premium."}),e.jsx(s,{to:"/",children:"Go back to Dashboard"})]});export{t as default};
