@@ -8,6 +8,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from users.models import CustomUser as User
 from .webhooks import handle_subscription_event
+import logging
+
+logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -64,5 +67,9 @@ def create_checkout_session(request):
             cancel_url=settings.STRIPE_CANCEL_URL,
         )
         return JsonResponse({"url": session.url})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error creating Stripe checkout session")
+        return JsonResponse(
+            {"error": "An error occurred while creating the checkout session."},
+            status=400,
+        )
