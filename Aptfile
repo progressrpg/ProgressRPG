@@ -1,6 +1,13 @@
+# GDAL / GEOS / PROJ
 gdal-bin
 libgdal-dev
 libgeos-dev
 proj-bin
+libproj-dev
+
+# Math libraries required by GDAL
+libblas3
 libblas-dev
+liblapack3
 liblapack-dev
+libc6-dev
