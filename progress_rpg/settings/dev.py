@@ -157,7 +157,7 @@ CORS_ALLOW_CREDENTIALS = True
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
-db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
+db["ENGINE"] = "django.db.backends.postgresql"
 
 DATABASES = {"default": db}
 
