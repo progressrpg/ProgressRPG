@@ -27,20 +27,18 @@
     background: rgba(c.$color-border-primary, 0.2);
   }
 }
-
 .heading {
   margin: v.$spacing-sm 0;
   margin-bottom: v.$spacing-md;
 }
-
 .container {
   width: min(100%, 720px);
   margin-top: v.$spacing-md;
 
-  border: 1px solid rgba(c.$color-border-default, 0.7);
+  border: 1px solid rgba(c.$color-border-primary, 0.4);
   border-radius: v.$border-radius;
   padding: v.$padding-base;
-  overflow: hidden;
+
   background: rgba(c.$color-bg, 0.6);
 
   // scroll behaviour
@@ -59,19 +57,17 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(c.$color-border-default, 0.5);
+    background: rgba(c.$color-border-primary, 0.5);
     border-radius: 4px;
 
     &:hover {
-      background: rgba(c.$color-border-default, 0.8);
+      background: rgba(c.$color-border-primary, 0.8);
     }
   }}
 
 
 .line {
   @include c.apply-text-tone(map.get(c.$text-tone, default));
-  font-size: 1rem;
-  line-height: 1.5;
 }
 
 .header {

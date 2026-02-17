@@ -1,24 +1,6 @@
 from rest_framework import serializers
 
-from .models import CustomUser as User, Player
-
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = [
-            "email",
-            "is_confirmed",
-            "is_staff",
-            "is_superuser",
-            "date_of_birth",
-            "created_at",
-            "last_login",
-            "days_logged_in",
-            "current_login_streak",
-            "max_login_streak",
-        ]
-        read_only_fields = fields
+from .models import Player
 
 
 class PlayerSerializer(serializers.ModelSerializer):
@@ -39,6 +21,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             "is_premium",
             "onboarding_step",
             "onboarding_completed",
+            "login_streak",
         ]
         read_only_fields = [
             "id",
@@ -48,4 +31,5 @@ class PlayerSerializer(serializers.ModelSerializer):
             "level",
             "total_time",
             "total_activities",
+            "login_streak",
         ]

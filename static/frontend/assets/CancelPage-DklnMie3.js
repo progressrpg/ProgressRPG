@@ -1,1 +1,0 @@
-import{j as e,L as n}from"./main-Ce5kVT1e.js";const r=()=>e.jsxs("div",{style:{textAlign:"center",padding:"2rem"},children:[e.jsx("h1",{children:"Payment Cancelled"}),e.jsx("p",{children:"Your payment was not completed. You are still on the free plan."}),e.jsx(n,{to:"/checkout",children:"Try Again"})]});export{r as default};
