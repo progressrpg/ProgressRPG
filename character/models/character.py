@@ -210,9 +210,6 @@ class Character(Person, LifeCycleMixin, Movable):
         """
         return PlayerCharacterLink.get_player(self)
 
-    def react_to_sun_phase(self, phase):
-        return character_services.character_react_to_sun_phase(self, phase)
-
     @transaction.atomic
     def complete_quest(self, xp_gained):
         """
