@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("character", "0009_rename_playercharacter_link_link_date_fields"),
+        ("character", "0004_rename_playercharacter_link_link_date_fields"),
     ]
 
     operations = [
