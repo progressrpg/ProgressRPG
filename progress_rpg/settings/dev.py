@@ -136,6 +136,9 @@ EMAIL_USE_SSL = False
 print("DEBUG:", DEBUG, file=sys.stderr)
 
 
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
@@ -147,7 +150,6 @@ CORS_ALLOWED_ORIGINS = os.getenv(
 CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS", "http://127.0.0.1,http://localhost:8000"
 ).split(",")
-CORS_ALLOW_CREDENTIALS = True
 
 # print("ALLOWED HOSTS:", ALLOWED_HOSTS, file=sys.stderr)
 # print("CORS:", CORS_ALLOWED_ORIGINS, file=sys.stderr)
@@ -156,10 +158,8 @@ CORS_ALLOW_CREDENTIALS = True
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
-db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
 
-DATABASES = {"default": db}
+DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=60)}
 
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")

@@ -10,17 +10,12 @@ const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage
 const ProfilePage = lazy(() => import("../pages/PlayerPage/PlayerPage"));
 const AccountPage = lazy(() => import("../pages/Account/Account"));
 const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
-const VillagePage = lazy(() => import("../pages/VillagePage/VillagePage"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
 const SkillsPage = lazy(() => import("../pages/SkillsPage"));
 const TasksPage = lazy(() => import("../pages/TasksPage"));
 const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
 const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
 const ActivityTimelinePage = lazy(() => import("../pages/Game2/ActivityTimelinePage"))
-
-const SuccessPage = lazy(() => import("../pages/SuccessPage"));
-const CancelPage = lazy(() => import("../pages/CancelPage"));
-const CheckoutPage = lazy(() => import("../pages/Checkout/CheckoutPage"));
 
 import PrivateRoute from "../components/PrivateRoute";
 import RequireOnboardingComplete from "../components/RequireOnboardingComplete";
@@ -69,16 +64,6 @@ export const routes = [
     ),
   },
   {
-    path: "/village",
-    element: (
-      <PrivateRoute>
-        <RequireOnboardingComplete>
-          <VillagePage />
-        </RequireOnboardingComplete>
-      </PrivateRoute>
-    ),
-  },
-  {
     path: "/profile",
     element: (
       <PrivateRoute>
@@ -91,30 +76,6 @@ export const routes = [
     element: (
       <PrivateRoute>
         <AccountPage />
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/checkout",
-    element: (
-      <PrivateRoute>
-        <CheckoutPage />
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/payment-success",
-    element: (
-      <PrivateRoute>
-        <SuccessPage />
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/payment-cancelled",
-    element: (
-      <PrivateRoute>
-        <CancelPage />
       </PrivateRoute>
     ),
   },

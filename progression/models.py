@@ -1,6 +1,5 @@
 # progression/models.py
 from decimal import Decimal
-from asgiref.sync import async_to_sync
 from django.db import models, transaction
 from django.db.models import CheckConstraint, Q, Sum
 from django.utils import timezone
@@ -8,10 +7,6 @@ from typing import Dict, Any, cast
 import logging
 
 from .mixins import PlayerOwnedMixin
-
-from character.phrases import generate_phrase
-from gameplay.utils import send_group_message
-
 
 logger = logging.getLogger("general")
 
@@ -355,8 +350,8 @@ class CharacterActivity(TimeRecord):
         base_xp = self.calculate_base_xp(duration)
         multiplier = self.character.get_xp_multiplier()
         self.xp_gained = int(Decimal(base_xp) * multiplier)
-        self.duration = duration
 
+        self.duration = duration
         self.save(
             update_fields=[
                 "completed_at",
@@ -366,30 +361,6 @@ class CharacterActivity(TimeRecord):
                 "xp_gained",
             ]
         )
-
-        # --- Generate completion phrase ---
-        player = self.character.current_player
-        if player.is_online:
-            village_state = getattr(
-                self.character.population_centre, "state", "stable"
-            )  # fallback
-            phrase = generate_phrase(
-                state=village_state, activity_type=self.kind, character=self.character
-            )
-
-            message = (
-                f"{self.character.first_name} completed {self.name.lower()}. {phrase}"
-            )
-            async_to_sync(send_group_message)(
-                player.group_name,
-                {
-                    "type": "notification",
-                    "action": "notification",
-                    "message": message,
-                    "data": {},
-                },
-            )
-
         return self.xp_gained
 
     def complete_past(self):
