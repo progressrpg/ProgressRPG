@@ -60,16 +60,6 @@ class CharacterAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        (
-            "Location",
-            {
-                "fields": (
-                    "current_node",
-                    "building",
-                    "population_centre",
-                )
-            },
-        ),
         ("Dates", {"fields": (("birth_date", "death_date", "get_age"),)}),
         (
             "Life & Story",
@@ -113,7 +103,6 @@ class CharacterAdmin(admin.ModelAdmin):
         "birth_date",
         "death_date",
         "sex",
-        "population_centre",
     ]
     search_fields = [
         "first_name",
@@ -136,25 +125,6 @@ class CharacterAdmin(admin.ModelAdmin):
         try:
             return PlayerCharacterLink.get_player(obj)
         except ValueError:
-            return "-"
-
-    @admin.display(description="Population Centre")
-    def get_settlement(self, obj):
-        from django.urls import reverse
-        from django.utils.html import format_html
-
-        try:
-            if obj.population_centre:
-                url = reverse(
-                    "admin:locations_populationcentre_change",
-                    args=[obj.population_centre.id],
-                )
-                return format_html(
-                    '<a href="{}">{}</a>', url, obj.population_centre.name
-                )
-                # return f"Settlement {obj.population_centre.name} (id: {obj.population_centre.id})"
-            return "-"
-        except AttributeError:
             return "-"
 
     @admin.display(boolean=True, description="Has Player")

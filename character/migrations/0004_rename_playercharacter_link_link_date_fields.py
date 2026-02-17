@@ -4,7 +4,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("character", "0008_character_building_character_current_node_and_more"),
+        ("character", "0003_initial"),
     ]
 
     operations = [

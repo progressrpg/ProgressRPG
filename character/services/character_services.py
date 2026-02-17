@@ -10,25 +10,6 @@ logger = logging.getLogger("general")
 logger_errors = logging.getLogger("errors")
 
 
-def character_react_to_sun_phase(character, phase: str) -> None:
-    if phase == "dawn":
-        print(f"{character.name} wakes up and moves outside")
-        character.go_outside(radius=10)
-    elif phase == "day":
-        print(f"{character.name} is outside during the day")
-    elif phase == "dusk":
-        print(f"{character.name} heads inside for the night")
-        character.go_home()
-    elif phase == "night":
-        print(f"{character.name} is indoors at night")
-
-
-def character_assign_home(character, building) -> None:
-    character.building = building
-    character.population_centre = building.population_centre
-    character.save(update_fields=["building", "population_centre"])
-
-
 @transaction.atomic
 def character_complete_quest(character, xp_gained):
     logger.info(f"[CHAR.COMPLETE_QUEST] Starting quest completion for {character}")
