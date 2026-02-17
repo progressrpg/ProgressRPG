@@ -18,7 +18,6 @@ from .views import (
 
 from character.views import CharacterViewSet
 from gameplay.views import ActivityTimerViewSet
-from locations.views import PopulationCentreViewSet
 from progression.views import (
     PlayerActivityViewSet,
     CharacterActivityViewSet,
@@ -29,8 +28,6 @@ from progression.views import (
 )
 from server_management.views import maintenance_status
 from users.views import PlayerViewSet
-
-from locations.views import PopulationCentreMapView
 
 
 class KeyConverter:
@@ -61,9 +58,6 @@ router.register(
 )
 router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"character_quests", CharacterQuestViewSet, basename="characterquest")
-router.register(
-    r"population-centres", PopulationCentreViewSet, basename="populationcentre"
-)
 router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytimer")
 
 urlpatterns = [
@@ -93,9 +87,4 @@ urlpatterns = [
     ),
     path("delete_account/", DeleteAccountAPIView.as_view(), name="api_delete_account"),
     # Other urls
-    path(
-        "population-centres/<int:pk>/map/",
-        PopulationCentreMapView.as_view(),
-        name="populationcentre-map",
-    ),
 ]
