@@ -6,7 +6,7 @@ import styles from "./ActivityInput.module.scss";
 
 export default function ActivityInput() {
   const { activityTimer, fetchCharacterCurrent, fetchActivities } = useGame();
-  const { status, stop, startActivity, elapsed } = activityTimer;
+  const { currentActivity, status, stop, startActivity, elapsed } = activityTimer;
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
@@ -22,6 +22,12 @@ export default function ActivityInput() {
     inputRef.current.style.height = "auto";
     inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
   }, [name]);
+
+  useEffect(() => {
+    if (status === "active" && currentActivity?.name) {
+      setName(currentActivity.name);
+    }
+  }, [status, currentActivity]);
 
   async function handleToggle() {
     if (isActive) {
