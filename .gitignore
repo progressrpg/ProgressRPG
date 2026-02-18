@@ -23,3 +23,5 @@ static/.sass-cache/
 celerybeat-schedule
 users.json
 user_data.json
+*.sql
+*.dump
