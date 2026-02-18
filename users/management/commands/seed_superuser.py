@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         User = get_user_model()
-        email = os.getenv("DJANGO_SUPERUSER_EMAIL", "admin@example.com")
+        email = os.getenv("DJANGO_SUPERUSER_EMAIL", "duncan@progressrpg.com")
         password = os.getenv("DJANGO_SUPERUSER_PASSWORD")
 
         if password is None:

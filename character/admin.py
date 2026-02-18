@@ -24,7 +24,7 @@ class BehaviourInline(admin.StackedInline):
 def mark_as_npc(modeladmin, request, queryset):
     for character in queryset:
         # Unlink any active PlayerCharacterLink
-        active_links = character.player_link.filter(is_active=True)
+        active_links = character.links.filter(is_active=True)
         for link in active_links:
             link.unlink()
 
@@ -105,7 +105,7 @@ class CharacterAdmin(admin.ModelAdmin):
     search_fields = [
         "first_name",
         "last_name",
-        "player_link__player__name",
+        "links__player__name",
     ]
     readonly_fields = [
         "get_player",
@@ -140,13 +140,13 @@ class CharacterAdmin(admin.ModelAdmin):
 
 @admin.register(PlayerCharacterLink)
 class PlayerCharacterLinkAdmin(admin.ModelAdmin):
-    list_display = ["player", "character", "is_active", "date_linked", "date_unlinked"]
+    list_display = ["player", "character", "is_active", "linked_at", "unlinked_at"]
     fields = [
         ("player", "character", "is_active"),
         ("online_boost_active", "online_boost_ends_at"),
-        ("date_linked", "date_unlinked"),
+        ("linked_at", "unlinked_at"),
     ]
-    readonly_fields = ["date_linked", "date_unlinked"]
+    readonly_fields = ["linked_at", "unlinked_at"]
 
 
 class CharacterInline(admin.TabularInline):

@@ -15,8 +15,6 @@ from gameplay.serializers import QuestResultSerializer
 from progression.models import CharacterQuest
 from progress_rpg.exceptions import QuestError
 
-from character.services import character_services, lifecycle_services, link_services
-from locations.models import Movable, Node, Building
 
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
@@ -189,20 +187,6 @@ class Character(Person, LifeCycleMixin):
     first_name = models.CharField(max_length=50, default="")
     last_name = models.CharField(max_length=50, default="", null=True, blank=True)
     backstory = models.TextField(default="")
-    building = models.ForeignKey(
-        "locations.Building",
-        related_name="residents",
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL,
-    )
-    population_centre = models.ForeignKey(
-        "locations.PopulationCentre",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="residents",
-    )
 
     parents = models.ManyToManyField(
         "self", related_name="children", symmetrical=False, blank=True
@@ -219,7 +203,7 @@ class Character(Person, LifeCycleMixin):
         """
         A character is an NPC if they don't have an active PlayerCharacterLink.
         """
-        return not self.player_link.filter(is_active=True).exists()
+        return not self.links.filter(is_active=True).exists()
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -255,12 +239,6 @@ class Character(Person, LifeCycleMixin):
         Retrieve the player associated with this character.
         """
         return PlayerCharacterLink.get_player(self)
-
-    def react_to_sun_phase(self, phase):
-        return character_services.character_react_to_sun_phase(self, phase)
-
-    def assign_home(self, building: Building):
-        return character_services.character_assign_home(self, building)
 
     @transaction.atomic
     def complete_quest(self, xp_gained):
@@ -378,11 +356,7 @@ class Character(Person, LifeCycleMixin):
 
     @classmethod
     def has_available(cls):
-        return (
-            cls.objects.filter(can_link=True)
-            .exclude(player_link__is_active=True)
-            .exists()
-        )
+        return cls.objects.filter(can_link=True).exclude(links__is_active=True).exists()
 
 
 class PlayerCharacterLink(models.Model):
@@ -392,8 +366,8 @@ class PlayerCharacterLink(models.Model):
     character = models.ForeignKey(
         "Character", on_delete=models.CASCADE, related_name="links"
     )
-    date_linked = models.DateField(auto_now_add=True)
-    date_unlinked = models.DateField(null=True, blank=True)
+    linked_at = models.DateTimeField(auto_now_add=True)
+    unlinked_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
