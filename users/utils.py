@@ -41,7 +41,7 @@ def assign_character_to_player(player):
 
     character = (
         Character.objects.filter(can_link=True, death_date__isnull=True)
-        .exclude(player_link__is_active=True)
+        .exclude(links__is_active=True)
         .first()
     )
 

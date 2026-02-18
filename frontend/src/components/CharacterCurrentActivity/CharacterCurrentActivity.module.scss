@@ -12,7 +12,7 @@
   padding: v.$padding-base;
   font-size: 0.95rem;
 
-  border: 1px solid rgba(c.$color-character, 0.45);
+  border: 1px solid rgba(c.$color-character, 0.15);
   border-radius: v.$border-radius;
   background: rgba(c.$color-character, 0.08);
   @include t.apply-text-style(t.$text-body);
@@ -24,4 +24,17 @@
 
 .time {
   opacity: 0.75;
+}
+
+.remaining {
+  opacity: 0.85;
+}
+
+.bonus {
+  margin-top: v.$spacing-xs;
+}
+
+.bonusActive {
+  margin-top: v.$spacing-xs;
+  color: c.$color-text-heading;
 }

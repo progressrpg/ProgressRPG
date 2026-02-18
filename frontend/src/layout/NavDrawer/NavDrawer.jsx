@@ -49,9 +49,7 @@ export default function NavDrawer({ drawerOpen, onClose }) {
         </div>
 
         <ul className={styles["nav-drawer-links"]} role="list">
-          <li><Link to="/account" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Your account</Link></li>
-          <li><Link to="/activities" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Your activities</Link></li>
-          <li><Link to="/game" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Game</Link></li>
+          <li><Link to="/activities" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Activities</Link></li>
         </ul>
       </nav>
     </>

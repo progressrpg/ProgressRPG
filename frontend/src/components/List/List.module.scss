@@ -20,6 +20,7 @@
   width: 100%;
   list-style: none;
   border-radius: v.$border-radius;
+  overflow: hidden;
 }
 
 .listItem {
@@ -36,7 +37,7 @@
   transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   position: relative;
 
-  @include t.apply-text-style(t.$text-body);
+  @include t.apply-text-style(t.$text-list);
   @include c.apply-list-variant(default, false);
 
   &.hidden {

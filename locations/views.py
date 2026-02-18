@@ -1,3 +1,1 @@
-from django.shortcuts import render
-
-# Create your views here.
+# Temporarily disabled until GDAL support is available

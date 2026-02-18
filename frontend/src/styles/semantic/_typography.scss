@@ -13,7 +13,7 @@
 $text-body: (
   base: (
     font-family: token(t.$font-family, base),
-    font-size: token(t.$font-size, sm),
+    font-size: token(t.$font-size, base),
     font-weight: token(t.$font-weight, regular),
     line-height: token(t.$line-height, base),
     letter-spacing: token(t.$letter-spacing, normal),
@@ -25,6 +25,21 @@ $text-body: (
   lg: (
     //font-size: 1.25rem
   ),
+);
+
+// Body text styles
+$text-list: (
+  base: (
+    font-family: token(t.$font-family, base),
+    font-size: token(t.$font-size, sm),
+    font-weight: token(t.$font-weight, regular),
+    line-height: token(t.$line-height, base),
+    letter-spacing: token(t.$letter-spacing, normal),
+    text-transform: token(t.$text-transform, none)
+  ),
+  md: (
+    font-size: token(t.$font-size, base)
+  )
 );
 
 // Heading 1 styles

@@ -14,6 +14,7 @@ from .utils import (
     migrate_and_seed,
 )
 import subprocess
+from urllib.parse import quote
 
 
 BRANCH_NAME = get_branch_name()
@@ -49,33 +50,33 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
-        "file_info": {
-            "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/general.log"),
-            "formatter": "verbose",
-            "filters": ["request_context"],
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 3,  # Keep last 3 log files
-        },
-        "file_errors": {
-            "level": "ERROR",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/errors.log"),
-            "formatter": "verbose",
-            "filters": ["request_context"],
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 3,  # Keep last 3 log files
-        },
-        "file_debug": {
-            "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/activity.log"),
-            "formatter": "verbose",
-            "filters": ["request_context"],
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 6,  # Keep last 5 log files
-        },
+        # "file_info": {
+        #     "level": "INFO",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/general.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 3,  # Keep last 3 log files
+        # },
+        # "file_errors": {
+        #     "level": "ERROR",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/errors.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 3,  # Keep last 3 log files
+        # },
+        # "file_debug": {
+        #     "level": "DEBUG",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/activity.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 6,  # Keep last 5 log files
+        # },
     },
     "loggers": {
         "django": {
@@ -83,24 +84,24 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
-        "errors": {
-            "handlers": ["file_errors"],
-            "level": "ERROR",
-            "propagate": False,
-        },
-        "general": {
-            "handlers": ["file_info"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "activity": {
-            "handlers": ["file_debug"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
+        # "errors": {
+        #     "handlers": ["file_errors"],
+        #     "level": "ERROR",
+        #     "propagate": False,
+        # },
+        # "general": {
+        #     "handlers": ["file_info"],
+        #     "level": "INFO",
+        #     "propagate": False,
+        # },
+        # "activity": {
+        #     "handlers": ["file_debug"],
+        #     "level": "DEBUG",
+        #     "propagate": False,
+        # },
         "django.db.backends": {
             "level": "WARNING",
-            "handlers": ["console", "file_errors"],
+            "handlers": ["console"],
             "propagate": False,
         },
     },
@@ -123,7 +124,26 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_HOST = os.getenv("DB_HOST", default="localhost")
 DB_PORT = os.getenv("DB_PORT", default=5432)
 
-DATABASE_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+fallback_database_url = (
+    f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
+configured_database_url = os.getenv("DATABASE_URL", "").strip()
+
+has_explicit_db_vars = any(
+    os.getenv(key)
+    for key in ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"]
+)
+
+if has_explicit_db_vars:
+    DATABASE_URL = fallback_database_url
+elif configured_database_url:
+    try:
+        dj_database_url.parse(configured_database_url)
+        DATABASE_URL = configured_database_url
+    except Exception:
+        DATABASE_URL = fallback_database_url
+else:
+    DATABASE_URL = fallback_database_url
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_HOST = "localhost"
@@ -158,6 +178,8 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
+db["ENGINE"] = "django.db.backends.postgresql"
 
 DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=60)}
 

@@ -1,21 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useGame } from "../../context/GameContext";
-import Input from "../Input/Input";
 import Button from "../Button/Button";
 import styles from "./ActivityInput.module.scss";
 
 export default function ActivityInput() {
   const { activityTimer, fetchCharacterCurrent, fetchActivities } = useGame();
-  const { status, stop, startActivity, elapsed } = activityTimer;
+  const { currentActivity, status, stop, startActivity, elapsed } = activityTimer;
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
+  const inputRef = useRef(null);
 
   const isActive = status === "active";
 
 
   useEffect(() => () => timeoutRef.current && clearTimeout(timeoutRef.current), []);
+
+  useEffect(() => {
+    if (!inputRef.current) return;
+    inputRef.current.style.height = "auto";
+    inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+  }, [name]);
+
+  useEffect(() => {
+    if (status === "active" && currentActivity?.name) {
+      setName(currentActivity.name);
+    }
+  }, [status, currentActivity]);
 
   async function handleToggle() {
     if (isActive) {
@@ -30,7 +42,7 @@ export default function ActivityInput() {
   }
 
   function handleKeyDown(e) {
-    if (e.key === "Enter" && !isActive && name.trim()) {
+    if (e.key === "Enter" && !e.shiftKey && !isActive && name.trim()) {
       e.preventDefault();
       handleToggle();
 
@@ -52,16 +64,19 @@ export default function ActivityInput() {
       >
         <div className={styles.row}>
           <div className={styles.grow}>
-            <Input
+            <textarea
               id="activity-name"
+              ref={inputRef}
               value={name}
-              onChange={setName}
+              onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="What are you working on? e.g. washing dishes"
-              inputClassName={classNames(styles.control, {
+              className={classNames(styles.inputText, {
                 [styles.inputCTA]: !isActive,
                 [styles.inputMuted]: isActive,
               })}
+              rows={1}
+              aria-label="Activity name"
             />
           </div>
 
@@ -79,9 +94,6 @@ export default function ActivityInput() {
           </Button>
         </div>
 
-        <div className={styles.subRow}>
-          <span className={styles.status}>{isActive ? "Running" : "Not running"}</span>
-        </div>
       </div>
 
     </div>

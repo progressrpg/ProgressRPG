@@ -1,1 +1,1 @@
-from django.db import models
+# Temporarily disabled until GDAL support is available

@@ -17,7 +17,7 @@ from .views import (
 )
 
 from character.views import CharacterViewSet
-from gameplay.views import ActivityTimerViewSet, QuestTimerViewSet, QuestViewSet
+from gameplay.views import ActivityTimerViewSet
 from progression.views import (
     PlayerActivityViewSet,
     CharacterActivityViewSet,
@@ -58,10 +58,7 @@ router.register(
 )
 router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"character_quests", CharacterQuestViewSet, basename="characterquest")
-
-router.register(r"quests", QuestViewSet, basename="quest")
 router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytimer")
-router.register(r"quest_timers", QuestTimerViewSet, basename="questtimer")
 
 
 urlpatterns = [
@@ -90,4 +87,5 @@ urlpatterns = [
         name="api_download_user_data",
     ),
     path("delete_account/", DeleteAccountAPIView.as_view(), name="api_delete_account"),
+    # Other urls
 ]

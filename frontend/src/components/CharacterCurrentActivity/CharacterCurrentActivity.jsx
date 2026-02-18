@@ -1,46 +1,64 @@
 // components/CharacterActivityCurrent/CharacterActivityCurrent.jsx
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGame } from "../../context/GameContext";
 import styles from "./CharacterCurrentActivity.module.scss";
-
-const fmtTime = (iso) =>
-  iso
-    ? new Date(iso).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
 
 export default function CharacterCurrentActivity() {
   const {
     character,
     characterCurrentActivity,
     fetchCharacterCurrent,
+    activityTimer,
   } = useGame();
+
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     fetchCharacterCurrent();
   }, [fetchCharacterCurrent]);
 
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const timeRemaining = useMemo(() => {
+    const scheduledEnd = characterCurrentActivity.scheduled_end;
+    if (!scheduledEnd) return "";
+    const remainingMs = new Date(scheduledEnd).getTime() - now;
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) return "";
+    const totalMinutes = Math.floor(remainingMs / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  }, [characterCurrentActivity.scheduled_end, now]);
+
   if (!character || !characterCurrentActivity) return null;
 
   const activityName =
-    characterCurrentActivity.name?.trim().toLowerCase() ||
-    characterCurrentActivity.kind;
+  characterCurrentActivity.name?.trim().toLowerCase() ||
+  characterCurrentActivity.kind ||
+  "an activity";
 
-  const startTime = fmtTime(characterCurrentActivity.started_at || characterCurrentActivity.scheduled_start);
+  const isActive = activityTimer?.status === "active";
 
   return (
 
     <div className={styles.line}>
       <p>
-        <strong>{character.first_name}</strong> began{" "}
-        <span className={styles.activity}>{activityName}</span>{" "}
-        at <span className={styles.time}>{startTime}</span>
+        <strong>{character.first_name}</strong> is{" "}
+        <span className={styles.activity}>{activityName}</span>
+        {timeRemaining && (
+          <span className={styles.remaining}> ({timeRemaining})</span>
+        )}
       </p>
-      <p>
-        ⚡ Online bonus active (+20% XP)
-      </p>
+      <p className={styles.bonus}>Player online: +20% XP</p>
+      {isActive && (
+        <p className={styles.bonusActive}>Player active: +50% XP</p>
+      )}
     </div>
 
   );

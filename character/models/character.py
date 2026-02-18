@@ -15,6 +15,7 @@ from gameplay.serializers import QuestResultSerializer
 from progression.models import CharacterQuest
 from progress_rpg.exceptions import QuestError
 
+
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
 
@@ -186,6 +187,7 @@ class Character(Person, LifeCycleMixin):
     first_name = models.CharField(max_length=50, default="")
     last_name = models.CharField(max_length=50, default="", null=True, blank=True)
     backstory = models.TextField(default="")
+
     parents = models.ManyToManyField(
         "self", related_name="children", symmetrical=False, blank=True
     )
@@ -195,14 +197,13 @@ class Character(Person, LifeCycleMixin):
     coins = models.PositiveIntegerField(default=0)
     reputation = models.IntegerField(default=0)
     can_link = models.BooleanField(default=False)
-    # quest_timer = Optional["QuestTimer"]
 
     @property
     def is_npc(self):
         """
         A character is an NPC if they don't have an active PlayerCharacterLink.
         """
-        return not self.player_link.filter(is_active=True).exists()
+        return not self.links.filter(is_active=True).exists()
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -238,9 +239,6 @@ class Character(Person, LifeCycleMixin):
         Retrieve the player associated with this character.
         """
         return PlayerCharacterLink.get_player(self)
-
-    def start_quest(self, quest):
-        self.quest_timer.change_quest(quest)
 
     @transaction.atomic
     def complete_quest(self, xp_gained):
@@ -358,11 +356,7 @@ class Character(Person, LifeCycleMixin):
 
     @classmethod
     def has_available(cls):
-        return (
-            cls.objects.filter(can_link=True)
-            .exclude(player_link__is_active=True)
-            .exists()
-        )
+        return cls.objects.filter(can_link=True).exclude(links__is_active=True).exists()
 
 
 class PlayerCharacterLink(models.Model):
@@ -372,8 +366,8 @@ class PlayerCharacterLink(models.Model):
     character = models.ForeignKey(
         "Character", on_delete=models.CASCADE, related_name="links"
     )
-    date_linked = models.DateField(auto_now_add=True)
-    date_unlinked = models.DateField(null=True, blank=True)
+    linked_at = models.DateTimeField(auto_now_add=True)
+    unlinked_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:

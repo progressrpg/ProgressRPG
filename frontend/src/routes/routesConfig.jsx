@@ -7,7 +7,6 @@ const LogoutPage = lazy(() => import("../pages/LogoutPage/LogoutPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage/RegisterPage"));
 const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage"));
-const ProfilePage = lazy(() => import("../pages/PlayerPage/PlayerPage"));
 const AccountPage = lazy(() => import("../pages/Account/Account"));
 const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
@@ -64,18 +63,12 @@ export const routes = [
     ),
   },
   {
-    path: "/profile",
-    element: (
-      <PrivateRoute>
-        <ProfilePage />
-      </PrivateRoute>
-    ),
-  },
-  {
     path: "/account",
     element: (
       <PrivateRoute>
-        <AccountPage />
+          <RequireOnboardingComplete>
+          <AccountPage />
+        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },
@@ -83,7 +76,9 @@ export const routes = [
     path: "/edit-account",
     element: (
       <PrivateRoute>
-        <EditAccount />
+        <RequireOnboardingComplete>
+          <EditAccount />
+        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },
@@ -91,7 +86,9 @@ export const routes = [
     path: "/skills",
     element: (
       <PrivateRoute>
-        <SkillsPage />
+        <RequireOnboardingComplete>
+          <SkillsPage />
+        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },
@@ -99,7 +96,9 @@ export const routes = [
     path: "/tasks",
     element: (
       <PrivateRoute>
-        <TasksPage />
+        <RequireOnboardingComplete>
+          <TasksPage />
+        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },
@@ -107,7 +106,9 @@ export const routes = [
     path: "/activities",
     element: (
       <PrivateRoute>
-        <ActivitiesPage />
+        <RequireOnboardingComplete>
+          <ActivitiesPage />
+        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },
@@ -115,7 +116,9 @@ export const routes = [
     path: "/categories",
     element: (
       <PrivateRoute>
-        <CategoriesPage />
+        <RequireOnboardingComplete>
+          <CategoriesPage />
+        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },

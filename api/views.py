@@ -51,9 +51,7 @@ from gameplay.utils import send_group_message
 from gameplay.serializers import ActivityTimerSerializer
 from gameplay.services.xp_modifiers import handle_online_login
 
-from progression.serializers import (
-    PlayerActivitySerializer,
-)
+from progression.serializers import PlayerActivitySerializer
 
 from users.serializers import PlayerSerializer
 from users.utils import send_email_to_users

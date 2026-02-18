@@ -8,6 +8,7 @@ export function useBootstrapGameData() {
   const [player, setPlayer] = useState(null);
   const [character, setCharacter] = useState(null);
   const [activityTimerInfo, setActivityTimerInfo] = useState(null);
+  const [populationCentreInfo, setPopulationCentreInfo] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buildNumber, setBuildNumber] = useState(true);
@@ -28,6 +29,7 @@ export function useBootstrapGameData() {
         setPlayer(info.profile);
         setCharacter(info.character);
         setActivityTimerInfo(info.activity_timer);
+        setPopulationCentreInfo(info.population_centre);
         setBuildNumber(info.build_number);
       } catch (err) {
         console.error('[Bootstrap] Error loading game data:', err);
@@ -44,6 +46,7 @@ export function useBootstrapGameData() {
     player,
     character,
     activityTimerInfo,
+    populationCentreInfo,
     buildNumber,
     loading,
     error

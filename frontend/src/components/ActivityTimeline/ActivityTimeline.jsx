@@ -4,6 +4,26 @@ import { useGame } from "../../context/GameContext";
 import List from "../List/List";
 import styles from "./ActivityTimeline.module.scss";
 
+
+// Helper to format duration nicely
+const formatDuration = (seconds) => {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes < 60) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+};
+
 export default function ActivityTimeline() {
   const {
     playerActivities,
@@ -59,16 +79,17 @@ export default function ActivityTimeline() {
 
         <List
           items={unifiedActivities}
-          getKey={(act) => `${act.source}-${act.id ?? i}`}
+          getKey={(act) => `${act.player ? 'player' : 'character'}-${act.id ?? i}`}
           renderItem={(act) => (
             <div className={styles.line}>
               {act.player ? 'You' : character?.first_name || 'Character' } finished <strong>{act.name.toLowerCase() || act.kind || "an activity"}</strong> —{" "}
-              {act.completed_at
+              {formatDuration(act.duration)}
+              {/* {act.completed_at
                 ? new Date(act.completed_at).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
                 })
-                : "Not completed"}
+                : "Not completed"} */}
             </div>
           )}
         />
