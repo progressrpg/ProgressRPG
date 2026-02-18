@@ -99,6 +99,7 @@ def ensure_branch_db_exists():
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(f"CREATE DATABASE {db_name};")
+            # cur.execute("CREATE EXTENSION IF NOT EXISTS postgis;")
         print(f"✅ Created database: {db_name}")
         return True
     except psycopg2.Error as e:
