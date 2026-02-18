@@ -12,8 +12,10 @@ logger = logging.getLogger("general")
 
 
 @receiver(post_save, sender=Player)
-def create_activity_timer(sender, instance, created, **kwargs):
+def create_activity_timer(sender, instance, created, raw=False, **kwargs):
     """Create an activity timer for the player when a new player is created"""
+    if raw:
+        return
     if created:
         ActivityTimer.objects.create(player=instance)
         logger.info(
