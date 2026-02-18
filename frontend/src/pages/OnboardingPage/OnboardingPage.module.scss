@@ -1,7 +1,22 @@
 @use '../../styles/semantic/typography' as t;
 @use '../../styles/base/variables' as v;
 @use '../../styles/utilities/mixins' as m;
-
+@use '../../styles/tokens/colors' as c;
 .page {
 	@include m.page-layout();
+}
+
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-gap;
+  width: 100%;
+  max-width: 50vw;
+  min-width: 200px;
+
+	padding: v.$padding-lg;
+  border: grey 1px solid;
+  @include m.border(rgba(c.$color-primary, 0.4));
+	border-radius: v.$border-radius;
 }

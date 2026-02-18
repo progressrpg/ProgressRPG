@@ -20,12 +20,20 @@ export default function OnboardingPage() {
 
   return (
     <div className={styles.page}>
-      <h1>Welcome</h1>
-      <p>Welcome to Progress RPG ✨</p>
-      <p>Here, your real tasks become in-game progress.</p>
-      <p>Start an activity (as small as you like) and feel the anxiety reduce as you make progress.</p>
-      <p>Progress RPG is a work in progress, and we appreciate your patience as we continue to improve the experience.</p>
-      <p>Please consider filling out this <a href="https://forms.gle/9EtaqxQoNwTATDMBA" target="_blank" rel="noopener noreferrer">feedback form</a>.</p>
+      <div className={styles.content}>
+        <h1>Welcome</h1>
+        <p>Welcome to Progress RPG ✨</p>
+        <p>This is a space where your real-world effort becomes in-game progress.</p>
+        <p>When you start timing an activity, two things happen at the same time:</p>
+        <ul>
+          <li><strong>You</strong> work on a real task, at your own pace.</li>
+          <li><strong>Your character</strong> trains, explores, and grows in the game world.</li>
+        </ul>
+        <p>Even small actions count.</p>
+        <p>Starting is enough.</p>
+        <p>Progress RPG is designed to help reduce overwhelm, build momentum, and make effort feel meaningful.</p>
+        <p>Take your time exploring — and when you’re ready, start your first activity.</p>
+        <p>We’re still building and improving the experience, so <a href="https://forms.gle/9EtaqxQoNwTATDMBA" target="_blank" rel="noopener noreferrer">your feedback</a> is incredibly valuable.</p>
 
         {error && <p role="alert">{error}</p>}
         <Button
@@ -34,7 +42,7 @@ export default function OnboardingPage() {
         >
           Enter the game
         </Button>
-
+      </div>
     </div>
   );
 }

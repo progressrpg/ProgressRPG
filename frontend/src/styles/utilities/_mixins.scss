@@ -130,7 +130,7 @@
   }
 }
 
-@mixin page-layout($max-small: 576px, $max-big: 1400px) {
+@mixin page-layout($max-small: 576px, $max-big: 1000px) {
   display: flex;
   flex-direction: column;
   align-items: center;
