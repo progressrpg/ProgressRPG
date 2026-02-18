@@ -15,7 +15,7 @@ from users.models import Player
 from .models import ServerMessage
 from .utils import process_completion, process_initiation, control_timers
 
-logger = logging.getLogger("activity")
+logger = logging.getLogger("general")
 logger_errors = logging.getLogger("errors")
 
 PENDING_OFFLINE = {}

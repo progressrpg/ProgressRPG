@@ -49,33 +49,33 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
-        "file_info": {
-            "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/general.log"),
-            "formatter": "verbose",
-            "filters": ["request_context"],
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 3,  # Keep last 3 log files
-        },
-        "file_errors": {
-            "level": "ERROR",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/errors.log"),
-            "formatter": "verbose",
-            "filters": ["request_context"],
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 3,  # Keep last 3 log files
-        },
-        "file_debug": {
-            "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/activity.log"),
-            "formatter": "verbose",
-            "filters": ["request_context"],
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 6,  # Keep last 5 log files
-        },
+        # "file_info": {
+        #     "level": "INFO",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/general.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 3,  # Keep last 3 log files
+        # },
+        # "file_errors": {
+        #     "level": "ERROR",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/errors.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 3,  # Keep last 3 log files
+        # },
+        # "file_debug": {
+        #     "level": "DEBUG",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/activity.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 6,  # Keep last 5 log files
+        # },
     },
     "loggers": {
         "django": {
@@ -83,24 +83,24 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
-        "errors": {
-            "handlers": ["file_errors"],
-            "level": "ERROR",
-            "propagate": False,
-        },
-        "general": {
-            "handlers": ["file_info"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "activity": {
-            "handlers": ["file_debug"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
+        # "errors": {
+        #     "handlers": ["file_errors"],
+        #     "level": "ERROR",
+        #     "propagate": False,
+        # },
+        # "general": {
+        #     "handlers": ["file_info"],
+        #     "level": "INFO",
+        #     "propagate": False,
+        # },
+        # "activity": {
+        #     "handlers": ["file_debug"],
+        #     "level": "DEBUG",
+        #     "propagate": False,
+        # },
         "django.db.backends": {
             "level": "WARNING",
-            "handlers": ["console", "file_errors"],
+            "handlers": ["console"],
             "propagate": False,
         },
     },
