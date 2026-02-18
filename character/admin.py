@@ -11,10 +11,7 @@ from django.contrib import messages
 
 class LinkInline(admin.TabularInline):
     model = PlayerCharacterLink
-    fields = ("player", "linked_at", "is_active")
-    readonly_fields = ("linked_at",)
     extra = 0
-    max_num = 1
 
 
 class BehaviourInline(admin.StackedInline):
@@ -27,7 +24,7 @@ class BehaviourInline(admin.StackedInline):
 def mark_as_npc(modeladmin, request, queryset):
     for character in queryset:
         # Unlink any active PlayerCharacterLink
-        active_links = character.links.filter(is_active=True)
+        active_links = character.player_link.filter(is_active=True)
         for link in active_links:
             link.unlink()
 
@@ -97,6 +94,7 @@ class CharacterAdmin(admin.ModelAdmin):
         "get_player",
         "can_link",
         "birth_date",
+        "death_date",
     ]
     list_filter = [
         "can_link",
@@ -107,13 +105,12 @@ class CharacterAdmin(admin.ModelAdmin):
     search_fields = [
         "first_name",
         "last_name",
-        "links__player__name",
+        "player_link__player__name",
     ]
     readonly_fields = [
         "get_player",
+        "is_npc",
         "get_age",
-        "parents",
-        "created_at",
     ]
 
     ordering = ["last_name", "first_name"]
@@ -143,13 +140,13 @@ class CharacterAdmin(admin.ModelAdmin):
 
 @admin.register(PlayerCharacterLink)
 class PlayerCharacterLinkAdmin(admin.ModelAdmin):
-    list_display = ["player", "character", "is_active", "linked_at", "unlinked_at"]
+    list_display = ["player", "character", "is_active", "date_linked", "date_unlinked"]
     fields = [
         ("player", "character", "is_active"),
         ("online_boost_active", "online_boost_ends_at"),
-        ("linked_at", "unlinked_at"),
+        ("date_linked", "date_unlinked"),
     ]
-    readonly_fields = ["linked_at", "unlinked_at"]
+    readonly_fields = ["date_linked", "date_unlinked"]
 
 
 class CharacterInline(admin.TabularInline):

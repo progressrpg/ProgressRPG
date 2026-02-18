@@ -46,62 +46,6 @@
     @include c.apply-text-tone(map.get(c.$text-tone, invert));
 }
 
-.accountMenu {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.accountTrigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: v.$border-radius;
-  border: 1px solid rgba(c.$color-border-primary, 0.35);
-  background: transparent;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
-
-  &:hover {
-    border-color: rgba(c.$color-border-primary, 0.6);
-    background: rgba(c.$color-border-primary, 0.08);
-  }
-}
-
-.personIcon {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
-}
-
-.accountDropdown {
-  position: absolute;
-  top: calc(100% + #{v.$spacing-xs});
-  right: 0;
-  min-width: 160px;
-  background: c.$color-bg;
-  border: 1px solid rgba(c.$color-border-primary, 0.2);
-  border-radius: v.$border-radius;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-  padding: v.$spacing-xs 0;
-  z-index: v.$z-indexdropdown;
-  display: flex;
-  flex-direction: column;
-}
-
-.accountDropdown a {
-  text-decoration: none;
-  padding: v.$spacing-sm v.$spacing-md;
-  @include t.apply-text-style(t.$text-body);
-  @include c.apply-text-tone(map.get(c.$text-tone, default));
-
-  &:hover {
-    background: rgba(c.$color-border-primary, 0.08);
-  }
-}
-
 //.account {
   // Reserved for future use (icons, dropdowns, etc.)
 //}

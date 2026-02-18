@@ -140,31 +140,13 @@ class CharacterActivityAdmin(admin.ModelAdmin):
     )
     ordering = ("-completed_at",)
 
-    actions = ["complete_past", "duplicate_activities"]
+    actions = ["complete_past"]
 
     @admin.display(description="Complete past unfinished activities")
     def complete_past(self, request, queryset):
         for activity in queryset:
             activity.complete_past()
         self.message_user(request, "Activities have been completed.")
-
-    @admin.display(description="Duplicate selected activities")
-    def duplicate_activities(self, request, queryset):
-        new_count = 0
-        for activity in queryset:
-            CharacterActivity.objects.create(
-                character=activity.character,
-                name=activity.name,
-                description=activity.description,
-                duration=activity.duration,
-                started_at=activity.completed_at,
-                xp_gained=activity.xp_gained,
-                scheduled_start=activity.completed_at,
-                scheduled_end=activity.scheduled_end,
-                kind=activity.kind,
-            )
-            new_count += 1
-        self.message_user(request, f"Created {new_count} duplicate activities.")
 
 
 # @admin.register(CharacterQuest)

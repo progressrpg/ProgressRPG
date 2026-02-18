@@ -1,33 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
 import styles from './Navbar.module.scss';
 import Button from '../../components/Button/Button';
+import ButtonFrame from '../../components/Button/ButtonFrame';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar({ onMenuClick }) {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const [accountOpenMobile, setAccountOpenMobile] = useState(false);
-  const accountMobileRef = useRef(null);
 
   const isGamePage = location.pathname === '/game';
   const isActivitiesPage = location.pathname === '/activities';
-  const isHomePage = location.pathname === '/' || location.pathname === '/home';
-  const isAccountPage = location.pathname === '/account';
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const clickInsideMobile = accountMobileRef.current?.contains(event.target);
-
-      if (!clickInsideMobile) {
-        setAccountOpenMobile(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   return (
     <header className={styles.header}>
@@ -61,15 +45,15 @@ export default function Navbar({ onMenuClick }) {
             <>
               <div className={styles.link}>
                 <Link to="/logout" aria-label="Log out of your account">
-                  <Button variant="secondary" className={styles.navLink}>
-                    Log out
-                  </Button>
-                </Link>
+                <Button variant="secondary" className={styles.navLink}>
+                  Log out
+                </Button>
+              </Link>
               </div>
               <Link to="/account" aria-label="Go to your account">
                 <Button
                   className={styles.navLink}
-                  variant={isAccountPage ? 'secondary' : 'primary'}
+                  variant="primary"
                 >
                   Account
                 </Button>
@@ -95,64 +79,30 @@ export default function Navbar({ onMenuClick }) {
         </div>
 
         <div className={styles.icons} role="navigation" aria-label="Mobile navigation">
-          <button
-            className={styles.menuButton}
-            onClick={onMenuClick}
-            aria-label="Open menu"
-          >
-            <div className={styles.menuIcon}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </button>
           {isAuthenticated ? (
             <>
+              {/* <Link to="/menu">Menu</Link> */}
               <Link to="/game" aria-label="Go to game">
                 <Button
-                  variant={isGamePage ? "secondary" : "primary"}
+                  variant={isGamePage ? "primary" : "secondary"}
                   className={styles.navLink}
                 >
                   Game
                 </Button>
               </Link>
-              <div className={styles.accountMenu} ref={accountMobileRef}>
-                <button
-                  className={styles.accountTrigger}
-                  onClick={() => setAccountOpenMobile((open) => !open)}
-                  aria-label="Account menu"
-                  aria-haspopup="true"
-                  aria-expanded={accountOpenMobile}
+              <Link to="/activities">
+                <Button
+                  variant={isActivitiesPage ? "primary" : "secondary"}
+                  className={styles.navLink}
                 >
-                  <svg
-                    className={styles.personIcon}
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-                  </svg>
-                </button>
-                {accountOpenMobile && (
-                  <div className={styles.accountDropdown} role="menu">
-                    <Link
-                      to="/account"
-                      role="menuitem"
-                      onClick={() => setAccountOpenMobile(false)}
-                    >
-                      Account
-                    </Link>
-                    <Link
-                      to="/logout"
-                      role="menuitem"
-                      onClick={() => setAccountOpenMobile(false)}
-                    >
-                      Log out
-                    </Link>
-                  </div>
-                )}
-              </div>
+                  Activities
+                </Button>
+              </Link>
+              <Link to="/account" aria-label="Go to your account">
+                <Button variant="secondary" className={styles.navLink}>
+                  Account
+                </Button>
+              </Link>
             </>
           ) : (
             <>

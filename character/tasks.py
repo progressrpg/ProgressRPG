@@ -28,7 +28,6 @@ def generate_character_days(self, date_iso: str | None = None) -> dict:
             skipped_no_behaviour += 1
             continue
 
-        behaviour.sync_to_now()  # Ensure behaviour is up to date before generating the day
         # Your Behaviour.generate_day should be idempotent for that date
         behaviour.generate_day(target_date)
         generated += 1
