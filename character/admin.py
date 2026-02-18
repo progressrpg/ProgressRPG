@@ -143,7 +143,6 @@ class PlayerCharacterLinkAdmin(admin.ModelAdmin):
     list_display = ["player", "character", "is_active", "linked_at", "unlinked_at"]
     fields = [
         ("player", "character", "is_active"),
-        ("online_boost_active", "online_boost_ends_at"),
         ("linked_at", "unlinked_at"),
     ]
     readonly_fields = ["linked_at", "unlinked_at"]
