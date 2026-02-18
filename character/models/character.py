@@ -1,16 +1,12 @@
 # from datetime import datetime
 from celery import current_app
 from decimal import Decimal
-from django.contrib.gis.geos import Point
-from django.contrib.gis.db.models.functions import Distance
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
 from django.utils import timezone
 from random import random, randint
 from typing import TYPE_CHECKING, Optional, Dict, Any, cast
 import logging
-import math
-import random
 
 from users.models import Person, Player
 
@@ -19,19 +15,12 @@ from gameplay.serializers import QuestResultSerializer
 from progression.models import CharacterQuest
 from progress_rpg.exceptions import QuestError
 
-from character.services import character_services, lifecycle_services, link_services
-from locations.models import Movable, Node, Building
 
 if TYPE_CHECKING:
     from gameplay.models import QuestTimer
 
 logger = logging.getLogger("general")
 logger_errors = logging.getLogger("errors")
-
-
-########################################################################
-####    RELATIONSHIPS & LIFECYCLE
-########################################################################
 
 
 class CharacterRelationship(models.Model):
@@ -69,11 +58,13 @@ class CharacterRelationship(models.Model):
 
     def adjust_strength(self, amount):
         """Modify relationship strength."""
-        return lifecycle_services.relationship_adjust_strength(self, amount)
+        self.strength = max(min(self.strength + amount, 100), -100)
+        self.save()
 
     def log_event(self, event):
         """Add an event to the history log."""
-        return lifecycle_services.relationship_log_event(self, event)
+        self.history.setdefault("events", []).append(event)
+        self.save()
 
     def __str__(self):
         characters_list = [str(char) for char in self.get_members()]
@@ -107,45 +98,81 @@ class LifeCycleMixin(models.Model):
         abstract = True
 
     def get_age(self):
-        return lifecycle_services.lifecycle_get_age(self)
+        return (timezone.now().date() - self.birth_date).days
 
     def die(self):
-        return lifecycle_services.lifecycle_die(self)
+        self.death_date = timezone.now().date()
+        self.save()
 
     def is_alive(self):
-        return lifecycle_services.lifecycle_is_alive(self)
+        return self.death_date is None
 
     def get_romantic_partners(self):
-        return lifecycle_services.lifecycle_get_romantic_partners(self)
+        return Character.objects.filter(
+            characterrelationshipmembership__character=self,
+            characterrelationshipmembership__relationship__relationship_type="romantic",
+        )
 
     def is_fertile(self):
-        return lifecycle_services.lifecycle_is_fertile(self)
+        return self.fertility > 0
 
     def can_reproduce_with(self, partner):
-        return lifecycle_services.lifecycle_can_reproduce_with(self, partner)
+        if self.fertility <= 0 or partner.fertility <= 0:
+            return False
+        if (
+            self.sex == "Male"
+            and partner.sex == "Male"
+            or self.sex == "Female"
+            and partner.sex == "Female"
+        ):
+            return False
+        return True
 
     def attempt_pregnancy(self):
-        return lifecycle_services.lifecycle_attempt_pregnancy(self)
+        romantic_partners = self.get_romantic_partners()
+
+        for partner in romantic_partners:
+            if self.can_reproduce_with(partner):
+                if self.is_fertile() and not self.is_pregnant:
+                    self.start_pregnancy(partner)
+                    return True
+        return False
 
     def start_pregnancy(self, partner):
-        return lifecycle_services.lifecycle_start_pregnancy(self, partner)
+        self.is_pregnant = True
+        self.pregnancy_start_date = timezone.now().date()
+        self.pregnancy_partner = partner
+
+        self.save()
 
     def handle_childbirth(self):
-        return lifecycle_services.lifecycle_handle_childbirth(self)
+        child_name = f"Child of {self.first_name}"
+        child = Character.objects.create(
+            name=child_name,
+            birth_date=timezone.now().date(),
+            sex="Male" if randint(0, 1) == 0 else "Female",
+            # x_coordinate=self.x_coordinate,
+            # y_coordinate=self.y_coordinate,
+        )
+
+        child.parents.add(self)
+        if self.pregnancy_partner:
+            child.parents.add(self.pregnancy_partner)
+        child.save()
 
     def handle_miscarriage(self):
-        return lifecycle_services.lifecycle_handle_miscarriage(self)
+        self.is_pregnant = False
+        self.pregnancy_start_date = None
+        self.save()
 
     def get_miscarriage_change(self):
-        return lifecycle_services.lifecycle_get_miscarriage_change(self)
+        chance = 0.05
+        if self.get_age() > (40 * 365):
+            chance += 0.10
+        return round(chance, 5)
 
 
-########################################################################
-####    CHARACTER MODEL
-########################################################################
-
-
-class Character(Person, LifeCycleMixin, Movable):
+class Character(Person, LifeCycleMixin):
     quest_completions = models.ManyToManyField(
         "gameplay.Quest",
         through="gameplay.QuestCompletion",
@@ -160,20 +187,6 @@ class Character(Person, LifeCycleMixin, Movable):
     first_name = models.CharField(max_length=50, default="")
     last_name = models.CharField(max_length=50, default="", null=True, blank=True)
     backstory = models.TextField(default="")
-    building = models.ForeignKey(
-        "locations.Building",
-        related_name="residents",
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL,
-    )
-    population_centre = models.ForeignKey(
-        "locations.PopulationCentre",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="residents",
-    )
 
     parents = models.ManyToManyField(
         "self", related_name="children", symmetrical=False, blank=True
@@ -184,7 +197,6 @@ class Character(Person, LifeCycleMixin, Movable):
     coins = models.PositiveIntegerField(default=0)
     reputation = models.IntegerField(default=0)
     can_link = models.BooleanField(default=False)
-    # quest_timer = Optional["QuestTimer"]
 
     @property
     def is_npc(self):
@@ -228,18 +240,40 @@ class Character(Person, LifeCycleMixin, Movable):
         """
         return PlayerCharacterLink.get_player(self)
 
-    def react_to_sun_phase(self, phase):
-        return character_services.character_react_to_sun_phase(self, phase)
-
-    def assign_home(self, building: Building):
-        return character_services.character_assign_home(self, building)
-
     @transaction.atomic
     def complete_quest(self, xp_gained):
         """
         Complete the character's active quest and apply rewards.
         """
-        return character_services.character_complete_quest(self, xp_gained)
+        logger.info(f"[CHAR.COMPLETE_QUEST] Starting quest completion for {self}")
+
+        quest = self.quest_timer.quest
+
+        if quest is None:
+            logger_errors.error(
+                f"[CHAR.COMPLETE_QUEST] Quest is None for character {self.id}",
+                extra={"character_id": self.id},
+            )
+            raise QuestError(f"No quest found for character {self.id}")
+
+        rewards_summary = None
+        try:
+            if hasattr(quest, "results") and quest.results is not None:
+                rewards_summary = self.apply_quest_results(quest)
+            else:
+                rewards_summary = {
+                    "xp_gained": 0,
+                    "coins_gained": 0,
+                    "dynamic_rewards": {},
+                    "levelups": [],
+                }
+        except Exception as e:
+            logger_errors.exception(
+                f"[CHAR.COMPLETE_QUEST] Error applying rewards for quest {quest.id}: {e}"
+            )
+
+        logger.info(f"[CHAR.COMPLETE_QUEST] Quest completion successful")
+        return rewards_summary
 
     @transaction.atomic
     def apply_quest_results(self, quest):
@@ -248,16 +282,81 @@ class Character(Person, LifeCycleMixin, Movable):
         coins, xp, and dynamic rewards.
 
         """
-        return character_services.character_apply_quest_results(self, quest)
+        logger.info(f"[QUESTRESULTS.APPLY] Applying results to character {self.name}")
+        results = getattr(quest, "results", {}) or {}
+
+        xp_rate = getattr(results, "xp_rate", 1)
+
+        time_xp = xp_rate * getattr(quest, "duration", 0)
+        level_scaling = 1
+        repeat_penalty = 1
+        final_xp = time_xp * level_scaling * repeat_penalty
+
+        coins_gained = results.get("coin_reward", 0)
+        self.coins += coins_gained
+
+        dynamic_rewards = results.get("dynamic_rewards", {})
+        if dynamic_rewards:
+            for key, value in dynamic_rewards.items():
+                if hasattr(self, f"apply_{key}"):
+                    getattr(self, f"apply_{key}")(value)
+                elif hasattr(self, key):
+                    current_value = getattr(self, key)
+                    if isinstance(current_value, (int, float)):
+                        setattr(self, key, current_value + value)
+                    else:
+                        setattr(self, key, value)
+        else:
+            logger.info(
+                f"[CHAR.APPLY_QUEST_RESULTS] No dynamic rewards found for quest."
+            )
+
+        levelups = []
+        try:
+            levelups = self.add_xp(final_xp)
+            self.save(update_fields=["coins"])
+
+        except Exception as e:
+            logger.exception(
+                f"[CHAR.APPLY_QUEST_RESULTS] Error updating XP or quest count for character {self.id}: {e}"
+            )
+            return None
+
+        try:
+            from gameplay.models import ServerMessage
+
+            for event in levelups:
+                ServerMessage.objects.create(
+                    group=self.current_player.group_name,
+                    type="notification",
+                    action="notification",
+                    message=f"Character {self.name} levelled up! Now level {event['new_level']}.",
+                    data={"level": event["new_level"]},
+                    is_draft=False,
+                )
+        except Exception as e:
+            logger.exception(
+                f"[CHAR.COMPLETE_QUEST] Error notifying levelup for character {self.id}: {e}"
+            )
+            return None
+        rewards_summary = {
+            "xp_gained": final_xp if "final_xp" in locals() else 0,
+            "coins_gained": getattr(results, "coin_reward", 0) if results else 0,
+            "dynamic_rewards": (
+                getattr(results, "dynamic_rewards", {}) if results else {}
+            ),
+            "levelups": (
+                [{"new_level": e["new_level"]} for e in levelups]
+                if "levelups" in locals()
+                else []
+            ),
+        }
+
+        return rewards_summary
 
     @classmethod
     def has_available(cls):
-        return character_services.character_has_available(cls)
-
-
-########################################################################
-####    PLAYER CHARACTER LINK MODEL
-########################################################################
+        return cls.objects.filter(can_link=True).exclude(links__is_active=True).exists()
 
 
 class PlayerCharacterLink(models.Model):
@@ -267,7 +366,7 @@ class PlayerCharacterLink(models.Model):
     character = models.ForeignKey(
         "Character", on_delete=models.CASCADE, related_name="links"
     )
-    linked_at = models.DateTimeField(default=timezone.now)
+    linked_at = models.DateTimeField(auto_now_add=True)
     unlinked_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
@@ -285,95 +384,60 @@ class PlayerCharacterLink(models.Model):
             ),
         ]
 
-    @property
-    def end_at(self):
-        return self.unlinked_at or timezone.now()
-
-    @property
-    def days_linked(self):
-        end_date = self.unlinked_at or timezone.now()
-        return (end_date - self.linked_at).days
-
-    @property
-    def player_time(self):
-        """
-        Total completed activity time for this link (in seconds).
-        """
-        qs = self.player.activities.filter(
-            is_complete=True,
-            completed_at__gte=self.linked_at,
-            completed_at__lte=self.end_at,
-        )
-
-        total_seconds = qs.aggregate(total=Sum("duration"))["total"] or 0
-        return int(total_seconds // 60)
-
-    def update_points(self):
-        # Get or create link-specific currency
-        currency = self.get_link_points_currency()
-        last_calc = currency.last_calculated_at or self.linked_at
-
-        # Only calculate points for overlapping period of this link
-        period_start = max(last_calc, self.linked_at)
-        period_end = self.end_at
-
-        days_delta = max((period_end.date() - period_start.date()).days, 0)
-        day_points = days_delta
-
-        new_logins = self.player.user.logins.filter(
-            timestamp__gt=period_start, timestamp__lte=period_end
-        ).count()
-        login_points = new_logins * 5
-
-        new_activity_seconds = (
-            self.character.activities.filter(
-                is_complete=True,
-                completed_at__gt=period_start,
-                completed_at__lte=period_end,
-            ).aggregate(total=Sum("duration"))["total"]
-            or 0
-        )
-        time_points = (new_activity_seconds // 60) // 60
-
-        total_new_points = day_points + login_points + time_points
-
-        # Premium multiplier
-        if self.player.user.subscription_status == "active":
-            total_new_points *= 2
-
-        # Credit currency
-        currency.earn(total_new_points)
-        return total_new_points
-
-    def get_link_points_currency(self):
-        return self.player.get_currency(f"link_points")
-
-    @property
-    def link_points(self):
-        return self.get_link_points_currency().earned
-
     @classmethod
     def get_character(cls, player: Player) -> Character:
-        return link_services.player_link_get_character(cls, player)
+        links = PlayerCharacterLink.objects.filter(player=player, is_active=True)
+        if not links.exists():
+            raise ValueError("No active Character found for this player.")
+
+        if links.count() > 1:
+            logger.warning(
+                f"[PLAYER] Multiple active characters found for player {player.id} — returning the first one"
+            )
+
+        return links.first().character
 
     @classmethod
     def get_player(cls, character: Character) -> Player:
-        return link_services.player_link_get_player(cls, character)
+        links = PlayerCharacterLink.objects.filter(character=character, is_active=True)
+        if not links.exists():
+            raise ValueError("Character has no active Player link.")
+
+        if links.count() > 1:
+            logger.warning(
+                f"[PLAYER] Multiple active player links found for character {character.id} — returning the first one"
+            )
+
+        return links.first().player
 
     def unlink(self):
         """Marks link as inactive and records unlink date"""
-        return link_services.player_link_unlink(self)
+        self.date_unlinked = timezone.now().date()
+        self.is_active = False
+        self.save()
+        # Make character available for linking again
+        self.character.can_link = True
+        self.character.save(update_fields=["can_link"])
 
     @classmethod
-    def deactivate_active_links(
-        cls, player: Player = None, character: Character = None
-    ):
-        return link_services.player_link_deactivate_active_links(cls, player, character)
+    def deactivate_active_links(cls, player: Player):
+        for link in cls.objects.filter(player=player, is_active=True):
+            link.unlink()
+
+    @classmethod
+    def deactivate_active_links_for_character(cls, character: Character):
+        for link in cls.objects.filter(character=character, is_active=True):
+            link.unlink()
 
     @classmethod
     def assign_character(cls, player: Player, character: Character):
-        return link_services.player_link_assign_character(cls, player, character)
-
-    @classmethod
-    def total_link_points(cls, list_of_links):
-        return sum(link.link_points for link in list_of_links)
+        cls.deactivate_active_links(player)
+        cls.deactivate_active_links_for_character(character)
+        link = cls.objects.create(
+            player=player,
+            character=character,
+            is_active=True,
+        )
+        character.can_link = False
+        character.save(update_fields=["can_link"])
+        return link

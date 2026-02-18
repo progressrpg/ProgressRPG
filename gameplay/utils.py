@@ -25,22 +25,21 @@ Author:
 
 """
 
-from __future__ import annotations
-from typing import TYPE_CHECKING
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
 
-from progress_rpg.exceptions import QuestError, CharacterError, TimerError
+from .models import QuestCompletion, Quest, ActivityTimer, QuestTimer
+from .serializers import QuestTimerSerializer
+
+from character.models import Character
+from users.models import Player
 
 import logging
 
-logger = logging.getLogger("general")
+from progress_rpg.exceptions import QuestError, CharacterError, TimerError
 
-if TYPE_CHECKING:
-    from character.models import Character
-    from users.models import Player
-    from gameplay.models import ActivityTimer
+logger = logging.getLogger("general")
 
 
 def check_quest_eligibility(character: Character, player: Player) -> list:
@@ -50,8 +49,6 @@ def check_quest_eligibility(character: Character, player: Player) -> list:
     logger.info(
         f"[CHECK QUEST ELIGIBILITY] Checking eligibility for character {character.id} and player {player.id}"
     )
-    from .models import QuestCompletion, Quest
-
     char_quests = QuestCompletion.objects.filter(character=character)
     quests_done = {}
     for completion in char_quests:
@@ -66,8 +63,8 @@ def check_quest_eligibility(character: Character, player: Player) -> list:
 
 
 def check_individual_quest(
-    quest, character: Character, player: Player, quests_done
-) -> bool:
+    quest: Quest, character: Character, player: Player, quests_done
+):
     # logger.debug(f"[CHECK QUEST ELIGIBILITY] Evaluating quest: {quest}")
 
     return (

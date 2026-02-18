@@ -23,7 +23,7 @@ export default function CharacterCurrentActivity() {
   }, []);
 
   const timeRemaining = useMemo(() => {
-    const scheduledEnd = characterCurrentActivity?.scheduled_end;
+    const scheduledEnd = characterCurrentActivity.scheduled_end;
     if (!scheduledEnd) return "";
     const remainingMs = new Date(scheduledEnd).getTime() - now;
     if (!Number.isFinite(remainingMs) || remainingMs <= 0) return "";
@@ -34,18 +34,19 @@ export default function CharacterCurrentActivity() {
       return `${hours}h ${minutes}m`;
     }
     return `${minutes}m`;
-  }, [characterCurrentActivity?.scheduled_end, now]);
-
-  const isActive = activityTimer?.status === "active";
+  }, [characterCurrentActivity.scheduled_end, now]);
 
   if (!character || !characterCurrentActivity) return null;
 
   const activityName =
-    characterCurrentActivity.name?.trim().toLowerCase() ||
-    characterCurrentActivity.kind ||
-    "an activity";
+  characterCurrentActivity.name?.trim().toLowerCase() ||
+  characterCurrentActivity.kind ||
+  "an activity";
+
+  const isActive = activityTimer?.status === "active";
 
   return (
+
     <div className={styles.line}>
       <p>
         <strong>{character.first_name}</strong> is{" "}

@@ -18,10 +18,9 @@
     "test:a11y:report": "playwright show-report"
   },
   "dependencies": {
-    "@stripe/stripe-js": "^8.7.0",
     "@tanstack/react-query": "^5.90.12",
     "@tanstack/react-query-devtools": "^5.91.1",
-    "axios": "^1.10.0",
+    "axios": "^1.13.5",
     "classnames": "^2.5.1",
     "jsdom": "^27.1.0",
     "jwt-decode": "^4.0.0",
@@ -51,7 +50,7 @@
     "globals": "^16.4.0",
     "happy-dom": "^20.3.3",
     "sass": "^1.93.3",
-    "vite": "^7.3.1",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "vite": "^7.3.1"
   }
 }

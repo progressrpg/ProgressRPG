@@ -3,70 +3,12 @@
 from django.db import models
 from django.utils.timezone import now
 from datetime import datetime, date
-from astral import LocationInfo
-from astral.sun import sun
-import random, math
-import numpy as np
-
-from users.models import Player
-from gameplay.models import QuestCompletion
-
-
-class DailySunTimes(models.Model):
-    world = models.ForeignKey(
-        "GameWorld", on_delete=models.CASCADE, related_name="sun_times"
-    )
-    date = models.DateField(unique=True)
-    sunrise = models.DateTimeField()
-    sunset = models.DateTimeField()
-    dawn = models.DateTimeField()
-    dusk = models.DateTimeField()
-
-    class Meta:
-        unique_together = ("world", "date")
-        ordering = ["date"]
 
 
 class GameWorld(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=100)
-    latitude = models.FloatField(default=51.5074)
-    longitude = models.FloatField(default=-0.1278)
-    timezone = models.CharField(max_length=50, default="Europe/London")
-
-    years_diff = models.IntegerField(blank=True, null=True)
-
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
-
-    @classmethod
-    def get_instance(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
-
-    def current_sun_phase(self, now=None):
-        """
-        Returns one of 'night', 'dawn', 'day', or 'dusk'
-        based on precomputed sun times for today.
-        """
-        from .models import DailySunTimes
-
-        if now is None:
-            now = datetime.now().astimezone()
-
-        today_times = self.sun_times.get(date=now.date())
-
-        if now < today_times.dawn:
-            return "night"
-        elif now < today_times.sunrise:
-            return "dawn"
-        elif now < today_times.sunset:
-            return "day"
-        elif now < today_times.dusk:
-            return "dusk"
-        else:
-            return "night"
+    years_diff = models.IntegerField()
 
     def convert_to_game_date(self, input_date):
         """Convert a date or datetime object to a chosen distance in the past."""

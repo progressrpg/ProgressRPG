@@ -6,7 +6,7 @@ from rest_framework_simplejwt.serializers import (
     TokenRefreshSerializer,
 )
 
-from users.models import UserLogin, Player, InviteCode
+from users.models import Player, InviteCode
 
 from django.contrib.auth import get_user_model
 
@@ -28,10 +28,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         attrs["username"] = attrs.get("email")
         data = super().validate(attrs)
 
-        UserLogin.objects.create(
-            user=self.user
-        )  # triggers first-login-of-day automatically
-
         return {
             "access_token": data["access"],
             "refresh_token": data["refresh"],
@@ -44,6 +40,18 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         return {
             "access_token": data["access"],
         }
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "email",
+            "is_confirmed",
+            "is_staff",
+            "is_superuser",
+            "date_of_birth",
+        ]
 
 
 class Step1Serializer(serializers.ModelSerializer):

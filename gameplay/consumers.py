@@ -6,7 +6,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.db import transaction
 
 # from django.utils.timezone import now
-import json, logging, asyncio
+import json, logging
 from django.core.cache import cache
 
 from gameplay.services.xp_modifiers import schedule_online_end
@@ -15,10 +15,8 @@ from users.models import Player
 from .models import ServerMessage
 from .utils import process_completion, process_initiation, control_timers
 
-logger = logging.getLogger("activity")
+logger = logging.getLogger("general")
 logger_errors = logging.getLogger("errors")
-
-PENDING_OFFLINE = {}
 
 
 class TimerConsumer(AsyncJsonWebsocketConsumer):
@@ -58,13 +56,13 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             )
             self.player_group = f"player_{self.player.id}"
 
-            task = PENDING_OFFLINE.pop(self.player.id, None)
-            if task:
-                task.cancel()
-
-            await database_sync_to_async(self.player.increment_connection)()
-
-            await self.broadcast_online_players()
+            await database_sync_to_async(self.player.set_online)()
+            is_online_now = await database_sync_to_async(
+                lambda: self.player.is_online
+            )()
+            logger.debug(
+                f"[CONNECT] Player {self.player.id} is_online={is_online_now}"
+            )  # ✅ Verify status
 
             await self.channel_layer.group_add(self.player_group, self.channel_name)
             await self.channel_layer.group_add("online_users", self.channel_name)
@@ -100,23 +98,8 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         logger.info(
             f"[DISCONNECT] WebSocket disconnecting. Player: {self.player.id} | Code: {close_code}"
         )
-
-        async def delayed_offline():
-            await asyncio.sleep(5)  # 5 second grace period
-            await database_sync_to_async(self.player.disconnect)()
-            PENDING_OFFLINE.pop(self.player.id, None)
-
-        await database_sync_to_async(self.player.decrement_connection)()
-        remaining = await database_sync_to_async(
-            lambda: self.player.active_connections
-        )()
-
-        if remaining == 0:
-            task = asyncio.create_task(delayed_offline())
-            PENDING_OFFLINE[self.player.id] = task
-
+        await database_sync_to_async(self.player.set_offline)()
         await self.channel_layer.group_discard("online_users", self.channel_name)
-        await self.broadcast_online_players()
 
         if hasattr(self, "player_group"):
             logger.info(f"[DISCONNECT] Removed from group: {self.player_group}")
@@ -134,39 +117,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 await control_timers(self.player, self.activity_timer, "pause")
 
             await sync_to_async(schedule_online_end)(self.link)
-
-    async def broadcast_online_players(self):
-        players = await self.get_online_players()
-
-        await self.channel_layer.group_send(
-            "online_players",
-            {
-                "type": "ws_action",
-                "action": "online_players_update",
-                "players": players,
-            },
-        )
-
-    async def ws_action(self, event):
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "action",
-                    "action": event["action"],
-                    "players": event.get("players", []),
-                }
-            )
-        )
-
-    @database_sync_to_async
-    def get_online_players(self):
-        from users.models import Player
-
-        return list(Player.get_online_players().values("id", "name"))
-
-    #########################
-    ##     MESSAGE HANDLERS
-    #########################
 
     async def test_message(self, event):
         logger.info(f"[TEST MESSAGE] Received test message: {event}")

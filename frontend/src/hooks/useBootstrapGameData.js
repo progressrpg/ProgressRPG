@@ -26,8 +26,7 @@ export function useBootstrapGameData() {
         setLoading(true);
 
         const info = await apiFetch('/fetch_info/');
-        // console.log("bootstrap info:", info);
-        setPlayer(info.player);
+        setPlayer(info.profile);
         setCharacter(info.character);
         setActivityTimerInfo(info.activity_timer);
         setPopulationCentreInfo(info.population_centre);
