@@ -14,6 +14,7 @@ from .utils import (
     migrate_and_seed,
 )
 import subprocess
+from urllib.parse import quote
 
 
 BRANCH_NAME = get_branch_name()
@@ -123,7 +124,26 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_HOST = os.getenv("DB_HOST", default="localhost")
 DB_PORT = os.getenv("DB_PORT", default=5432)
 
-DATABASE_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+fallback_database_url = (
+    f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
+configured_database_url = os.getenv("DATABASE_URL", "").strip()
+
+has_explicit_db_vars = any(
+    os.getenv(key)
+    for key in ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"]
+)
+
+if has_explicit_db_vars:
+    DATABASE_URL = fallback_database_url
+elif configured_database_url:
+    try:
+        dj_database_url.parse(configured_database_url)
+        DATABASE_URL = configured_database_url
+    except Exception:
+        DATABASE_URL = fallback_database_url
+else:
+    DATABASE_URL = fallback_database_url
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_HOST = "localhost"
