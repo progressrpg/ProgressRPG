@@ -50,8 +50,6 @@ from gameplay.utils import send_group_message
 from gameplay.serializers import ActivityTimerSerializer
 from gameplay.services.xp_modifiers import handle_online_login
 
-from locations.serializers import PopulationCentreSerializer
-
 from progression.serializers import PlayerActivitySerializer
 
 from users.serializers import UserSerializer, PlayerSerializer
@@ -332,10 +330,6 @@ class FetchInfoAPIView(APIView):
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        population_centre = None
-        if hasattr(character, "population_centre") and character.population_centre:
-            population_centre = character.population_centre
-
         logger.info(
             f"[FETCH INFO] Fetching data for player {player.id}, character {character.id}"
         )
@@ -370,9 +364,6 @@ class FetchInfoAPIView(APIView):
                 ).data,
                 "activity_timer": ActivityTimerSerializer(
                     player.activity_timer, context={"request": request}
-                ).data,
-                "population_centre": PopulationCentreSerializer(
-                    population_centre, context={"request": request}
                 ).data,
             }
             return Response(data)
