@@ -1,6 +1,7 @@
 alabaster==1.0.0
 amqp==5.3.1
 asgiref==3.8.1
+astral==3.2
 attrs==25.4.0
 autobahn==24.4.2
 automat==24.8.1
