@@ -41,10 +41,10 @@ fi
 python manage.py seed_superuser || echo "Superuser already exists"
 
 # Optional: run world setup (your custom script)
-python manage.py setup_world || echo "World setup already done"
+#python manage.py setup_world || echo "World setup already done"
 
 # Optional: generate initial character days
-python manage.py generate_character_days || echo "Character days already generated"
+#python manage.py generate_character_days || echo "Character days already generated"
 
 # Execute whatever command is passed to the container
 echo "➡️ Starting service: $@"
