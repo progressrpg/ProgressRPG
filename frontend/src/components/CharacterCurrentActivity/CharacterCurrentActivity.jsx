@@ -22,18 +22,17 @@ export default function CharacterCurrentActivity() {
     return () => clearInterval(interval);
   }, []);
 
-  if (!character || !characterCurrentActivity) return null;
-
-  const activityName =
-    characterCurrentActivity.name?.trim().toLowerCase() ||
-    characterCurrentActivity.kind ||
-    "an activity";
-
   const timeRemaining = useMemo(() => {
-    const scheduledEnd = characterCurrentActivity.scheduled_end;
+    const scheduledEnd = characterCurrentActivity?.scheduled_end;
     if (!scheduledEnd) return "";
-    const remainingMs = new Date(scheduledEnd).getTime() - now;
-    if (!Number.isFinite(remainingMs) || remainingMs <= 0) return "";
+
+    const scheduledEndMs = new Date(scheduledEnd).getTime();
+    if (!Number.isFinite(scheduledEndMs)) return "";
+
+
+    const remainingMs = scheduledEndMs - now;
+    if (remainingMs <= 0) return "";
+
     const totalMinutes = Math.floor(remainingMs / 60000);
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -41,7 +40,14 @@ export default function CharacterCurrentActivity() {
       return `${hours}h ${minutes}m`;
     }
     return `${minutes}m`;
-  }, [characterCurrentActivity.scheduled_end, now]);
+  }, [characterCurrentActivity, now]);
+
+  if (!character || !characterCurrentActivity) return null;
+
+  const activityName =
+  characterCurrentActivity.name?.trim().toLowerCase() ||
+  characterCurrentActivity.kind ||
+  "an activity";
 
   const isActive = activityTimer?.status === "active";
 

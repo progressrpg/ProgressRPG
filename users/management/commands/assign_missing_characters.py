@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = "Assign characters to any players missing one."
 
     def handle(self, *args, **options):
-        qs = Player.objects.exclude(character_link__is_active=True).distinct()
+        qs = Player.objects.exclude(links__is_active=True).distinct()
 
         count = 0
         for player in qs.iterator():
