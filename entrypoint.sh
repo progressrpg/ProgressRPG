@@ -9,11 +9,11 @@ import psycopg2
 
 try:
   connection = psycopg2.connect(
-    dbname="postgres",
-    user=os.getenv("DB_USER", "postgres"),
-    password=os.getenv("DB_PASSWORD", ""),
-    host=os.getenv("DB_HOST", "db"),
-    port=os.getenv("DB_PORT", "5432"),
+    dbname=os.getenv("POSTGRES_DB", "postgres"),
+    user=os.getenv("POSTGRES_USER", "postgres"),
+    password=os.getenv("POSTGRES_PASSWORD", ""),
+    host=os.getenv("POSTGRES_HOST", "db"),
+    port=os.getenv("POSTGRES_PORT", "5432"),
   )
   connection.close()
   sys.exit(0)

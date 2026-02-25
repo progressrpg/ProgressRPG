@@ -48,12 +48,12 @@ services:
       - db-data:/var/lib/postgresql/data
     environment:
       - DB_HOST=db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${DB_PASSWORD_SU}
+      - POSTGRES_USER=progress
+      - POSTGRES_PASSWORD=progress
+      - POSTGRES_DB=progress
       - DB_PORT=5432
-      - POSTGRES_DB=postgres
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "postgres"]
+      test: [ "CMD", "pg_isready", "-U", "progress"]
       interval: 10s
       timeout: 5s
       retries: 5
