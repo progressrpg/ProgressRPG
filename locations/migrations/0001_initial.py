@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("character", "0007_remove_playercharacterlink_online_boost_active_and_more"),
+        ("character", "0006_alter_playercharacterlink_character_and_more"),
     ]
 
     operations = [
