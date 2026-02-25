@@ -84,7 +84,7 @@ USER appuser
 EXPOSE 8000
 
 # Run the application.
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "progress_rpg.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "${PORT:=8000}", "progress_rpg.asgi:application"]
 
 
 # --------------------------
