@@ -41,16 +41,11 @@ fi
 python manage.py seed_superuser || echo "Superuser already exists"
 
 # Optional: run world setup (your custom script)
-# python manage.py setup_world || echo "World setup already done"
+python manage.py setup_world || echo "World setup already done"
 
 # Optional: generate initial character days
-# python manage.py generate_character_days || echo "Character days already generated"
-
-# Start web server if this is the web service
-if [ "$DJANGO_WEB" = "1" ]; then
-    echo "➡️ Starting Django web server on 0.0.0.0:$PORT"
-    exec python manage.py runserver 0.0.0.0:$PORT
-fi
+python manage.py generate_character_days || echo "Character days already generated"
 
 # Execute whatever command is passed to the container
+echo "➡️ Starting service: $@"
 exec "$@"

@@ -18,7 +18,7 @@ FROM python:${PYTHON_VERSION}-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-ENTRYPOINT [ "/app/entrypoint.sh" ]
+ENTRYPOINT ["/app/entrypoint.sh"]
 WORKDIR /app
 
 # Create a non-privileged user that the app will run under.
@@ -84,8 +84,7 @@ USER appuser
 EXPOSE 8000
 
 # Run the application.
-CMD ["daphne", "-b", "0.0.0.0", "-p", "${PORT:=8000}", "progress_rpg.asgi:application"]
-
+#CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "progress_rpg.asgi:application"]
 
 # --------------------------
 # Celery stage: Python only
