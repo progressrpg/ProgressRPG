@@ -7,6 +7,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from .base import *
+from urllib.parse import quote
 
 LOGGING = {
     "version": 1,
@@ -113,50 +114,51 @@ CSRF_TRUSTED_ORIGINS = os.environ.get(
     "https://app.progressrpg.com,https://progressrpg.onrender.com",
 ).split(",")
 
+
+# ------------------------------
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# ------------------------------
 
-# default_db_config = dj_database_url.config(conn_max_age=60, ssl_require=True)
 
-# if os.environ.get("RUNNING_CHANNEL_WORKER") == "1" or os.environ.get("IS_CELERY_WORKER") == "1":
-#    default_db_config["CONN_MAX_AGE"] = 0
+DB_NAME = os.getenv("DB_NAME", "progressrpg_staging")
+DB_USER = os.getenv("DB_USER", default="duncan")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_PORT = os.getenv("DB_PORT", default=5432)
 
-if os.environ.get("PGBOUNCER") == "1":
-    pgbouncer_url = os.environ.get("DATABASE_URL_PGBOUNCER")
-    if pgbouncer_url:
-        os.environ["DATABASE_URL"] = pgbouncer_url
-    elif "DATABASE_URL" not in os.environ:
-        raise ValueError(
-            "PGBOUNCER is enabled but no DATABASE_URL or DATABASE_URL_PGBOUNCER found."
-        )
+IN_DOCKER = os.environ.get("DOCKER", "false").lower() in ("1", "true", "yes")
 
-DB_URL = os.environ.get("DATABASE_URL")
-if not DB_URL:
-    raise ValueError("DATABASE_URL is not set in the environment.")
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    # Fallback to explicit DB_* vars for local dev
+    DB_USER = os.environ.get("DB_USER", "duncan")
+    DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+    DB_NAME = os.environ.get("DB_NAME", "progressrpg")
+    DB_HOST = "db" if IN_DOCKER else "localhost"
+    DB_PORT = os.environ.get("DB_PORT", 5432)
+    DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-db = dj_database_url.parse(DB_URL, conn_max_age=60)
+db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
 db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
 DATABASES = {"default": db}
 
 
 REDIS_URL = os.environ.get("REDIS_URL")
-ssl_required = os.environ.get("REDIS_VERIFY_SSL", "0") == "1"
+if REDIS_URL:
+    REDIS_URL_MOD = f"{REDIS_URL.rstrip('/')}/0"
+else:
+    REDIS_URL_MOD = "redis://localhost:6379/0"
 
-REDIS_URL_MOD = f"{REDIS_URL}/0"
 
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
+# ssl_context = ssl.create_default_context()
+# ssl_context.check_hostname = False
+# ssl_context.verify_mode = ssl.CERT_NONE
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [
-                {
-                    "address": REDIS_URL_MOD,
-                }
-            ],
+            "hosts": [REDIS_URL_MOD],
         },
     },
 }
@@ -167,23 +169,12 @@ CACHES = {
         "LOCATION": REDIS_URL_MOD,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # "CONNECTION_POOL_KWARGS": {
-            #     "ssl_context": ssl_context,
-            # }
         },
     }
 }
 
 CELERY_BROKER_URL = REDIS_URL_MOD
 CELERY_RESULT_BACKEND = REDIS_URL_MOD
-
-# CELERY_BROKER_USE_SSL = {
-#     'ssl_context': ssl_context,
-# }
-# CELERY_REDIS_BACKEND_USE_SSL = {
-#     'ssl_context': ssl_context,
-# }
-
 
 # Session settings
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"

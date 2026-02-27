@@ -119,32 +119,6 @@ SECRET_KEY_FALLBACKS = [
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
 
-DB_USER = os.getenv("DB_USER", default="duncan")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_HOST = os.getenv("DB_HOST", default="localhost")
-DB_PORT = os.getenv("DB_PORT", default=5432)
-
-fallback_database_url = (
-    f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
-configured_database_url = os.getenv("DATABASE_URL", "").strip()
-
-has_explicit_db_vars = any(
-    os.getenv(key)
-    for key in ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"]
-)
-
-if has_explicit_db_vars:
-    DATABASE_URL = fallback_database_url
-elif configured_database_url:
-    try:
-        dj_database_url.parse(configured_database_url)
-        DATABASE_URL = configured_database_url
-    except Exception:
-        DATABASE_URL = fallback_database_url
-else:
-    DATABASE_URL = fallback_database_url
-
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_HOST = "localhost"
 EMAIL_PORT = 1025
@@ -172,19 +146,36 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
 # print("CORS:", CORS_ALLOWED_ORIGINS, file=sys.stderr)
 
 
+# ------------------------------
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# ------------------------------
+
+DB_NAME = os.getenv("DB_NAME", "progressrpg_staging")
+DB_USER = os.getenv("DB_USER", default="duncan")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_PORT = os.getenv("DB_PORT", default=5432)
+
+IN_DOCKER = os.environ.get("DOCKER", "false").lower() in ("1", "true", "yes")
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    # Fallback to explicit DB_* vars for local dev
+    DB_USER = os.environ.get("DB_USER", "duncan")
+    DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+    DB_NAME = os.environ.get("DB_NAME", "progressrpg")
+    DB_HOST = "db" if IN_DOCKER else "localhost"
+    DB_PORT = os.environ.get("DB_PORT", 5432)
+    DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
 db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
-
 DATABASES = {"default": db}
 
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
 # print("REDIS_URL:", REDIS_URL)
-# PRETEND = f"{REDIS_URL}?ssl_cert_reqs=none"
-# print("PRETEND:", PRETEND)
+
 
 CHANNEL_LAYERS = {
     "default": {

@@ -17,6 +17,7 @@ from decouple import Config, RepositoryEnv, config
 import os
 from dotenv import load_dotenv
 import logging, ssl, sentry_sdk
+
 from .utils import is_vite_running
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
