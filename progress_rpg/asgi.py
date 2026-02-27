@@ -12,7 +12,7 @@ import django
 
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
-from django.core.wsgi import get_wsgi_application
+from whitenoise import WhiteNoise
 
 # from channels.auth import AuthMiddlewareStack
 # from gameplay.mymiddleware import MyAuthMiddleware
@@ -28,7 +28,8 @@ from django_channels_jwt.middleware import JwtAuthMiddlewareStack
 from gameplay.routing import load_websocket_urlpatterns
 
 django_asgi_app = get_asgi_application()
-django_wsgi_app = get_wsgi_application()
+# Wrap ONLY the HTTP portion with WhiteNoise
+django_asgi_app = WhiteNoise(django_asgi_app, root="/app/staticfiles")
 
 application = ProtocolTypeRouter(
     {
