@@ -74,10 +74,13 @@ USER root
 WORKDIR /app/frontend
 RUN apt-get update \
     && apt-get install -y nodejs npm \
-    && npm install \
-    && npm run build:development
+    && npm install
+RUN VITE_API_BASE_URL=$VITE_API_BASE_URL npm run build:production
 
 WORKDIR /app
+
+RUN python manage.py collectstatic --noinput
+
 USER appuser
 
 # Expose the port that the application listens on.
