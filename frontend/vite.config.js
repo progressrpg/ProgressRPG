@@ -25,9 +25,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      outDir: isProd
-        ? path.resolve(__dirname, '../static/frontend')
-        : path.resolve(__dirname, './dist'),
+      outDir: path.resolve(__dirname, './dist'),
       assetsDir: 'assets',
       emptyOutDir: true,
       manifest: true,
