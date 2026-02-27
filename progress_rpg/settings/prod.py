@@ -74,7 +74,7 @@ LOGGING = {
     },
 }
 
-DEBUG = os.environ.get("DEBUG")
+DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "yes")
 DB_NAME = os.environ.get("DB_NAME")
 DB_USER = os.environ.get("DB_USER")
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
@@ -101,12 +101,16 @@ REGISTRATION_ENABLED = True
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "app.progressrpg.com").split(",")
+ALLOWED_HOSTS = os.environ.get(
+    "ALLOWED_HOSTS", "app.progressrpg.com,progressrpg.onrender.com"
+).split(",")
 CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "https://app.progressrpg.com/"
+    "CORS_ALLOWED_ORIGINS",
+    "https://app.progressrpg.com,https://progressrpg.onrender.com",
 ).split(",")
 CSRF_TRUSTED_ORIGINS = os.environ.get(
-    "CSRF_TRUSTED_ORIGINS", "https://app.progressrpg.com/"
+    "CSRF_TRUSTED_ORIGINS",
+    "https://app.progressrpg.com,https://progressrpg.onrender.com",
 ).split(",")
 
 # Database
@@ -136,7 +140,7 @@ DATABASES = {"default": dj_database_url.parse(DB_URL, conn_max_age=60)}
 REDIS_URL = os.environ.get("REDIS_URL")
 ssl_required = os.environ.get("REDIS_VERIFY_SSL", "0") == "1"
 
-REDIS_URL_MOD = f"{REDIS_URL}/0?ssl_cert_reqs=none"
+REDIS_URL_MOD = f"{REDIS_URL}/0"
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
