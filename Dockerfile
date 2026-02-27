@@ -56,7 +56,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install -r requirements.txt
 
 # Switch to the non-privileged user to run the application.
-USER appuser
+# USER appuser
 
 # Copy the source code into the container.
 COPY . .
@@ -79,6 +79,8 @@ RUN VITE_API_BASE_URL=$VITE_API_BASE_URL npm run build:production
 
 WORKDIR /app
 
+RUN mkdir -p /app/staticfiles \
+    && chown -R appuser:appuser /app/staticfiles
 RUN python manage.py collectstatic --noinput
 
 USER appuser
