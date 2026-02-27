@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: isProd ? '/static/frontend/' : '/',
+    base: '/',
     server: {
       open: true,
       host: true,
