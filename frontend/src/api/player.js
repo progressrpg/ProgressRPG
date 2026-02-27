@@ -1,3 +1,4 @@
+// src/api/player.js
 import { apiFetch } from "../../utils/api";
 
 export const updatePlayer = async (data) => {
@@ -10,7 +11,7 @@ export const updatePlayer = async (data) => {
 
 export const downloadUserData = async () => {
   const accessToken = localStorage.getItem('accessToken');
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/download_user_data/`, {
+  const response = await apiFetch("/download_user_data/", {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
