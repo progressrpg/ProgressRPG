@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.12",
-    "@tanstack/react-query-devtools": "^5.91.1",
     "axios": "^1.13.5",
     "classnames": "^2.5.1",
     "jsdom": "^27.1.0",
@@ -30,9 +29,12 @@
     "react-ga4": "^2.1.0",
     "react-router-dom": "^7.12.0",
     "uuid": "^13.0.0",
-    "wscat": "^6.1.0"
+    "wscat": "^6.1.0",
+    "vite": "^7.3.1",
+    "@vitejs/plugin-react": "^5.1.0"
   },
   "devDependencies": {
+    "@tanstack/react-query-devtools": "^5.91.1",
     "@axe-core/playwright": "^4.11.0",
     "@eslint/js": "^9.29.0",
     "@playwright/test": "^1.56.1",
@@ -41,7 +43,6 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react": "^5.1.0",
     "axe-core": "^4.11.1",
     "axe-playwright": "^2.2.2",
     "eslint": "^9.39.0",
@@ -50,7 +51,6 @@
     "globals": "^16.4.0",
     "happy-dom": "^20.3.3",
     "sass": "^1.93.3",
-    "vitest": "^4.0.17",
-    "vite": "^7.3.1"
+    "vitest": "^4.0.17"
   }
 }
