@@ -18,7 +18,7 @@ local_backup.dump
 Makefile
 *.log
 logs/
-staticfiles/*
+staticfiles/
 static/.sass-cache/
 celerybeat-schedule
 users.json
