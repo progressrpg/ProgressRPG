@@ -9,7 +9,14 @@ services:
     build:
       context: .
       target: celery
-    command: ["python", "manage.py", "migrate", "--noinput"]
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py loaddata seed_data.json || true &&
+      python manage.py seed_superuser || true &&
+      python manage.py setup_world || true &&
+      python manage.py generate_character_days || true
+      "
     environment:
       - DJANGO_SETTINGS_MODULE=progress_rpg.settings.dev
     env_file:
