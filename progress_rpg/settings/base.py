@@ -215,16 +215,22 @@ USE_TZ = True
 DEV_MODE = os.getenv("DJANGO_VITE_DEV_MODE", "True") == "True"
 print("DEV_MODE =", DEV_MODE, file=sys.stderr)
 
-DJANGO_VITE = {
-    "default": {
-        "dev_mode": DEV_MODE,
-        "dev_server_port": 5173,
-        "dev_server_host": "localhost",
-        "static_url_prefix": "frontend/",
-        "manifest_path": BASE_DIR / "static" / "frontend" / ".vite" / "manifest.json",
+if DEV_MODE:
+    DJANGO_VITE = {
+        "default": {
+            "dev_mode": DEV_MODE,
+            "dev_server_port": 5173,
+            "dev_server_host": "localhost",
+            "static_url_prefix": "frontend/",
+            "manifest_path": BASE_DIR
+            / "static"
+            / "frontend"
+            / ".vite"
+            / "manifest.json",
+        }
     }
-}
-
+else:
+    DJANGO_VITE = None
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost")
 
