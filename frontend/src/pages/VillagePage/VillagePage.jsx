@@ -35,7 +35,7 @@ export default function VillagePage() {
     fetchPopulationCentre(pcId);
   }, [pcId, fetchPopulationCentre]);
 
-  console.log("village:", populationCentre);
+  //console.log("village:", populationCentre);
 
   return (
     <div className={styles.page}>
