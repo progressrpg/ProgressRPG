@@ -134,7 +134,9 @@ DB_URL = os.environ.get("DATABASE_URL")
 if not DB_URL:
     raise ValueError("DATABASE_URL is not set in the environment.")
 
-DATABASES = {"default": dj_database_url.parse(DB_URL, conn_max_age=60)}
+db = dj_database_url.parse(DB_URL, conn_max_age=60)
+db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
+DATABASES = {"default": db}
 
 
 REDIS_URL = os.environ.get("REDIS_URL")
