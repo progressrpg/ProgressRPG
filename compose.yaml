@@ -11,10 +11,10 @@ services:
       target: celery
     command: >
       sh -c "
-      python manage.py migrate &&
-      python manage.py loaddata seed_data.json || true &&
-      python manage.py seed_superuser || true &&
-      python manage.py setup_world || true &&
+      python manage.py migrate;
+      [ -f seed_data.json ] && python manage.py loaddata seed_data.json || true;
+      python manage.py seed_superuser || true;
+      python manage.py setup_world || true;
       python manage.py generate_character_days || true
       "
     environment:
