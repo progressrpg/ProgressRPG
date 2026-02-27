@@ -30,10 +30,10 @@ urlpatterns = [
         {"document_root": settings.STATIC_ROOT},
     ),
     re_path(r"^\.well-known/.*$", lambda request: HttpResponseNotFound()),
-    re_path(
-        r"^(?!api|admin|static|media|ws).*",
-        TemplateView.as_view(template_name="index.html"),
-    ),
+    # re_path(
+    #     r"^(?!api|admin|static|media|ws).*",
+    #     TemplateView.as_view(template_name="index.html"),
+    # ),
 ]
 
 """ # Serve media files during development
