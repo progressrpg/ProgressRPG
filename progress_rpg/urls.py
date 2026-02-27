@@ -6,11 +6,9 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpResponseNotFound
 from django.urls import re_path, path, include
-from django.views.generic import TemplateView
 from django.views.static import serve
 
 
@@ -30,10 +28,6 @@ urlpatterns = [
         {"document_root": settings.STATIC_ROOT},
     ),
     re_path(r"^\.well-known/.*$", lambda request: HttpResponseNotFound()),
-    # re_path(
-    #     r"^(?!api|admin|static|media|ws).*",
-    #     TemplateView.as_view(template_name="index.html"),
-    # ),
 ]
 
 """ # Serve media files during development
