@@ -29,9 +29,6 @@ export default defineConfig(({ mode }) => {
       assetsDir: 'assets',
       emptyOutDir: true,
       manifest: true,
-      rollupOptions: {
-        input: 'src/main.jsx',
-      },
     },
     test: {
       globals: true,
