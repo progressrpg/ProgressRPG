@@ -9,7 +9,7 @@ if (envApiBaseUrl) {
   API_BASE_URL = window.location.origin;
 }
 
-// Remove trailing slash
+API_BASE_URL = API_BASE_URL.replace(/\/api\/v1\/?$/i, '');
 API_BASE_URL = API_BASE_URL.replace(/\/$/, '');
 
 export { API_BASE_URL };
