@@ -10,11 +10,19 @@ from django.contrib import admin
 from django.http import HttpResponseNotFound
 from django.urls import re_path, path, include
 from django.views.static import serve
+from django.views.generic import RedirectView
 
 
 # from gameplay.admin import custom_admin_site
 
 urlpatterns = [
+    path(
+        "",
+        RedirectView.as_view(
+            url="https://progressrpg-ax7k.onrender.com/", permanent=False
+        ),
+        name="root-redirect",
+    ),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("api/v1/", include("api.urls")),
