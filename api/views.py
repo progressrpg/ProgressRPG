@@ -65,6 +65,7 @@ from metrics.utils import track_user_session
 import logging
 
 logger = logging.getLogger("errors")
+logger_general = logging.getLogger("general")
 
 
 class IsOwnerPlayer(permissions.BasePermission):
@@ -99,6 +100,34 @@ class IsOwnerCharacter(permissions.BasePermission):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        email = (request.data or {}).get("email", "")
+        email_domain = (
+            email.split("@")[-1] if isinstance(email, str) and "@" in email else ""
+        )
+
+        try:
+            response = super().post(request, *args, **kwargs)
+            logger_general.info(
+                "[AUTH JWT CREATE] path=%s host=%s status=%s content_type=%s has_email=%s email_domain=%s",
+                request.path,
+                request.get_host(),
+                response.status_code,
+                response.get("Content-Type", ""),
+                bool(email),
+                email_domain,
+            )
+            return response
+        except Exception:
+            logger.exception(
+                "[AUTH JWT CREATE] exception path=%s host=%s has_email=%s email_domain=%s",
+                request.path,
+                request.get_host(),
+                bool(email),
+                email_domain,
+            )
+            raise
 
     @csrf_exempt
     @api_view(["POST"])
