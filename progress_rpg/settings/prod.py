@@ -114,6 +114,10 @@ CSRF_TRUSTED_ORIGINS = os.environ.get(
     "https://app.progressrpg.com,https://progressrpg.onrender.com",
 ).split(",")
 
+SERVE_FRONTEND_FROM_DJANGO = os.environ.get(
+    "SERVE_FRONTEND_FROM_DJANGO", "false"
+).lower() in ("1", "true", "yes")
+
 
 # ------------------------------
 # Database
