@@ -20,7 +20,12 @@ export default function useLogin() {
         throw new Error(error || 'Login failed');
       }
 
-      const data = await response.json();
+      const rawBody = await response.text();
+      const data = rawBody ? JSON.parse(rawBody) : null;
+
+      if (!data?.access_token || !data?.refresh_token) {
+        throw new Error('Login endpoint returned an invalid response payload.');
+      }
 
       //console.log('useLogin, data:', data);
       localStorage.setItem('accessToken', data.access_token);
