@@ -10,19 +10,13 @@ from django.contrib import admin
 from django.http import HttpResponseNotFound
 from django.urls import re_path, path, include
 from django.views.static import serve
-from django.views.generic import RedirectView
+from django.views.generic import TemplateView
 
 
 # from gameplay.admin import custom_admin_site
 
 urlpatterns = [
-    path(
-        "",
-        RedirectView.as_view(
-            url="https://progressrpg-ax7k.onrender.com/", permanent=False
-        ),
-        name="root-redirect",
-    ),
+    path("", TemplateView.as_view(template_name="index.html"), name="root"),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("api/v1/", include("api.urls")),
@@ -36,6 +30,11 @@ urlpatterns = [
         {"document_root": settings.STATIC_ROOT},
     ),
     re_path(r"^\.well-known/.*$", lambda request: HttpResponseNotFound()),
+    re_path(
+        r"^(?!api/|admin/|accounts/|static/|media/|\.well-known/).*$",
+        TemplateView.as_view(template_name="index.html"),
+        name="spa-fallback",
+    ),
 ]
 
 """ # Serve media files during development
