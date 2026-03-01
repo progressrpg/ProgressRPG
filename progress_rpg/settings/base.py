@@ -212,25 +212,23 @@ USE_TZ = True
 
 # Vite settings
 
-DEV_MODE = os.getenv("DJANGO_VITE_DEV_MODE", "True") == "True"
+django_vite_dev_mode = os.getenv("DJANGO_VITE_DEV_MODE")
+if django_vite_dev_mode is None:
+    DEV_MODE = is_vite_running()
+else:
+    DEV_MODE = django_vite_dev_mode.lower() in ("true", "1", "yes")
+
 print("DEV_MODE =", DEV_MODE, file=sys.stderr)
 
-if DEV_MODE:
-    DJANGO_VITE = {
-        "default": {
-            "dev_mode": DEV_MODE,
-            "dev_server_port": 5173,
-            "dev_server_host": "localhost",
-            "static_url_prefix": "frontend/",
-            "manifest_path": BASE_DIR
-            / "static"
-            / "frontend"
-            / ".vite"
-            / "manifest.json",
-        }
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": DEV_MODE,
+        "dev_server_port": 5173,
+        "dev_server_host": "localhost",
+        "static_url_prefix": "frontend/",
+        "manifest_path": BASE_DIR / "static" / "frontend" / ".vite" / "manifest.json",
     }
-else:
-    DJANGO_VITE = None
+}
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost")
 
