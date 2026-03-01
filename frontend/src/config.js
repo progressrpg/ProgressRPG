@@ -1,7 +1,10 @@
 let API_BASE_URL;
+const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-if (window.location.hostname === 'localhost') {
-  API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+if (envApiBaseUrl) {
+  API_BASE_URL = envApiBaseUrl;
+} else if (window.location.hostname === 'localhost') {
+  API_BASE_URL = 'http://localhost:8000';
 } else {
   API_BASE_URL = window.location.origin;
 }
