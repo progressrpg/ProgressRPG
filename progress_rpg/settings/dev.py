@@ -12,6 +12,9 @@ from .utils import (
     get_branch_db_name,
     ensure_branch_db_exists,
     migrate_and_seed,
+    get_postgres_host,
+    rewrite_database_url_host,
+    get_redis_url,
 )
 import subprocess
 from urllib.parse import quote
@@ -159,12 +162,14 @@ DB_PORT = os.getenv("DB_PORT", default=5432)
 IN_DOCKER = os.environ.get("DOCKER", "false").lower() in ("1", "true", "yes")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL:
+    DATABASE_URL = rewrite_database_url_host(DATABASE_URL, get_postgres_host())
 if not DATABASE_URL:
     # Fallback to explicit DB_* vars for local dev
     DB_USER = os.environ.get("DB_USER", "duncan")
     DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
     DB_NAME = os.environ.get("DB_NAME", "progressrpg")
-    DB_HOST = "db" if IN_DOCKER else "localhost"
+    DB_HOST = get_postgres_host()
     DB_PORT = os.environ.get("DB_PORT", 5432)
     DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
@@ -173,7 +178,7 @@ db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
 DATABASES = {"default": db}
 
 
-REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+REDIS_URL = get_redis_url(default_db="0")
 # print("REDIS_URL:", REDIS_URL)
 
 
@@ -221,5 +226,5 @@ SECURE_HSTS_PRELOAD = False
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
-CELERY_RESULT_BACKEND = "redis://redis:6379/0"
-CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BROKER_URL = REDIS_URL

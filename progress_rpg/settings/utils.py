@@ -5,6 +5,52 @@ import socket, os, subprocess, psycopg2, re
 PG_ID_MAX_LENGTH = 63
 
 
+def is_running_in_docker():
+    return os.environ.get("DOCKER", "false").lower() in ("1", "true", "yes")
+
+
+def get_postgres_host():
+    in_docker = is_running_in_docker()
+    selected_host = (
+        os.getenv("DB_HOST_DOCKER") if in_docker else os.getenv("DB_HOST_LOCAL")
+    )
+    if selected_host:
+        return selected_host
+
+    db_host = os.getenv("DB_HOST", "db" if in_docker else "localhost")
+    if not in_docker and db_host == "db":
+        return "localhost"
+    return db_host
+
+
+def rewrite_database_url_host(database_url, host):
+    if not database_url:
+        return database_url
+    return re.sub(r"@[^/:@]+([:/])", rf"@{host}\1", database_url, count=1)
+
+
+def get_redis_host():
+    in_docker = is_running_in_docker()
+    selected_host = (
+        os.getenv("REDIS_HOST_DOCKER") if in_docker else os.getenv("REDIS_HOST_LOCAL")
+    )
+    if selected_host:
+        return selected_host
+    return os.getenv("REDIS_HOST", "redis" if in_docker else "localhost")
+
+
+def get_redis_url(default_db="0"):
+    redis_url = os.getenv("REDIS_URL")
+    redis_host = get_redis_host()
+    if redis_url:
+        return re.sub(r"^(rediss?://)[^/:]+", rf"\1{redis_host}", redis_url, count=1)
+
+    redis_scheme = os.getenv("REDIS_SCHEME", "redis")
+    redis_port = os.getenv("REDIS_PORT", "6379")
+    redis_db = os.getenv("REDIS_DB", default_db)
+    return f"{redis_scheme}://{redis_host}:{redis_port}/{redis_db}"
+
+
 def get_branch_name():
     """Return the current git branch name, safe for DB naming."""
     try:
@@ -49,7 +95,7 @@ def db_exists(db_name=None):
     db_name = db_name or get_branch_db_name()
     db_user = os.getenv("DB_USER", "duncan")
     db_password = os.getenv("DB_PASSWORD", "")
-    db_host = os.getenv("DB_HOST", "localhost")
+    db_host = get_postgres_host()
     db_port = os.getenv("DB_PORT", "5432")
 
     try:
@@ -83,7 +129,7 @@ def ensure_branch_db_exists():
 
     db_user = os.getenv("DB_USER", "duncan")
     db_password = os.getenv("DB_PASSWORD", "")
-    db_host = os.getenv("DB_HOST", "localhost")
+    db_host = get_postgres_host()
     db_port = os.getenv("DB_PORT", "5432")
 
     print(f"⚙️ Creating database for branch: {db_name}")
