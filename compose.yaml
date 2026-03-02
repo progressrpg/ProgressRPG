@@ -12,10 +12,6 @@ services:
     command: >
       sh -c "
       python manage.py migrate;
-      [ -f seed_data.json ] && python manage.py loaddata seed_data.json || true;
-      python manage.py seed_superuser || true;
-      python manage.py setup_world || true;
-      python manage.py generate_character_days || true
       "
     environment:
       - DJANGO_SETTINGS_MODULE=progress_rpg.settings.dev
@@ -46,7 +42,7 @@ services:
         condition: service_completed_successfully
 
   db:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:17-3.4
     restart: always
     volumes:
       - db-data:/var/lib/postgresql/data

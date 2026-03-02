@@ -8,7 +8,12 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from .base import *
 from urllib.parse import quote
-from .utils import get_postgres_host, rewrite_database_url_host, get_redis_url
+from .utils import (
+    get_postgres_host,
+    rewrite_database_url_host,
+    get_redis_url,
+    is_running_in_docker,
+)
 
 LOGGING = {
     "version": 1,
@@ -131,7 +136,7 @@ DB_USER = os.getenv("DB_USER", default="duncan")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_PORT = os.getenv("DB_PORT", default=5432)
 
-IN_DOCKER = os.environ.get("DOCKER", "false").lower() in ("1", "true", "yes")
+IN_DOCKER = is_running_in_docker()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL:

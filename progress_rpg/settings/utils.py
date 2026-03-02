@@ -6,21 +6,36 @@ PG_ID_MAX_LENGTH = 63
 
 
 def is_running_in_docker():
-    return os.environ.get("DOCKER", "false").lower() in ("1", "true", "yes")
+    docker_env = os.environ.get("DOCKER", "").lower()
+    if docker_env in ("1", "true", "yes"):
+        return True
+
+    if os.path.exists("/.dockerenv"):
+        return True
+
+    try:
+        with open("/proc/1/cgroup", "r", encoding="utf-8") as cgroup_file:
+            cgroup_data = cgroup_file.read()
+            if any(
+                marker in cgroup_data for marker in ("docker", "containerd", "kubepods")
+            ):
+                return True
+    except OSError:
+        pass
+
+    return False
 
 
 def get_postgres_host():
     in_docker = is_running_in_docker()
+    print(f"Running in Docker: {in_docker}", file=sys.stderr)
     selected_host = (
         os.getenv("DB_HOST_DOCKER") if in_docker else os.getenv("DB_HOST_LOCAL")
     )
     if selected_host:
         return selected_host
 
-    db_host = os.getenv("DB_HOST", "db" if in_docker else "localhost")
-    if not in_docker and db_host == "db":
-        return "localhost"
-    return db_host
+    return os.getenv("DB_HOST", "db" if in_docker else "localhost")
 
 
 def rewrite_database_url_host(database_url, host):
