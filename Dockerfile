@@ -66,6 +66,20 @@ COPY . .
 
 # Copy entrypoint first (with executable permissions)
 COPY --chmod=755 entrypoint.sh /app/entrypoint.sh
+
+# --------------------------
+# Celery stage: Python only
+# --------------------------
+FROM base AS celery
+# No npm, no frontend build
+CMD ["celery", "-A", "progress_rpg", "worker", "--loglevel=info"]
+
+# --------------------------
+# Celery-beat stage: Python only
+# --------------------------
+FROM base AS celery-beat
+CMD ["celery", "-A", "progress_rpg", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+
 # --------------------------
 # Web stage: builds React
 # --------------------------
@@ -92,17 +106,4 @@ USER appuser
 EXPOSE 8000
 
 # Run the application.
-#CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "progress_rpg.asgi:application"]
-
-# --------------------------
-# Celery stage: Python only
-# --------------------------
-FROM base AS celery
-# No npm, no frontend build
-CMD ["celery", "-A", "progress_rpg", "worker", "--loglevel=info"]
-
-# --------------------------
-# Celery-beat stage: Python only
-# --------------------------
-FROM base AS celery-beat
-CMD ["celery", "-A", "progress_rpg", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "progress_rpg.asgi:application"]
