@@ -56,10 +56,10 @@ def get_redis_host():
 
 def get_redis_url(default_db="0"):
     redis_url = os.getenv("REDIS_URL")
-    redis_host = get_redis_host()
     if redis_url:
-        return re.sub(r"^(rediss?://)[^/:]+", rf"\1{redis_host}", redis_url, count=1)
+        return redis_url
 
+    redis_host = get_redis_host()
     redis_scheme = os.getenv("REDIS_SCHEME", "redis")
     redis_port = os.getenv("REDIS_PORT", "6379")
     redis_db = os.getenv("REDIS_DB", default_db)

@@ -10,7 +10,6 @@ from .base import *
 from urllib.parse import quote
 from .utils import (
     get_postgres_host,
-    rewrite_database_url_host,
     get_redis_url,
     is_running_in_docker,
 )
@@ -139,8 +138,6 @@ DB_PORT = os.getenv("DB_PORT", default=5432)
 IN_DOCKER = is_running_in_docker()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL:
-    DATABASE_URL = rewrite_database_url_host(DATABASE_URL, get_postgres_host())
 if not DATABASE_URL:
     # Fallback to explicit DB_* vars for local dev
     DB_USER = os.environ.get("DB_USER", "duncan")
