@@ -1,0 +1,107 @@
+services:
+  - type: web
+    name: progressrpg-web
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: sh -c "daphne -b 0.0.0.0 -p ${PORT:-8000} progress_rpg.asgi:application"
+    preDeployCommand: python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: progress_rpg.settings.prod
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: progressrpg-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: progressrpg-redis
+          type: keyvalue
+          property: connectionString
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  - type: worker
+    name: progressrpg-celery
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: celery -A progress_rpg worker --loglevel=info
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: progress_rpg.settings.prod
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        fromService:
+          name: progressrpg-web
+          type: web
+          envVarKey: SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: progressrpg-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: progressrpg-redis
+          type: keyvalue
+          property: connectionString
+
+  - type: worker
+    name: progressrpg-celery-beat
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: celery -A progress_rpg beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: progress_rpg.settings.prod
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        fromService:
+          name: progressrpg-web
+          type: web
+          envVarKey: SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: progressrpg-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: progressrpg-redis
+          type: keyvalue
+          property: connectionString
+
+  - type: keyvalue
+    name: progressrpg-redis
+    plan: starter
+    ipAllowList: []
+
+  - type: web
+    name: progressrpg-frontend
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build:production
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+
+databases:
+  - name: progressrpg-postgres
+    plan: basic-256mb
+    postgresMajorVersion: "17"
+    ipAllowList: []
