@@ -8,7 +8,7 @@
         <table>
             <caption>
                 <a href="{{ app.app_url }}" class="section" title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">
-                    {{ app.name }}
+                    {{ app.name|default:"Unnamed Application" }}
                 </a>
             </caption>
             {% for model in app.models %}

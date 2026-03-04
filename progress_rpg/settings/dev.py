@@ -24,9 +24,9 @@ from urllib.parse import quote
 BRANCH_NAME = get_branch_name()
 print("BRANCH_NAME is:", BRANCH_NAME, file=sys.stderr)
 
-new_db_created = ensure_branch_db_exists()
+# new_db_created = ensure_branch_db_exists()
 
-DB_NAME = get_branch_db_name()
+# DB_NAME = get_branch_db_name()
 
 ROOT_URLCONF = "progress_rpg.urls"
 
@@ -174,10 +174,19 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 #     DB_PORT = os.environ.get("DB_PORT", 5432)
 #     DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
-db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
-DATABASES = {"default": db}
-
+if DATABASE_URL:
+    db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
+    db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
+    DATABASES = {"default": db}
+else:
+    # Safe fallback for build-time collectstatic
+    print("⚠️ No DATABASE_URL set — using dummy SQLite DB", file=sys.stderr)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
 
 REDIS_URL = get_redis_url(default_db="0")
 # print("REDIS_URL:", REDIS_URL)

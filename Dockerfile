@@ -43,11 +43,15 @@ COPY . .
 COPY --chmod=755 entrypoint.sh /app/entrypoint.sh
 
 RUN mkdir -p /app/staticfiles \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app/staticfiles
 
 USER appuser
 
+ENV SECRET_KEY=dummy-build-secret-key
+RUN python manage.py collectstatic --noinput
+
 EXPOSE 8000
+ENV PATH="/usr/local/bin:$PATH"
 CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} progress_rpg.asgi:application"]
 
 # --------------------------

@@ -29,8 +29,8 @@ echo "➡️ Running database migrations..."
 python manage.py migrate --noinput
 
 # Collect static files
-echo "➡️ Collecting static files..."
-python manage.py collectstatic --noinput
+# echo "➡️ Collecting static files..."
+# python manage.py collectstatic --noinput
 
 # Execute whatever command is passed to the container
 echo "➡️ Starting service: $@"
