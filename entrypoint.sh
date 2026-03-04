@@ -25,26 +25,12 @@ set -e
 #   sleep 2
 # done
 
-# echo "➡️ Running database migrations..."
-# python manage.py migrate
+echo "➡️ Running database migrations..."
+python manage.py migrate --noinput
 
-# echo "➡️ Waiting a few seconds for migrations to settle..."
-# sleep 3
-
-# Optional: load seed data
-# if [ -f "seed_data.json" ]; then
-#     echo "➡️ Loading seed data..."
-#     python manage.py loaddata seed_data.json
-# fi
-
-# Optional: create superuser if not exists
-# python manage.py seed_superuser || echo "Superuser already exists"
-
-# Optional: run world setup (your custom script)
-#python manage.py setup_world || echo "World setup already done"
-
-# Optional: generate initial character days
-#python manage.py generate_character_days || echo "Character days already generated"
+# Collect static files
+echo "➡️ Collecting static files..."
+python manage.py collectstatic --noinput
 
 # Execute whatever command is passed to the container
 echo "➡️ Starting service: $@"

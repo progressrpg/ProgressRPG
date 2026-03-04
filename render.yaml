@@ -6,7 +6,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: sh -c "daphne -b 0.0.0.0 -p ${PORT:-8000} progress_rpg.asgi:application"
-    preDeployCommand: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput"
+    preDeployCommand: python manage.py migrate --noinput
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: progress_rpg.settings.prod
@@ -38,7 +38,7 @@ services:
     plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: sh -c "until python manage.py showmigrations > /dev/null 2>&1; do sleep 2; done && celery -A progress_rpg worker --loglevel=info"
+    dockerCommand: celery -A progress_rpg worker --loglevel=info
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: progress_rpg.settings.prod
@@ -65,7 +65,7 @@ services:
     plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: sh -c "until python manage.py showmigrations > /dev/null 2>&1; do sleep 2; done && celery -A progress_rpg beat --loglevel=info"
+    dockerCommand: celery -A progress_rpg beat --loglevel=info
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: progress_rpg.settings.prod
