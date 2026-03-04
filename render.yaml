@@ -38,7 +38,7 @@ services:
     plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: celery -A progress_rpg worker --loglevel=info
+    dockerCommand: sh -c "until python manage.py showmigrations > /dev/null 2>&1; do sleep 2; done && celery -A progress_rpg worker --loglevel=info"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: progress_rpg.settings.prod
@@ -65,7 +65,7 @@ services:
     plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: celery -A progress_rpg beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    dockerCommand: sh -c "until python manage.py showmigrations > /dev/null 2>&1; do sleep 2; done && celery -A progress_rpg beat --loglevel=info"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: progress_rpg.settings.prod
