@@ -6,7 +6,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: sh -c "daphne -b 0.0.0.0 -p ${PORT:-8000} progress_rpg.asgi:application"
-    preDeployCommand: python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    preDeployCommand: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: progress_rpg.settings.prod
