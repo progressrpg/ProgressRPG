@@ -108,21 +108,17 @@ REGISTRATION_ENABLED = True
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 ALLOWED_HOSTS = os.environ.get(
-    "ALLOWED_HOSTS", "app.progressrpg.com,progressrpg.onrender.com"
+    "ALLOWED_HOSTS",
+    "staging.progressrpg.com,app.progressrpg.com,progressrpg.onrender.com",
 ).split(",")
 CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS",
-    "https://app.progressrpg.com,https://progressrpg.onrender.com",
+    "https://staging.progressrpg.com,https://app.progressrpg.com,https://progressrpg.onrender.com",
 ).split(",")
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     "CSRF_TRUSTED_ORIGINS",
-    "https://app.progressrpg.com,https://progressrpg.onrender.com",
+    "https://staging.progressrpg.com,https://app.progressrpg.com,https://progressrpg.onrender.com",
 ).split(",")
-
-SERVE_FRONTEND_FROM_DJANGO = os.environ.get(
-    "SERVE_FRONTEND_FROM_DJANGO", "false"
-).lower() in ("1", "true", "yes")
-
 
 # ------------------------------
 # Database
@@ -130,22 +126,22 @@ SERVE_FRONTEND_FROM_DJANGO = os.environ.get(
 # ------------------------------
 
 
-DB_NAME = os.getenv("DB_NAME", "progressrpg_staging")
-DB_USER = os.getenv("DB_USER", default="duncan")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_PORT = os.getenv("DB_PORT", default=5432)
+# DB_NAME = os.getenv("DB_NAME", "progressrpg_staging")
+# DB_USER = os.getenv("DB_USER", default="duncan")
+# DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+# DB_PORT = os.getenv("DB_PORT", default=5432)
 
-IN_DOCKER = is_running_in_docker()
+# IN_DOCKER = is_running_in_docker()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-if not DATABASE_URL:
-    # Fallback to explicit DB_* vars for local dev
-    DB_USER = os.environ.get("DB_USER", "duncan")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
-    DB_NAME = os.environ.get("DB_NAME", "progressrpg")
-    DB_HOST = get_postgres_host()
-    DB_PORT = os.environ.get("DB_PORT", 5432)
-    DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# if not DATABASE_URL:
+#     # Fallback to explicit DB_* vars for local dev
+#     DB_USER = os.environ.get("DB_USER", "duncan")
+#     DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+#     DB_NAME = os.environ.get("DB_NAME", "progressrpg")
+#     DB_HOST = get_postgres_host()
+#     DB_PORT = os.environ.get("DB_PORT", 5432)
+#     DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
 db["ENGINE"] = "django.contrib.gis.db.backends.postgis"

@@ -155,24 +155,24 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 # ------------------------------
 
-DB_NAME = os.getenv("DB_NAME", "progressrpg_staging")
-DB_USER = os.getenv("DB_USER", default="duncan")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_PORT = os.getenv("DB_PORT", default=5432)
+# DB_NAME = os.getenv("DB_NAME", "progressrpg_staging")
+# DB_USER = os.getenv("DB_USER", default="duncan")
+# DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+# DB_PORT = os.getenv("DB_PORT", default=5432)
 
-IN_DOCKER = is_running_in_docker()
+# IN_DOCKER = is_running_in_docker()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL:
-    DATABASE_URL = rewrite_database_url_host(DATABASE_URL, get_postgres_host())
-if not DATABASE_URL:
-    # Fallback to explicit DB_* vars for local dev
-    DB_USER = os.environ.get("DB_USER", "duncan")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
-    DB_NAME = os.environ.get("DB_NAME", "progressrpg")
-    DB_HOST = get_postgres_host()
-    DB_PORT = os.environ.get("DB_PORT", 5432)
-    DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# if DATABASE_URL:
+#     DATABASE_URL = rewrite_database_url_host(DATABASE_URL, get_postgres_host())
+# if not DATABASE_URL:
+#     # Fallback to explicit DB_* vars for local dev
+#     DB_USER = os.environ.get("DB_USER", "duncan")
+#     DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+#     DB_NAME = os.environ.get("DB_NAME", "progressrpg")
+#     DB_HOST = get_postgres_host()
+#     DB_PORT = os.environ.get("DB_PORT", 5432)
+#     DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
 db["ENGINE"] = "django.contrib.gis.db.backends.postgis"

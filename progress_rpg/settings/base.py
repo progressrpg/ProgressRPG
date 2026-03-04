@@ -240,10 +240,6 @@ if FRONTEND_URL.startswith("http://localhost"):
         FRONTEND_URL = f"{FRONTEND_URL}:8000"
         print("Vite status: Django serving React from static files", file=sys.stderr)
 
-SERVE_FRONTEND_FROM_DJANGO = os.environ.get(
-    "SERVE_FRONTEND_FROM_DJANGO", "true"
-).lower() in ("1", "true", "yes")
-
 
 # Static files
 

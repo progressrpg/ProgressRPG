@@ -13,19 +13,12 @@ from django.views.static import serve
 from django.views.generic.base import RedirectView
 from django.views.generic import TemplateView
 
+from progress_rpg.settings.base import FRONTEND_URL
+
 
 # from gameplay.admin import custom_admin_site
 
 urlpatterns = [
-    path(
-        "",
-        (
-            TemplateView.as_view(template_name="index.html")
-            if settings.SERVE_FRONTEND_FROM_DJANGO
-            else RedirectView.as_view(url=settings.FRONTEND_URL, permanent=False)
-        ),
-        name="root",
-    ),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("api/v1/", include("api.urls")),
@@ -33,6 +26,7 @@ urlpatterns = [
     path("", include("payments.urls")),
     path("", include("gameworld.urls")),
     path("", include("server_management.urls")),
+    path("", RedirectView.as_view(url=FRONTEND_URL, permanent=False)),
     re_path(
         r"^static/(?P<path>.*)$",
         serve,
@@ -41,14 +35,6 @@ urlpatterns = [
     re_path(r"^\.well-known/.*$", lambda request: HttpResponseNotFound()),
 ]
 
-if settings.SERVE_FRONTEND_FROM_DJANGO:
-    urlpatterns.append(
-        re_path(
-            r"^(?!api/|admin/|accounts/|static/|media/|\.well-known/).*$",
-            TemplateView.as_view(template_name="index.html"),
-            name="spa-fallback",
-        )
-    )
 
 """ # Serve media files during development
 if settings.DEBUG:
