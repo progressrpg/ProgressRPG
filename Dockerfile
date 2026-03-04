@@ -52,7 +52,7 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 ENV PATH="/usr/local/bin:$PATH"
-CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} progress_rpg.asgi:application"]
+CMD ["sh", "-c", "daphne", "-b", "0.0.0.0", "-p", "${PORT:-8000}", "progress_rpg.asgi:application"]
 
 # --------------------------
 # Service-specific targets
