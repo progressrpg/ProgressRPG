@@ -285,3 +285,12 @@ CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = "UTC"
+
+# Memory optimization settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Only prefetch 1 task at a time (default is 4)
+CELERY_WORKER_MAX_TASKS_PER_CHILD = (
+    1000  # Restart worker process after 1000 tasks to free memory
+)
+CELERY_TASK_SOFT_TIME_LIMIT = 600  # 10 minutes soft limit (tasks should respect this)
+CELERY_TASK_TIME_LIMIT = 900  # 15 minutes hard limit (task is killed)
+CELERY_BROKER_POOL_LIMIT = 10  # Limit connection pool to reduce memory
