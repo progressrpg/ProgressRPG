@@ -1,3 +1,4 @@
+// src/config.js
 let API_BASE_URL;
 const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
