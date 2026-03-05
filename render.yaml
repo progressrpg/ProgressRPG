@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: progressrpg-web
+    name: web
     runtime: docker
     plan: starter
     dockerfilePath: ./Dockerfile
@@ -16,11 +16,11 @@ services:
         generateValue: true
       - key: DATABASE_URL
         fromDatabase:
-          name: progressrpg-postgres
+          name: postgres
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: progressrpg-redis
+          name: redis
           type: keyvalue
           property: connectionString
       - key: ALLOWED_HOSTS
@@ -33,7 +33,7 @@ services:
         sync: false
 
   - type: worker
-    name: progressrpg-celery
+    name: celery
     runtime: docker
     plan: starter
     dockerfilePath: ./Dockerfile
@@ -46,21 +46,21 @@ services:
         value: "false"
       - key: SECRET_KEY
         fromService:
-          name: progressrpg-web
+          name: web
           type: web
           envVarKey: SECRET_KEY
       - key: DATABASE_URL
         fromDatabase:
-          name: progressrpg-postgres
+          name: postgres
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: progressrpg-redis
+          name: redis
           type: keyvalue
           property: connectionString
 
   - type: worker
-    name: progressrpg-celery-beat
+    name: celery-beat
     runtime: docker
     plan: starter
     dockerfilePath: ./Dockerfile
@@ -73,26 +73,26 @@ services:
         value: "false"
       - key: SECRET_KEY
         fromService:
-          name: progressrpg-web
+          name: web
           type: web
           envVarKey: SECRET_KEY
       - key: DATABASE_URL
         fromDatabase:
-          name: progressrpg-postgres
+          name: postgres
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: progressrpg-redis
+          name: redis
           type: keyvalue
           property: connectionString
 
   - type: keyvalue
-    name: progressrpg-redis
+    name: redis
     plan: starter
     ipAllowList: []
 
   - type: web
-    name: progressrpg-frontend
+    name: frontend
     runtime: static
     buildCommand: cd frontend && npm ci && npm run build:production
     staticPublishPath: frontend/dist
@@ -101,7 +101,7 @@ services:
         sync: false
 
 databases:
-  - name: progressrpg-postgres
+  - name: postgres
     plan: basic-256mb
     postgresMajorVersion: "17"
     ipAllowList: []
