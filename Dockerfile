@@ -59,7 +59,7 @@ CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "progress_rpg.asgi:application"]
 # Service-specific targets
 # --------------------------
 FROM runtime AS web
-CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} progress_rpg.asgi:application"]
+CMD ["sh", "-c", "daphne -b 0.0.0.0 -p 8000 progress_rpg.asgi:application"]
 
 FROM runtime AS celery
 CMD ["celery", "-A", "progress_rpg", "worker", "--loglevel=info"]
