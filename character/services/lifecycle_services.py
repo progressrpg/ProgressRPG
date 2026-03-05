@@ -19,6 +19,8 @@ def relationship_log_event(relationship, event) -> None:
 
 
 def lifecycle_get_age(instance) -> int:
+    if instance.birth_date is None:
+        return 0
     return (timezone.now().date() - instance.birth_date).days
 
 
