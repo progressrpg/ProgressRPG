@@ -38,13 +38,15 @@ def precompute_sun_times(days_ahead=7):
 def sun_phase_started(phase):
     """
     Notify characters/world that a sun phase has started.
+    Uses iterator() to avoid loading all characters into memory.
     """
     from character.models import Character
 
     print(f"Sun phase started: {phase}")
 
-    # example: tell all characters to react
-    for char in Character.objects.all():
+    # Process characters in batches to avoid memory overload
+    batch_size = 100
+    for char in Character.objects.iterator(chunk_size=batch_size):
         char.react_to_sun_phase(phase)
 
 
@@ -78,11 +80,13 @@ def death_probability(age):
 
 @shared_task
 def check_character_deaths():
-    """Daily check to determine if NPCs die based on age"""
-    characters = Character.objects.all()
+    """Daily check to determine if NPCs die based on age.
+    Uses iterator() to process in batches."""
     death_count = 0
+    batch_size = 100
 
-    for character in characters:
+    # Process characters in batches to avoid memory overload
+    for character in Character.objects.iterator(chunk_size=batch_size):
         age = timezone.now().date() - character.birth_date
         chance = death_probability(age)
 
@@ -95,8 +99,14 @@ def check_character_deaths():
 
 @shared_task
 def check_character_pregnancies():
+    """Check pregnancies and schedule births. Uses iterator() for memory efficiency."""
     today = timezone.now().date()
-    for character in Character.objects.filter(is_pregnant=True):
+    batch_size = 100
+
+    # Process pregnant characters in batches
+    for character in Character.objects.filter(is_pregnant=True).iterator(
+        chunk_size=batch_size
+    ):
         pregnancy_duration = (today - character.pregnancy_start_date).days
 
         if pregnancy_duration >= 260:

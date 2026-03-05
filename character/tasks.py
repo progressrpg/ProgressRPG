@@ -10,6 +10,7 @@ def generate_character_days(self, date_iso: str | None = None) -> dict:
     """
     Generate scheduled CharacterActivity rows for every character for the given date.
     If date_iso is None, uses localdate() (Europe/London).
+    Uses iterator() to process characters in batches to avoid memory issues.
     """
     target_date = (
         timezone.localdate()
@@ -19,10 +20,12 @@ def generate_character_days(self, date_iso: str | None = None) -> dict:
 
     generated = 0
     skipped_no_behaviour = 0
+    batch_size = 100
 
-    qs = Character.objects.select_related("behaviour").all()
-
-    for character in qs:
+    # Use iterator() to process characters in batches instead of loading all at once
+    for character in Character.objects.select_related("behaviour").iterator(
+        chunk_size=batch_size
+    ):
         behaviour = getattr(character, "behaviour", None)
         if not behaviour:
             skipped_no_behaviour += 1

@@ -14,24 +14,28 @@ def calculate_daily_metrics():
     """
     Celery task to calculate daily metrics.
     Runs daily (suggested: 1 AM).
+    Uses iterator() to process players in batches.
     """
     today = timezone.now().date()
     logger.info(f"Starting daily metrics calculation for {today}")
 
-    # Get all non-deleted players (optimize with only() for fields we need)
-    players = Player.objects.filter(is_deleted=False).only('id')
-    player_count = players.count()
+    player_count = 0
+    batch_size = 100
 
-    # Calculate daily snapshots for all players
-    for player in players:
+    # Calculate daily snapshots for all non-deleted players using iterator() for memory efficiency
+    for player in (
+        Player.objects.filter(is_deleted=False)
+        .only("id")
+        .iterator(chunk_size=batch_size)
+    ):
         MetricsCalculator.calculate_daily_snapshot(player, today)
+        player_count += 1
 
     # Calculate global metrics for today
     MetricsCalculator.calculate_global_metrics(today)
 
     summary = (
-        f"Daily metrics calculated for {today}: "
-        f"{player_count} players processed"
+        f"Daily metrics calculated for {today}: " f"{player_count} players processed"
     )
     logger.info(summary)
     return summary
@@ -42,17 +46,22 @@ def calculate_weekly_metrics():
     """
     Celery task to calculate weekly metrics.
     Runs on Mondays (suggested: 2 AM).
+    Uses iterator() to process players in batches.
     """
     today = timezone.now().date()
     logger.info(f"Starting weekly metrics calculation for week of {today}")
 
-    # Get all non-deleted players (optimize with only() for fields we need)
-    players = Player.objects.filter(is_deleted=False).only('id')
-    player_count = players.count()
+    player_count = 0
+    batch_size = 100
 
-    # Calculate weekly metrics for all players
-    for player in players:
+    # Calculate weekly metrics for all non-deleted players using iterator() for memory efficiency
+    for player in (
+        Player.objects.filter(is_deleted=False)
+        .only("id")
+        .iterator(chunk_size=batch_size)
+    ):
         MetricsCalculator.calculate_weekly_metrics(player, today)
+        player_count += 1
 
     summary = (
         f"Weekly metrics calculated for week of {today}: "
