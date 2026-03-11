@@ -10,6 +10,9 @@ from users.models import Player
 
 PLAYER_ONLINE_KEY = "player_online"
 PLAYER_ONLINE_MULTIPLIER = 1.25
+ACTIVITY_ACTIVE_KEY = "activity_active"
+ACTIVITY_ACTIVE_CHARACTER_MULTIPLIER = 1.5
+ACTIVITY_ACTIVE_PLAYER_MULTIPLIER = 1.25
 
 
 @transaction.atomic
@@ -81,7 +84,9 @@ def schedule_online_end(link: PlayerCharacterLink, cooldown_minutes=30):
     # Upsert your modifier row:
     mod = (
         XpModifier.objects.filter(
-            scope=XpModifier.Scope.LINK, link=link, key=PLAYER_ONLINE_KEY
+            scope=XpModifier.Scope.CHARACTER,
+            character=link.character,
+            key=PLAYER_ONLINE_KEY,
         )
         .order_by("-starts_at")
         .first()
@@ -93,7 +98,8 @@ def schedule_online_end(link: PlayerCharacterLink, cooldown_minutes=30):
         mod.save(update_fields=["multiplier", "is_active"])
     else:
         mod = XpModifier.objects.create(
-            scope=XpModifier.Scope.LINK,
+            scope=XpModifier.Scope.CHARACTER,
+            character=link.character,
             link=link,
             key=PLAYER_ONLINE_KEY,
             multiplier=PLAYER_ONLINE_MULTIPLIER,
@@ -113,7 +119,9 @@ def handle_online_login(player: Player):
     link = PlayerCharacterLink.objects.get(id=link.id)
     mod = (
         XpModifier.objects.filter(
-            scope=XpModifier.Scope.LINK, link=link, key=PLAYER_ONLINE_KEY
+            scope=XpModifier.Scope.CHARACTER,
+            character=link.character,
+            key=PLAYER_ONLINE_KEY,
         )
         .order_by("-starts_at")
         .first()
@@ -123,7 +131,8 @@ def handle_online_login(player: Player):
 
     if not mod:
         mod = XpModifier.objects.create(
-            scope=XpModifier.Scope.LINK,
+            scope=XpModifier.Scope.CHARACTER,
+            character=link.character,
             link=link,
             key=PLAYER_ONLINE_KEY,
             multiplier=PLAYER_ONLINE_MULTIPLIER,
@@ -143,3 +152,81 @@ def handle_online_login(player: Player):
     mod.ends_at = None
     mod.save(update_fields=["multiplier", "is_active", "ends_at", "task_id"])
     return mod
+
+
+@transaction.atomic
+def set_activity_active_modifiers(player: Player, *, is_active: bool):
+    """
+    Toggle activity-active modifiers without replacing still-valid online modifiers.
+
+    - Character gets a higher bonus while player is actively recording.
+    - Player gets their own bonus while actively recording.
+    """
+    link = player.active_link
+    if not link:
+        return []
+
+    link = PlayerCharacterLink.objects.select_related("character", "player").get(
+        id=link.id
+    )
+    now = timezone.now()
+
+    character_mod = (
+        XpModifier.objects.filter(
+            scope=XpModifier.Scope.CHARACTER,
+            character=link.character,
+            key=ACTIVITY_ACTIVE_KEY,
+        )
+        .order_by("-starts_at")
+        .first()
+    )
+    if not character_mod and is_active:
+        character_mod = XpModifier.objects.create(
+            scope=XpModifier.Scope.CHARACTER,
+            character=link.character,
+            link=link,
+            key=ACTIVITY_ACTIVE_KEY,
+            multiplier=ACTIVITY_ACTIVE_CHARACTER_MULTIPLIER,
+            starts_at=now,
+            ends_at=None,
+            is_active=True,
+            task_id=None,
+        )
+    elif character_mod:
+        character_mod.multiplier = ACTIVITY_ACTIVE_CHARACTER_MULTIPLIER
+        character_mod.is_active = is_active
+        character_mod.ends_at = None if is_active else now
+        character_mod.task_id = None
+        character_mod.save(
+            update_fields=["multiplier", "is_active", "ends_at", "task_id"]
+        )
+
+    player_mod = (
+        XpModifier.objects.filter(
+            scope=XpModifier.Scope.PLAYER,
+            player=link.player,
+            key=ACTIVITY_ACTIVE_KEY,
+        )
+        .order_by("-starts_at")
+        .first()
+    )
+    if not player_mod and is_active:
+        player_mod = XpModifier.objects.create(
+            scope=XpModifier.Scope.PLAYER,
+            player=link.player,
+            link=link,
+            key=ACTIVITY_ACTIVE_KEY,
+            multiplier=ACTIVITY_ACTIVE_PLAYER_MULTIPLIER,
+            starts_at=now,
+            ends_at=None,
+            is_active=True,
+            task_id=None,
+        )
+    elif player_mod:
+        player_mod.multiplier = ACTIVITY_ACTIVE_PLAYER_MULTIPLIER
+        player_mod.is_active = is_active
+        player_mod.ends_at = None if is_active else now
+        player_mod.task_id = None
+        player_mod.save(update_fields=["multiplier", "is_active", "ends_at", "task_id"])
+
+    return [m for m in [character_mod, player_mod] if m]

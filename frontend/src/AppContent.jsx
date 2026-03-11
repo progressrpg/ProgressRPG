@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Navbar from './layout/Navbar/Navbar';
 import NavDrawer from './layout/NavDrawer/NavDrawer';
+import Infobar from './layout/Infobar/Infobar';
 import StaticBanner from './components/StaticBanner/StaticBanner';
 import AppRoutes from "./routes/AppRoutes";
 import Footer from './layout/Footer/Footer';
@@ -21,6 +22,7 @@ export default function AppContent() {
       <Navbar onMenuClick={() => setDrawerOpen(true)}/>
       <NavDrawer drawerOpen={drawerOpen} onClose={() => setDrawerOpen(false)}/>
       <StaticBanner message={`${announcement} (Build ${buildNumber})`} />
+      {isAuthenticated && <Infobar />}
       <AppRoutes />
       <Footer />
       {isAuthenticated && <FeedbackWidget />}

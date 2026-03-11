@@ -699,7 +699,6 @@ class XpModifier(models.Model):
     class Scope(models.TextChoices):
         PLAYER = "PLAYER", "Player"
         CHARACTER = "CHARACTER", "Character"
-        LINK = "LINK", "Link"
 
     scope = models.CharField(max_length=20, choices=Scope.choices)
     player = models.ForeignKey(
@@ -711,13 +710,6 @@ class XpModifier(models.Model):
     )
     character = models.ForeignKey(
         "character.Character",
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-        related_name="xp_mods",
-    )
-    link = models.ForeignKey(
-        "character.PlayerCharacterLink",
         null=True,
         blank=True,
         on_delete=models.CASCADE,

@@ -191,7 +191,6 @@ class XpModifierAdmin(admin.ModelAdmin):
         "scope",
         "player",
         "character",
-        "link",
         "multiplier",
         "starts_at",
         "ends_at",

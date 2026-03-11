@@ -61,10 +61,10 @@ export default function CharacterCurrentActivity() {
           <span className={styles.remaining}> ({timeRemaining})</span>
         )}
       </p>
-      <p className={styles.bonus}>Player online: +20% XP</p>
+      {/* <p className={styles.bonus}>Player online: +20% XP</p>
       {isActive && (
         <p className={styles.bonusActive}>Player active: +50% XP</p>
-      )}
+      )} */}
     </div>
 
   );

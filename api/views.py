@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import login, logout, get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import transaction, models
 from django.http import Http404
 
 from django.utils import timezone
@@ -47,7 +47,9 @@ from api.serializers import (
 from character.models import Character, PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
+from gameplay.models import XpModifier
 from gameplay.utils import send_group_message
+from gameplay.serializers import ActivityTimerSerializer, XpModifierSerializer
 from gameplay.serializers import ActivityTimerSerializer
 from gameplay.services.xp_modifiers import handle_online_login
 
@@ -390,6 +392,26 @@ class FetchInfoAPIView(APIView):
 
         handle_online_login(player)
 
+        # --- Get active link xp modifiers ---
+        active_link = player.active_link
+        xp_mods = []
+        if active_link:
+            now = timezone.now()
+            xp_mods = (
+                XpModifier.objects.filter(
+                    is_active=True,
+                    starts_at__lte=now,
+                )
+                .filter(models.Q(ends_at__isnull=True) | models.Q(ends_at__gt=now))
+                .filter(
+                    models.Q(
+                        scope=XpModifier.Scope.CHARACTER,
+                        character=active_link.character,
+                    )
+                    | models.Q(scope=XpModifier.Scope.PLAYER, player=player)
+                )
+            )
+
         # --- Serialize everything ---
         try:
             data = {
@@ -405,6 +427,9 @@ class FetchInfoAPIView(APIView):
                 ).data,
                 "population_centre": PopulationCentreSerializer(
                     population_centre, context={"request": request}
+                ).data,
+                "xp_mods": XpModifierSerializer(
+                    xp_mods, many=True, context={"request": request}
                 ).data,
             }
             return Response(data)

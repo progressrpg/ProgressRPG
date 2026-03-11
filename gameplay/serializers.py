@@ -6,6 +6,7 @@ from .models import (
     QuestRequirement,
     ActivityTimer,
     QuestTimer,
+    XpModifier,
 )
 
 from progression.serializers import PlayerActivitySerializer
@@ -102,3 +103,18 @@ class QuestTimerSerializer(serializers.ModelSerializer):
 
     def get_remaining_time(self, obj):
         return obj.get_remaining_time()
+
+
+class XpModifierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = XpModifier
+        fields = [
+            "id",
+            "scope",
+            "key",
+            "multiplier",
+            "starts_at",
+            "ends_at",
+            "is_active",
+        ]
+        read_only_fields = fields
