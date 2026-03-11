@@ -12,8 +12,8 @@ export default function Navbar({ onMenuClick }) {
   const accountMobileRef = useRef(null);
 
   const isGamePage = location.pathname === '/game';
+  const isVillagePage = location.pathname === '/village';
   const isActivitiesPage = location.pathname === '/activities';
-  const isHomePage = location.pathname === '/' || location.pathname === '/home';
   const isAccountPage = location.pathname === '/account';
 
   useEffect(() => {
@@ -34,18 +34,6 @@ export default function Navbar({ onMenuClick }) {
       <nav className={styles.navbar} aria-label="Main navigation">
 
         <div className={styles.leftLinks}>
-          <button
-            className={styles.menuButton}
-            onClick={onMenuClick}
-            aria-label="Open menu"
-          >
-            <div className={styles.menuIcon}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </button>
-
           <Link to={isAuthenticated ? '/game' : '/'} aria-label={isAuthenticated ? 'Go to game' : 'Go to home'}>
             <Button
               variant={isAuthenticated && isGamePage ? "secondary" : "primary"}
@@ -54,6 +42,27 @@ export default function Navbar({ onMenuClick }) {
               {isAuthenticated ? 'Game' : 'Home'}
             </Button>
           </Link>
+
+          {isAuthenticated && (
+            <>
+              <Link to="/activities" aria-label="Go to activities">
+                <Button
+                  variant={isActivitiesPage ? 'secondary' : 'primary'}
+                  className={styles.navLink}
+                >
+                  Activities
+                </Button>
+              </Link>
+              <Link to="/village" aria-label="Go to village">
+                <Button
+                  variant={isVillagePage ? 'secondary' : 'primary'}
+                  className={styles.navLink}
+                >
+                  Village
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <div className={styles.rightLinks} role="navigation" aria-label="User account">
