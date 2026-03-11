@@ -357,7 +357,14 @@ class FetchInfoAPIView(APIView):
         try:
             character = PlayerCharacterLink.get_character(player)
         except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error(
+                f"[FETCH INFO] Error fetching character for player {player.id}: {e}",
+                exc_info=True,
+            )
+            return Response(
+                {"error": "Unable to fetch character for this player."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         population_centre = None
         if hasattr(character, "population_centre") and character.population_centre:
