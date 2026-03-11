@@ -24,9 +24,7 @@ def update_quest_availability():
 @shared_task(bind=True)
 def end_online_boost(self, modifier_id: int):
     now = timezone.now()
-    mod = XpModifier.objects.select_related("link__character__behaviour").get(
-        id=modifier_id
-    )
+    mod = XpModifier.objects.select_related("character__behaviour").get(id=modifier_id)
 
     # Superseded / cancelled
     if mod.task_id != self.request.id:
@@ -40,7 +38,7 @@ def end_online_boost(self, modifier_id: int):
     mod.ends_at = now
     mod.save(update_fields=["is_active", "task_id", "ends_at"])
 
-    behaviour = getattr(mod.link.character, "behaviour", None)
+    behaviour = getattr(mod.character, "behaviour", None)
     if behaviour:
         behaviour.interrupt_current_activity()
     return "ended"
