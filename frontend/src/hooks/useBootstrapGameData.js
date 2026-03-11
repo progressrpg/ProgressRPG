@@ -9,6 +9,7 @@ export function useBootstrapGameData() {
   const [character, setCharacter] = useState(null);
   const [activityTimerInfo, setActivityTimerInfo] = useState(null);
   const [populationCentreInfo, setPopulationCentreInfo] = useState(null);
+  const [xpMods, setXpMods] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buildNumber, setBuildNumber] = useState(true);
@@ -31,6 +32,7 @@ export function useBootstrapGameData() {
         setCharacter(info.character);
         setActivityTimerInfo(info.activity_timer);
         setPopulationCentreInfo(info.population_centre);
+        setXpMods(info.xp_mods || []);
         setBuildNumber(info.build_number);
       } catch (err) {
         console.error('[Bootstrap] Error loading game data:', err);
@@ -48,6 +50,7 @@ export function useBootstrapGameData() {
     character,
     activityTimerInfo,
     populationCentreInfo,
+    xpMods,
     buildNumber,
     loading,
     error

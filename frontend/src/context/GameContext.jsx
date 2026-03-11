@@ -28,6 +28,7 @@ export const GameProvider = ({ children }) => {
     character: characterOnload,
     activityTimerInfo,
     populationCentreInfo,
+    xpMods: xpModsOnload,
     loading,
     error,
     buildNumber,
@@ -36,6 +37,7 @@ export const GameProvider = ({ children }) => {
 
   const [player, setPlayer] = useState(playerOnload);
   const [character, setCharacter] = useState(characterOnload);
+  const [xpMods, setXpMods] = useState(xpModsOnload);
   const [playerActivities, setPlayerActivities] = useState([]);
   const [characterActivities, setCharacterActivities] = useState([]);
   const [characterCurrentActivity, setCharacterCurrentActivity] = useState({});
@@ -108,6 +110,12 @@ export const GameProvider = ({ children }) => {
     }
   }, [fetchActivities, isAuthenticated, authLoading]);
 
+  useEffect(() => {
+    if (xpModsOnload) {
+      setXpMods(xpModsOnload);
+    }
+  }, [xpModsOnload]);
+
 
   // ----------------------------------------
   //  STABLE PROVIDER VALUE
@@ -120,6 +128,8 @@ export const GameProvider = ({ children }) => {
       setPlayer,
       character,
       setCharacter,
+      xpMods,
+      setXpMods,
       fetchPlayerAndCharacter,
       activityTimer,
       playerActivities,
@@ -136,6 +146,7 @@ export const GameProvider = ({ children }) => {
     [
       player,
       character,
+      xpMods,
       playerActivities,
       characterActivities,
       characterCurrentActivity,
