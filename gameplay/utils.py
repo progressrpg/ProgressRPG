@@ -34,6 +34,7 @@ from .serializers import QuestTimerSerializer
 
 from character.models import Character
 from users.models import Player
+from gameplay.services.xp_modifiers import set_activity_active_modifiers
 
 import logging
 
@@ -84,6 +85,7 @@ def start_server_timers(act_timer: ActivityTimer):
     if act_timer.status in ["active", "paused", "waiting"]:
         try:
             act_timer.start()
+            set_activity_active_modifiers(act_timer.player, is_active=True)
             result_text = "[START SERVER TIMERS] Timers successfully started"
             logger.info(result_text)
             return True, result_text
@@ -107,6 +109,7 @@ def pause_server_timers(act_timer: ActivityTimer):
     try:
         if act_timer.status not in ["completed", "empty"]:
             act_timer.pause()
+            set_activity_active_modifiers(act_timer.player, is_active=False)
             logger.debug("[PAUSE SERVER TIMERS] Activity timer successfully paused")
         else:
             result_text = f"[PAUSE SERVER TIMERS] Activity timer NOT paused, status: {act_timer.status}"
