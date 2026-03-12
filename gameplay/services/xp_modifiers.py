@@ -24,8 +24,8 @@ def activate_link_modifier(
         ends_at = now + duration
 
     mod, _created = XpModifier.objects.update_or_create(
-        scope=XpModifier.Scope.LINK,
-        link=link,
+        scope=XpModifier.Scope.CHARACTER,
+        character=link.character,
         key=key,
         defaults={
             "multiplier": multiplier,
@@ -100,7 +100,6 @@ def schedule_online_end(link: PlayerCharacterLink, cooldown_minutes=30):
         mod = XpModifier.objects.create(
             scope=XpModifier.Scope.CHARACTER,
             character=link.character,
-            link=link,
             key=PLAYER_ONLINE_KEY,
             multiplier=PLAYER_ONLINE_MULTIPLIER,
             starts_at=now,
@@ -133,7 +132,6 @@ def handle_online_login(player: Player):
         mod = XpModifier.objects.create(
             scope=XpModifier.Scope.CHARACTER,
             character=link.character,
-            link=link,
             key=PLAYER_ONLINE_KEY,
             multiplier=PLAYER_ONLINE_MULTIPLIER,
             starts_at=now,
@@ -184,7 +182,6 @@ def set_activity_active_modifiers(player: Player, *, is_active: bool):
         character_mod = XpModifier.objects.create(
             scope=XpModifier.Scope.CHARACTER,
             character=link.character,
-            link=link,
             key=ACTIVITY_ACTIVE_KEY,
             multiplier=ACTIVITY_ACTIVE_CHARACTER_MULTIPLIER,
             starts_at=now,
@@ -214,7 +211,6 @@ def set_activity_active_modifiers(player: Player, *, is_active: bool):
         player_mod = XpModifier.objects.create(
             scope=XpModifier.Scope.PLAYER,
             player=link.player,
-            link=link,
             key=ACTIVITY_ACTIVE_KEY,
             multiplier=ACTIVITY_ACTIVE_PLAYER_MULTIPLIER,
             starts_at=now,
