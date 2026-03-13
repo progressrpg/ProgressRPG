@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import CustomUser, Player, UserLogin, InviteCode
+from .models import CustomUser, Player, PlayerCurrency, UserLogin, InviteCode
 from character.models import PlayerCharacterLink, Character
 
 # Register your models here.
@@ -19,6 +19,13 @@ class UserLoginInline(admin.TabularInline):
     max_num = 10
     readonly_fields = ("timestamp", "is_first_login_of_day")
     can_delete = False
+
+
+class PlayerCurrencyInline(admin.TabularInline):
+    model = PlayerCurrency
+    extra = 0
+    fields = ("currency", "earned", "spent", "balance", "last_calculated_at")
+    readonly_fields = ("balance",)
 
 
 @admin.register(CustomUser)
@@ -188,6 +195,7 @@ class PlayerAdmin(admin.ModelAdmin):
     ]
     search_fields = ["name", "user__email"]
     ordering = ("-created_at",)
+    inlines = [PlayerCurrencyInline]
 
     @admin.display(description="Character")
     def get_character(self, obj):
@@ -240,3 +248,16 @@ class InviteCodeAdmin(admin.ModelAdmin):
         "uses",
     ]
     readonly_fields = ["uses"]
+
+
+@admin.register(PlayerCurrency)
+class PlayerCurrencyAdmin(admin.ModelAdmin):
+    list_display = ["player", "currency", "balance", "earned", "spent"]
+    list_filter = ["currency"]
+    search_fields = [
+        "player__name",
+        "player__user__email",
+        "currency__code",
+        "currency__name",
+    ]
+    readonly_fields = ["balance"]

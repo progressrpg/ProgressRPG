@@ -14,7 +14,7 @@ import random
 
 from users.models import Person, Player
 
-from gameplay.models import QuestCompletion, Quest
+from gameplay.models import Currency, CurrencyAccountBase, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
 from progression.models import CharacterQuest
 from progress_rpg.exceptions import QuestError
@@ -181,7 +181,6 @@ class Character(Person, LifeCycleMixin, Movable):
     sex = models.CharField(
         max_length=20, choices=SexChoices.choices, null=True, blank=True
     )
-    coins = models.PositiveIntegerField(default=0)
     reputation = models.IntegerField(default=0)
     can_link = models.BooleanField(default=False)
     # quest_timer = Optional["QuestTimer"]
@@ -227,6 +226,14 @@ class Character(Person, LifeCycleMixin, Movable):
         Retrieve the player associated with this character.
         """
         return PlayerCharacterLink.get_player(self)
+
+    def get_currency(self, code="coins") -> "CharacterCurrency":
+        currency_def, _ = Currency.objects.get_or_create(
+            code=code,
+            defaults={"name": code.replace("_", " ").title()},
+        )
+        currency, _ = self.currencies.get_or_create(currency=currency_def)
+        return currency
 
     def react_to_sun_phase(self, phase):
         return character_services.character_react_to_sun_phase(self, phase)
@@ -344,3 +351,19 @@ class PlayerCharacterLink(models.Model):
     @classmethod
     def total_link_points(cls, list_of_links):
         return sum(link.link_points for link in list_of_links)
+
+
+class CharacterCurrency(CurrencyAccountBase):
+    character = models.ForeignKey(
+        Character,
+        on_delete=models.CASCADE,
+        related_name="currencies",
+    )
+    currency = models.ForeignKey(
+        Currency,
+        on_delete=models.CASCADE,
+        related_name="character_accounts",
+    )
+
+    class Meta:
+        unique_together = ("character", "currency")

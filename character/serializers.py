@@ -5,6 +5,7 @@ from .models import Character
 
 class CharacterSerializer(serializers.ModelSerializer):
     age = serializers.SerializerMethodField()
+    coins = serializers.SerializerMethodField()
     total_activities = serializers.IntegerField(read_only=True)
     current_activity = serializers.SerializerMethodField()
     population_centre_id = serializers.PrimaryKeyRelatedField(
@@ -44,6 +45,9 @@ class CharacterSerializer(serializers.ModelSerializer):
     def get_current_activity(self, obj):
         activity = obj.behaviour.get_current_activity()
         return activity.name if activity else None
+
+    def get_coins(self, obj):
+        return obj.get_currency("coins").balance
 
     def get_location(self, obj):
         # obj must have x and y attributes, or replace with obj.position.x / obj.position.y

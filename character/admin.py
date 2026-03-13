@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import (
     Character,
+    CharacterCurrency,
     PlayerCharacterLink,
     CharacterRelationship,
     Behaviour,
@@ -21,6 +22,13 @@ class BehaviourInline(admin.StackedInline):
     model = Behaviour
     extra = 1
     max_num = 1
+
+
+class CharacterCurrencyInline(admin.TabularInline):
+    model = CharacterCurrency
+    extra = 0
+    fields = ("currency", "earned", "spent", "balance", "last_calculated_at")
+    readonly_fields = ("balance",)
 
 
 @admin.action(description="Mark selected characters as NPCs and unlink from players")
@@ -82,12 +90,7 @@ class CharacterAdmin(admin.ModelAdmin):
             "Stats",
             {
                 "classes": ("collapse",),
-                "fields": (
-                    (
-                        "coins",
-                        "reputation",
-                    )
-                ),
+                "fields": (("reputation",)),
             },
         ),
         (
@@ -128,7 +131,7 @@ class CharacterAdmin(admin.ModelAdmin):
     ]
 
     ordering = ["last_name", "first_name"]
-    inlines = [LinkInline, BehaviourInline]
+    inlines = [LinkInline, CharacterCurrencyInline]
     actions = [mark_as_npc, mark_as_canlink]
 
     @admin.display(description="Player")
@@ -179,6 +182,19 @@ class PlayerCharacterLinkAdmin(admin.ModelAdmin):
         ("linked_at", "unlinked_at"),
     ]
     readonly_fields = ["linked_at", "unlinked_at"]
+
+
+@admin.register(CharacterCurrency)
+class CharacterCurrencyAdmin(admin.ModelAdmin):
+    list_display = ["character", "currency", "balance", "earned", "spent"]
+    list_filter = ["currency"]
+    search_fields = [
+        "character__first_name",
+        "character__last_name",
+        "currency__code",
+        "currency__name",
+    ]
+    readonly_fields = ["balance"]
 
 
 class CharacterInline(admin.TabularInline):

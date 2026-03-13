@@ -31,7 +31,7 @@ from django.utils import timezone
 from typing import TYPE_CHECKING, Optional
 import logging
 
-from gameplay.models import ServerMessage
+from gameplay.models import Currency, CurrencyAccountBase, ServerMessage
 
 if TYPE_CHECKING:
     from character.models import Character
@@ -303,6 +303,14 @@ class Player(Person):
         """Returns the WebSocket group name for this player."""
         return f"player_{self.id}"
 
+    def get_currency(self, code="link_points") -> "PlayerCurrency":
+        currency_def, _ = Currency.objects.get_or_create(
+            code=code,
+            defaults={"name": code.replace("_", " ").title()},
+        )
+        currency, _ = self.currencies.get_or_create(currency=currency_def)
+        return currency
+
     def set_online(self):
         """Marks player as online."""
         logger.debug("[SET ONLINE] Running set_online for player")
@@ -409,3 +417,19 @@ class InviteCode(models.Model):
 
     def __str__(self):
         return self.code
+
+
+class PlayerCurrency(CurrencyAccountBase):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="currencies",
+    )
+    currency = models.ForeignKey(
+        Currency,
+        on_delete=models.CASCADE,
+        related_name="player_accounts",
+    )
+
+    class Meta:
+        unique_together = ("player", "currency")

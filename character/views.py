@@ -29,7 +29,7 @@ class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
     ]
     filterset_class = CharacterFilter
     search_fields = ["first_name", "last_name", "backstory"]
-    ordering_fields = ["level", "xp", "coins"]
+    ordering_fields = ["level", "xp"]
 
     def get_queryset(self):
         player = self.request.user.player
