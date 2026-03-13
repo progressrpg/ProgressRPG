@@ -75,7 +75,8 @@ def character_apply_quest_results(character, quest):
     final_xp = time_xp * level_scaling * repeat_penalty
 
     coins_gained = results.get("coin_reward", 0)
-    character.coins += coins_gained
+    if coins_gained:
+        character.get_currency("coins").earn(coins_gained)
 
     dynamic_rewards = results.get("dynamic_rewards", {})
     if dynamic_rewards:
@@ -94,7 +95,6 @@ def character_apply_quest_results(character, quest):
     levelups = []
     try:
         levelups = character.add_xp(final_xp)
-        character.save(update_fields=["coins"])
 
     except Exception as e:
         logger.exception(

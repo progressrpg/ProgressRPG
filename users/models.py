@@ -22,6 +22,7 @@ Author:
 
 """
 
+from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
@@ -30,7 +31,7 @@ from django.utils import timezone
 from typing import TYPE_CHECKING, Optional
 import logging
 
-from gameplay.models import ServerMessage
+from gameplay.models import Currency, CurrencyAccountBase, ServerMessage
 
 if TYPE_CHECKING:
     from character.models import Character
@@ -94,8 +95,110 @@ class CustomUser(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
+    @property
+    def days_logged_in(self):
+        return UserLogin.days_logged_in(self)
+
+    @property
+    def current_login_streak(self):
+        return UserLogin.current_login_streak(self)
+
+    @property
+    def max_login_streak(self):
+        return UserLogin.max_login_streak(self)
+
+    @property
+    def total_login_events(self):
+        return UserLogin.total_login_events(self)
+
+    @property
+    def last_recorded_login(self):
+        return UserLogin.last_recorded_login(self)
+
     def __str__(self):
         return self.email
+
+
+class UserLogin(models.Model):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="logins",
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def local_date(self):
+        return timezone.localtime(self.timestamp).date()
+
+    def is_first_login_of_day(self):
+        today = self.local_date()
+        previous_logins_today = UserLogin.objects.filter(
+            user=self.user,
+            timestamp__date=today,
+            timestamp__lt=self.timestamp,
+        )
+        return not previous_logins_today.exists()
+
+    @classmethod
+    def total_login_events(cls, user):
+        return cls.objects.filter(user=user).count()
+
+    @classmethod
+    def days_logged_in(cls, user):
+        login_dates = {
+            login.local_date()
+            for login in cls.objects.filter(user=user).only("timestamp")
+        }
+        return len(login_dates)
+
+    @classmethod
+    def last_recorded_login(cls, user):
+        last = cls.objects.filter(user=user).order_by("-timestamp").first()
+        return last.timestamp if last else None
+
+    @classmethod
+    def current_login_streak(cls, user):
+        login_dates = sorted(
+            {
+                login.local_date()
+                for login in cls.objects.filter(user=user).only("timestamp")
+            },
+            reverse=True,
+        )
+        if not login_dates:
+            return 0
+
+        streak = 0
+        day = timezone.localdate()
+        login_dates_set = set(login_dates)
+        while day in login_dates_set:
+            streak += 1
+            day -= timedelta(days=1)
+        return streak
+
+    @classmethod
+    def max_login_streak(cls, user):
+        login_dates = sorted(
+            {
+                login.local_date()
+                for login in cls.objects.filter(user=user).only("timestamp")
+            }
+        )
+        if not login_dates:
+            return 0
+
+        max_streak = 1
+        current_streak = 1
+        for idx in range(1, len(login_dates)):
+            if login_dates[idx] == login_dates[idx - 1] + timedelta(days=1):
+                current_streak += 1
+            else:
+                current_streak = 1
+            max_streak = max(max_streak, current_streak)
+        return max_streak
+
+    def __str__(self):
+        return f"{self.user.email} @ {self.timestamp.isoformat()}"
 
 
 class Person(models.Model):
@@ -176,10 +279,8 @@ class Player(Person):
     bio = models.TextField(max_length=1000, blank=True)
     is_premium = models.BooleanField(default=False)
     is_online = models.BooleanField(default=False)
-    last_login = models.DateTimeField(default=timezone.now, null=True, blank=True)
-    login_streak = models.PositiveIntegerField(default=1)
-    login_streak_max = models.PositiveIntegerField(default=1)
-    total_logins = models.PositiveIntegerField(default=0)
+    active_connections = models.PositiveIntegerField(default=0)
+    last_seen = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -201,6 +302,14 @@ class Player(Person):
     def group_name(self):
         """Returns the WebSocket group name for this player."""
         return f"player_{self.id}"
+
+    def get_currency(self, code="link_points") -> "PlayerCurrency":
+        currency_def, _ = Currency.objects.get_or_create(
+            code=code,
+            defaults={"name": code.replace("_", " ").title()},
+        )
+        currency, _ = self.currencies.get_or_create(currency=currency_def)
+        return currency
 
     def set_online(self):
         """Marks player as online."""
@@ -308,3 +417,19 @@ class InviteCode(models.Model):
 
     def __str__(self):
         return self.code
+
+
+class PlayerCurrency(CurrencyAccountBase):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="currencies",
+    )
+    currency = models.ForeignKey(
+        Currency,
+        on_delete=models.CASCADE,
+        related_name="player_accounts",
+    )
+
+    class Meta:
+        unique_together = ("player", "currency")

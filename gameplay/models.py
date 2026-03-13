@@ -27,6 +27,51 @@ if TYPE_CHECKING:
 logger = logging.getLogger("general")
 
 
+class Currency(models.Model):
+    code = models.SlugField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    symbol = models.CharField(max_length=10, blank=True)
+    precision = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["code"]
+
+    def __str__(self):
+        return self.name
+
+
+class CurrencyAccountBase(models.Model):
+    earned = models.PositiveIntegerField(default=0)
+    spent = models.PositiveIntegerField(default=0)
+    last_calculated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def balance(self):
+        return self.earned - self.spent
+
+    @transaction.atomic
+    def spend(self, amount: int):
+        if amount < 0:
+            raise ValueError("Amount must be non-negative")
+        if amount > self.balance:
+            raise ValueError("Cannot spend more than the current balance")
+        self.spent += amount
+        self.last_calculated_at = timezone.now()
+        self.save(update_fields=["spent", "last_calculated_at"])
+
+    @transaction.atomic
+    def earn(self, amount: int):
+        if amount < 0:
+            raise ValueError("Amount must be non-negative")
+        self.earned += amount
+        self.last_calculated_at = timezone.now()
+        self.save(update_fields=["earned", "last_calculated_at"])
+
+
 class Quest(models.Model):
     """
     Represents a quest in the game, with eligibility criteria, duration, and category.

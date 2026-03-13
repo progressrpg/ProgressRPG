@@ -1,11 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client, override_settings, tag
 from django.urls import reverse
-from datetime import date
+from datetime import date, timedelta
+from django.utils import timezone
 from unittest import skip
 import logging
 
-from users.models import Player
+from api.serializers import CustomTokenObtainPairSerializer
+from users.models import Player, UserLogin
 from progression.models import PlayerActivity
 from users.tasks import send_email_to_users_task
 
@@ -154,6 +156,52 @@ class PlayerMethodsTest(TestCase):
         player.change_character(self.character2)
         link = PlayerCharacterLink.objects.filter(player=player, is_active=True).first()
         self.assertEqual(link.character, self.character2)
+
+
+class UserLoginModelTest(TestCase):
+    def setUp(self):
+        Character.objects.create(first_name="Jane", can_link=True)
+        self.user = get_user_model().objects.create_user(
+            email="login-test@example.com",
+            password="testpassword123",
+        )
+
+    def _create_login(self, days_ago):
+        login = UserLogin.objects.create(user=self.user)
+        timestamp = timezone.now() - timedelta(days=days_ago)
+        UserLogin.objects.filter(pk=login.pk).update(timestamp=timestamp)
+        return UserLogin.objects.get(pk=login.pk)
+
+    def test_login_metrics_derive_from_userlogin_rows(self):
+        self._create_login(3)
+        self._create_login(1)
+        self._create_login(0)
+
+        self.assertEqual(self.user.days_logged_in, 3)
+        self.assertEqual(self.user.current_login_streak, 2)
+        self.assertEqual(self.user.max_login_streak, 2)
+        self.assertEqual(self.user.total_login_events, 3)
+        self.assertIsNotNone(self.user.last_recorded_login)
+
+
+class JwtLoginTrackingTest(TestCase):
+    def setUp(self):
+        Character.objects.create(first_name="Jane", can_link=True)
+        self.user = get_user_model().objects.create_user(
+            email="jwt-login@example.com",
+            password="testpassword123",
+        )
+
+    def test_token_serializer_creates_user_login_record(self):
+        serializer = CustomTokenObtainPairSerializer(
+            data={
+                "email": "jwt-login@example.com",
+                "password": "testpassword123",
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(UserLogin.objects.filter(user=self.user).count(), 1)
 
 
 @override_settings(

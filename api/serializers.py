@@ -6,7 +6,7 @@ from rest_framework_simplejwt.serializers import (
     TokenRefreshSerializer,
 )
 
-from users.models import Player, InviteCode
+from users.models import Player, InviteCode, UserLogin
 
 from django.contrib.auth import get_user_model
 
@@ -27,6 +27,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         attrs["username"] = attrs.get("email")
         data = super().validate(attrs)
+        UserLogin.objects.create(user=self.user)
 
         return {
             "access_token": data["access"],

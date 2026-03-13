@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "channels",
     "django_vite",
+    "sendgrid",
     "character",
     "gameplay",
     "gameworld",
@@ -230,9 +231,11 @@ DJANGO_VITE = {
     }
 }
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
-if FRONTEND_URL.startswith("http://localhost"):
+if not FRONTEND_URL:
+    FRONTEND_URL = "http://localhost"
+
     if is_vite_running():
         FRONTEND_URL = f"{FRONTEND_URL}:5173"
         print("Vite status: Vite server is running!", file=sys.stderr)
@@ -275,8 +278,29 @@ ADMINS = [
 LOGIN_REDIRECT_URL = "/"  # Or wherever you want to go after login
 LOGIN_URL = "/login/"  # Customize the login URL
 
-STRIPE_PUBLIC_KEY = "pk_test_51QNRgsGHaENuGVuPh70KmxNTGK3iQPJgjGO2gVcdE0dlRDG7LOZfY3zQxvEdR2hmXDKaEILIRKEnJdn69arGwKCi00bSZWzrzW"
-STRIPE_SECRET_KEY = "nope"
+# Stripe
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+# Canonical Stripe price IDs
+STRIPE_PRICE_ID_PREMIUM_MONTHLY = os.getenv("STRIPE_PRICE_ID_PREMIUM_MONTHLY", "")
+STRIPE_PRICE_ID_PREMIUM_ANNUAL = os.getenv("STRIPE_PRICE_ID_PREMIUM_ANNUAL", "")
+STRIPE_PRICE_ID_FREE = os.getenv("STRIPE_PRICE_ID_FREE", "")
+
+# App URLs for Stripe redirects
+STRIPE_SUCCESS_URL = os.getenv(
+    "STRIPE_SUCCESS_URL",
+    f"{FRONTEND_URL}/payment-success",
+)
+STRIPE_CANCEL_URL = os.getenv(
+    "STRIPE_CANCEL_URL",
+    f"{FRONTEND_URL}/payment-cancelled",
+)
+STRIPE_BILLING_RETURN_URL = os.getenv(
+    "STRIPE_BILLING_RETURN_URL",
+    f"{FRONTEND_URL}/account",
+)
 
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -294,3 +318,11 @@ CELERY_WORKER_MAX_TASKS_PER_CHILD = (
 CELERY_TASK_SOFT_TIME_LIMIT = 600  # 10 minutes soft limit (tasks should respect this)
 CELERY_TASK_TIME_LIMIT = 900  # 15 minutes hard limit (task is killed)
 CELERY_BROKER_POOL_LIMIT = 10  # Limit connection pool to reduce memory
+
+
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() in ("true", "1", "yes")

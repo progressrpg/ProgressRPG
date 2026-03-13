@@ -7,21 +7,6 @@
   @include m.page-layout();
 }
 
-.header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: v.$spacing-lg;
-  gap: v.$spacing-md;
-  width: 100%;
-
-  h1 {
-    margin: 0;
-    @include t.apply-text-style(t.$text-heading-1);
-    text-align: center;
-  }
-}
-
 .activitiesLink {
   padding: v.$spacing-xs v.$spacing-sm;
   border: 1px solid c.$color-border-primary;
@@ -50,6 +35,7 @@
   display: flex;
   flex-direction: column;
   gap: v.$spacing-gap;
+  margin-top: v.$spacing-gap;
   width: 100%;
   align-items: center;
 }

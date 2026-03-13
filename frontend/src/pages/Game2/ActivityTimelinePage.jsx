@@ -6,10 +6,6 @@ export default function ActivityTimelinePage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1>Activity timer</h1>
-      </div>
-
       <div className={styles.content}>
         <CurrentActivity />
         <ActivityTimeline />

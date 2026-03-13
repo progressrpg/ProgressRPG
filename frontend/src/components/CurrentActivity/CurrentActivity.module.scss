@@ -15,6 +15,11 @@
   box-sizing: border-box;
 }
 
+.heading {
+  margin: v.$spacing-sm 0;
+  margin-bottom: v.$spacing-md;
+}
+
 .wrapper > * {
   position: relative;
   z-index: 1;

@@ -30,22 +30,20 @@ def perform_account_wipe():
         user.is_active = False
         user.pending_delete = False  # Clear the pending flag
         user.delete_at = None
+        user.last_login = None
         user.save()
 
         # Wipe player data
         player: Player = user.player
         player.name = f"Deleted User {user.id}"
         player.bio = ""
-        player.onboarding_step = None
+        player.onboarding_step = 0
         player.is_premium = False
-        player.total_time = 0
-        player.total_activities = 0
         player.xp = 0
         player.level = 1
-        player.last_login = None
-        player.login_streak = 0
-        player.login_streak_max = 0
-        player.total_logins = 0
+        player.last_seen = None
+        player.active_connections = 0
+        user.logins.all().delete()
         player.activities.all().delete()
         player.skills.all().delete()
         player.projects.all().delete()
