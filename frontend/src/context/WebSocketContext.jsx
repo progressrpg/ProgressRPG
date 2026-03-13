@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useRef, useCallback } from 'react';
 import { useGame } from './GameContext';
 import { useToast } from './ToastContext';
+import { useAuth } from './AuthContext';
 import { useWebSocketConnection } from '../hooks/useWebSocketConnection';
 import { handleGlobalWebSocketEvent } from '../websockets/handleGlobalWebSocketEvent';
 import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
@@ -14,9 +15,11 @@ export const useWebSocket = () => {
 
 export const WebSocketProvider = ({ children }) => {
   const { player } = useGame();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const { refetch: maintenanceRefetch } = useMaintenanceStatus();
   const eventHandlersRef = useRef(new Set());
+  const wsEnabled = Boolean(!authLoading && isAuthenticated && player?.id);
 
   const onMessage = useCallback((data) => {
     //console.log("[WS Provider] showToast:", showToast);
@@ -41,7 +44,8 @@ export const WebSocketProvider = ({ children }) => {
     onMessage,
     onError,
     onClose,
-    onOpen
+    onOpen,
+    wsEnabled
   );
 
   const addEventHandler = useCallback((handler) => {

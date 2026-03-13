@@ -1,44 +1,32 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../../utils/api';
 
 // WebSocket connection constants
-const WS_AUTH_PATH = '/api/v1/ws_auth/';
 const RECONNECT_DELAY_MS = 3000;
 const RETRY_DELAY_MS = 5000;
 const NORMAL_CLOSURE = 1000;
 const GOING_AWAY = 1001;
 
-export function useWebSocketConnection(playerId, onMessage, onError, onClose, onOpen) {
+export function useWebSocketConnection(playerId, onMessage, onError, onClose, onOpen, shouldConnect = true) {
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const intentionalCloseRef = useRef(false);
 
   const connect = useCallback(async () => {
+    if (!shouldConnect) {
+      return;
+    }
+
     if (!playerId) {
       console.warn('[WS] No player ID, skipping connection');
       return;
     }
 
     try {
-      // Get fresh token
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        console.warn('[WS] No access token available');
-        return;
-      }
-
-      // Get UUID for connection
-      const response = await fetch(`${API_BASE_URL}${WS_AUTH_PATH}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch WS auth UUID');
-      const { uuid } = await response.json();
+      // Get UUID for connection using shared auth/refresh logic.
+      const { uuid } = await apiFetch('/ws_auth/', { method: 'GET' });
 
       // Build WebSocket URL
       const url = new URL(API_BASE_URL);
@@ -95,16 +83,26 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
       console.error('[WS] Connection failed:', err);
       setIsConnected(false);
 
+      // Avoid repeated 401 spam loops. Auth flow will re-enable connection when ready.
+      if (!shouldConnect) {
+        return;
+      }
+      if ((err?.message || '').toLowerCase().includes('unauthorized')) {
+        return;
+      }
+
       // Retry connection after delay on connection failure
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log('[WS] Retrying after connection failure...');
         connect();
       }, RETRY_DELAY_MS);
     }
-  }, [playerId, onMessage, onError, onClose, onOpen]);
+  }, [playerId, onMessage, onError, onClose, onOpen, shouldConnect]);
 
   useEffect(() => {
-    connect();
+    if (shouldConnect) {
+      connect();
+    }
 
     return () => {
       // Cleanup on unmount
@@ -115,8 +113,9 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
       if (socketRef.current) {
         socketRef.current.close(NORMAL_CLOSURE);
       }
+      setIsConnected(false);
     };
-  }, [connect]);
+  }, [connect, shouldConnect]);
 
   const send = useCallback((data) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
