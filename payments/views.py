@@ -8,6 +8,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 import logging
 
+from .serializers import (
+    StripeWebhookResponseSerializer,
+    CreateCheckoutSessionRequestSerializer,
+    CreateCheckoutSessionResponseSerializer,
+)
 from .webhooks import handle_subscription_event
 
 logger = logging.getLogger(__name__)
@@ -18,6 +23,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 @method_decorator(csrf_exempt, name="dispatch")
 class StripeWebhookView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = StripeWebhookResponseSerializer
 
     def post(self, request):
         payload = request.body
@@ -44,6 +50,8 @@ class StripeWebhookView(APIView):
 
 class CreateCheckoutSessionView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = CreateCheckoutSessionResponseSerializer
+    request_serializer_class = CreateCheckoutSessionRequestSerializer
 
     def post(self, request):
         requested_plan = (request.data.get("plan") or "monthly").strip().lower()

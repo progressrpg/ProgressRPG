@@ -32,6 +32,13 @@ class CharacterViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["level", "xp"]
 
     def get_queryset(self):
-        player = self.request.user.player
+        user = getattr(self.request, "user", None)
+        if not user or not getattr(user, "is_authenticated", False):
+            return Character.objects.none()
+        player = getattr(user, "player", None)
+        if not player:
+            return Character.objects.none()
         character = player.current_character
+        if not character:
+            return Character.objects.none()
         return Character.objects.filter(id=character.id)

@@ -64,6 +64,57 @@ class Step1Serializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
+class ConfirmEmailResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
+
+class ConfirmEmailAlreadyConfirmedSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    code = serializers.CharField()
+
+
+class FetchInfoResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    build_number = serializers.CharField()
+    player = serializers.JSONField()
+    character = serializers.JSONField()
+    activity_timer = serializers.JSONField()
+    population_centre = serializers.JSONField(allow_null=True)
+    xp_mods = serializers.ListField(child=serializers.JSONField())
+
+
+class DownloadUserDataPlayerSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    player_name = serializers.CharField()
+    level = serializers.IntegerField()
+    xp = serializers.IntegerField()
+    bio = serializers.CharField(allow_blank=True, allow_null=True)
+    total_time = serializers.IntegerField()
+    total_activities = serializers.IntegerField()
+    is_premium = serializers.BooleanField()
+
+
+class DownloadUserDataCharacterSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    character_name = serializers.CharField()
+    level = serializers.IntegerField()
+    total_activities = serializers.IntegerField()
+
+
+class DownloadUserDataResponseSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    player = DownloadUserDataPlayerSerializer()
+    activities = serializers.ListField(child=serializers.JSONField())
+    character = DownloadUserDataCharacterSerializer()
+
+
+class DeleteAccountResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
 def _verify_turnstile(token: str) -> bool:
     secret = getattr(settings, "CF_TURNSTILE_SECRET_KEY", "")
     if not secret:

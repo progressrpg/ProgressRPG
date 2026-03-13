@@ -39,6 +39,7 @@ from .serializers import (
 
 class PopulationCentreMapView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = FeatureCollectionSerializer
 
     def get(self, request, pk):
         population_centre = get_object_or_404(PopulationCentre, pk=pk)

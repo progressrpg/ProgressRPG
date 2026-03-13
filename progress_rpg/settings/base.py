@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_cf_turnstile",
     "django_extensions",
+    "drf_spectacular",
     "channels",
     "django_vite",
     "sendgrid",
@@ -131,7 +132,7 @@ ASGI_APPLICATION = "progress_rpg.asgi.application"
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
-        "rest_framework.renderers.JSONRenderer",  #'rest_framework.renderers.BrowsableAPIRenderer',
+        "rest_framework.renderers.JSONRenderer",
     ],
     "DEFAULT_RENDERER_CLASSES_OPTIONS": {
         "template_pack": "rest_framework/vertical",
@@ -150,12 +151,20 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
 }
 
 REST_AUTH_REGISTER_SERIALIZERS = {
     "REGISTER_SERIALIZER": "api.serializers.CustomRegisterSerializer",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Progress RPG API",
+    "DESCRIPTION": "API documentation for Progress RPG, an ADHD-focused productivity game.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 SIMPLE_JWT = {

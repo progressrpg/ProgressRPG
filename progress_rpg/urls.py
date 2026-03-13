@@ -12,6 +12,11 @@ from django.urls import re_path, path, include
 from django.views.static import serve
 from django.views.generic.base import RedirectView
 from django.views.generic import TemplateView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 from progress_rpg.settings.base import FRONTEND_URL
 
@@ -33,6 +38,10 @@ urlpatterns = [
         {"document_root": settings.STATIC_ROOT},
     ),
     re_path(r"^\.well-known/.*$", lambda request: HttpResponseNotFound()),
+    # API schema and docs
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema")),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema")),
 ]
 
 

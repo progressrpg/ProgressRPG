@@ -22,7 +22,10 @@ class PlayerViewSet(
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Player.objects.filter(user=self.request.user)
+        user = getattr(self.request, "user", None)
+        if not user or not getattr(user, "is_authenticated", False):
+            return Player.objects.none()
+        return Player.objects.filter(user=user)
 
     @action(detail=False, methods=["get"])
     def me(self, request):
