@@ -1,12 +1,18 @@
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 from django.test import TestCase, Client, override_settings, tag
+from django.test.client import RequestFactory
 from django.urls import reverse
 from datetime import date, timedelta
 from django.utils import timezone
 from unittest import skip
 import logging
 
+from rest_framework.test import APIRequestFactory, force_authenticate
+
+from api.views import MeViewSet
 from api.serializers import CustomTokenObtainPairSerializer
+from progress_rpg.middleware.timezone import UserTimezoneMiddleware
 from users.models import Player, UserLogin
 from progression.models import PlayerActivity
 from users.tasks import send_email_to_users_task
@@ -29,6 +35,7 @@ class UserCreationTest(TestCase):
             email="testuser@example.com", password="testpassword123"
         )
         self.assertEqual(user.email, "testuser@example.com")
+        self.assertEqual(str(user.timezone), "UTC")
         self.assertTrue(user.check_password("testpassword123"))
 
         player = user.player
@@ -202,6 +209,61 @@ class JwtLoginTrackingTest(TestCase):
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(UserLogin.objects.filter(user=self.user).count(), 1)
+
+
+class UserTimezoneApiTest(TestCase):
+    def setUp(self):
+        Character.objects.create(first_name="Jane", can_link=True)
+        self.user = get_user_model().objects.create_user(
+            email="timezone-api@example.com",
+            password="testpassword123",
+        )
+        self.factory = APIRequestFactory()
+
+    def test_me_settings_patch_updates_timezone(self):
+        request = self.factory.patch(
+            "/api/v1/me/settings/",
+            {"timezone": "Europe/Paris"},
+            format="json",
+        )
+        force_authenticate(request, user=self.user)
+
+        response = MeViewSet.as_view({"patch": "settings"})(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(str(self.user.timezone), "Europe/Paris")
+        self.assertEqual(response.data["timezone"], "Europe/Paris")
+
+
+class UserTimezoneMiddlewareTest(TestCase):
+    def setUp(self):
+        Character.objects.create(first_name="Jane", can_link=True)
+        self.user = get_user_model().objects.create_user(
+            email="timezone-middleware@example.com",
+            password="testpassword123",
+        )
+        self.user.timezone = "Europe/Paris"
+        self.user.save(update_fields=["timezone"])
+
+    def tearDown(self):
+        timezone.deactivate()
+
+    def test_authenticated_request_activates_user_timezone(self):
+        captured = {}
+
+        def get_response(request):
+            captured["timezone"] = str(timezone.get_current_timezone())
+            return HttpResponse("ok")
+
+        middleware = UserTimezoneMiddleware(get_response)
+        request = RequestFactory().get("/")
+        request.user = self.user
+
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(captured["timezone"], "Europe/Paris")
 
 
 @override_settings(

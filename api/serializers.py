@@ -1,3 +1,7 @@
+import requests as http_requests
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from rest_framework import serializers
@@ -15,6 +19,14 @@ User = get_user_model()
 import logging
 
 logger = logging.getLogger("general")
+
+
+def validate_timezone_name(value: str) -> str:
+    try:
+        ZoneInfo(value)
+    except ZoneInfoNotFoundError as exc:
+        raise serializers.ValidationError("Invalid timezone.") from exc
+    return value
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -44,6 +56,8 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    timezone = serializers.CharField()
+
     class Meta:
         model = User
         fields = [
@@ -52,7 +66,19 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
             "date_of_birth",
+            "timezone",
         ]
+
+
+class UserSettingsSerializer(serializers.ModelSerializer):
+    timezone = serializers.CharField(required=False)
+
+    class Meta:
+        model = User
+        fields = ["timezone"]
+
+    def validate_timezone(self, value):
+        return validate_timezone_name(value)
 
 
 class Step1Serializer(serializers.ModelSerializer):
@@ -61,14 +87,91 @@ class Step1Serializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
+class ConfirmEmailResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
+
+class ConfirmEmailAlreadyConfirmedSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    code = serializers.CharField()
+
+
+class FetchInfoResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    build_number = serializers.CharField()
+    player = serializers.JSONField()
+    character = serializers.JSONField()
+    activity_timer = serializers.JSONField()
+    population_centre = serializers.JSONField(allow_null=True)
+    xp_mods = serializers.ListField(child=serializers.JSONField())
+
+
+class DownloadUserDataPlayerSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    player_name = serializers.CharField()
+    level = serializers.IntegerField()
+    xp = serializers.IntegerField()
+    bio = serializers.CharField(allow_blank=True, allow_null=True)
+    total_time = serializers.IntegerField()
+    total_activities = serializers.IntegerField()
+    is_premium = serializers.BooleanField()
+
+
+class DownloadUserDataCharacterSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    character_name = serializers.CharField()
+    level = serializers.IntegerField()
+    total_activities = serializers.IntegerField()
+
+
+class DownloadUserDataResponseSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    player = DownloadUserDataPlayerSerializer()
+    activities = serializers.ListField(child=serializers.JSONField())
+    character = DownloadUserDataCharacterSerializer()
+
+
+class DeleteAccountResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
+def _verify_turnstile(token: str) -> bool:
+    secret = getattr(settings, "CF_TURNSTILE_SECRET_KEY", "")
+    if not secret:
+        # No secret configured — skip verification (e.g. local dev without key)
+        return True
+    try:
+        resp = http_requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={"secret": secret, "response": token},
+            timeout=5,
+        )
+        return resp.json().get("success", False)
+    except Exception:
+        return False
+
+
 class CustomRegisterSerializer(RegisterSerializer):
     invite_code = serializers.CharField(write_only=True, required=True)
     agree_to_terms = serializers.BooleanField(write_only=True, required=True)
+    turnstile_token = serializers.CharField(write_only=True, required=True)
     email = serializers.EmailField(required=True)
+    timezone = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ("email", "password1", "password2", "invite_code", "agree_to_terms")
+        fields = (
+            "email",
+            "password1",
+            "password2",
+            "invite_code",
+            "agree_to_terms",
+            "turnstile_token",
+            "timezone",
+        )
 
     def get_email_context(self):
         context = super().get_email_context()
@@ -93,10 +196,20 @@ class CustomRegisterSerializer(RegisterSerializer):
             )
         return value
 
+    def validate_turnstile_token(self, value):
+        if not _verify_turnstile(value):
+            raise serializers.ValidationError(
+                "Security check failed. Please refresh and try again."
+            )
+        return value
+
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with that email already exists.")
         return value
+
+    def validate_timezone(self, value):
+        return validate_timezone_name(value)
 
     def custom_signup(self, request, user):
         code = self.validated_data.get("invite_code")
@@ -111,4 +224,8 @@ class CustomRegisterSerializer(RegisterSerializer):
 
     def save(self, request):
         user = super().save(request)
+        timezone_name = self.validated_data.get("timezone")
+        if timezone_name:
+            user.timezone = timezone_name
+            user.save(update_fields=["timezone"])
         return user

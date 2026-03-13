@@ -3,10 +3,13 @@
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 from .models import MaintenanceWindow
+from .serializers import MaintenanceStatusResponseSerializer
 
 
+@extend_schema(responses=MaintenanceStatusResponseSerializer)
 @api_view(["GET"])
 def maintenance_status(request):
     # Returns whether any maintenance window is currently active

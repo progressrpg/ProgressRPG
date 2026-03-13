@@ -44,6 +44,13 @@ from .filters import (
 #########################################
 
 
+def _request_player_or_none(request):
+    user = getattr(request, "user", None)
+    if not user or not getattr(user, "is_authenticated", False):
+        return None
+    return getattr(user, "player", None)
+
+
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated, IsOwnerPlayer]
@@ -57,9 +64,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "last_updated"]
 
     def get_queryset(self):
-        return Category.objects.filter(player=self.request.user.player).order_by(
-            "-created_at"
-        )
+        player = _request_player_or_none(self.request)
+        if not player:
+            return Category.objects.none()
+        return Category.objects.filter(player=player).order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(player=self.request.user.player)
@@ -92,9 +100,10 @@ class PlayerSkillViewSet(viewsets.ModelViewSet):
     ordering_fields = ["level", "created_at", "last_updated"]
 
     def get_queryset(self):
-        return PlayerSkill.objects.filter(player=self.request.user.player).order_by(
-            "-created_at"
-        )
+        player = _request_player_or_none(self.request)
+        if not player:
+            return PlayerSkill.objects.none()
+        return PlayerSkill.objects.filter(player=player).order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(player=self.request.user.player)
@@ -133,9 +142,10 @@ class PlayerActivityViewSet(viewsets.ModelViewSet):
     ordering_fields = ["duration", "created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return PlayerActivity.objects.filter(player=self.request.user.player).order_by(
-            "-created_at"
-        )
+        player = _request_player_or_none(self.request)
+        if not player:
+            return PlayerActivity.objects.none()
+        return PlayerActivity.objects.filter(player=player).order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(player=self.request.user.player)
@@ -225,7 +235,11 @@ class CharacterActivityViewSet(viewsets.ModelViewSet):
         """
         Return CharacterActivity objects for the current user's active character.
         """
-        character = self.request.user.player.current_character
+        player = _request_player_or_none(self.request)
+        if not player:
+            return CharacterActivity.objects.none()
+
+        character = player.current_character
         if not character:
             return CharacterActivity.objects.none()
         return CharacterActivity.objects.filter(character=character)
@@ -262,7 +276,10 @@ class CharacterQuestViewSet(viewsets.ModelViewSet):
         """
         from character.models import PlayerCharacterLink
 
-        player = self.request.user.player
+        player = _request_player_or_none(self.request)
+        if not player:
+            return CharacterQuest.objects.none()
+
         character = PlayerCharacterLink.get_character(player)
         if not character:
             return CharacterQuest.objects.none()
@@ -287,9 +304,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return Project.objects.filter(player=self.request.user.player).order_by(
-            "-created_at"
-        )
+        player = _request_player_or_none(self.request)
+        if not player:
+            return Project.objects.none()
+        return Project.objects.filter(player=player).order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(player=self.request.user.player)
@@ -308,9 +326,10 @@ class TaskViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "last_updated", "completed_at"]
 
     def get_queryset(self):
-        return Task.objects.filter(player=self.request.user.player).order_by(
-            "-created_at"
-        )
+        player = _request_player_or_none(self.request)
+        if not player:
+            return Task.objects.none()
+        return Task.objects.filter(player=player).order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(player=self.request.user.player)

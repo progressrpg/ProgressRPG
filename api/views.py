@@ -20,11 +20,13 @@ from allauth.account.models import EmailConfirmation, EmailAddress
 # from allauth.account.utils import complete_signup, send_email_confirmation
 from dj_rest_auth.registration.views import RegisterView
 
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, serializers as drf_serializers
 from rest_framework.decorators import (
     api_view,
     action,
 )
+
+from drf_spectacular.utils import extend_schema, inline_serializer
 
 # from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
@@ -38,7 +40,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.serializers import (
     UserSerializer,
+    UserSettingsSerializer,
     Step1Serializer,
+    ConfirmEmailResponseSerializer,
+    ConfirmEmailAlreadyConfirmedSerializer,
+    FetchInfoResponseSerializer,
+    DownloadUserDataResponseSerializer,
+    DeleteAccountResponseSerializer,
     CustomRegisterSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
@@ -146,12 +154,26 @@ class CustomTokenRefreshView(TokenRefreshView):
 
 class MeViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
 
+    @extend_schema(responses=UserSerializer)
     def list(self, request):
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
+    @extend_schema(request=UserSettingsSerializer, responses=UserSerializer)
+    @action(detail=False, methods=["patch"])
+    def settings(self, request):
+        serializer = UserSettingsSerializer(
+            request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(UserSerializer(request.user).data)
+
+    @extend_schema(responses=PlayerSerializer)
     @action(detail=False, methods=["get", "patch"])
     def player(self, request):
         player = request.user.player
@@ -164,6 +186,7 @@ class MeViewSet(viewsets.ViewSet):
         serializer = PlayerSerializer(player)
         return Response(serializer.data)
 
+    @extend_schema(responses=CharacterSerializer)
     @action(detail=False, methods=["get"])
     def character(self, request):
         player = request.user.player
@@ -179,6 +202,12 @@ class MeViewSet(viewsets.ViewSet):
             CharacterSerializer(character, context={"request": request}).data
         )
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="OnboardingCompletedResponse",
+            fields={"onboarding_completed": drf_serializers.BooleanField()},
+        )
+    )
     @action(detail=False, methods=["post"])
     def complete_onboarding(self, request):
         player = request.user.player
@@ -258,6 +287,7 @@ class CustomRegisterView(RegisterView):
 
 class ConfirmEmailView(APIView):
     permission_classes = []  # No auth required for email confirmation
+    serializer_class = ConfirmEmailResponseSerializer
 
     def get(self, request, key):
         key = unquote(key)
@@ -349,6 +379,7 @@ class OnboardingViewSet(viewsets.ViewSet):
 
 class FetchInfoAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = FetchInfoResponseSerializer
 
     def get(self, request, format=None):
         player = request.user.player
@@ -471,6 +502,7 @@ class FetchInfoAPIView(APIView):
 
 class DownloadUserDataAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = DownloadUserDataResponseSerializer
 
     @method_decorator(ratelimit(key="ip", rate="10/h", method="GET", block=True))
     @transaction.atomic
@@ -525,6 +557,7 @@ class DownloadUserDataAPIView(APIView):
 
 class DeleteAccountAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = DeleteAccountResponseSerializer
 
     def post(self, request):
         user = request.user

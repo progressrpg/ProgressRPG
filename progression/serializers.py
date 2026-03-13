@@ -150,7 +150,7 @@ class CharacterActivitySerializer(TimeRecordBaseSerializer):
             "kind",
         ]
 
-    def get_status(self, obj):
+    def get_status(self, obj) -> str:
         now = timezone.now()
         if obj.is_complete:
             return "past"

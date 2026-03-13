@@ -8,6 +8,7 @@ class CharacterSerializer(serializers.ModelSerializer):
     coins = serializers.SerializerMethodField()
     total_activities = serializers.IntegerField(read_only=True)
     current_activity = serializers.SerializerMethodField()
+    is_npc = serializers.BooleanField(read_only=True)
     population_centre_id = serializers.PrimaryKeyRelatedField(
         source="population_centre", read_only=True
     )
@@ -39,17 +40,17 @@ class CharacterSerializer(serializers.ModelSerializer):
 
         read_only_fields = fields
 
-    def get_age(self, obj):
+    def get_age(self, obj) -> int:
         return int(obj.get_age() // 365)
 
-    def get_current_activity(self, obj):
+    def get_current_activity(self, obj) -> str | None:
         activity = obj.behaviour.get_current_activity()
         return activity.name if activity else None
 
-    def get_coins(self, obj):
+    def get_coins(self, obj) -> int:
         return obj.get_currency("coins").balance
 
-    def get_location(self, obj):
+    def get_location(self, obj) -> dict:
         # obj must have x and y attributes, or replace with obj.position.x / obj.position.y
         if not obj.current_node:
             return None
@@ -59,7 +60,7 @@ class CharacterSerializer(serializers.ModelSerializer):
             "coordinates": [
                 obj.current_node.location.x,
                 obj.current_node.location.y,
-            ],  # adjust to your model
+            ],
         }
 
     def __init__(self, *args, **kwargs):

@@ -67,7 +67,7 @@ class ActivityTimerSerializer(serializers.ModelSerializer):
             "player",
         ]
 
-    def get_elapsed_time(self, obj):
+    def get_elapsed_time(self, obj) -> float:
         return obj.get_elapsed_time()
 
 
@@ -98,10 +98,10 @@ class QuestTimerSerializer(serializers.ModelSerializer):
             "character",
         ]
 
-    def get_elapsed_time(self, obj):
+    def get_elapsed_time(self, obj) -> float:
         return obj.get_elapsed_time()
 
-    def get_remaining_time(self, obj):
+    def get_remaining_time(self, obj) -> float:
         return obj.get_remaining_time()
 
 
