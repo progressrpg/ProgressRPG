@@ -135,10 +135,6 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
-    "DEFAULT_RENDERER_CLASSES_OPTIONS": {
-        "template_pack": "rest_framework/vertical",
-        "DEFAULT_FORM_RENDERER": "rest_framework.renderers.TemplateHTMLRenderer",
-    },
     "JSON_ENCODER_INDENT": 2,  # Pretty-print JSON with 2-space indentation
     "UNICODE_JSON": True,  # Don't escape Unicode characters
     "COMPACT_JSON": False,  # Add whitespace for readability
@@ -173,7 +169,6 @@ SIMPLE_JWT = {
 }
 
 REST_USE_JWT = True
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
