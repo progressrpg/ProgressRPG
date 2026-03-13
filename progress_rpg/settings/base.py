@@ -231,9 +231,11 @@ DJANGO_VITE = {
     }
 }
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
-if FRONTEND_URL.startswith("http://localhost"):
+if not FRONTEND_URL:
+    FRONTEND_URL = "http://localhost"
+
     if is_vite_running():
         FRONTEND_URL = f"{FRONTEND_URL}:5173"
         print("Vite status: Vite server is running!", file=sys.stderr)
