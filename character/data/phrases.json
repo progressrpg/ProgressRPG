@@ -1,0 +1,94 @@
+{
+  "struggling": {
+    "work": [
+      "{character} wipes sweat from their brow. Every little effort counts.",
+      "Another hard task done. The village still struggles, but hope flickers.",
+      "Even small progress feels heavy, yet {character} keeps going.",
+      "Grim but determined, {character} moves on to the next chore.",
+      "The roads are rough, but {character} refuses to stop."
+    ],
+    "sleep": [
+      "{character} wakes tired; hard times make rest difficult.",
+      "Sleep was short, but {character} is ready to keep fighting.",
+      "A restless night passes; the village troubles linger.",
+      "{character} rises slowly under the weight of the day.",
+      "Rest gives little comfort, but enough to continue."
+    ],
+    "meal": [
+      "{character} eats quietly; even a simple meal helps.",
+      "Food is scarce, but {character} is grateful for this bite.",
+      "A quick meal, then back to the work the village needs.",
+      "{character} finishes a humble meal and steadies their resolve.",
+      "Another meal done; the hard road continues."
+    ]
+  },
+  "recovering": {
+    "work": [
+      "{character} notices small signs of repair while finishing the task.",
+      "Each completed chore nudges the village forward.",
+      "The streets feel a little lighter as {character} works.",
+      "Progress is visible now, and {character} feels encouraged.",
+      "Small victories are adding up for everyone."
+    ],
+    "sleep": [
+      "{character} wakes refreshed; recovery is taking hold.",
+      "A calm night gives {character} fresh energy.",
+      "Sleep comes easier as the village slowly mends.",
+      "Morning feels steadier than yesterday.",
+      "{character} rises ready to keep rebuilding."
+    ],
+    "meal": [
+      "{character} enjoys a simple meal with quiet optimism.",
+      "Food tastes better when progress is visible.",
+      "A steady meal restores {character} for more work.",
+      "{character} finishes eating and feels hopeful.",
+      "Another meal, another step toward normal life."
+    ]
+  },
+  "stable": {
+    "work": [
+      "{character} completes the task with a satisfied nod.",
+      "Another chore done; the village rhythm stays steady.",
+      "Everything is running smoothly as {character} works.",
+      "A routine task, done well and on time.",
+      "The day moves along in calm balance."
+    ],
+    "sleep": [
+      "{character} wakes rested; all seems in order.",
+      "A comfortable night leads into a predictable day.",
+      "Sleep was calm, and the village remains steady.",
+      "Morning arrives without surprises.",
+      "{character} rises ready for another smooth day."
+    ],
+    "meal": [
+      "{character} enjoys a normal meal in a calm village.",
+      "Dinner is quiet, and the day remains balanced.",
+      "A routine meal, eaten without hurry.",
+      "{character} finishes eating and returns to the usual rhythm.",
+      "Food done, the village carries on steadily."
+    ]
+  },
+  "thriving": {
+    "work": [
+      "{character} finishes quickly as the village buzzes with energy.",
+      "Another task complete, and the town feels alive.",
+      "{character} smiles; even hard work feels joyful today.",
+      "The streets are lively, and progress feels effortless.",
+      "Every completed task feels like a small celebration."
+    ],
+    "sleep": [
+      "{character} wakes energized in a vibrant village.",
+      "A deep rest sets up a bright, busy day.",
+      "Morning arrives full of momentum and promise.",
+      "{character} rises with confidence and high spirits.",
+      "Sleep was rich, and the day feels full of possibility."
+    ],
+    "meal": [
+      "{character} enjoys a hearty meal and a lively atmosphere.",
+      "Dinner is satisfying, and energy is high all around.",
+      "{character} eats well and heads back out with enthusiasm.",
+      "A plentiful meal fuels another productive stretch.",
+      "Meal complete; the village feels electric."
+    ]
+  }
+}

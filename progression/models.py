@@ -1,5 +1,6 @@
 # progression/models.py
 from decimal import Decimal
+from django.apps import apps
 from django.db import models, transaction
 from django.db.models import CheckConstraint, Q, Sum
 from django.utils import timezone
@@ -7,6 +8,7 @@ from typing import Dict, Any, cast
 import logging
 
 from .mixins import PlayerOwnedMixin
+from character.phrases import generate_phrase
 
 logger = logging.getLogger("general")
 
@@ -361,6 +363,28 @@ class CharacterActivity(TimeRecord):
                 "xp_gained",
             ]
         )
+
+        try:
+            player = self.character.current_player
+        except ValueError:
+            player = None
+
+        if player and player.is_online:
+            village_state = getattr(self.character.population_centre, "state", "Stable")
+            phrase = generate_phrase(village_state, self.kind, self.character)
+            activity_name = (self.name or "activity").lower()
+            message = f"{self.character.first_name} completed {activity_name}. {phrase}"
+
+            ServerMessage = apps.get_model("gameplay", "ServerMessage")
+            ServerMessage.objects.create(
+                group=player.group_name,
+                type="notification",
+                action="notification",
+                message=message,
+                data={},
+                is_draft=False,
+            )
+
         return self.xp_gained
 
     def complete_past(self):
