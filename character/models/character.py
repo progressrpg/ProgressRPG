@@ -308,7 +308,7 @@ class PlayerCharacterLink(models.Model):
     @property
     def link_points(self):
         total_days_points = self.days_linked * 20
-        login_points = self.player.total_logins * 5
+        login_points = self.player.user.days_logged_in * 5
         time_points = (
             self.player_time // 10
         )  # 1 point for every 10 minutes of completed activities during the link period

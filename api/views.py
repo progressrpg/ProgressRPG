@@ -382,7 +382,9 @@ class FetchInfoAPIView(APIView):
 
         # --- Online sync if >30 minutes since last fetch ---
         now = timezone.now()
-        last = getattr(player, "last_login", None)
+        last = player.last_seen
+        player.last_seen = now
+        player.save(update_fields=["last_seen"])
         if not last or (now - last) > timedelta(minutes=30):
             logger.info(
                 f"[FETCH INFO] Online sync for player {player.id}, character {character.id}"
