@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "channels",
     "django_vite",
+    "sendgrid",
     "character",
     "gameplay",
     "gameworld",
@@ -327,3 +328,11 @@ CELERY_WORKER_MAX_TASKS_PER_CHILD = (
 CELERY_TASK_SOFT_TIME_LIMIT = 600  # 10 minutes soft limit (tasks should respect this)
 CELERY_TASK_TIME_LIMIT = 900  # 15 minutes hard limit (task is killed)
 CELERY_BROKER_POOL_LIMIT = 10  # Limit connection pool to reduce memory
+
+
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() in ("true", "1", "yes")
