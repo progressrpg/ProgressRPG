@@ -30,6 +30,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from typing import TYPE_CHECKING, Optional
 import logging
+from timezone_field import TimeZoneField
 
 from gameplay.models import Currency, CurrencyAccountBase, ServerMessage
 
@@ -85,6 +86,7 @@ class CustomUser(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
+    timezone = TimeZoneField(default="UTC")
     created_at = models.DateTimeField(auto_now_add=True)
     objects = CustomUserManager()
     pending_delete = models.BooleanField(default=False)

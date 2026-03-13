@@ -1,4 +1,5 @@
 import requests as http_requests
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
@@ -18,6 +19,14 @@ User = get_user_model()
 import logging
 
 logger = logging.getLogger("general")
+
+
+def validate_timezone_name(value: str) -> str:
+    try:
+        ZoneInfo(value)
+    except ZoneInfoNotFoundError as exc:
+        raise serializers.ValidationError("Invalid timezone.") from exc
+    return value
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -47,6 +56,8 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    timezone = serializers.CharField()
+
     class Meta:
         model = User
         fields = [
@@ -55,7 +66,19 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
             "date_of_birth",
+            "timezone",
         ]
+
+
+class UserSettingsSerializer(serializers.ModelSerializer):
+    timezone = serializers.CharField(required=False)
+
+    class Meta:
+        model = User
+        fields = ["timezone"]
+
+    def validate_timezone(self, value):
+        return validate_timezone_name(value)
 
 
 class Step1Serializer(serializers.ModelSerializer):
@@ -136,6 +159,7 @@ class CustomRegisterSerializer(RegisterSerializer):
     agree_to_terms = serializers.BooleanField(write_only=True, required=True)
     turnstile_token = serializers.CharField(write_only=True, required=True)
     email = serializers.EmailField(required=True)
+    timezone = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
@@ -146,6 +170,7 @@ class CustomRegisterSerializer(RegisterSerializer):
             "invite_code",
             "agree_to_terms",
             "turnstile_token",
+            "timezone",
         )
 
     def get_email_context(self):
@@ -183,6 +208,9 @@ class CustomRegisterSerializer(RegisterSerializer):
             raise serializers.ValidationError("A user with that email already exists.")
         return value
 
+    def validate_timezone(self, value):
+        return validate_timezone_name(value)
+
     def custom_signup(self, request, user):
         code = self.validated_data.get("invite_code")
         try:
@@ -196,4 +224,8 @@ class CustomRegisterSerializer(RegisterSerializer):
 
     def save(self, request):
         user = super().save(request)
+        timezone_name = self.validated_data.get("timezone")
+        if timezone_name:
+            user.timezone = timezone_name
+            user.save(update_fields=["timezone"])
         return user

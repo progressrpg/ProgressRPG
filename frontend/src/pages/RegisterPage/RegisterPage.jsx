@@ -34,6 +34,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     setFieldErrors({});
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     if (password !== confirmPassword) {
       setError("Passwords don't match");
@@ -51,7 +52,8 @@ export default function RegisterPage() {
       confirmPassword,
       inviteCode,
       agreeToTerms,
-      turnstileToken
+      turnstileToken,
+      browserTimezone
     );
 
     if (success) {

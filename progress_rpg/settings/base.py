@@ -101,6 +101,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "progress_rpg.middleware.timezone.UserTimezoneMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     #'server_management.middleware.AsyncMaintenanceModeMiddleware',

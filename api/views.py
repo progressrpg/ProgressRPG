@@ -40,6 +40,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.serializers import (
     UserSerializer,
+    UserSettingsSerializer,
     Step1Serializer,
     ConfirmEmailResponseSerializer,
     ConfirmEmailAlreadyConfirmedSerializer,
@@ -160,6 +161,17 @@ class MeViewSet(viewsets.ViewSet):
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
+
+    @extend_schema(request=UserSettingsSerializer, responses=UserSerializer)
+    @action(detail=False, methods=["patch"])
+    def settings(self, request):
+        serializer = UserSettingsSerializer(
+            request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(UserSerializer(request.user).data)
 
     @extend_schema(responses=PlayerSerializer)
     @action(detail=False, methods=["get", "patch"])

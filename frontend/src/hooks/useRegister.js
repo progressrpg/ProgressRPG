@@ -9,7 +9,7 @@ export default function useRegister() {
   const { login } = useAuth();
   const [characterAvailable, setCharacterAvailable] = useState(false);
 
-  const register = useCallback(async (email, password1, password2, inviteCode, agreeToTerms, turnstileToken) => {
+  const register = useCallback(async (email, password1, password2, inviteCode, agreeToTerms, turnstileToken, timezone) => {
     try {
       const response = await fetch(`${API_URL}/auth/registration/`, {
         method: 'POST',
@@ -23,6 +23,7 @@ export default function useRegister() {
           invite_code: inviteCode,
           agree_to_terms: agreeToTerms,
           turnstile_token: turnstileToken,
+          timezone,
         }),
       });
 
