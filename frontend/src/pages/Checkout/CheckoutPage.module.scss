@@ -1,0 +1,56 @@
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.subtitle {
+  margin-top: 0.5rem;
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.planCard {
+  text-align: left;
+  border: 1px solid #dcdfe4;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.planCardActive {
+  border: 2px solid #2c7be5;
+  background: #f4f8ff;
+}
+
+.planHeading {
+  margin: 0 0 0.4rem;
+}
+
+.planPrice {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.planDescription {
+  margin: 0.5rem 0 0;
+  color: #5f6c7b;
+}
+
+.selectedPlanSummary {
+  margin-top: 0;
+  color: #5f6c7b;
+}
+
+.error {
+  margin-top: 1rem;
+  color: #c0392b;
+}

@@ -43,13 +43,30 @@ class CreateCheckoutSessionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        premium_price_id = (
-            getattr(settings, "STRIPE_PRICE_ID_PREMIUM_MONTHLY", "") or ""
-        )
+        requested_plan = (request.data.get("plan") or "monthly").strip().lower()
+        plan = "annual" if requested_plan == "annual" else requested_plan
+
+        price_id_by_plan = {
+            "monthly": getattr(settings, "STRIPE_PRICE_ID_PREMIUM_MONTHLY", "") or "",
+            "annual": getattr(settings, "STRIPE_PRICE_ID_PREMIUM_ANNUAL", "") or "",
+        }
+
+        if plan not in price_id_by_plan:
+            return Response(
+                {"error": "Invalid plan. Expected 'monthly' or 'annual'."},
+                status=400,
+            )
+
+        premium_price_id = price_id_by_plan[plan]
 
         if not premium_price_id:
             return Response(
-                {"error": "Missing STRIPE_PRICE_ID_PREMIUM_MONTHLY setting."},
+                {
+                    "error": (
+                        "Missing STRIPE price setting for selected plan "
+                        f"'{requested_plan}'."
+                    )
+                },
                 status=500,
             )
 
@@ -63,7 +80,18 @@ class CreateCheckoutSessionView(APIView):
                 customer_email=request.user.email,
                 client_reference_id=str(request.user.id),
                 line_items=[{"price": premium_price_id, "quantity": 1}],
-                subscription_data={"metadata": {"user_id": str(request.user.id)}},
+                subscription_data={
+                    "metadata": {
+                        "user_id": str(request.user.id),
+                        "billing_plan": "annual" if plan == "annual" else "monthly",
+                    },
+                    "trial_period_days": 30,
+                    "trial_settings": {
+                        "end_behavior": {
+                            "missing_payment_method": "cancel",
+                        },
+                    },
+                },
                 success_url=success_url,
                 cancel_url=cancel_url,
             )

@@ -48,6 +48,7 @@ def handle_subscription_event(subscription):
     if player:
         premium_price_ids = {
             getattr(settings, "STRIPE_PRICE_ID_PREMIUM_MONTHLY", ""),
+            getattr(settings, "STRIPE_PRICE_ID_PREMIUM_ANNUAL", ""),
         }
         premium_price_ids.discard("")
         player.is_premium = user_subscription.active and bool(
