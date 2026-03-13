@@ -164,7 +164,7 @@ class MeViewSet(viewsets.ViewSet):
 
     @extend_schema(request=UserSettingsSerializer, responses=UserSerializer)
     @action(detail=False, methods=["patch"])
-    def settings(self, request):
+    def user_settings(self, request):
         serializer = UserSettingsSerializer(
             request.user, data=request.data, partial=True
         )
