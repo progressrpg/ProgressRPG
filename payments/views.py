@@ -6,8 +6,11 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
+import logging
 
 from .webhooks import handle_subscription_event
+
+logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -97,4 +100,8 @@ class CreateCheckoutSessionView(APIView):
             )
             return Response({"url": session.url})
         except Exception as exc:
-            return Response({"error": str(exc)}, status=400)
+            logger.exception("Error creating Stripe checkout session")
+            return Response(
+                {"error": "Unable to create checkout session."},
+                status=400,
+            )
