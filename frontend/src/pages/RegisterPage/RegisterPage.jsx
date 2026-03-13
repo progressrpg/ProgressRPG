@@ -3,12 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Form from '../../components/Form/Form';
 import useRegister from '../../hooks/useRegister';
 
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [turnstileToken, setTurnstileToken] = useState('');
   const navigate = useNavigate();
   const { register, characterAvailable } = useRegister();
   const [inviteCode, setInviteCode] = useState('');
@@ -21,6 +24,12 @@ export default function RegisterPage() {
     setFormState("default");
   }, [location.key]); // `key` changes on every navigation
 
+  useEffect(() => {
+    // Expose a global callback for the Turnstile widget to call
+    window.__turnstileCallback = (token) => setTurnstileToken(token);
+    return () => { delete window.__turnstileCallback; };
+  }, []);
+
   const handleRegister = async e => {
     e.preventDefault();
     setError('');
@@ -31,12 +40,18 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      setError('Please complete the security check.');
+      return;
+    }
+
     const { success, errors, errorMessage, confirmationRequired } = await register(
       email,
       password,
       confirmPassword,
       inviteCode,
-      agreeToTerms
+      agreeToTerms,
+      turnstileToken
     );
 
     if (success) {
@@ -134,7 +149,13 @@ export default function RegisterPage() {
           onSubmit={handleRegister}
           submitLabel="Create Account"
           fieldErrors={fieldErrors}
-        />
+        >
+          <div
+            className="cf-turnstile"
+            data-sitekey={TURNSTILE_SITE_KEY}
+            data-callback="__turnstileCallback"
+          />
+        </Form>
       )}
       {error && <p className="error" role="alert">{error}</p>}
     </div>

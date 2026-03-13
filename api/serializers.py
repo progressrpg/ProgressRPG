@@ -1,3 +1,6 @@
+import requests as http_requests
+
+from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from rest_framework import serializers
@@ -61,14 +64,38 @@ class Step1Serializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
+def _verify_turnstile(token: str) -> bool:
+    secret = getattr(settings, "CF_TURNSTILE_SECRET_KEY", "")
+    if not secret:
+        # No secret configured — skip verification (e.g. local dev without key)
+        return True
+    try:
+        resp = http_requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={"secret": secret, "response": token},
+            timeout=5,
+        )
+        return resp.json().get("success", False)
+    except Exception:
+        return False
+
+
 class CustomRegisterSerializer(RegisterSerializer):
     invite_code = serializers.CharField(write_only=True, required=True)
     agree_to_terms = serializers.BooleanField(write_only=True, required=True)
+    turnstile_token = serializers.CharField(write_only=True, required=True)
     email = serializers.EmailField(required=True)
 
     class Meta:
         model = User
-        fields = ("email", "password1", "password2", "invite_code", "agree_to_terms")
+        fields = (
+            "email",
+            "password1",
+            "password2",
+            "invite_code",
+            "agree_to_terms",
+            "turnstile_token",
+        )
 
     def get_email_context(self):
         context = super().get_email_context()
@@ -90,6 +117,13 @@ class CustomRegisterSerializer(RegisterSerializer):
         if not value:
             raise serializers.ValidationError(
                 "You must agree to the terms and conditions."
+            )
+        return value
+
+    def validate_turnstile_token(self, value):
+        if not _verify_turnstile(value):
+            raise serializers.ValidationError(
+                "Security check failed. Please refresh and try again."
             )
         return value
 
