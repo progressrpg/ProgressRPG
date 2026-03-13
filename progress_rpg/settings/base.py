@@ -275,8 +275,41 @@ ADMINS = [
 LOGIN_REDIRECT_URL = "/"  # Or wherever you want to go after login
 LOGIN_URL = "/login/"  # Customize the login URL
 
-STRIPE_PUBLIC_KEY = "pk_test_51QNRgsGHaENuGVuPh70KmxNTGK3iQPJgjGO2gVcdE0dlRDG7LOZfY3zQxvEdR2hmXDKaEILIRKEnJdn69arGwKCi00bSZWzrzW"
-STRIPE_SECRET_KEY = "nope"
+# Stripe
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+# Canonical Stripe price IDs
+STRIPE_PRICE_ID_PREMIUM_MONTHLY = os.getenv(
+    "STRIPE_PRICE_ID_PREMIUM_MONTHLY",
+    os.getenv(
+        "STRIPE_PREMIUM_MONTHLY_PRICE_ID", os.getenv("STRIPE_PREMIUM_PRICE_ID", "")
+    ),
+)
+STRIPE_PRICE_ID_FREE = os.getenv(
+    "STRIPE_PRICE_ID_FREE",
+    os.getenv("STRIPE_FREE_PRICE_ID", ""),
+)
+
+# Backward-compatible aliases used in some existing modules
+STRIPE_PREMIUM_MONTHLY_PRICE_ID = STRIPE_PRICE_ID_PREMIUM_MONTHLY
+STRIPE_PREMIUM_PRICE_ID = STRIPE_PRICE_ID_PREMIUM_MONTHLY
+STRIPE_FREE_PRICE_ID = STRIPE_PRICE_ID_FREE
+
+# App URLs for Stripe redirects
+STRIPE_SUCCESS_URL = os.getenv(
+    "STRIPE_SUCCESS_URL",
+    f"{FRONTEND_URL}/payment-success",
+)
+STRIPE_CANCEL_URL = os.getenv(
+    "STRIPE_CANCEL_URL",
+    f"{FRONTEND_URL}/payment-cancelled",
+)
+STRIPE_BILLING_RETURN_URL = os.getenv(
+    "STRIPE_BILLING_RETURN_URL",
+    f"{FRONTEND_URL}/account",
+)
 
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"

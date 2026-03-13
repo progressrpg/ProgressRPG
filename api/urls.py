@@ -69,6 +69,7 @@ router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytime
 urlpatterns = [
     # General urls
     path("", include(router.urls)),
+    path("payments/", include("payments.urls")),
     path("maintenance_status/", maintenance_status, name="maintenance_status"),
     path("fetch_info/", FetchInfoAPIView.as_view(), name="fetch_info"),
     # Auth urls
