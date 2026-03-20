@@ -335,7 +335,7 @@ psycopg2-binary==2.9.11
     # via
     #   -c requirements.txt
     #   -r requirements.in
-pyasn1==0.6.2
+pyasn1==0.6.3
     # via
     #   -c requirements.txt
     #   pyasn1-modules
@@ -355,7 +355,7 @@ pyjwt==2.10.1
     #   -c requirements.txt
     #   -r requirements.in
     #   djangorestframework-simplejwt
-pyopenssl==25.3.0
+pyopenssl==26.0.0
     # via
     #   -c requirements.txt
     #   twisted

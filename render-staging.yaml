@@ -2,16 +2,16 @@ version: "1"
 projects:
   - name: Progress RPG
     environments:
-      - name: Production
+      - name: Staging
         services:
           - type: web
-            name: web
+            name: web-staging
             runtime: docker
             repo: https://github.com/progressrpg/ProgressRPG
-            branch: main
+            branch: staging
             plan: starter
             envVars:
-              - fromGroup: Prod env
+              - fromGroup: Staging env
             region: frankfurt
             preDeployCommand: python manage.py migrate
             dockerCommand: daphne -b 0.0.0.0 -p $PORT progress_rpg.asgi:application
@@ -23,13 +23,13 @@ projects:
               - frontend/*
 
           - type: worker
-            name: celery
+            name: celery-staging
             runtime: docker
             repo: https://github.com/progressrpg/ProgressRPG
-            branch: main
+            branch: staging
             plan: starter
             envVars:
-              - fromGroup: Prod env
+              - fromGroup: Staging env
             region: frankfurt
             dockerCommand: celery -A progress_rpg worker --loglevel=info --concurrency=1 --prefetch-multiplier=1 --max-tasks-per-child=1000
             dockerContext: .
@@ -40,13 +40,13 @@ projects:
               - frontend/*
 
           - type: worker
-            name: celery-beat
+            name: celery-beat-staging
             runtime: docker
             repo: https://github.com/progressrpg/ProgressRPG
-            branch: main
+            branch: staging
             plan: starter
             envVars:
-              - fromGroup: Prod env
+              - fromGroup: Staging env
             region: frankfurt
             dockerCommand: celery -A progress_rpg beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler --max-interval=30
             dockerContext: .
@@ -57,7 +57,7 @@ projects:
               - frontend/*
 
           - type: keyvalue
-            name: redis
+            name: redis-staging
             plan: starter
             region: frankfurt
             maxmemoryPolicy: allkeys-lru
@@ -65,16 +65,16 @@ projects:
               - source: 81.108.41.12/32
 
           - type: web
-            name: frontend
+            name: frontend-staging
             runtime: static
             repo: https://github.com/progressrpg/ProgressRPG
-            branch: main
+            branch: staging
             envVars:
               - key: NODE_ENV
                 sync: false
               - key: VITE_API_BASE_URL
                 sync: false
-              - fromGroup: Prod env
+              - fromGroup: Staging env
             staticPublishPath: dist
             buildCommand: npm install && npm run build:production
             routes:
@@ -85,7 +85,7 @@ projects:
             rootDir: frontend
 
         databases:
-          - name: postgres
+          - name: postgres-staging
             plan: basic-256mb
             region: frankfurt
             ipAllowList:
