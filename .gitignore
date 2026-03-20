@@ -22,3 +22,5 @@ staticfiles/
 static/.sass-cache/
 mypy.ini
 celerybeat-schedule
+*.dump
+*.sql
