@@ -1,75 +1,51 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { apiFetch } from '../../utils/api';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../../utils/api';
 
-export function useWebSocketConnection(
-  playerId,
-  onMessage,
-  onError,
-  onClose,
-  onOpen
-) {
+// WebSocket connection constants
+const RECONNECT_DELAY_MS = 3000;
+const RETRY_DELAY_MS = 5000;
+const NORMAL_CLOSURE = 1000;
+const GOING_AWAY = 1001;
+
+export function useWebSocketConnection(playerId, onMessage, onError, onClose, onOpen, shouldConnect = true) {
   const socketRef = useRef(null);
-  const reconnectTimeout = useRef(null);
-  const reconnectAttempts = useRef(0);
-
+  const reconnectTimeoutRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
-  const connectingRef = useRef(false);
+  const intentionalCloseRef = useRef(false);
 
-  const maxReconnectAttempts = 10;
-  const baseReconnectInterval = 1000; // 1 second
-  const reconnectDecay = 1.5;
-
-  const connectWebSocket = useCallback(async () => {
-    if (connectingRef.current) {
-      //console.log('[WS] Already connecting, skipping');
+  const connect = useCallback(async () => {
+    if (!shouldConnect) {
       return;
     }
 
-    if (!playerId) return;
-
-    connectingRef.current = true;
-
-    if (socketRef.current) {
-      if (
-      socketRef.current.readyState === WebSocket.OPEN ||
-      socketRef.current.readyState === WebSocket.CONNECTING
-      ) {
-        //console.log('[WS] Socket already open or connecting, skipping new connection');
-       return;
-      }
-      // Only close if socket is OPEN or CONNECTING
-      if (
-        socketRef.current.readyState === WebSocket.OPEN ||
-        socketRef.current.readyState === WebSocket.CONNECTING
-      ) {
-        socketRef.current.close();
-        socketRef.current = null;
-      }
+    if (!playerId) {
+      console.warn('[WS] No player ID, skipping connection');
+      return;
     }
 
-    // Add small delay before actually connecting
-    await new Promise((r) => setTimeout(r, 100));
-
     try {
-      const { uuid } = await apiFetch('/ws_auth/');
+      // Get UUID for connection using shared auth/refresh logic.
+      const { uuid } = await apiFetch('/ws_auth/', { method: 'GET' });
 
-      const baseUrl = API_BASE_URL;
-      const url = new URL(baseUrl);
+      // Build WebSocket URL
+      const url = new URL(API_BASE_URL);
       const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${url.hostname}:${url.port}/ws/profile_${playerId}/?uuid=${uuid}`;
+      const wsUrl = `${protocol}//${url.host}/ws/profile_${playerId}/?uuid=${uuid}`;
 
-      //console.log(`[WS] Attempting connection for player ${playerId}...`);
-      //console.log('[WS] WebSocket URL:', wsUrl);
+      // Close existing socket if any
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        intentionalCloseRef.current = true;
+        socketRef.current.close();
+      }
 
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {
-        connectingRef.current = false;
+        console.log('[WS] Connected');
         setIsConnected(true);
-        reconnectAttempts.current = 0;
-
+        intentionalCloseRef.current = false;
         onOpen?.();
       };
 
@@ -77,75 +53,99 @@ export function useWebSocketConnection(
         try {
           const data = JSON.parse(event.data);
           onMessage?.(data);
-        } catch (e) {
-          //console.error('[WS] JSON parse error:', e);
+        } catch (err) {
+          console.error('[WS] Parse error:', err);
         }
       };
 
       socket.onerror = (err) => {
         console.error('[WS] Error:', err);
+        setIsConnected(false);
         onError?.(err);
       };
 
       socket.onclose = (event) => {
-        //console.log(`[WS] Socket closed. Code: ${event.code}, Reason: ${event.reason}, Clean: ${event.wasClean}`);
-        connectingRef.current = false;
+        console.log('[WS] Closed. Code:', event.code);
         setIsConnected(false);
-        onClose?.();
+        onClose?.(event);
 
-        if (reconnectAttempts.current < maxReconnectAttempts) {
-          const timeout = baseReconnectInterval * (reconnectDecay ** reconnectAttempts.current);
-          reconnectAttempts.current += 1;
-          //console.log(`[WS] Scheduling reconnect attempt ${reconnectAttempts.current} in ${timeout}ms`);
-          reconnectTimeout.current = setTimeout(() => {
-            connectWebSocket();
-          }, timeout);
-        } else {
-          console.warn('[WS] Max reconnect attempts reached, giving up');
+        // Auto-reconnect after delay (except for intentional closes)
+        if (!intentionalCloseRef.current && event.code !== NORMAL_CLOSURE && event.code !== GOING_AWAY) {
+          console.log(`[WS] Scheduling reconnection in ${RECONNECT_DELAY_MS}ms...`);
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('[WS] Attempting reconnection...');
+            connect();
+          }, RECONNECT_DELAY_MS);
         }
       };
+
     } catch (err) {
-      console.error('[WS] Failed to authenticate or connect:', err);
-      connectingRef.current = false;
-      onError?.(err);
+      console.error('[WS] Connection failed:', err);
+      setIsConnected(false);
 
-      if (reconnectAttempts.current < maxReconnectAttempts) {
-        const timeout = baseReconnectInterval * (reconnectDecay ** reconnectAttempts.current);
-        reconnectAttempts.current += 1;
-
-        reconnectTimeout.current = setTimeout(() => {
-          connectWebSocket();
-        }, timeout);
+      // Avoid repeated 401 spam loops. Auth flow will re-enable connection when ready.
+      if (!shouldConnect) {
+        return;
       }
+      if ((err?.message || '').toLowerCase().includes('unauthorized')) {
+        return;
+      }
+
+      // Retry connection after delay on connection failure
+      reconnectTimeoutRef.current = setTimeout(() => {
+        console.log('[WS] Retrying after connection failure...');
+        connect();
+      }, RETRY_DELAY_MS);
     }
-  }, [playerId, onMessage, onError, onClose, onOpen]);
+  }, [playerId, onMessage, onError, onClose, onOpen, shouldConnect]);
 
   useEffect(() => {
-    if (!playerId) return;
-
-    connectWebSocket();
+    if (shouldConnect) {
+      connect();
+    }
 
     return () => {
-      //console.log('[WS] Effect cleanup: closing socket');
-      if (reconnectTimeout.current) {
-        clearTimeout(reconnectTimeout.current);
-        reconnectTimeout.current = null;
+      // Cleanup on unmount
+      intentionalCloseRef.current = true;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
       if (socketRef.current) {
-        //console.log('[WS] Closing socket', socketRef.current);
-        socketRef.current.close();
-        socketRef.current = null;
+        socketRef.current.close(NORMAL_CLOSURE);
       }
+      setIsConnected(false);
     };
-  }, [playerId, connectWebSocket]);
+  }, [connect, shouldConnect]);
 
-  const send = useCallback((payload) => {
+  const send = useCallback((data) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(payload));
+      socketRef.current.send(JSON.stringify(data));
     } else {
-      console.warn('[WS] Socket not open');
+      console.warn('[WS] Cannot send, socket not open');
     }
   }, []);
 
-  return { send, isConnected };
+  const disconnect = useCallback((code = NORMAL_CLOSURE, reason = 'logout') => {
+    intentionalCloseRef.current = true;
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    if (socketRef.current) {
+      try {
+        socketRef.current.close(code, reason);
+      } catch (e) {
+        // some browsers are fussy about close(reason)
+        socketRef.current.close(code);
+      }
+      socketRef.current = null;
+    }
+
+    setIsConnected(false);
+  }, []);
+
+
+  return { send, isConnected, disconnect };
 }

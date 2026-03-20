@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
 
       try {
         const data = await apiFetch('/me/');
-        setUser(data.user);
+        setUser(data);
         setIsAuthenticated(true);
       } catch (err) {
         logout();
@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
     loading,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

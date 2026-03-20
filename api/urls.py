@@ -1,32 +1,36 @@
 from dj_rest_auth import urls as auth_urls
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-    TokenVerifyView,
-)
+from rest_framework_simplejwt.views import TokenVerifyView
 
 from django.urls import path, include, register_converter
 from rest_framework.routers import DefaultRouter
 from django_channels_jwt.views import AsgiValidateTokenView
 
 from .views import (
-    me_view,
-    maintenance_status,
     CustomRegisterView,
     ConfirmEmailView,
-    OnboardingViewSet,
+    MeViewSet,
     FetchInfoAPIView,
-    ProfileViewSet,
-    CharacterViewSet,
-    ActivityTimerViewSet,
-    QuestTimerViewSet,
-    ActivityViewSet,
-    QuestViewSet,
     DownloadUserDataAPIView,
     DeleteAccountAPIView,
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
 )
+
+from character.views import CharacterViewSet
+from gameplay.views import ActivityTimerViewSet
+from locations.views import PopulationCentreViewSet
+from progression.views import (
+    PlayerActivityViewSet,
+    CharacterActivityViewSet,
+    CharacterQuestViewSet,
+    PlayerSkillViewSet,
+    CategoryViewSet,
+    TaskViewSet,
+)
+from server_management.views import maintenance_status
+from users.views import PlayerViewSet
+
+from locations.views import PopulationCentreMapView
 
 
 class KeyConverter:
@@ -46,19 +50,26 @@ class KeyConverter:
 register_converter(KeyConverter, "key")
 
 router = DefaultRouter()
-router.register(r"profile", ProfileViewSet, basename="profile")
+router.register(r"me", MeViewSet, basename="me")
+router.register(r"player", PlayerViewSet, basename="player")
 router.register(r"character", CharacterViewSet, basename="character")
-router.register(r"activities", ActivityViewSet, basename="activity")
-router.register(r"quests", QuestViewSet, basename="quest")
+router.register(r"skills", PlayerSkillViewSet, basename="skills")
+router.register(r"tasks", TaskViewSet, basename="tasks")
+router.register(r"player-activities", PlayerActivityViewSet, basename="playeractivity")
+router.register(
+    r"character-activities", CharacterActivityViewSet, basename="characteractivity"
+)
+router.register(r"categories", CategoryViewSet, basename="category")
+router.register(r"character_quests", CharacterQuestViewSet, basename="characterquest")
+router.register(
+    r"population-centres", PopulationCentreViewSet, basename="populationcentre"
+)
 router.register(r"activity_timers", ActivityTimerViewSet, basename="activitytimer")
-router.register(r"quest_timers", QuestTimerViewSet, basename="questtimer")
-router.register(r"onboarding", OnboardingViewSet, basename="onboarding")
-
 
 urlpatterns = [
     # General urls
     path("", include(router.urls)),
-    path("me/", me_view, name="me"),
+    path("payments/", include("payments.urls")),
     path("maintenance_status/", maintenance_status, name="maintenance_status"),
     path("fetch_info/", FetchInfoAPIView.as_view(), name="fetch_info"),
     # Auth urls
@@ -82,4 +93,10 @@ urlpatterns = [
         name="api_download_user_data",
     ),
     path("delete_account/", DeleteAccountAPIView.as_view(), name="api_delete_account"),
+    # Other urls
+    path(
+        "population-centres/<int:pk>/map/",
+        PopulationCentreMapView.as_view(),
+        name="populationcentre-map",
+    ),
 ]

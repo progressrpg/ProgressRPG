@@ -7,6 +7,26 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from .base import *
+from .utils import (
+    get_branch_name,
+    get_branch_db_name,
+    ensure_branch_db_exists,
+    migrate_and_seed,
+    get_postgres_host,
+    rewrite_database_url_host,
+    get_redis_url,
+    is_running_in_docker,
+)
+import subprocess
+from urllib.parse import quote
+
+
+BRANCH_NAME = get_branch_name()
+print("BRANCH_NAME is:", BRANCH_NAME, file=sys.stderr)
+
+# new_db_created = ensure_branch_db_exists()
+
+# DB_NAME = get_branch_db_name()
 
 ROOT_URLCONF = "progress_rpg.urls"
 
@@ -14,9 +34,14 @@ ROOT_URLCONF = "progress_rpg.urls"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "request_context": {
+            "()": "progress_rpg.middleware.logging_context.RequestContextFilter",
+        },
+    },
     "formatters": {
         "verbose": {
-            "format": "[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s",
+            "format": "[%(asctime)s] [%(request_id)s] [%(user_id)s] [%(levelname)s] [%(name)s:%(lineno)d] %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
         "simple": {
@@ -29,30 +54,33 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
-        "file_info": {
-            "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/general.log"),
-            "formatter": "verbose",
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 3,  # Keep last 3 log files
-        },
-        "file_errors": {
-            "level": "ERROR",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/errors.log"),
-            "formatter": "verbose",
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 3,  # Keep last 3 log files
-        },
-        "file_debug": {
-            "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/activity.log"),
-            "formatter": "verbose",
-            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
-            "backupCount": 6,  # Keep last 5 log files
-        },
+        # "file_info": {
+        #     "level": "INFO",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/general.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 3,  # Keep last 3 log files
+        # },
+        # "file_errors": {
+        #     "level": "ERROR",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/errors.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 3,  # Keep last 3 log files
+        # },
+        # "file_debug": {
+        #     "level": "DEBUG",
+        #     "class": "logging.handlers.RotatingFileHandler",
+        #     "filename": os.path.join(BASE_DIR, "logs/activity.log"),
+        #     "formatter": "verbose",
+        #     "filters": ["request_context"],
+        #     "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+        #     "backupCount": 6,  # Keep last 5 log files
+        # },
     },
     "loggers": {
         "django": {
@@ -60,14 +88,24 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
-        "errors": {
-            "handlers": ["file_errors"],
-            "level": "ERROR",
-            "propagate": False,
-        },
+        # "errors": {
+        #     "handlers": ["file_errors"],
+        #     "level": "ERROR",
+        #     "propagate": False,
+        # },
+        # "general": {
+        #     "handlers": ["file_info"],
+        #     "level": "INFO",
+        #     "propagate": False,
+        # },
+        # "activity": {
+        #     "handlers": ["file_debug"],
+        #     "level": "DEBUG",
+        #     "propagate": False,
+        # },
         "django.db.backends": {
             "level": "WARNING",
-            "handlers": ["console", "file_errors"],
+            "handlers": ["console"],
             "propagate": False,
         },
     },
@@ -84,26 +122,12 @@ SECRET_KEY_FALLBACKS = [
 
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
-DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    DB_NAME = os.getenv("DB_NAME", default="progress_rpg")
-    DB_USER = os.getenv("DB_USER", default="duncan")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-    DB_HOST = os.getenv("DB_HOST", default="localhost")
-    DB_PORT = os.getenv("DB_PORT", default=5432)
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+DEFAULT_FROM_EMAIL = "Progress RPG <noreply@progressrpg.com>"
+print("DEBUG:", DEBUG, file=sys.stderr)
 
-    DATABASE_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = os.getenv("EMAIL_PORT")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
-
-print("DEBUG:", DEBUG)
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -117,21 +141,51 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS", "http://127.0.0.1,http://localhost:8000"
 ).split(",")
 
-print("ALLOWED HOSTS:", ALLOWED_HOSTS)
-print("CORS:", CORS_ALLOWED_ORIGINS)
+# print("ALLOWED HOSTS:", ALLOWED_HOSTS, file=sys.stderr)
+# print("CORS:", CORS_ALLOWED_ORIGINS, file=sys.stderr)
 
 
+# ------------------------------
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# ------------------------------
 
+# DB_NAME = os.getenv("DB_NAME", "progressrpg_staging")
+# DB_USER = os.getenv("DB_USER", default="duncan")
+# DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+# DB_PORT = os.getenv("DB_PORT", default=5432)
 
-DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=60)}
+# IN_DOCKER = is_running_in_docker()
 
+DATABASE_URL = os.environ.get("DATABASE_URL")
+# if DATABASE_URL:
+#     DATABASE_URL = rewrite_database_url_host(DATABASE_URL, get_postgres_host())
+# if not DATABASE_URL:
+#     # Fallback to explicit DB_* vars for local dev
+#     DB_USER = os.environ.get("DB_USER", "duncan")
+#     DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+#     DB_NAME = os.environ.get("DB_NAME", "progressrpg")
+#     DB_HOST = get_postgres_host()
+#     DB_PORT = os.environ.get("DB_PORT", 5432)
+#     DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+if DATABASE_URL:
+    db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
+    db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
+    DATABASES = {"default": db}
+else:
+    # Safe fallback for build-time collectstatic
+    print("⚠️ No DATABASE_URL set — using dummy SQLite DB", file=sys.stderr)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
+
+REDIS_URL = get_redis_url(default_db="0")
 # print("REDIS_URL:", REDIS_URL)
-# PRETEND = f"{REDIS_URL}?ssl_cert_reqs=none"
-# print("PRETEND:", PRETEND)
+
 
 CHANNEL_LAYERS = {
     "default": {
@@ -153,7 +207,7 @@ CACHES = {
 
 
 # For local development only
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True
@@ -177,5 +231,5 @@ SECURE_HSTS_PRELOAD = False
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
-CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
-CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BROKER_URL = REDIS_URL

@@ -1,4 +1,4 @@
-# from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 
 # from channels.exceptions import StopConsumer
@@ -8,10 +8,15 @@ from django.db import transaction
 # from django.utils.timezone import now
 import json, logging
 from django.core.cache import cache
+
+from gameplay.services.xp_modifiers import schedule_online_end
+from users.models import Player
+
 from .models import ServerMessage
 from .utils import process_completion, process_initiation, control_timers
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
+logger_errors = logging.getLogger("errors")
 
 
 class TimerConsumer(AsyncJsonWebsocketConsumer):
@@ -19,46 +24,60 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         from django.contrib.auth.models import AnonymousUser
 
         user = self.scope.get("user", AnonymousUser())
+
+        user_id = None
+        username = None
+        is_authenticated = False
+
         if user and user.is_authenticated:
-            logger.info(f"[CONNECT] Authenticated user {user.id}. Connecting...")
+            user_id = await sync_to_async(lambda: user.id)()
+            username = await sync_to_async(lambda: user.username)()
+            is_authenticated = True
+            is_staff = user.is_staff
+            logger.debug(
+                f"[CONNECT] user={user}, type={type(user)}, is_staff={user.is_staff}"
+            )
+
+        if is_authenticated:
+            logger.info(f"[CONNECT] Authenticated user {user_id}. Connecting...")
 
             if (
-                hasattr(self, "profile_group")
-                and self.profile_group in self.channel_layer.groups
+                hasattr(self, "player_group")
+                and self.player_group in self.channel_layer.groups
             ):
                 logger.warning(
-                    f"[CONNECT] User {user.username} already connected to a WebSocket."
+                    f"[CONNECT] User {username} already connected to a WebSocket."
                 )
                 await self.close()  # Reject the new connection
                 return
 
-            self.profile, self.character = await self.set_profile_and_character(user)
-            self.profile_group = f"profile_{self.profile.id}"
+            self.player, self.character, self.link = (
+                await self.set_player_and_character(user)
+            )
+            self.player_group = f"player_{self.player.id}"
 
-            await database_sync_to_async(self.profile.set_online)()
-
+            await database_sync_to_async(self.player.set_online)()
             is_online_now = await database_sync_to_async(
-                lambda: self.profile.is_online
+                lambda: self.player.is_online
             )()
-            print(
-                f"[CONNECT] Profile {self.profile.id} is_online={is_online_now}"
+            logger.debug(
+                f"[CONNECT] Player {self.player.id} is_online={is_online_now}"
             )  # ✅ Verify status
 
-            await self.channel_layer.group_add(self.profile_group, self.channel_name)
+            await self.channel_layer.group_add(self.player_group, self.channel_name)
             await self.channel_layer.group_add("online_users", self.channel_name)
-            logger.info(
-                f"[CONNECT] Added profile {self.profile.id} to 'online_users' group."
+            logger.debug(
+                f"[CONNECT] Added player {self.player.id} to 'online_users' group."
             )  # ✅ Debug log
 
             await self.accept()
             logger.info(
-                f"[CONNECT] WebSocket connection accepted for profile {self.profile.id}"
+                f"[CONNECT] WebSocket connection accepted for player {self.player.id}"
             )
 
             await self._send_pending_messages()
 
             self.activity_timer = await self.get_activity_timer()
-            self.quest_timer = await self.get_quest_timer()
 
             await self.send_json(
                 {
@@ -71,31 +90,33 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             logger.warning(f"[CONNECT] Unauthenticated user attempted connection.")
             await self.close()
 
+    #########################
+    ##     DISCONNECT
+    #########################
+
     async def disconnect(self, close_code):
         logger.info(
-            f"[DISCONNECT] WebSocket disconnecting. Player: {self.profile.id} | Code: {close_code}"
+            f"[DISCONNECT] WebSocket disconnecting. Player: {self.player.id} | Code: {close_code}"
         )
-        await database_sync_to_async(self.profile.set_offline)()
+        await database_sync_to_async(self.player.set_offline)()
         await self.channel_layer.group_discard("online_users", self.channel_name)
 
-        if hasattr(self, "profile_group"):
-            logger.info(f"[DISCONNECT] Removed from group: {self.profile_group}")
-            await self.channel_layer.group_discard(
-                self.profile_group, self.channel_name
-            )
+        if hasattr(self, "player_group"):
+            logger.info(f"[DISCONNECT] Removed from group: {self.player_group}")
+            await self.channel_layer.group_discard(self.player_group, self.channel_name)
 
-        if hasattr(self, "profile") and hasattr(self, "character"):
+        if hasattr(self, "player") and hasattr(self, "character"):
             logger.info(
-                f"Pausing timers for profile {self.profile.id}; websocket disconnected"
+                f"Pausing timers for player {self.player.id}; websocket disconnected"
             )
             if self.activity_timer.status not in [
                 "completed",
                 "empty",
                 "paused",
-            ] or self.quest_timer.status not in ["completed", "empty", "paused"]:
-                await control_timers(
-                    self.profile, self.activity_timer, self.quest_timer, "pause"
-                )
+            ]:
+                await control_timers(self.player, self.activity_timer, "pause")
+
+            await sync_to_async(schedule_online_end)(self.link)
 
     async def test_message(self, event):
         logger.info(f"[TEST MESSAGE] Received test message: {event}")
@@ -124,7 +145,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 f"[RECEIVE JSON] Message received: {event}, type: {message_type}"
             )
 
-        await database_sync_to_async(self.quest_timer.refresh_from_db)()
         if message_type:
             logger.debug(f"[RECEIVE JSON] Processing type: {message_type}")
             if message_type == "client_request":
@@ -134,20 +154,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 await self.send_json(
                     {"type": "pong", "action": "pong", "message": "pong"}
                 )
-                if self.quest_timer.status != "completed":
-                    logger.debug(
-                        f"[RECEIVE JSON] Quest status: {self.quest_timer.status}"
-                    )
-                    time_finished = await database_sync_to_async(
-                        self.quest_timer.time_finished
-                    )()
-                    if time_finished:
-                        logger.debug(
-                            f"[RECEIVE JSON] Quest timer is finished? {time_finished}"
-                        )
-                        await database_sync_to_async(process_completion)(
-                            self.profile, self.character, "complete_quest"
-                        )
 
             else:
                 logger.warning(f"[RECEIVE JSON] Unknown type received: {message_type}")
@@ -171,7 +177,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         """Store the action in the ServerMessage model if the WebSocket is closed"""
         logger.info(f"[STORE ACTION] Storing action: {event}")
         ServerMessage.objects.create(
-            group=self.profile_group,
+            group=self.player_group,
             type=event.get("type"),
             action=event["action"],
             data=event.get("data", {}),
@@ -185,34 +191,18 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         action = message.get("action")
 
         if action == "start_timers":
-            await control_timers(
-                self.profile, self.activity_timer, self.quest_timer, "start"
-            )
+            await control_timers(self.player, self.activity_timer, "start")
         elif action == "pause_timers":
-            await control_timers(
-                self.profile, self.activity_timer, self.quest_timer, "pause"
-            )
+            await control_timers(self.player, self.activity_timer, "pause")
         elif action in ["create_activity", "choose_quest"]:
-            # qt = self.quest_timer
-            # logger.debug(f"[HANDLE CLIENT REQUEST] Quest timer status/dur/elapsed/remaining: {qt.status}/{qt.duration}/{qt.get_elapsed_time()}/{qt.get_remaining_time()}")
             success = await database_sync_to_async(process_initiation)(
-                self.profile, self.character, action
+                self.player, self.character, action
             )
             if not success:
                 logger.warning(f"[HANDLE CLIENT REQUEST] Failed to initiate {action}.")
         elif action in ["complete_quest", "submit_activity"]:
-            if action == "complete_quest" and self.quest_timer.status not in [
-                "active",
-                "waiting",
-                "paused",
-            ]:
-                logger.warning(
-                    f"[HANDLE CLIENT REQUEST] Cannot complete quest: Invalid status {self.quest_timer.status}"
-                )
-                return
-
             success = await database_sync_to_async(process_completion)(
-                self.profile, self.character, action
+                self.player, self.character, action
             )
             logger.debug(f"[HANDLE CLIENT REQUEST] {action} result: {success}")
             if not success:
@@ -224,33 +214,25 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             logger.warning(f"[HANDLE CLIENT REQUEST] Unknown action: {action}")
 
     @database_sync_to_async
-    def set_profile_and_character(self, user):
+    def set_player_and_character(self, user):
         with transaction.atomic():
-            logger.debug(
-                f"[SET PROFILE] Setting profile and character for user: {user.username}"
-            )
             from character.models import PlayerCharacterLink
 
-            character = PlayerCharacterLink().get_character(user.profile)
-            return user.profile, character
+            link = (
+                PlayerCharacterLink.objects.select_related("player", "character")
+                .filter(player=user.player, is_active=True)
+                .first()
+            )
+            return user.player, link.character, link
 
     @database_sync_to_async
     def get_activity_timer(self):
         logger.debug(
-            f"[GET ACTIVITY TIMER] Fetching activity timer for profile: {self.profile.id}"
+            f"[GET ACTIVITY TIMER] Fetching activity timer for player: {self.player.id}"
         )
         from .models import ActivityTimer
 
-        return ActivityTimer.objects.filter(profile=self.profile).first()
-
-    @database_sync_to_async
-    def get_quest_timer(self):
-        logger.debug(
-            f"[GET QUEST TIMER] Fetching quest timer for character: {self.character.id}"
-        )
-        from .models import QuestTimer
-
-        return QuestTimer.objects.filter(character=self.character).first()
+        return ActivityTimer.objects.filter(player=self.player).first()
 
     async def send_timer_update(self, event):
         logger.debug(f"[SEND TIMER UPDATE] Sending timer update: {event['data']}")
@@ -261,11 +243,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         logger.debug(f"[GET ACTIVITY TIME] Fetching elapsed activity time.")
         return self.activity_timer.get_elapsed_time() if self.activity_timer else None
 
-    def get_quest_time(self):
-        """Get the current quest time."""
-        logger.debug(f"[GET QUEST TIME] Fetching elapsed quest time.")
-        return self.quest_timer.get_elapsed_time() if self.quest_timer else None
-
     async def timer_update(self):
         """Receive timer updates from the group."""
         logger.debug(f"[TIMER UPDATE] Sending timer updates to the client.")
@@ -273,7 +250,6 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             json.dumps(
                 {
                     "activity_time": self.get_activity_time(),
-                    "quest_time": self.get_quest_time(),
                 }
             )
         )
@@ -313,7 +289,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         Send pending messages to the client.
         """
         logger.info(
-            f"[SEND PENDING MESSAGES (event handler)] Sending pending messages to group {self.profile_group}."
+            f"[SEND PENDING MESSAGES (event handler)] Sending pending messages to group {self.player_group}."
         )
         logger.debug(f"[SEND PENDING MESSAGE] Event: {event}")
         await self._send_pending_messages()
@@ -323,24 +299,24 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         Fetch and send all pending messages for the connected WebSocket group.
         Marks successfully sent messages as delivered.
         """
-        logger.info(
-            f"[SEND PENDING MESSAGES] Fetching pending messages for group {self.profile_group}."
+        logger.debug(
+            f"[SEND PENDING MESSAGES] Fetching pending messages for group {self.player_group}."
         )
         from .models import ServerMessage
 
         get_unread_messages = database_sync_to_async(
-            lambda: list(ServerMessage.get_unread(self.profile_group))
+            lambda: list(ServerMessage.get_unread(self.player_group))
             + list(ServerMessage.get_unread("online_users"))
         )
         messages = await get_unread_messages()
 
         if not messages:
             logger.info(
-                f"[SEND PENDING MESSAGES] No pending messages for group {self.profile_group} or 'online_users'."
+                f"[SEND PENDING MESSAGES] No pending messages for group {self.player_group} or 'online_users'."
             )
             return
         logger.info(
-            f"[SEND PENDING MESSAGES] Found {len(messages)} pending messages for group {self.profile_group}."
+            f"[SEND PENDING MESSAGES] Found {len(messages)} pending messages for group {self.player_group}."
         )
 
         successful_message_ids = []
@@ -353,7 +329,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                     f"[SEND PENDING MESSAGES] Successfully sent message {message.id}."
                 )
             except Exception as e:
-                logger.error(
+                logger_errors.error(
                     f"[SEND PENDING MESSAGES] Failed to send message {message.id}: {e}"
                 )
 

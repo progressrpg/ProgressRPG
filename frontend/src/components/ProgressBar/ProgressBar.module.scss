@@ -37,7 +37,7 @@
   position: relative;
 
   border-radius: v.$border-radius;
-  border: 1px solid c.$color-progress-bar;
+  border: 1px solid rgba(c.$color-border-primary, 0.8);;
 }
 
 .progressBarFill {
@@ -77,11 +77,11 @@
 }
 
 .warning {
-  background-color: #ff9800;
+  background-color: c.$color-warning;
 }
 
 .danger {
-  background-color: #f44336;
+  background-color: c.$color-error;
 }
 
 .paused {

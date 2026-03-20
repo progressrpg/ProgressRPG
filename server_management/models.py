@@ -7,7 +7,7 @@ import logging
 from asgiref.sync import async_to_sync
 from gameplay.utils import send_group_message
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 class MaintenanceWindow(models.Model):

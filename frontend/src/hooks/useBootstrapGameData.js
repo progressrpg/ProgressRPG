@@ -8,24 +8,32 @@ export function useBootstrapGameData() {
   const [player, setPlayer] = useState(null);
   const [character, setCharacter] = useState(null);
   const [activityTimerInfo, setActivityTimerInfo] = useState(null);
-  const [questTimerInfo, setQuestTimerInfo] = useState(null);
+  const [populationCentreInfo, setPopulationCentreInfo] = useState(null);
+  const [xpMods, setXpMods] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [buildNumber, setBuildNumber] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
+    if (authLoading) return;
 
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
 
     const fetchGameData = async () => {
       try {
         setLoading(true);
 
         const info = await apiFetch('/fetch_info/');
-        setPlayer(info.profile);
+        // console.log("bootstrap info:", info);
+        setPlayer(info.player);
         setCharacter(info.character);
-        //console.log("info:", info);
         setActivityTimerInfo(info.activity_timer);
-        setQuestTimerInfo(info.quest_timer);
+        setPopulationCentreInfo(info.population_centre);
+        setXpMods(info.xp_mods || []);
+        setBuildNumber(info.build_number);
       } catch (err) {
         console.error('[Bootstrap] Error loading game data:', err);
         setError('Something went wrong while loading game data.');
@@ -41,7 +49,9 @@ export function useBootstrapGameData() {
     player,
     character,
     activityTimerInfo,
-    questTimerInfo,
+    populationCentreInfo,
+    xpMods,
+    buildNumber,
     loading,
     error
   };

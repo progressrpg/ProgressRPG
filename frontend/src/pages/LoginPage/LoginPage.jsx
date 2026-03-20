@@ -45,35 +45,37 @@ export default function LoginPage() {
   };
 
   return (
-    <Form
-      title="🔐 Log in"
-      onSubmit={handleSubmit}
-      isSubmitting={submitting}
-      submitLabel="Log In"
-      className={styles.form}
-    >
-      {error && <p className={styles.error}>{error}</p>}
-      <input
-        type="email"
-        name="email"
-        placeholder="Email"
-        autoComplete='email'
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        name="password"
-        placeholder="Password"
-        autoComplete='current-password'
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        required
-      />
-      <p className={styles.footer}>
-        New here? <a href="/register">Create an account</a>
-      </p>
-    </Form>
+    <div className={styles.page}>
+      <Form
+        title="🔐 Log in"
+        onSubmit={handleSubmit}
+        isSubmitting={submitting}
+        submitLabel="Log In"
+        className={styles.form}
+      >
+        {error && <p className={styles.error} role="alert">{error}</p>}
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          autoComplete='email'
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          autoComplete='current-password'
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+        />
+        <p className={styles.footer}>
+          New here? <a href="/register">Create an account</a>
+        </p>
+      </Form>
+    </div>
   );
 }

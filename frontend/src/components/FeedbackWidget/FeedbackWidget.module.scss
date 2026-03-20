@@ -2,6 +2,7 @@
 @use '../../styles/utilities/mixins' as m;
 @use '../../styles/semantic/typography' as t;
 @use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/spacing' as sp;
 @use 'sass:map';
 
 .feedbackWidget {
@@ -11,7 +12,7 @@
   z-index: 1000;
 
   .feedbackButton {
-    padding: 0.75rem 1rem;
+    padding: map.get(sp.$gap, sm) map.get(sp.$gap, md);
   }
 
   .feedbackModal {
@@ -21,23 +22,12 @@
     width: 90vw;
     max-width: 320px;
     background-color: c.$color-bg;
-    border: 1px solid c.$color-border-primary;
+    @include m.border(c.$color-border-primary);
     border-radius: v.$border-radius;
-    box-shadow: 0 v.$spacing-sm v.$spacing-md rgba(0,0,0,0.2);
-    padding: 1rem;
+    @include m.box-shadow(md);
+    padding: map.get(sp.$gap, md);
     z-index: 1001;
-    animation: slide-up 0.2s ease-out;
-
-    @keyframes slide-up {
-      from {
-        opacity: 0;
-        transform: translateY(10%);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+    @include m.slide-up(0.2s);
 
     .closeButton {
       position: absolute;
@@ -53,7 +43,7 @@
         gap: 0.5rem;
 
         .modalButton {
-          padding: 0.5rem 0.75rem;
+          padding: v.$padding-base;
           border-radius: v.$border-radius;
           text-align: center;
           text-decoration: none;
@@ -63,15 +53,15 @@
           @include c.apply-text-tone(map.get(c.$text-tone, inverted));
 
           &.github {
-            background-color: #24292e;
+            background-color: c.$color-brand-github;
           }
 
           &.form {
-            background-color: #34a853;
+            background-color: c.$color-brand-google;
           }
 
           &.discord {
-            background-color: #5865f2;
+            background-color: c.$color-brand-discord;
           }
 
           &:hover {

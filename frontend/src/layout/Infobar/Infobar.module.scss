@@ -1,7 +1,110 @@
-@use '../two-columns' as tc;
 @use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/utilities/mixins' as m;
 
 .infoBar {
-	border-radius: 0 0 v.$spacing-sm v.$spacing-sm;
-	@include tc.two-column-layout;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  max-width: 720px;
+  margin: v.$spacing-md auto 0;
+}
+
+.infoBox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: v.$spacing-xs;
+  padding: v.$spacing-xs v.$spacing-md;
+  border: 1px solid rgba(c.$color-border-primary, 0.15);
+
+  @include m.respond-to(sm) {
+    flex-direction: row;
+    align-items: center;
+    gap: v.$spacing-sm;
+  }
+
+  .label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+
+    @include m.respond-to(sm) {
+      order: 0;
+    }
+  }
+
+  .content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: v.$spacing-xs;
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+
+    @include m.respond-to(sm) {
+      gap: v.$spacing-sm;
+      width: auto;
+      order: 1;
+    }
+  }
+
+  .value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .level {
+    font-size: 0.75rem;
+    font-weight: 400;
+    white-space: nowrap;
+    margin-left: auto;
+  }
+}
+
+.player {
+  background: rgba(c.$color-player, 0.14);
+  color: c.$color-text-heading;
+  border-top-left-radius: v.$border-radius;
+  border-bottom-left-radius: v.$border-radius;
+  flex: 1;
+  border-right: none;
+}
+
+.modifiers {
+  background: rgba(c.$color-bg-green, 0.5);
+  color: c.$color-text-body;
+  flex: 1.5;
+  justify-content: center;
+  align-items: center;
+  border-left: none;
+  border-right: none;
+
+  .xpModifiers {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.character {
+  background: rgba(c.$color-character, 0.08);
+  color: c.$color-text-heading;
+  border-top-right-radius: v.$border-radius;
+  border-bottom-right-radius: v.$border-radius;
+  flex: 1;
+  border-left: none;
 }

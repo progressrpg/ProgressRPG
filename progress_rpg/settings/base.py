@@ -11,11 +11,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import sys
 import dj_database_url
 from decouple import Config, RepositoryEnv, config
 import os
 from dotenv import load_dotenv
 import logging, ssl, sentry_sdk
+
 from .utils import is_vite_running
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -46,6 +48,7 @@ APP_VERSION = "0.6.0-alpha"
 TOKEN_MODEL = None
 
 # Application definition
+# Test for Ruth
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -65,18 +68,24 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.gis",
     "django_celery_beat",
+    "django_cf_turnstile",
     "django_extensions",
+    "drf_spectacular",
     "channels",
     "django_vite",
-    "users",
-    "gameplay",
+    "sendgrid",
     "character",
+    "gameplay",
     "gameworld",
-    "events",
+    # "events",
     "locations",
     "payments",
+    "progression",
     "server_management",
+    "users",
+    "metrics",
     "django_ratelimit",
     "decouple",
 ]
@@ -88,13 +97,15 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "progress_rpg.middleware.logging_context.RequestLoggingMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "progress_rpg.middleware.timezone.UserTimezoneMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    #'server_management.middleware.MaintenanceModeMiddleware',
-    #'server_management.middleware.BlockBotMiddleware',
+    #'server_management.middleware.AsyncMaintenanceModeMiddleware',
+    #'server_management.middleware.AsyncBlockBotMiddleware',
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -122,12 +133,11 @@ ASGI_APPLICATION = "progress_rpg.asgi.application"
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
-        "rest_framework.renderers.JSONRenderer",  #'rest_framework.renderers.BrowsableAPIRenderer',
+        "rest_framework.renderers.JSONRenderer",
     ],
-    "DEFAULT_RENDERER_CLASSES_OPTIONS": {
-        "template_pack": "rest_framework/vertical",
-        "DEFAULT_FORM_RENDERER": "rest_framework.renderers.TemplateHTMLRenderer",
-    },
+    "JSON_ENCODER_INDENT": 2,  # Pretty-print JSON with 2-space indentation
+    "UNICODE_JSON": True,  # Don't escape Unicode characters
+    "COMPACT_JSON": False,  # Add whitespace for readability
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         #'rest_framework.authentication.SessionAuthentication',
@@ -138,6 +148,7 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
 }
@@ -146,12 +157,18 @@ REST_AUTH_REGISTER_SERIALIZERS = {
     "REGISTER_SERIALIZER": "api.serializers.CustomRegisterSerializer",
 }
 
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Progress RPG API",
+    "DESCRIPTION": "API documentation for Progress RPG, an ADHD-focused productivity game.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
+
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 REST_USE_JWT = True
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -202,8 +219,13 @@ USE_TZ = True
 
 # Vite settings
 
-DEV_MODE = os.getenv("DJANGO_VITE_DEV_MODE", "True") == "True"
-print("DEV_MODE =", DEV_MODE)
+django_vite_dev_mode = os.getenv("DJANGO_VITE_DEV_MODE")
+if django_vite_dev_mode is None:
+    DEV_MODE = is_vite_running()
+else:
+    DEV_MODE = django_vite_dev_mode.lower() in ("true", "1", "yes")
+
+print("DEV_MODE =", DEV_MODE, file=sys.stderr)
 
 DJANGO_VITE = {
     "default": {
@@ -215,16 +237,17 @@ DJANGO_VITE = {
     }
 }
 
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost")
+if not FRONTEND_URL:
+    FRONTEND_URL = "http://localhost"
 
-if FRONTEND_URL.startswith("http://localhost"):
     if is_vite_running():
         FRONTEND_URL = f"{FRONTEND_URL}:5173"
-        print("Vite status: Vite server is running!")
+        print("Vite status: Vite server is running!", file=sys.stderr)
     else:
         FRONTEND_URL = f"{FRONTEND_URL}:8000"
-        print("Vite status: Django serving React from static files")
+        print("Vite status: Django serving React from static files", file=sys.stderr)
 
 
 # Static files
@@ -232,13 +255,17 @@ if FRONTEND_URL.startswith("http://localhost"):
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 STATIC_URL = "/static/"
-STATICFILES_BASE = BASE_DIR / "static"
+STATICFILES_BASE = os.path.join(BASE_DIR, "static")
 STATICFILES_DIRS = [
     STATICFILES_BASE,
 ]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -247,12 +274,6 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
-# Email settings (host, port and password are at top)
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "admin@progressrpg.com"
-DEFAULT_FROM_EMAIL = "admin@progressrpg.com"
 
 # Optionally, configure for error emails
 ADMINS = [
@@ -263,8 +284,29 @@ ADMINS = [
 LOGIN_REDIRECT_URL = "/"  # Or wherever you want to go after login
 LOGIN_URL = "/login/"  # Customize the login URL
 
-STRIPE_PUBLIC_KEY = "pk_test_51QNRgsGHaENuGVuPh70KmxNTGK3iQPJgjGO2gVcdE0dlRDG7LOZfY3zQxvEdR2hmXDKaEILIRKEnJdn69arGwKCi00bSZWzrzW"
-STRIPE_SECRET_KEY = "nope"
+# Stripe
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+# Canonical Stripe price IDs
+STRIPE_PRICE_ID_PREMIUM_MONTHLY = os.getenv("STRIPE_PRICE_ID_PREMIUM_MONTHLY", "")
+STRIPE_PRICE_ID_PREMIUM_ANNUAL = os.getenv("STRIPE_PRICE_ID_PREMIUM_ANNUAL", "")
+STRIPE_PRICE_ID_FREE = os.getenv("STRIPE_PRICE_ID_FREE", "")
+
+# App URLs for Stripe redirects
+STRIPE_SUCCESS_URL = os.getenv(
+    "STRIPE_SUCCESS_URL",
+    f"{FRONTEND_URL}/payment-success",
+)
+STRIPE_CANCEL_URL = os.getenv(
+    "STRIPE_CANCEL_URL",
+    f"{FRONTEND_URL}/payment-cancelled",
+)
+STRIPE_BILLING_RETURN_URL = os.getenv(
+    "STRIPE_BILLING_RETURN_URL",
+    f"{FRONTEND_URL}/account",
+)
 
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -273,3 +315,26 @@ CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = "UTC"
+
+# Memory optimization settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Only prefetch 1 task at a time (default is 4)
+CELERY_WORKER_MAX_TASKS_PER_CHILD = (
+    1000  # Restart worker process after 1000 tasks to free memory
+)
+CELERY_TASK_SOFT_TIME_LIMIT = 600  # 10 minutes soft limit (tasks should respect this)
+CELERY_TASK_TIME_LIMIT = 900  # 15 minutes hard limit (task is killed)
+CELERY_BROKER_POOL_LIMIT = 10  # Limit connection pool to reduce memory
+
+
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() in ("true", "1", "yes")
+
+CF_TURNSTILE_SITE_KEY = os.getenv("CF_TURNSTILE_SITE_KEY")
+VITE_TURNSTILE_SITE_KEY = CF_TURNSTILE_SITE_KEY
+CF_TURNSTILE_SECRET_KEY = os.getenv("CF_TURNSTILE_SECRET_KEY")
+CF_TURNSTILE_ENABLED = True
+CF_TURNSTILE_VERIFY_IP = True

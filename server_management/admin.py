@@ -10,7 +10,7 @@ import logging
 from gameplay.utils import send_group_message
 from django.utils.html import format_html
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 @admin.register(MaintenanceWindow)
@@ -42,7 +42,7 @@ class MaintenanceWindowAdmin(admin.ModelAdmin):
         window = self.get_object(request, maintenancewindow_id)
         if not window.is_active:
             window.activate_maintenance()
-            profile = request.user.profile
+            player = request.user.player
             async_to_sync(send_group_message)(
                 "online_users", {"type": "action", "action": "refresh", "success": True}
             )
@@ -61,7 +61,7 @@ class MaintenanceWindowAdmin(admin.ModelAdmin):
         window = self.get_object(request, maintenancewindow_id)
         if window.is_active:
             window.deactivate_maintenance()
-            profile = request.user.profile
+            player = request.user.player
             async_to_sync(send_group_message)(
                 "online_users",
                 {"type": "action", "action": "load-game", "success": True},

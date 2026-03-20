@@ -1,24 +1,22 @@
 @use '../../styles/semantic/typography' as t;
 @use '../../styles/base/variables' as v;
 @use '../../styles/utilities/mixins' as m;
-
-.mobileOnly {
-  display: block;
-  max-width: 100%;
-  @include m.respond-to(sm) {
-    display: none;
-  }
+@use '../../styles/tokens/colors' as c;
+.page {
+	@include m.page-layout();
 }
 
-.desktopOnly {
-  display: none;
-  max-width: 100%;
-  width: 100%;
 
-  @include m.respond-to(sm) {
-    display: block;
-  }
-  @include m.respond-to(xl) {
-    width: 90%;
-  }
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-gap;
+  width: 100%;
+  max-width: 50vw;
+  min-width: 200px;
+
+	padding: v.$padding-lg;
+  border: grey 1px solid;
+  @include m.border(rgba(c.$color-primary, 0.4));
+	border-radius: v.$border-radius;
 }

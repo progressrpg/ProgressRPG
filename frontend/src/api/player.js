@@ -1,0 +1,44 @@
+// src/api/player.js
+import { apiFetch } from "../../utils/api";
+
+export const updatePlayer = async (data) => {
+  const response = await apiFetch("/me/player/", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return response;
+};
+
+export const downloadUserData = async () => {
+  const accessToken = localStorage.getItem('accessToken');
+  const response = await apiFetch("/download_user_data/", {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to download user data');
+  }
+
+  const blob = await response.blob();
+
+  // Create download link
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `user-data-${new Date().toISOString().split('T')[0]}.json`);
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode.removeChild(link);
+
+  return { success: true };
+};
+
+export const deleteAccount = async () => {
+  const response = await apiFetch("/delete_account/", {
+    method: "DELETE",
+  });
+  return response;
+};

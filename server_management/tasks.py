@@ -5,7 +5,7 @@ from gameplay.models import ServerMessage
 from server_management.models import MaintenanceWindow
 import logging
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 @shared_task

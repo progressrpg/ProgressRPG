@@ -1,0 +1,33 @@
+@use '../../../styles/base/variables' as v;
+@use '../../../styles/semantic/spacing' as sp;
+@use '../../../styles/semantic/colors' as c;
+@use '../../../styles/utilities/mixins' as m;
+@use 'sass:map';
+
+.card {
+  @include m.border(c.$color-text-default);
+  border-radius: map.get(sp.$radius, md);
+  padding: map.get(sp.$gap, sm);
+  margin-bottom: map.get(sp.$gap, sm);
+  transition: box-shadow 0.2s ease;
+  width: 32rem;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.toggleBtn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.cardDetails {
+  margin-top: map.get(sp.$gap, sm);
+  padding-top: map.get(sp.$gap, sm);
+  border-top: 1px solid c.$color-border-light;
+}

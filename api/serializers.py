@@ -1,23 +1,16 @@
-from dj_rest_auth.registration.serializers import RegisterSerializer
+import requests as http_requests
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
+from dj_rest_auth.registration.serializers import RegisterSerializer
 from rest_framework import serializers
-
-from character.models import Character, PlayerCharacterLink
-from gameplay.models import (
-    Quest,
-    QuestResults,
-    QuestRequirement,
-    QuestCompletion,
-    Activity,
-    ActivityTimer,
-    QuestTimer,
-)
-from users.models import Profile, InviteCode
-
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
+
+from users.models import Player, InviteCode, UserLogin
 
 from django.contrib.auth import get_user_model
 
@@ -25,7 +18,15 @@ User = get_user_model()
 
 import logging
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
+
+
+def validate_timezone_name(value: str) -> str:
+    try:
+        ZoneInfo(value)
+    except ZoneInfoNotFoundError as exc:
+        raise serializers.ValidationError("Invalid timezone.") from exc
+    return value
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -38,6 +39,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         attrs["username"] = attrs.get("email")
         data = super().validate(attrs)
+        UserLogin.objects.create(user=self.user)
 
         return {
             "access_token": data["access"],
@@ -54,6 +56,8 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    timezone = serializers.CharField()
+
     class Meta:
         model = User
         fields = [
@@ -62,204 +66,112 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
             "date_of_birth",
+            "timezone",
         ]
 
 
-class ProfileSerializer(serializers.ModelSerializer):
+class UserSettingsSerializer(serializers.ModelSerializer):
+    timezone = serializers.CharField(required=False)
+
     class Meta:
-        model = Profile
-        fields = [
-            "id",
-            "name",
-            "xp",
-            "xp_next_level",
-            "xp_modifier",
-            "level",
-            "total_time",
-            "total_activities",
-            "is_premium",
-            "onboarding_step",
-            "login_streak",
-        ]
-        read_only_fields = [
-            "id",
-        ]
+        model = User
+        fields = ["timezone"]
+
+    def validate_timezone(self, value):
+        return validate_timezone_name(value)
 
 
 class Step1Serializer(serializers.ModelSerializer):
     class Meta:
-        model = Profile
+        model = Player
         fields = ["name"]
 
 
-class Step2Serializer(serializers.Serializer):
-    # No extra fields for linking character, just confirmation
-    confirm_link = serializers.BooleanField()
+class ConfirmEmailResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    access = serializers.CharField()
+    refresh = serializers.CharField()
 
 
-class Step3Serializer(serializers.Serializer):
-    # No extra data, just confirming tutorial completion
-    confirm_tutorial = serializers.BooleanField()
+class ConfirmEmailAlreadyConfirmedSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    code = serializers.CharField()
 
 
-class CharacterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Character
-        fields = [
-            "id",
-            "first_name",
-            "last_name",
-            "backstory",
-            "sex",
-            "xp",
-            "xp_next_level",
-            "xp_modifier",
-            "level",
-            "coins",
-            "total_quests",
-            "is_npc",
-            "can_link",
-        ]
-        read_only_fields = [
-            "id",
-        ]
+class FetchInfoResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    build_number = serializers.CharField()
+    player = serializers.JSONField()
+    character = serializers.JSONField()
+    activity_timer = serializers.JSONField()
+    population_centre = serializers.JSONField(allow_null=True)
+    xp_mods = serializers.ListField(child=serializers.JSONField())
 
 
-class QuestRequirementSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = QuestRequirement
-        fields = ["prerequisite", "times_required"]
+class DownloadUserDataPlayerSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    player_name = serializers.CharField()
+    level = serializers.IntegerField()
+    xp = serializers.IntegerField()
+    bio = serializers.CharField(allow_blank=True, allow_null=True)
+    total_time = serializers.IntegerField()
+    total_activities = serializers.IntegerField()
+    is_premium = serializers.BooleanField()
 
 
-class QuestCompletionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = QuestCompletion
-        fields = ["character", "quest", "times_completed", "last_completed"]
+class DownloadUserDataCharacterSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    character_name = serializers.CharField()
+    level = serializers.IntegerField()
+    total_activities = serializers.IntegerField()
 
 
-class QuestResultSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = QuestResults
-        fields = ["dynamic_rewards", "xp_rate", "coin_reward"]
+class DownloadUserDataResponseSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    player = DownloadUserDataPlayerSerializer()
+    activities = serializers.ListField(child=serializers.JSONField())
+    character = DownloadUserDataCharacterSerializer()
 
 
-class ActivitySerializer(serializers.ModelSerializer):
-    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-    last_updated = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
-
-    class Meta:
-        model = Activity
-        fields = [
-            "id",
-            "name",
-            "duration",
-            "created_at",
-            "last_updated",
-            "completed_at",
-            "profile",
-            "skill",
-            "project",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "last_updated",
-            "completed_at",
-            "profile",
-        ]
+class DeleteAccountResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
 
 
-class QuestSerializer(serializers.ModelSerializer):
-    results = QuestResultSerializer(read_only=True)  # source='results',
-
-    class Meta:
-        model = Quest
-        fields = [
-            "id",
-            "name",
-            "description",
-            "intro_text",
-            "outro_text",
-            "duration_choices",
-            "stages",
-            "results",
-        ]
-        read_only_fields = [
-            "id",
-        ]
-
-
-class ActivityTimerSerializer(serializers.ModelSerializer):
-    activity = ActivitySerializer(read_only=True)
-    # logger.debug(f"API Activity serializer: {activity}")
-    elapsed_time = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ActivityTimer
-        fields = [
-            # Base timer fields
-            "id",
-            "status",
-            "elapsed_time",
-            "created_at",
-            "last_updated",
-            # Activity timer specific fields
-            "activity",
-            "profile",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "last_updated",
-            "profile",
-        ]
-
-    def get_elapsed_time(self, obj):
-        return obj.get_elapsed_time()
-
-
-class QuestTimerSerializer(serializers.ModelSerializer):
-    quest = QuestSerializer(read_only=True)
-    elapsed_time = serializers.SerializerMethodField()
-    remaining_time = serializers.SerializerMethodField()
-
-    class Meta:
-        model = QuestTimer
-        fields = [
-            # Base timer fields
-            "id",
-            "status",
-            "elapsed_time",
-            "created_at",
-            "last_updated",
-            # Quest timer specific fields
-            "quest",
-            "duration",
-            "remaining_time",
-            "character",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "last_updated",
-            "character",
-        ]
-
-    def get_elapsed_time(self, obj):
-        return obj.get_elapsed_time()
-
-    def get_remaining_time(self, obj):
-        return obj.get_remaining_time()
+def _verify_turnstile(token: str) -> bool:
+    secret = getattr(settings, "CF_TURNSTILE_SECRET_KEY", "")
+    if not secret:
+        # No secret configured — skip verification (e.g. local dev without key)
+        return True
+    try:
+        resp = http_requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={"secret": secret, "response": token},
+            timeout=5,
+        )
+        return resp.json().get("success", False)
+    except Exception:
+        return False
 
 
 class CustomRegisterSerializer(RegisterSerializer):
     invite_code = serializers.CharField(write_only=True, required=True)
     agree_to_terms = serializers.BooleanField(write_only=True, required=True)
+    turnstile_token = serializers.CharField(write_only=True, required=True)
     email = serializers.EmailField(required=True)
+    timezone = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ("email", "password1", "password2", "invite_code", "agree_to_terms")
+        fields = (
+            "email",
+            "password1",
+            "password2",
+            "invite_code",
+            "agree_to_terms",
+            "turnstile_token",
+            "timezone",
+        )
 
     def get_email_context(self):
         context = super().get_email_context()
@@ -284,22 +196,36 @@ class CustomRegisterSerializer(RegisterSerializer):
             )
         return value
 
+    def validate_turnstile_token(self, value):
+        if not _verify_turnstile(value):
+            raise serializers.ValidationError(
+                "Security check failed. Please refresh and try again."
+            )
+        return value
+
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with that email already exists.")
         return value
+
+    def validate_timezone(self, value):
+        return validate_timezone_name(value)
 
     def custom_signup(self, request, user):
         code = self.validated_data.get("invite_code")
         try:
             invite = InviteCode.objects.get(code=code, is_active=True)
             invite.use()
-            user.profile.invited_by_code = code
-            user.profile.save()
+            user.player.invited_by_code = code
+            user.player.save()
         except InviteCode.DoesNotExist:
             # Should not happen due to earlier validation, but fail safe
             pass
 
     def save(self, request):
         user = super().save(request)
+        timezone_name = self.validated_data.get("timezone")
+        if timezone_name:
+            user.timezone = timezone_name
+            user.save(update_fields=["timezone"])
         return user

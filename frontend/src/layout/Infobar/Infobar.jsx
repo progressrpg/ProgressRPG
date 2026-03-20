@@ -1,22 +1,56 @@
 import React from 'react';
 import { useGame } from '../../context/GameContext';
-import Infobox from './Infobox/Infobox';
 import styles from './Infobar.module.scss';
 
 export default function Infobar() {
-  const { player, character, loading } = useGame();
-  //console.log("[INFOBAR] Player, character:", player, character);
+  const { player, character, xpMods, loading } = useGame();
 
 
-  if (loading) return <div className={styles.infoBar}>Loading data...</div>;
-  if (!player || !character) {
-  return <div className={styles.infoBar}>Loading player/character info...</div>;
+  if (loading) {
+    return (
+      <div className={styles.infoBar} role="status" aria-live="polite" aria-busy="true">
+        <span className="sr-only">Loading data...</span>
+      </div>
+    );
   }
+
+  if (!player || !character) {
+    return null;
+  }
+
+  // Format XP modifier display
+  const formatXpMods = () => {
+    if (!xpMods || xpMods.length === 0) {
+      return 'No active modifiers';
+    }
+
+    return xpMods.map((mod) => {
+      const keyDisplay = mod.key.replace('_', ' ').toUpperCase();
+      return `${keyDisplay} (${mod.multiplier}x)`;
+    }).join(', ');
+  };
 
   return (
     <div className={styles.infoBar}>
-      <Infobox title="Player Info" type="player" data={player} />
-      <Infobox title="Character Info" type="character" data={character} />
+      <div className={`${styles.infoBox} ${styles.player}`}>
+        <span className={styles.label}>YOU</span>
+        <div className={styles.content}>
+          <span className={styles.value}>{player.name}</span>
+          <span className={styles.level}>Lv. {player.level}</span>
+        </div>
+      </div>
+
+      <div className={`${styles.infoBox} ${styles.modifiers}`}>
+        <span className={styles.xpModifiers}>{formatXpMods()}</span>
+      </div>
+
+      <div className={`${styles.infoBox} ${styles.character}`}>
+        <span className={styles.label}>CHARACTER</span>
+        <div className={styles.content}>
+          <span className={styles.value}>{character.first_name}</span>
+          <span className={styles.level}>Lv. {character.level}</span>
+        </div>
+      </div>
     </div>
   );
 }

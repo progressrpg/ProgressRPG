@@ -20,13 +20,31 @@ export default function useLogin() {
         throw new Error(error || 'Login failed');
       }
 
-      const data = await response.json();
+      const rawBody = await response.text();
+      const contentType = response.headers.get('content-type') || '';
+      const data = rawBody && contentType.includes('application/json') ? JSON.parse(rawBody) : null;
+
+      const accessToken = data?.access_token || data?.access;
+      const refreshToken = data?.refresh_token || data?.refresh;
+
+      if (!accessToken || !refreshToken) {
+        const responsePreview = rawBody ? rawBody.slice(0, 160) : '<empty>';
+        throw new Error(
+          `Login endpoint returned an invalid response payload. url=${response.url} status=${response.status} contentType=${contentType || '<none>'} body=${responsePreview}`
+        );
+      }
 
       //console.log('useLogin, data:', data);
-      localStorage.setItem('accessToken', data.access_token);
-      localStorage.setItem('refreshToken', data.refresh_token);
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
 
-      return { success: true, tokens: data };
+      return {
+        success: true,
+        tokens: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        },
+      };
     } catch (error) {
       console.error('[useLogin] Error logging in:', error);
 

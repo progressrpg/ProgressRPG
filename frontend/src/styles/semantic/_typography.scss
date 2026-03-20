@@ -27,12 +27,27 @@ $text-body: (
   ),
 );
 
+// Body text styles
+$text-list: (
+  base: (
+    font-family: token(t.$font-family, base),
+    font-size: token(t.$font-size, sm),
+    font-weight: token(t.$font-weight, regular),
+    line-height: token(t.$line-height, base),
+    letter-spacing: token(t.$letter-spacing, normal),
+    text-transform: token(t.$text-transform, none)
+  ),
+  md: (
+    font-size: token(t.$font-size, base)
+  )
+);
+
 // Heading 1 styles
 $text-heading-1: (
   base: (
     font-family: token(t.$font-family, heading),
     font-size: token(t.$font-size, 2xl),
-    font-weight: token(t.$font-weight, bold),
+    font-weight: token(t.$font-weight, normal),
     line-height: token(t.$line-height, tight),
     letter-spacing: token(t.$letter-spacing, tight),
     text-transform: token(t.$text-transform, none)
@@ -50,7 +65,7 @@ $text-heading-2: (
   base: (
     font-family: token(t.$font-family, heading),
     font-size: token(t.$font-size, xl),
-    font-weight: token(t.$font-weight, bold),
+    font-weight: token(t.$font-weight, normal),
     line-height: token(t.$line-height, tight),
     letter-spacing: token(t.$letter-spacing, tight),
     text-transform: token(t.$text-transform, none)
@@ -67,7 +82,7 @@ $text-heading-3: (
   base: (
     font-family: token(t.$font-family, heading),
     font-size: token(t.$font-size, lg),
-    font-weight: token(t.$font-weight, bold),
+    font-weight: token(t.$font-weight, light),
     line-height: token(t.$line-height, tight),
     letter-spacing: token(t.$letter-spacing, normal),
     text-transform: token(t.$text-transform, none)

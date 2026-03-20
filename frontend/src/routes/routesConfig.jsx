@@ -7,9 +7,18 @@ const LogoutPage = lazy(() => import("../pages/LogoutPage/LogoutPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage/RegisterPage"));
 const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage"));
-const Game = lazy(() => import("../pages/Game/Game"));
-const ProfilePage = lazy(() => import("../pages/Profile/Profile"));
+const AccountPage = lazy(() => import("../pages/Account/Account"));
+const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
+const VillagePage = lazy(() => import("../pages/VillagePage/VillagePage"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
+const SkillsPage = lazy(() => import("../pages/SkillsPage"));
+const TasksPage = lazy(() => import("../pages/TasksPage"));
+const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
+const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
+const ActivityTimelinePage = lazy(() => import("../pages/Game2/ActivityTimelinePage"))
+const SuccessPage = lazy(() => import("../pages/SuccessPage"));
+const CancelPage = lazy(() => import("../pages/CancelPage"));
+const CheckoutPage = lazy(() => import("../pages/Checkout/CheckoutPage"));
 
 import PrivateRoute from "../components/PrivateRoute";
 import RequireOnboardingComplete from "../components/RequireOnboardingComplete";
@@ -52,16 +61,108 @@ export const routes = [
     element: (
       <PrivateRoute>
         <RequireOnboardingComplete>
-          <Game />
+          <ActivityTimelinePage />
         </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },
   {
-    path: "/profile",
+    path: "/village",
     element: (
       <PrivateRoute>
-        <ProfilePage />
+        <RequireOnboardingComplete>
+          <VillagePage />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/account",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <AccountPage />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/checkout",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <CheckoutPage />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/payment-success",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <SuccessPage />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/payment-cancelled",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <CancelPage />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/edit-account",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <EditAccount />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/skills",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <SkillsPage />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/tasks",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <TasksPage />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/activities",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <ActivitiesPage />
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/categories",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <CategoriesPage />
+        </RequireOnboardingComplete>
       </PrivateRoute>
     ),
   },

@@ -14,20 +14,22 @@ export default function Form({
   disabled = false,
   className,
   frameClass,
+  fieldErrors = {}
 }) {
   const [touched, setTouched] = useState({});
+  const titleId = 'form-title-' + Math.random().toString(36).substr(2, 9);
 
    const handleBlur = (name) => {
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   const getError = (field) => {
-    if (!touched[field.name]) return '';
-
     if (fieldErrors[field.name]?.[0]) {
       return fieldErrors[field.name][0];
     }
 
+    if (!touched[field.name]) return '';
+    
     if (field.required && !field.value) {
       return 'This field is required';
     }
@@ -45,26 +47,35 @@ export default function Form({
 
   return (
     <div className={`${styles.formFrame} ${frameClass || ''}`}>
-      {title && <h1 className={styles.formTitle}>{title}</h1>}
+      {title && <h1 id={titleId} className={styles.formTitle}>{title}</h1>}
 
-      <form onSubmit={onSubmit} className={`${styles.form} ${className || ''}`}>
+      <form 
+        onSubmit={onSubmit} 
+        className={`${styles.form} ${className || ''}`}
+        noValidate
+        aria-busy={isSubmitting}
+        aria-labelledby={title ? titleId : undefined}
+      >
 
-        {fields.map(field => (
-            <Input
-              key={field.name}
-              id={field.id || field.name}
-              label={field.label || field.name}
-              type={field.type}
-              value={field.value}
-              onChange={field.onChange}
-              placeholder={field.placeholder}
-              helpText={field.helpText}
-              required={field.required}
-              autoComplete={field.autoComplete}
-              error={getError(field)}
-              onBlur={() => handleBlur(field.name)}
-            />
-        ))}
+        <div role="group">
+          {fields.map(field => (
+              <Input
+                key={field.name}
+                id={field.id || field.name}
+                label={field.label || field.name}
+                type={field.type}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder={field.placeholder}
+                helpText={field.helpText}
+                required={field.required}
+                autoComplete={field.autoComplete}
+                error={getError(field)}
+                onBlur={() => handleBlur(field.name)}
+                disabled={disabled || isSubmitting}
+              />
+          ))}
+        </div>
 
         {children}
 
@@ -74,6 +85,7 @@ export default function Form({
               type="submit"
               className={styles.submitButton}
               disabled={isSubmitting || disabled}
+              ariaLabel={isSubmitting ? 'Submitting form' : submitLabel}
             >
               {isSubmitting ? 'Submitting…' : submitLabel}
             </Button>

@@ -10,26 +10,35 @@ export default function Button({
   href,
   onClick,
   className,
+  disabled = false,
+  type = 'button',
+  ariaLabel,
+  ariaDescribedBy,
   ...props
 }) {
   const Component = as === 'a' ? 'a' : 'button';
 
   return (
-    <div className={classNames(styles.frame)}>
-      <Component
-        className={classNames(
-          styles.button,
-          styles[variant],
-          className
-        )}
-        href={as === 'a' ? href : undefined}
-        onClick={onClick}
-        {...props}
-      >
-        {icon && <span className={styles.icon}>{icon}</span>}
-        {children}
-      </Component>
-    </div>
+    <Component
+      className={classNames(
+        styles.button,
+        styles[variant],
+        { [styles.disabled]: disabled },
+        className
+      )}
+      href={as === 'a' ? href : undefined}
+      onClick={onClick}
+      type={as === 'button' ? type : undefined}
+      disabled={as === 'button' ? disabled : undefined}
+      aria-disabled={disabled}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
+      role={as === 'a' && onClick ? 'button' : undefined}
+      {...props}
+    >
+      {icon && <span className={styles.icon} aria-hidden="true">{icon}</span>}
+      {children}
+    </Component>
   );
 }
 

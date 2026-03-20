@@ -17,7 +17,7 @@ export default function ActivityPanel() {
         <div className={styles.activityTotals}>
           <span>{formatDuration(totalDuration)}</span>
           <span>time and</span>
-          <span>{activities.count}</span>
+          <span>{count}</span>
           <span>activities logged today</span>
         </div>
       </div>

@@ -7,52 +7,91 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from .base import *
+from urllib.parse import quote
+from .utils import (
+    get_postgres_host,
+    get_redis_url,
+    is_running_in_docker,
+)
 
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s",
+            "format": "[%(asctime)s] [%(request_id)s] [%(user_id)s] [%(levelname)s] [%(name)s:%(lineno)d] %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
         "simple": {
-            "format": "[%(levelname)s] %(message)s",
+            "format": "[%(levelname)s] [%(name)s] %(message)s",
+        },
+    },
+    "filters": {
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
+        },
+        "request_context": {
+            "()": "progress_rpg.middleware.logging_context.RequestContextFilter",
         },
     },
     "handlers": {
         "console": {
             "level": "INFO",
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
+            "filters": ["request_context"],
         },
     },
     "loggers": {
         "django": {
             "handlers": ["console"],
             "level": "INFO",
-            "propagate": True,
+            "propagate": False,
         },
         "errors": {
             "handlers": ["console"],
             "level": "ERROR",
             "propagate": False,
         },
+        "general": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "activity": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
     },
 }
 
-DEBUG = os.environ.get("DEBUG")
+DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "yes")
 DB_NAME = os.environ.get("DB_NAME")
 DB_USER = os.environ.get("DB_USER")
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
 DB_HOST = os.environ.get("DB_HOST")
 DB_PORT = os.environ.get("DB_PORT")
 
-EMAIL_HOST = os.environ.get("EMAIL_HOST")
-EMAIL_PORT = os.environ.get("EMAIL_PORT")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
-print("DEBUG:", DEBUG)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+DEFAULT_FROM_EMAIL = "Progress RPG <admin@progressrpg.com>"
+
+print("DEBUG:", DEBUG, file=sys.stderr)
 
 REGISTRATION_ENABLED = True
 
@@ -61,56 +100,59 @@ REGISTRATION_ENABLED = True
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "app.progressrpg.com").split(",")
+ALLOWED_HOSTS = os.environ.get(
+    "ALLOWED_HOSTS",
+    "staging.progressrpg.com,app.progressrpg.com,progressrpg.onrender.com",
+).split(",")
 CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "https://app.progressrpg.com/"
+    "CORS_ALLOWED_ORIGINS",
+    "https://staging.progressrpg.com,https://app.progressrpg.com,https://progressrpg.onrender.com",
 ).split(",")
 CSRF_TRUSTED_ORIGINS = os.environ.get(
-    "CSRF_TRUSTED_ORIGINS", "https://app.progressrpg.com/"
+    "CSRF_TRUSTED_ORIGINS",
+    "https://staging.progressrpg.com,https://app.progressrpg.com,https://progressrpg.onrender.com",
 ).split(",")
 
+# ------------------------------
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-# default_db_config = dj_database_url.config(conn_max_age=60, ssl_require=True)
-
-# if os.environ.get("RUNNING_CHANNEL_WORKER") == "1" or os.environ.get("IS_CELERY_WORKER") == "1":
-#    default_db_config["CONN_MAX_AGE"] = 0
-
-if os.environ.get("PGBOUNCER") == "1":
-    pgbouncer_url = os.environ.get("DATABASE_URL_PGBOUNCER")
-    if pgbouncer_url:
-        os.environ["DATABASE_URL"] = pgbouncer_url
-    elif "DATABASE_URL" not in os.environ:
-        raise ValueError(
-            "PGBOUNCER is enabled but no DATABASE_URL or DATABASE_URL_PGBOUNCER found."
-        )
-
-DB_URL = os.environ.get("DATABASE_URL")
-if not DB_URL:
-    raise ValueError("DATABASE_URL is not set in the environment.")
-
-DATABASES = {"default": dj_database_url.parse(DB_URL, conn_max_age=60)}
+# ------------------------------
 
 
-REDIS_URL = os.environ.get("REDIS_URL")
-ssl_required = os.environ.get("REDIS_VERIFY_SSL", "0") == "1"
+# DB_NAME = os.getenv("DB_NAME", "progressrpg_staging")
+# DB_USER = os.getenv("DB_USER", default="duncan")
+# DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+# DB_PORT = os.getenv("DB_PORT", default=5432)
 
-REDIS_URL_MOD = f"{REDIS_URL}/0?ssl_cert_reqs=none"
+# IN_DOCKER = is_running_in_docker()
 
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
+DATABASE_URL = os.environ.get("DATABASE_URL")
+# if not DATABASE_URL:
+#     # Fallback to explicit DB_* vars for local dev
+#     DB_USER = os.environ.get("DB_USER", "duncan")
+#     DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+#     DB_NAME = os.environ.get("DB_NAME", "progressrpg")
+#     DB_HOST = get_postgres_host()
+#     DB_PORT = os.environ.get("DB_PORT", 5432)
+#     DATABASE_URL = f"postgres://{DB_USER}:{quote(DB_PASSWORD, safe='')}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+db = dj_database_url.parse(DATABASE_URL, conn_max_age=60)
+db["ENGINE"] = "django.contrib.gis.db.backends.postgis"
+DATABASES = {"default": db}
+
+
+REDIS_URL_MOD = get_redis_url(default_db="0")
+
+
+# ssl_context = ssl.create_default_context()
+# ssl_context.check_hostname = False
+# ssl_context.verify_mode = ssl.CERT_NONE
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [
-                {
-                    "address": REDIS_URL_MOD,
-                }
-            ],
+            "hosts": [REDIS_URL_MOD],
         },
     },
 }
@@ -121,9 +163,6 @@ CACHES = {
         "LOCATION": REDIS_URL_MOD,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # "CONNECTION_POOL_KWARGS": {
-            #     "ssl_context": ssl_context,
-            # }
         },
     }
 }
@@ -131,16 +170,8 @@ CACHES = {
 CELERY_BROKER_URL = REDIS_URL_MOD
 CELERY_RESULT_BACKEND = REDIS_URL_MOD
 
-# CELERY_BROKER_USE_SSL = {
-#     'ssl_context': ssl_context,
-# }
-# CELERY_REDIS_BACKEND_USE_SSL = {
-#     'ssl_context': ssl_context,
-# }
-
-
 # Session settings
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = False

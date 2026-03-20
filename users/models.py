@@ -3,18 +3,18 @@ User Management Models
 
 This module contains the models and custom manager for handling user-related data in the application.
 It includes a custom user model for email-based authentication, an abstract base model for shared
-attributes, and a profile model for tracking gameplay-specific details.
+attributes, and a player model for tracking gameplay-specific details.
 
 Classes:
     - CustomUserManager: A custom manager to handle the creation of users and superusers.
     - CustomUser: A custom user model extending Django's AbstractUser with email-based login.
-    - Person: An abstract base model for characters or profiles, tracking levels, XP, and buffs.
-    - Profile: A concrete model for user profiles, extending the Person model to add gameplay-specific
-      attributes like activities, streaks, and buffs.
+    - Person: An abstract base model for characters or players, tracking levels and XP.
+    - Player: A concrete model for user players, extending the Person model to add gameplay-specific
+      attributes like activities and streaks.
 
 Usage:
-These models are central to managing user authentication and gameplay profiles in the application.
-CustomUser enables email-based login, while Profile tracks user-specific gameplay progress, subscriptions,
+These models are central to managing user authentication and gameplay players in the application.
+CustomUser enables email-based login, while Player tracks user-specific gameplay progress, subscriptions,
 and linked characters.
 
 Author:
@@ -22,17 +22,22 @@ Author:
 
 """
 
+from datetime import timedelta
+from decimal import Decimal
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
+from django.db.models import Sum
 from django.utils import timezone
 from typing import TYPE_CHECKING, Optional
 import logging
+from timezone_field import TimeZoneField
 
+from gameplay.models import Currency, CurrencyAccountBase, ServerMessage
 
 if TYPE_CHECKING:
     from character.models import Character
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
 # class CustomUserManager(BaseUserManager):
@@ -51,15 +56,6 @@ class CustomUserManager(UserManager["CustomUser"]):
     ):
         """
         Create and return a regular user with an email and password.
-
-        :param email: The email address of the user.
-        :type email: str
-        :param password: The password for the user (optional).
-        :type password: str, optional
-        :param extra_fields: Additional fields for the user.
-        :type extra_fields: dict
-        :return: The created user instance.
-        :rtype: CustomUser
         """
         if not email:
             raise ValueError("The Email field must be set")
@@ -76,15 +72,6 @@ class CustomUserManager(UserManager["CustomUser"]):
     ):
         """
         Create and return a superuser with elevated permissions.
-
-        :param email: The email address of the superuser.
-        :type email: str
-        :param password: The password for the superuser.
-        :type password: str
-        :param extra_fields: Additional fields for the superuser.
-        :type extra_fields: dict
-        :return: The created superuser instance.
-        :rtype: CustomUser
         """
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
@@ -94,18 +81,12 @@ class CustomUserManager(UserManager["CustomUser"]):
 class CustomUser(AbstractUser):
     """
     Custom user model extending Django's AbstractUser.
-
-    Attributes:
-        email (str): The unique email address for the user (used as the username field).
-        date_of_birth (date): The user's date of birth.
-        created_at (datetime): The timestamp when the user was created.
-        pending_delete (bool): Indicates if the user is pending deletion.
-        delete_at (datetime): The timestamp when the user is scheduled for deletion.
     """
 
     username = None
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
+    timezone = TimeZoneField(default="UTC")
     created_at = models.DateTimeField(auto_now_add=True)
     objects = CustomUserManager()
     pending_delete = models.BooleanField(default=False)
@@ -116,26 +97,120 @@ class CustomUser(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
+    @property
+    def days_logged_in(self):
+        return UserLogin.days_logged_in(self)
+
+    @property
+    def current_login_streak(self):
+        return UserLogin.current_login_streak(self)
+
+    @property
+    def max_login_streak(self):
+        return UserLogin.max_login_streak(self)
+
+    @property
+    def total_login_events(self):
+        return UserLogin.total_login_events(self)
+
+    @property
+    def last_recorded_login(self):
+        return UserLogin.last_recorded_login(self)
+
     def __str__(self):
         return self.email
 
 
+class UserLogin(models.Model):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="logins",
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def local_date(self):
+        return timezone.localtime(self.timestamp).date()
+
+    def is_first_login_of_day(self):
+        today = self.local_date()
+        previous_logins_today = UserLogin.objects.filter(
+            user=self.user,
+            timestamp__date=today,
+            timestamp__lt=self.timestamp,
+        )
+        return not previous_logins_today.exists()
+
+    @classmethod
+    def total_login_events(cls, user):
+        return cls.objects.filter(user=user).count()
+
+    @classmethod
+    def days_logged_in(cls, user):
+        login_dates = {
+            login.local_date()
+            for login in cls.objects.filter(user=user).only("timestamp")
+        }
+        return len(login_dates)
+
+    @classmethod
+    def last_recorded_login(cls, user):
+        last = cls.objects.filter(user=user).order_by("-timestamp").first()
+        return last.timestamp if last else None
+
+    @classmethod
+    def current_login_streak(cls, user):
+        login_dates = sorted(
+            {
+                login.local_date()
+                for login in cls.objects.filter(user=user).only("timestamp")
+            },
+            reverse=True,
+        )
+        if not login_dates:
+            return 0
+
+        streak = 0
+        day = timezone.localdate()
+        login_dates_set = set(login_dates)
+        while day in login_dates_set:
+            streak += 1
+            day -= timedelta(days=1)
+        return streak
+
+    @classmethod
+    def max_login_streak(cls, user):
+        login_dates = sorted(
+            {
+                login.local_date()
+                for login in cls.objects.filter(user=user).only("timestamp")
+            }
+        )
+        if not login_dates:
+            return 0
+
+        max_streak = 1
+        current_streak = 1
+        for idx in range(1, len(login_dates)):
+            if login_dates[idx] == login_dates[idx - 1] + timedelta(days=1):
+                current_streak += 1
+            else:
+                current_streak = 1
+            max_streak = max(max_streak, current_streak)
+        return max_streak
+
+    def __str__(self):
+        return f"{self.user.email} @ {self.timestamp.isoformat()}"
+
+
 class Person(models.Model):
     """
-    An abstract base model representing a generic person with levels, XP, and buffs.
-
-    Attributes:
-        name (str): The name of the person.
-        xp (int): The current experience points of the person.
-        xp_next_level (int): The XP required for the next level.
-        xp_modifier (float): A multiplier for XP calculations.
-        level (int): The current level of the person.
-        created_at (datetime): The timestamp when the record was created.
+    An abstract base model representing a generic person with levels and XP.
     """
 
     name = models.CharField(max_length=100, blank=True, null=True)
     xp = models.PositiveIntegerField(default=0)
-    xp_next_level = models.PositiveIntegerField(default=0)
+    xp_next_level = models.PositiveIntegerField(default=100)
     xp_modifier = models.FloatField(default=1)
     level = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -147,172 +222,175 @@ class Person(models.Model):
     def add_xp(self, amount: int):
         """
         Add experience points (XP) to the person and handle level-up logic.
-
-        :param amount: The amount of XP to add.
-        :type amount: int
         """
         self.xp += amount
-        while self.xp >= self.get_xp_for_next_level():
-            self.level_up()
-        self.xp_next_level = self.get_xp_for_next_level()
-        self.save()
+        levelups = []
 
-    def level_up(self):
-        """
-        Increase the level of the person and reset XP accordingly.
-        """
-        self.xp -= self.get_xp_for_next_level()
-        self.level += 1
+        while True:
+            xp_needed = self.get_xp_for_next_level()
+            if self.xp < xp_needed:
+                break
+
+            old_level = self.level
+            self.xp -= xp_needed
+            self.level += 1
+            levelups.append(
+                {
+                    "old_level": old_level,
+                    "new_level": self.level,
+                    "person": self,
+                    "name": self.name,
+                }
+            )
+
+        self.xp = max(0, self.xp)
+        self.xp_next_level = self.get_xp_for_next_level()
+
+        self.save(update_fields=["xp", "level", "xp_next_level"])
+        return levelups
 
     def get_xp_for_next_level(self):
         """
         Calculate the XP required to reach the next level.
-
-        :return: The XP threshold for the next level.
-        :rtype: int
         """
         return 100 * (self.level + 1) if self.level >= 1 else 100
 
-    def apply_buffs(self, base_value: Optional[int], attribute: Optional[str]) -> int:
-        """
-        Apply active buffs to a given attribute (e.g., 'xp').
+    def get_xp_multiplier(self, now=None):
+        now = now or timezone.now()
 
-        :param base_value: The initial value before applying buffs.
-        :type base_value: int or float
-        :param attribute: The attribute to which buffs are applied.
-        :type attribute: str
-        :return: The modified value after applying buffs.
-        :rtype: int
-        """
-        total_value = base_value
-        for buff in self.buffs.filter(attribute=attribute):
-            total_value = buff.calc_value(total_value)
-        return int(total_value)
+        link = self.active_link
 
-    def clear_expired_buffs(self):
-        """Remove expired buffs from person."""
-        # Not working
-        # timedelta_duration = ExpressionWrapper(F('duration'), output_field=fields.DurationField())
-        # self.buffs.filter(created_at__lt=now() - timedelta_duration).delete()
+        mods = self.xp_mods.filter(
+            is_active=True,
+            starts_at__lte=now,
+        ).filter(models.Q(ends_at__isnull=True) | models.Q(ends_at__gt=now))
+        mult = Decimal("1.0")
+        for m in mods:
+            mult *= m.multiplier
+
+        return mult
 
 
-class Profile(Person):
+class Player(Person):
     """
-    Represents a user's gameplay profile, extending the abstract Person model.
-    Tracks user-specific gameplay data such as total activities, buffs, and characters.
-
-    Attributes:
-        user (CustomUser): The user associated with this profile.
-        bio (str): A brief biography or description for the profile.
-        total_time (int): Total time spent on activities, in seconds.
-        total_activities (int): Total number of activities logged.
-        is_premium (bool): Indicates if the user has a premium subscription.
-        last_login (datetime): The timestamp of the user's last login.
-        login_streak (int): The current login streak in consecutive days.
-        login_streak_max (int): The longest login streak achieved.
-        total_logins (int): Total number of logins recorded.
-        buffs (ManyToManyField): Active buffs currently applied to this profile.
-        onboarding_step (int): Current step in the onboarding process.
+    Represents a user's gameplay player, extending the abstract Person model.
+    Tracks user-specific gameplay data such as total activities and characters.
     """
 
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     bio = models.TextField(max_length=1000, blank=True)
-    total_time = models.IntegerField(default=0)
-    total_activities = models.IntegerField(default=0)
     is_premium = models.BooleanField(default=False)
     is_online = models.BooleanField(default=False)
-    last_login = models.DateTimeField(default=timezone.now, null=True, blank=True)
-    login_streak = models.PositiveIntegerField(default=1)
-    login_streak_max = models.PositiveIntegerField(default=1)
-    total_logins = models.PositiveIntegerField(default=0)
+    active_connections = models.PositiveIntegerField(default=0)
+    last_seen = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    buffs = models.ManyToManyField(
-        "gameplay.AppliedBuff", related_name="profiles", blank=True
-    )
 
     ONBOARDING_STEPS = [
         (0, "Not started"),
-        (1, "Step 1: Profile creation"),
-        (2, "Step 2: Character generation"),
-        (3, "Step 3: Subscription"),
-        (4, "Completed"),
+        (1, "Step 1: Player creation"),
+        (2, "Completed"),
     ]
     onboarding_step = models.PositiveIntegerField(choices=ONBOARDING_STEPS, default=0)
 
+    onboarding_completed = models.BooleanField(default=False)
+    # onboarding = models.JSONField(default=dict, blank=True)
+
     @property
     def needs_onboarding(self):
-        return self.onboarding_step < 4
+        return self.onboarding_step < 2
 
     @property
     def group_name(self):
-        """Returns the WebSocket group name for this profile."""
-        return f"profile_{self.id}"
+        """Returns the WebSocket group name for this player."""
+        return f"player_{self.id}"
+
+    def get_currency(self, code="link_points") -> "PlayerCurrency":
+        currency_def, _ = Currency.objects.get_or_create(
+            code=code,
+            defaults={"name": code.replace("_", " ").title()},
+        )
+        currency, _ = self.currencies.get_or_create(currency=currency_def)
+        return currency
 
     def set_online(self):
-        """Marks profile as online."""
+        """Marks player as online."""
+        logger.debug("[SET ONLINE] Running set_online for player")
         self.is_online = True
         self.save(update_fields=["is_online"])
 
     def set_offline(self):
-        """Marks profile as offline."""
+        """Marks player as offline."""
         self.is_online = False
         self.save(update_fields=["is_online"])
 
     @classmethod
-    def get_online_profiles(cls):
-        """Returns a QuerySet of all currently online profiles."""
+    def get_online_players(cls):
+        """Returns a QuerySet of all currently online players."""
         return cls.objects.filter(is_online=True)
+
+    @property
+    def active_link(self):
+        from character.models import PlayerCharacterLink
+
+        return PlayerCharacterLink.objects.filter(player=self, is_active=True).first()
 
     @property
     def current_character(self):
         """
-        Retrieve the active character associated with this profile.
-
-        :return: The active character if one exists, otherwise None.
-        :rtype: Character or None
+        Retrieve the active character associated with this player.
         """
         from character.models import PlayerCharacterLink
 
-        active_link = PlayerCharacterLink.objects.filter(
-            profile=self, is_active=True
-        ).first()
-        return active_link.character if active_link else None
+        return PlayerCharacterLink.get_character(self)
 
     def __str__(self):
-        return self.name if self.name else "Unnamed profile"
+        return self.name if self.name else "Unnamed player"
+
+    @property
+    def total_time(self):
+        return (
+            self.activities.filter(is_complete=True).aggregate(total=Sum("duration"))[
+                "total"
+            ]
+            or 0
+        )
+
+    @property
+    def total_activities(self):
+        return self.activities.filter(is_complete=True).count()
 
     def add_activity(self, time: int = 0, num: int = 1, xp: int = 0):
         """
-        Update the total time and number of activities for this profile.
-
-        :param time: The amount of time to add, in seconds.
-        :type time: int
-        :param num: The number of activities to increment by (default is 1).
-        :type num: int
+        Apply XP rewards for a completed activity.
         """
-        self.total_time += time
-        self.total_activities += num
+        levelups = []
         if xp:
-            self.add_xp(xp)
-        self.save()
+            levelups = self.add_xp(xp)
+
+        for event in levelups:
+            ServerMessage.objects.create(
+                group=self.group_name,
+                type="notification",
+                action="notification",
+                message=f"You levelled up! Now level {event['new_level']}.",
+                data={"level": event["new_level"]},
+                is_draft=False,
+            )
 
     def change_character(self, new_character: "Character"):
         """
-        Switch the profile's active character to a new character.
-
-        :param new_character: The character to associate with this profile.
-        :type new_character: Character
+        Switch the player's active character to a new character.
         """
         from character.models import PlayerCharacterLink
 
         old_link = PlayerCharacterLink.objects.filter(
-            profile=self, is_active=True
+            player=self, is_active=True
         ).first()
         if old_link:
             old_link.unlink()
 
-        PlayerCharacterLink.objects.create(profile=self, character=new_character)
+        PlayerCharacterLink.objects.create(player=self, character=new_character)
         self.save()
 
 
@@ -337,7 +415,23 @@ class InviteCode(models.Model):
         self.uses += 1
         if self.max_uses and self.uses >= self.max_uses:
             self.is_active = False
-        self.save()
+        self.save(update_fields=["uses", "is_active"])
 
     def __str__(self):
         return self.code
+
+
+class PlayerCurrency(CurrencyAccountBase):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="currencies",
+    )
+    currency = models.ForeignKey(
+        Currency,
+        on_delete=models.CASCADE,
+        related_name="player_accounts",
+    )
+
+    class Meta:
+        unique_together = ("player", "currency")

@@ -1,0 +1,40 @@
+/* components/CharacterActivityCurrent/CharacterActivityCurrent.module.scss */
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+@use 'sass:map';
+
+.line {
+  width: min(100%, 720px);
+
+
+  padding: v.$padding-base;
+  font-size: 0.95rem;
+
+  border: 1px solid rgba(c.$color-character, 0.15);
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-character, 0.08);
+  @include t.apply-text-style(t.$text-body);
+}
+
+.activity {
+    @include c.apply-text-tone(map.get(c.$text-tone, default));
+}
+
+.time {
+  opacity: 0.75;
+}
+
+.remaining {
+  opacity: 0.85;
+}
+
+.bonus {
+  margin-top: v.$spacing-xs;
+}
+
+.bonusActive {
+  margin-top: v.$spacing-xs;
+  color: c.$color-text-heading;
+}

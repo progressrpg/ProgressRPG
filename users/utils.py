@@ -2,14 +2,9 @@
 Utility Functions for User Management
 
 This module provides utility functions to support user-related operations, such as
-assigning characters to profiles and sending user notifications. These utilities
+assigning characters to players and sending user notifications. These utilities
 are designed to streamline key processes in the application, enhancing user experience
 and ensuring consistency in functionality.
-
-Functions:
-    - assign_character_to_profile(profile): Assigns a default NPC character to a profile,
-      deactivates any previously linked character, and optionally assigns a tutorial quest.
-    - send_signup_email(user): Sends a welcome email to new users, introducing them to the platform.
 
 Usage:
 These functions are essential for managing user interactions and onboarding, ensuring that
@@ -25,36 +20,36 @@ from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+
+# from django.utils.html import strip_tags
 from django.utils import timezone
 import logging, sys
 
+from .tasks import send_email_to_users_task
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import QuestTimer, Quest
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("general")
 
 
-def assign_character_to_profile(profile):
+def assign_character_to_player(player):
     """
-    Assign a default Character (non-player character) to the given Profile. Deactivates
-    any currently active character and associates a new NPC with the Profile. If the
-    Profile is recent, assigns a tutorial quest to the newly linked character.
-
-    :param profile: The Profile to which a character will be assigned.
-    :type profile: Profile
-    :raises ValueError: If the tutorial quest is not found in the database.
+    Assign a default Character (non-player character) to the given Player. Deactivates
+    any currently active character and associates a new NPC with the Player. If the
+    Player is recent, assigns a tutorial quest to the newly linked character.
     """
 
-    character = Character.objects.filter(
-        is_npc=True, can_link=True, death_date__isnull=True
-    ).first()
+    character = (
+        Character.objects.filter(can_link=True, death_date__isnull=True)
+        .exclude(links__is_active=True)
+        .first()
+    )
 
     if not character:
-        logger.warning(f"No available NPC character to assign to profile {profile.id}")
+        logger.warning(f"No available NPC character to assign to player {player.id}")
         return None
 
-    PlayerCharacterLink.assign_character(profile=profile, character=character)
+    PlayerCharacterLink.assign_character(player=player, character=character)
 
     qt, created = QuestTimer.objects.get_or_create(character=character)
 
@@ -62,7 +57,7 @@ def assign_character_to_profile(profile):
         tut_quest = Quest.objects.filter(name="[TUTORIAL] Getting started").first()
         if not tut_quest:
             logger.warning(f"Tutorial quest '[TUTORIAL] Getting started' not found!")
-        elif created or profile.created_at > (
+        elif created or player.created_at > (
             timezone.now() - timezone.timedelta(days=14)
         ):
             qt.change_quest(tut_quest, 60)
@@ -72,13 +67,28 @@ def assign_character_to_profile(profile):
 
 def send_email_to_users(users, subject, template_base, context=None, cc_admin=False):
     """
-    Sends an email with both plain text and HTML to a list of users.
+    Schedules email sending as a Celery task.
+    """
 
-    :param users: A list of user objects or email addresses.
-    :param subject: The subject line of the email.
-    :param template_base: Base name of the email template, e.g., 'emails/welcome_email'
-    :param context: Context dictionary for rendering the template.
-    :param cc_admin: Whether to copy the admin email on the message.
+    # Normalise recipients like your original code
+    emails = [user.email if hasattr(user, "email") else user for user in users]
+
+    logger.info(f"[QUEUE EMAIL] Queuing '{subject}' to: {emails}")
+
+    send_email_to_users_task.delay(
+        emails=emails,
+        subject=subject,
+        template_base=template_base,
+        context=context or {},
+        cc_admin=cc_admin,
+    )
+
+
+def send_email_to_users_sync(
+    users, subject, template_base, context=None, cc_admin=False
+):
+    """
+    Sends email to users synchronously.
     """
     if context is None:
         context = {}

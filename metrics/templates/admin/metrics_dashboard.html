@@ -1,0 +1,127 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls static %}
+
+{% block content %}
+<h1>Metrics Dashboard</h1>
+
+<div class="module" style="margin-bottom: 20px;">
+    <h2>Overall Platform Metrics</h2>
+    {% if latest_global %}
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f8f8f8;">
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Metric</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Total Users</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ latest_global.total_users }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Active Users Today</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ latest_global.active_users_today }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">New Users Today</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ latest_global.new_users_today }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Activities Today</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ latest_global.total_activities_today }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Minutes Logged Today</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ latest_global.total_minutes_today }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Week/Week Retention</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    {% if latest_global.week_over_week_retention %}
+                        {{ latest_global.week_over_week_retention|floatformat:2 }}%
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    {% else %}
+    <p>No global metrics available. Run the calculate_metrics command to generate data.</p>
+    {% endif %}
+</div>
+
+<div class="module" style="margin-bottom: 20px;">
+    <h2>Current Week Averages (Per User)</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f8f8f8;">
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Metric</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Average</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Avg Active Days/Week</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ current_week.avg_active_days|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Avg Sessions/Week</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ current_week.avg_sessions|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Avg Activities/Week</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ current_week.avg_activities|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Avg Minutes/Week</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ current_week.avg_minutes|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">Retention Rate</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ current_week.retention_rate|floatformat:2 }}%</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="module" style="margin-bottom: 20px;">
+    <h2>Last 7 Days Trend</h2>
+    {% if recent_metrics %}
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f8f8f8;">
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Date</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Active Users</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">New Users</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Total Activities</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Total Minutes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for metric in recent_metrics %}
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ metric.date }}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ metric.active_users_today }}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ metric.new_users_today }}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ metric.total_activities_today }}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ metric.total_minutes_today }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No recent metrics available. Run the calculate_metrics command to generate data.</p>
+    {% endif %}
+</div>
+
+<div class="module">
+    <h2>Actions</h2>
+    <ul>
+        <li><a href="{% url 'admin:metrics_globalmetrics_changelist' %}">View All Global Metrics</a></li>
+        <li><a href="{% url 'admin:metrics_userengagementmetrics_changelist' %}">View User Engagement Metrics</a></li>
+        <li><a href="{% url 'admin:metrics_dailyengagementsnapshot_changelist' %}">View Daily Engagement Snapshots</a></li>
+    </ul>
+</div>
+{% endblock %}

@@ -1,5 +1,17 @@
+@use '../../styles/utilities/mixins' as m;
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+@use 'sass:map';
+
+.page {
+  @include m.page-layout();
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
 
 .form {
   gap: v.$spacing-gap;
@@ -7,13 +19,13 @@
   input {
     padding: v.$spacing-sm;
     border-radius: v.$border-radius;
-    border: 1px solid #ccc;
+    @include m.border(c.$color-border-default);
     @include t.apply-text-style(t.$text-body);
   }
 }
 
 .error {
-  color: red;
+  @include c.apply-text-tone(map.get(c.$text-tone, error));
   margin-bottom: v.$spacing-sm;
   text-align: center;
   @include t.apply-text-style(t.$text-body);

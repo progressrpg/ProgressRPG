@@ -5,31 +5,29 @@ from .models import (
     Quest,
     QuestRequirement,
     QuestCompletion,
-    Activity,
     ActivityTimer,
     QuestTimer,
     QuestResults,
     ServerMessage,
+    XpModifier,
 )
-
-# Register your models here.
 
 
 class QuestResultsInline(admin.TabularInline):
     model = QuestResults
 
 
-@admin.register(Quest)
+# @admin.register(Quest)
 class QuestAdmin(admin.ModelAdmin):
     fields = [
         "name",
         "description",
         ("intro_text", "outro_text"),
-        ("canRepeat", "is_premium", "frequency"),
+        ("canRepeat", "is_premium", "is_task_support", "frequency"),
         ("levelMin", "levelMax"),
         "duration_choices",
         "created_at",
-        "stages",
+        ("stages", "stages_fixed"),
     ]
     list_display = [
         "name",
@@ -44,6 +42,7 @@ class QuestAdmin(admin.ModelAdmin):
         # "frequency",
         "levelMin",
         "levelMax",
+        "is_task_support",
     ]
 
     readonly_fields = [
@@ -52,17 +51,17 @@ class QuestAdmin(admin.ModelAdmin):
     inlines = [QuestResultsInline]
 
 
-@admin.register(QuestResults)
+# @admin.register(QuestResults)
 class QuestResultsAdmin(admin.ModelAdmin):
     list_display = ["quest", "xp_rate", "coin_reward", "dynamic_rewards"]
 
 
-@admin.register(QuestRequirement)
+# @admin.register(QuestRequirement)
 class QuestRequirementAdmin(admin.ModelAdmin):
     list_display = ["quest", "prerequisite", "times_required"]
 
 
-@admin.register(QuestCompletion)
+# @admin.register(QuestCompletion)
 class QuestCompletionAdmin(admin.ModelAdmin):
     list_display = ["character", "quest", "times_completed"]
     fields = [
@@ -74,31 +73,26 @@ class QuestCompletionAdmin(admin.ModelAdmin):
     readonly_fields = ["last_completed"]
 
 
-@admin.register(Activity)
-class ActivityAdmin(admin.ModelAdmin):
-    list_display = ["profile", "name", "duration", "created_at"]
-    list_filter = [
-        "created_at",
-        "duration",
-    ]
-    fields = [
-        "profile",
-        ("name", "duration"),
-        ("created_at", "last_updated"),
-    ]
-    readonly_fields = ["created_at", "last_updated"]
-    date_hierarchy = "created_at"
-    # search_fields = ['profile__name']
-    show_full_result_count = False
-
-
 @admin.register(ActivityTimer)
 class ActivityTimerAdmin(admin.ModelAdmin):
-    list_display = ["profile", "activity", "elapsed_time", "status"]
+    list_display = ["player", "activity", "elapsed_time", "status"]
     list_filter = [
         "status",
     ]
     actions = ["pause_timers", "reset_timers"]
+    readonly_fields = ["player"]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "activity":
+            # Get the player from the object being edited
+            obj = self.get_object(
+                request, request.resolver_match.kwargs.get("object_id")
+            )
+            if obj and obj.player:
+                kwargs["queryset"] = db_field.remote_field.model.objects.filter(
+                    player=obj.player
+                )
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     @admin.display(description="Pause selected timers")
     def pause_timers(self, request, queryset):
@@ -113,7 +107,7 @@ class ActivityTimerAdmin(admin.ModelAdmin):
         self.message_user(request, "Selected timers have been reset.")
 
 
-@admin.register(QuestTimer)
+# @admin.register(QuestTimer)
 class QuestTimerAdmin(admin.ModelAdmin):
     list_display = ["character", "elapsed_time", "status"]
     list_filter = [
@@ -190,25 +184,33 @@ class ServerMessageAdmin(admin.ModelAdmin):
     actions = [send_selected_messages]
 
 
-# class CustomAdminSite(admin.AdminSite):
-#     #change_list_template = "admin/combined_timers.html"
-#     def get_urls(self):
-#         urls = super().get_urls()
-#         custom_urls = [
-#             path('combined-timers/', self.admin_view(self.combined_timers_view), name='combined_timers'),
-#         ]
-#         return custom_urls + urls
-
-#     def combined_timers_view(self, request):
-#         activity_timers = ActivityTimer.objects.all()
-#         quest_timers = QuestTimer.objects.all()
-#         context = {
-#             'title': 'Combined Timers',
-#             'activity_timers': activity_timers,
-#             'quest_timers': quest_timers,
-#         }
-#         return render(request, 'admin/combined_timers.html', context)
-
-# custom_admin_site = CustomAdminSite(name='custom_admin')
-# custom_admin_site.register(ActivityTimer)
-# custom_admin_site.register(QuestTimer)
+@admin.register(XpModifier)
+class XpModifierAdmin(admin.ModelAdmin):
+    list_display = [
+        "key",
+        "scope",
+        "player",
+        "character",
+        "multiplier",
+        "starts_at",
+        "ends_at",
+        "is_active",
+        "created_at",
+        "last_updated",
+    ]
+    list_filter = [
+        "scope",
+        "is_active",
+        "starts_at",
+        "ends_at",
+        "created_at",
+    ]
+    search_fields = [
+        "key",
+        "player__name",
+        "character__name",
+    ]
+    readonly_fields = [
+        "created_at",
+        "last_updated",
+    ]

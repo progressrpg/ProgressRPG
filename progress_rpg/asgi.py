@@ -7,35 +7,35 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 """
 
-import django
 import os
-
-print(f"DJANGO_SETTINGS_MODULE in asgi.py: {os.getenv('DJANGO_SETTINGS_MODULE')}")
-
-django.setup()
-
+import django
 
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
-from gameplay.routing import websocket_urlpatterns
-from django_channels_jwt.middleware import JwtAuthMiddlewareStack
+from django.core.asgi import get_asgi_application
+from django.conf import settings
+from django.urls import re_path
+from django.views.static import serve
+
+# from channels.auth import AuthMiddlewareStack
+# from gameplay.mymiddleware import MyAuthMiddleware
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
-    os.getenv("DJANGO_SETTINGS_MODULE", "progress_rpg.settings.dev"),
+    os.getenv("DJANGO_SETTINGS_MODULE", "progress_rpg.settings.prod"),
 )
 
-print(f"DJANGO_SETTINGS_MODULE: {os.getenv('DJANGO_SETTINGS_MODULE')}")
+django.setup()
 
+from django_channels_jwt.middleware import JwtAuthMiddlewareStack
+from gameplay.routing import load_websocket_urlpatterns
 
-# from gameplay.mymiddleware import MyAuthMiddleware
-from django.core.asgi import get_asgi_application
+django_asgi_app = get_asgi_application()
 
 application = ProtocolTypeRouter(
     {
-        "http": get_asgi_application(),  # Regular HTTP requests
+        "http": django_asgi_app,
         "websocket": JwtAuthMiddlewareStack(
-            URLRouter(websocket_urlpatterns),
+            URLRouter(load_websocket_urlpatterns()),
         ),
     }
 )
