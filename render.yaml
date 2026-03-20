@@ -61,7 +61,8 @@ projects:
             plan: starter
             region: frankfurt
             maxmemoryPolicy: allkeys-lru
-            ipAllowList: [81.108.41.12/32]
+            ipAllowList:
+              - source: 81.108.41.12/32
 
           - type: web
             name: frontend
@@ -87,6 +88,7 @@ projects:
           - name: postgres
             plan: basic-256mb
             region: frankfurt
-            ipAllowList: [81.108.41.12/32]
+            ipAllowList:
+              - source: 81.108.41.12/32
             postgresMajorVersion: "17"
             diskSizeGB: 1
