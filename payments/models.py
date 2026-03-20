@@ -2,13 +2,12 @@ from django.db import models
 from django.conf import settings
 
 
-# Create your models here.
 class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)  # Eg 9.99
     interval = models.CharField(
-        max_length=10, choices=[("monthly", "Monthly"), ("yearly", "Yearly")]
+        max_length=10, choices=[("monthly", "Monthly"), ("annual", "Annual")]
     )
     stripe_plan_id = models.CharField(max_length=100)  # ID from Stripe dashboard
 
