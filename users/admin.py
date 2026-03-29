@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 
 from .models import CustomUser, Player, PlayerCurrency, UserLogin, InviteCode
 from character.models import PlayerCharacterLink, Character
+from payments.models import UserSubscription
 
 # Register your models here.
 
@@ -11,6 +12,19 @@ class PlayerInline(admin.TabularInline):
     model = Player
     extra = 0
     max_num = 1
+    fields = (
+        "name",
+        "is_online",
+        "level",
+        "xp",
+        "xp_next_level",
+        "last_seen",
+        "onboarding_step",
+        "onboarding_completed",
+        "is_deleted",
+    )
+    readonly_fields = ("is_online", "level", "xp", "last_seen")
+    can_delete = False
 
 
 class UserLoginInline(admin.TabularInline):
@@ -26,6 +40,19 @@ class PlayerCurrencyInline(admin.TabularInline):
     extra = 0
     fields = ("currency", "earned", "spent", "balance", "last_calculated_at")
     readonly_fields = ("balance",)
+
+
+class UserSubscriptionInline(admin.TabularInline):
+    model = UserSubscription
+    extra = 0
+    fields = (
+        "plan",
+        "stripe_subscription_id",
+        "active",
+        "start_date",
+        "end_date",
+    )
+    readonly_fields = ("start_date",)
 
 
 @admin.register(CustomUser)
@@ -93,7 +120,7 @@ class CustomUserAdmin(UserAdmin):
         "current_login_streak",
         "max_login_streak",
     ]
-    inlines = [PlayerInline, UserLoginInline]
+    inlines = [PlayerInline, UserLoginInline, UserSubscriptionInline]
 
     @admin.display(description="Recorded login")
     def last_recorded_login(self, obj):
@@ -177,7 +204,7 @@ class PlayerAdmin(admin.ModelAdmin):
         (
             "Other",
             {
-                "fields": ("onboarding_completed", "is_premium"),
+                "fields": ("onboarding_completed", "onboarding_step", "is_deleted"),
             },
         ),
     )
@@ -186,6 +213,7 @@ class PlayerAdmin(admin.ModelAdmin):
         "is_online",
         "active_connections",
         "last_seen",
+        "is_premium",
         "days_logged_in",
         "current_login_streak",
         "max_login_streak",

@@ -6,6 +6,7 @@ from .models import Player
 class PlayerSerializer(serializers.ModelSerializer):
     total_time = serializers.IntegerField(read_only=True)
     total_activities = serializers.IntegerField(read_only=True)
+    is_premium = serializers.BooleanField(source="user.is_premium", read_only=True)
     login_streak = serializers.IntegerField(
         source="user.current_login_streak", read_only=True
     )
