@@ -49,7 +49,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.4.0",
-    "happy-dom": "^20.3.3",
+    "happy-dom": "^20.8.9",
     "sass": "^1.93.3",
     "vitest": "^4.0.17"
   }
