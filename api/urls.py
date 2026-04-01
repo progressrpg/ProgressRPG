@@ -14,6 +14,7 @@ from .views import (
     DeleteAccountAPIView,
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
+    AppConfigView,
 )
 
 from character.views import CharacterViewSet
@@ -71,6 +72,7 @@ urlpatterns = [
     path("", include(router.urls)),
     path("payments/", include("payments.urls")),
     path("maintenance_status/", maintenance_status, name="maintenance_status"),
+    path("app_config/", AppConfigView.as_view(), name="app_config"),
     path("fetch_info/", FetchInfoAPIView.as_view(), name="fetch_info"),
     # Auth urls
     path("ws_auth/", AsgiValidateTokenView.as_view(), name="ws_auth"),
