@@ -92,6 +92,9 @@ class CustomUser(AbstractUser):
     pending_delete = models.BooleanField(default=False)
     delete_at = models.DateTimeField(null=True, blank=True)
     is_confirmed = models.BooleanField(default=False)
+    stripe_customer_id = models.CharField(
+        max_length=255, blank=True, null=True, unique=True
+    )
 
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
