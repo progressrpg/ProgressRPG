@@ -18,15 +18,27 @@ def provision_free_subscription(user):
     if not free_price_id:
         raise ValueError("Missing STRIPE_PRICE_ID_FREE setting")
 
-    customer = stripe.Customer.create(
-        email=user.email,
-        metadata={"user_id": str(user.id)},
-    )
+    free_plan = SubscriptionPlan.objects.filter(stripe_price_id=free_price_id).first()
+    if not free_plan:
+        raise ValueError(
+            f"No SubscriptionPlan configured for STRIPE_PRICE_ID_FREE={free_price_id}"
+        )
+
+    customer_id = user.stripe_customer_id
+    if not customer_id:
+        customer = stripe.Customer.create(
+            email=user.email,
+            metadata={"user_id": str(user.id)},
+        )
+        customer_id = customer.id
+        user.stripe_customer_id = customer_id
+        user.save(update_fields=["stripe_customer_id"])
 
     subscription = stripe.Subscription.create(
-        customer=customer.id,
+        customer=customer_id,
         items=[{"price": free_price_id}],
         metadata={"user_id": str(user.id)},
+        idempotency_key=f"free-subscription:{user.id}:{free_price_id}",
     )
 
     subscription_id = subscription.id
@@ -37,14 +49,11 @@ def provision_free_subscription(user):
 
     user_subscription.user = user
     user_subscription.active = subscription.status in {"active", "trialing"}
-    user_subscription.plan = SubscriptionPlan.objects.filter(
-        stripe_price_id=free_price_id
-    ).first()
+    user_subscription.plan = free_plan
     user_subscription.save(update_fields=["user", "active", "plan"])
 
     if user_subscription.active:
-        UserSubscription.objects.filter(user=user, active=True).exclude(
-            pk=user_subscription.pk
-        ).update(active=False)
+        UserSubscription.deactivate_all_for_user(user)
+        user_subscription.activate()
 
     return user_subscription

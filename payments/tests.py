@@ -151,6 +151,47 @@ class HandleSubscriptionEventTests(TestCase):
         self.assertTrue(new_subscription.active)
         self.assertEqual(new_subscription.plan, self.premium_monthly_plan)
 
+    @patch("payments.webhooks.stripe.Subscription.retrieve")
+    def test_checkout_session_completed_fetches_subscription_when_price_missing(
+        self,
+        mock_retrieve_subscription,
+    ):
+        checkout_event = {
+            "id": "evt_checkout_missing_price_1",
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_test_missing_price_1",
+                    "customer": "cus_test_123",
+                    "client_reference_id": str(self.user.id),
+                    "subscription": "sub_new_missing_price_1",
+                    "subscription_details": {},
+                }
+            },
+        }
+
+        mock_retrieve_subscription.return_value = {
+            "id": "sub_new_missing_price_1",
+            "items": {
+                "data": [
+                    {
+                        "price": {
+                            "id": "price_premium_monthly",
+                        }
+                    }
+                ]
+            },
+        }
+
+        handle_checkout_session_completed(checkout_event)
+
+        mock_retrieve_subscription.assert_called_once_with("sub_new_missing_price_1")
+        new_subscription = UserSubscription.objects.get(
+            stripe_subscription_id="sub_new_missing_price_1"
+        )
+        self.assertEqual(new_subscription.plan, self.premium_monthly_plan)
+        self.assertTrue(new_subscription.active)
+
     def test_subscription_updated_activates_and_updates_plan(self):
         subscription = UserSubscription.objects.create(
             user=self.user,
@@ -284,6 +325,80 @@ class StripeWebhookViewTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
+    def test_records_event_type_and_processed_at_on_success(self):
+        event = {
+            "id": "evt_success_1",
+            "type": "customer.subscription.updated",
+            "data": {"object": {"id": "sub_1", "customer": "cus_1"}},
+        }
+
+        request_factory = APIRequestFactory()
+        view = StripeWebhookView.as_view()
+
+        with (
+            patch("payments.views.stripe.Webhook.construct_event", return_value=event),
+            patch("payments.views.process_stripe_event") as mock_process,
+        ):
+            response = view(
+                request_factory.post(
+                    "/payments/webhook/",
+                    data=b"{}",
+                    content_type="application/json",
+                    HTTP_STRIPE_SIGNATURE="sig",
+                )
+            )
+
+        self.assertEqual(response.status_code, 200)
+        mock_process.assert_called_once_with(event)
+
+        stripe_event = StripeEvent.objects.get(event_id="evt_success_1")
+        self.assertEqual(stripe_event.event_type, "customer.subscription.updated")
+        self.assertIsNotNone(stripe_event.processed_at)
+        self.assertEqual(stripe_event.processing_error, "")
+
+    def test_records_processing_error_and_retries_unprocessed_event(self):
+        event = {
+            "id": "evt_fail_then_retry_1",
+            "type": "customer.subscription.deleted",
+            "data": {"object": {"id": "sub_2", "customer": "cus_2"}},
+        }
+
+        request_factory = APIRequestFactory()
+        view = StripeWebhookView.as_view()
+
+        with patch("payments.views.stripe.Webhook.construct_event", return_value=event):
+            with patch(
+                "payments.views.process_stripe_event",
+                side_effect=RuntimeError("boom"),
+            ):
+                response_fail = view(
+                    request_factory.post(
+                        "/payments/webhook/",
+                        data=b"{}",
+                        content_type="application/json",
+                        HTTP_STRIPE_SIGNATURE="sig",
+                    )
+                )
+
+            with patch("payments.views.process_stripe_event") as mock_process_retry:
+                response_retry = view(
+                    request_factory.post(
+                        "/payments/webhook/",
+                        data=b"{}",
+                        content_type="application/json",
+                        HTTP_STRIPE_SIGNATURE="sig",
+                    )
+                )
+
+        self.assertEqual(response_fail.status_code, 500)
+        self.assertEqual(response_retry.status_code, 200)
+        mock_process_retry.assert_called_once_with(event)
+
+        stripe_event = StripeEvent.objects.get(event_id="evt_fail_then_retry_1")
+        self.assertEqual(stripe_event.event_type, "customer.subscription.deleted")
+        self.assertIsNotNone(stripe_event.processed_at)
+        self.assertEqual(stripe_event.processing_error, "")
+
 
 @override_settings(
     STRIPE_PRICE_ID_PREMIUM_MONTHLY="price_premium_monthly",
@@ -386,3 +501,131 @@ class ProvisionFreeSubscriptionTests(TestCase):
 
         self.assertEqual(result, existing_subscription)
         mock_customer_create.assert_not_called()
+
+    @patch("payments.services.stripe.Subscription.create")
+    @patch("payments.services.stripe.Customer.create")
+    def test_persists_new_customer_id_and_reuses_it_for_subscription(
+        self,
+        mock_customer_create,
+        mock_subscription_create,
+    ):
+        user = get_user_model().objects.create_user(
+            email="new-free@example.com",
+            password="testpass123",
+            stripe_customer_id="",
+        )
+        SubscriptionPlan.objects.create(
+            name="Free",
+            description="",
+            price="0.00",
+            interval="monthly",
+            stripe_price_id="price_free",
+        )
+
+        mock_customer_create.return_value = SimpleNamespace(id="cus_new_123")
+        mock_subscription_create.return_value = SimpleNamespace(
+            id="sub_free_123",
+            status="active",
+        )
+
+        result = provision_free_subscription(user)
+
+        user.refresh_from_db()
+        self.assertEqual(user.stripe_customer_id, "cus_new_123")
+        self.assertTrue(result.active)
+        self.assertEqual(result.plan.stripe_price_id, "price_free")
+
+        mock_customer_create.assert_called_once()
+        mock_subscription_create.assert_called_once()
+        self.assertEqual(
+            mock_subscription_create.call_args.kwargs["customer"],
+            "cus_new_123",
+        )
+
+    @patch("payments.services.stripe.Subscription.create")
+    @patch("payments.services.stripe.Customer.create")
+    def test_reuses_existing_customer_id_without_creating_customer(
+        self,
+        mock_customer_create,
+        mock_subscription_create,
+    ):
+        user = get_user_model().objects.create_user(
+            email="existing-customer@example.com",
+            password="testpass123",
+            stripe_customer_id="cus_existing_123",
+        )
+        SubscriptionPlan.objects.create(
+            name="Free",
+            description="",
+            price="0.00",
+            interval="monthly",
+            stripe_price_id="price_free",
+        )
+
+        mock_subscription_create.return_value = SimpleNamespace(
+            id="sub_free_existing_customer",
+            status="active",
+        )
+
+        provision_free_subscription(user)
+
+        mock_customer_create.assert_not_called()
+        mock_subscription_create.assert_called_once()
+        self.assertEqual(
+            mock_subscription_create.call_args.kwargs["customer"],
+            "cus_existing_123",
+        )
+
+    @patch("payments.services.stripe.Subscription.create")
+    @patch("payments.services.stripe.Customer.create")
+    def test_deactivates_previous_active_subscription_with_end_date(
+        self,
+        mock_customer_create,
+        mock_subscription_create,
+    ):
+        user = get_user_model().objects.create_user(
+            email="rollover@example.com",
+            password="testpass123",
+            stripe_customer_id="",
+        )
+        free_plan = SubscriptionPlan.objects.create(
+            name="Free",
+            description="",
+            price="0.00",
+            interval="monthly",
+            stripe_price_id="price_free",
+        )
+        old_subscription = UserSubscription.objects.create(
+            user=user,
+            plan=free_plan,
+            active=True,
+            stripe_subscription_id="sub_old",
+        )
+
+        mock_customer_create.return_value = SimpleNamespace(id="cus_rollover")
+        mock_subscription_create.return_value = SimpleNamespace(
+            id="sub_new_rollover",
+            status="active",
+        )
+
+        with patch(
+            "payments.services.UserSubscription.current_for_user", return_value=None
+        ):
+            new_subscription = provision_free_subscription(user)
+
+        old_subscription.refresh_from_db()
+        new_subscription.refresh_from_db()
+        self.assertFalse(old_subscription.active)
+        self.assertIsNotNone(old_subscription.end_date)
+        self.assertTrue(new_subscription.active)
+        self.assertIsNone(new_subscription.end_date)
+
+    def test_raises_when_free_plan_is_missing(self):
+        user = get_user_model().objects.create_user(
+            email="missing-plan@example.com",
+            password="testpass123",
+            stripe_customer_id="",
+        )
+
+        with self.assertRaisesMessage(ValueError, "No SubscriptionPlan configured"):
+            provision_free_subscription(user)

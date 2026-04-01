@@ -1,6 +1,7 @@
 import stripe
 from django.conf import settings
 from django.http import HttpResponse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -41,12 +42,41 @@ class StripeWebhookView(APIView):
 
         obj, created = StripeEvent.objects.get_or_create(
             event_id=event.get("id"),
-            defaults={"payload": event},
+            defaults={
+                "event_type": event.get("type"),
+                "payload": event,
+            },
         )
-        if not created:
+
+        # Already-processed events are safe to ignore.
+        if not created and obj.processed_at:
             return HttpResponse(status=200)
 
-        process_stripe_event(event)
+        try:
+            process_stripe_event(event)
+            obj.event_type = event.get("type")
+            obj.payload = event
+            obj.processed_at = timezone.now()
+            obj.processing_error = ""
+            obj.save(
+                update_fields=[
+                    "event_type",
+                    "payload",
+                    "processed_at",
+                    "processing_error",
+                ]
+            )
+        except Exception as exc:
+            obj.event_type = event.get("type")
+            obj.payload = event
+            obj.processing_error = str(exc)
+            obj.save(update_fields=["event_type", "payload", "processing_error"])
+            logger.exception(
+                "[PAYMENTS.WEBHOOK] Failed processing event_id=%s type=%s",
+                event.get("id"),
+                event.get("type"),
+            )
+            return HttpResponse(status=500)
 
         return HttpResponse(status=200)
 
@@ -57,7 +87,7 @@ class CreateCheckoutSessionView(APIView):
     request_serializer_class = CreateCheckoutSessionRequestSerializer
 
     def post(self, request):
-        active_subscription = UserSubscription.active_premium_for_user(request.user)
+        active_subscription = UserSubscription.active_for_user(request.user)
         if active_subscription and active_subscription.is_active_premium:
             logger.info(
                 "[PAYMENTS.CHECKOUT] Blocked checkout "

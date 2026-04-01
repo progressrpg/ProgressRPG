@@ -58,6 +58,16 @@ def handle_checkout_session_completed(event):
         user.save(update_fields=["stripe_customer_id"])
 
     price_id = extract_price_id(subscription_payload)
+    if not price_id:
+        try:
+            retrieved_subscription = stripe.Subscription.retrieve(subscription_id)
+            price_id = extract_price_id(retrieved_subscription)
+        except Exception:
+            logger.exception(
+                "[PAYMENTS.WEBHOOK] Failed to retrieve subscription for checkout "
+                f"(subscription_id={subscription_id}, event_id={event.get('id')})"
+            )
+
     plan = SubscriptionPlan.objects.filter(stripe_price_id=price_id).first()
     if not plan:
         logger.error(
