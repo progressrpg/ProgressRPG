@@ -8,25 +8,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from .base import *
 from .utils import (
-    get_branch_name,
-    get_branch_db_name,
-    ensure_branch_db_exists,
-    migrate_and_seed,
-    get_postgres_host,
-    rewrite_database_url_host,
     get_redis_url,
-    is_running_in_docker,
 )
-import subprocess
-from urllib.parse import quote
+import sys
 
 
-BRANCH_NAME = get_branch_name()
+BRANCH_NAME = os.getenv("BRANCH_NAME", "default")
 print("BRANCH_NAME is:", BRANCH_NAME, file=sys.stderr)
-
-# new_db_created = ensure_branch_db_exists()
-
-# DB_NAME = get_branch_db_name()
 
 ROOT_URLCONF = "progress_rpg.urls"
 

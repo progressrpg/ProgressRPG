@@ -8,6 +8,16 @@
   margin-top: 0.5rem;
 }
 
+.subscribedNotice {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #9bc59d;
+  border-radius: 10px;
+  background: #edf8ee;
+  color: #22543d;
+  font-weight: 600;
+}
+
 .planGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

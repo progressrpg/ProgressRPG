@@ -531,7 +531,7 @@ class DownloadUserDataAPIView(APIView):
                 "bio": player.bio,
                 "total_time": player.total_time,
                 "total_activities": player.total_activities,
-                "is_premium": player.is_premium,
+                "is_premium": user.is_premium,
             },
             "activities": activities_json,
             "character": {

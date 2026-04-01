@@ -33,7 +33,6 @@
     "last_name": "Bob",
     "backstory": "This is the story of Elrond.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -63,7 +62,6 @@
     "last_name": "Holloway",
     "backstory": "Farmer, former mercenary, settled into rural life.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -91,7 +89,6 @@
     "last_name": "Holloway",
     "backstory": "Gareth’s wife, keeps the household running.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -119,7 +116,6 @@
     "last_name": "Holloway",
     "backstory": "Agnes and Gareth's son, dreams of something beyond farming.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -150,7 +146,6 @@
     "last_name": "Holloway",
     "backstory": "Helps with the animals, dislikes farm work.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -181,7 +176,6 @@
     "last_name": "Holloway",
     "backstory": "Youngest child, eager to learn his father’s trade.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -212,7 +206,6 @@
     "last_name": "Drake",
     "backstory": "Shepherd, spends most of his time in the hills.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -240,7 +233,6 @@
     "last_name": "Drake",
     "backstory": "Dairy and spinner. Callum's wife.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -268,7 +260,6 @@
     "last_name": "Drake",
     "backstory": "Callum and Eda's son, recently discovered as illegitimate.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -299,7 +290,6 @@
     "last_name": "Weaver",
     "backstory": "Tavern owner, grew up as a farmer before changing trade.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -327,7 +317,6 @@
     "last_name": "Weaver",
     "backstory": "Aldwin’s daughter, newlywed to a soldier, currently pregnant.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -357,7 +346,6 @@
     "last_name": "Thornbrook",
     "backstory": "Retired blacksmith, owns a small farm.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -385,7 +373,6 @@
     "last_name": "Thornbrook",
     "backstory": "Freya and Edric's son; runs the forge but helps on the farm.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -415,7 +402,6 @@
     "last_name": "Thornbrook",
     "backstory": "Edric's daughter, more interested in farming than smithing.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -445,7 +431,6 @@
     "last_name": "Stormvale",
     "backstory": "Former soldier, now working land for a noble.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -473,7 +458,6 @@
     "last_name": "Stormvale",
     "backstory": "Viggo’s orphaned niece, raised by him.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -501,7 +485,6 @@
     "last_name": "Mossgrove",
     "backstory": "Goatherd, known for his stubbornness. Anwen's husband.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -529,7 +512,6 @@
     "last_name": "Mossgrove",
     "backstory": "Cheesemaker. Dain's wife.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -557,7 +539,6 @@
     "last_name": "Mossgrove",
     "backstory": "Their son, a struggling market trader",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -588,7 +569,6 @@
     "last_name": "Fenwick",
     "backstory": "Widow, struggling to raise crops on a poor strip of land",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -616,7 +596,6 @@
     "last_name": "Fenwick",
     "backstory": "Elena's daughter, more interested in plants than farmwork.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -646,7 +625,6 @@
     "last_name": "Ashford",
     "backstory": "Seamstress, formerly a noble worker, now living with farmers.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -674,7 +652,6 @@
     "last_name": "Ashford",
     "backstory": "Ysabet's daughter, works fields for a local landowner.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": [
@@ -704,7 +681,6 @@
     "last_name": "Dewhurst",
     "backstory": "Ranger, hunts for game and protects woodland.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -732,7 +708,6 @@
     "last_name": "Blackthorne",
     "backstory": "Former rogue, now a merchant.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -760,7 +735,6 @@
     "last_name": "Brightwater",
     "backstory": "Herbalist, grows medicinal plants.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -788,7 +762,6 @@
     "last_name": "Brightwater",
     "backstory": "Marwen's grandson, helps with the chickens.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -816,7 +789,6 @@
     "last_name": "Ironhand",
     "backstory": "Stonemason, lives in a farming village.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -844,7 +816,6 @@
     "last_name": "Briarwood",
     "backstory": "Orphan raised by monks, training as a scribe.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -872,7 +843,6 @@
     "last_name": "Holt",
     "backstory": "Aspiring knight, former farmhand.",
     "sex": "Male",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
@@ -900,7 +870,6 @@
     "last_name": "Lockwood",
     "backstory": "Tavern owner, daughter of farmers.",
     "sex": "Female",
-    "coins": 0,
     "reputation": 0,
     "can_link": true,
     "parents": []
