@@ -26,7 +26,7 @@ class PlayerFilter(django_filters.FilterSet):
         premium_q = Q(user__subscriptions__active=True)
         if premium_price_ids:
             premium_q &= Q(
-                user__subscriptions__plan__stripe_plan_id__in=premium_price_ids
+                user__subscriptions__plan__stripe_price_id__in=premium_price_ids
             )
         else:
             premium_q &= Q(pk__in=[])
