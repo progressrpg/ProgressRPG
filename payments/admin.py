@@ -13,6 +13,7 @@ class StripeEventAdmin(admin.ModelAdmin):
         "processing_error",
     ]
     search_fields = ["event_id", "event_type"]
+    list_filter = ["event_type", "created_at", "processed_at", "processing_error"]
     readonly_fields = [
         "event_id",
         "event_type",
