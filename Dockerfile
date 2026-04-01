@@ -14,7 +14,7 @@ ENV PORT=8000
 WORKDIR /app
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-ARG UID=10001
+ARG UID=1000
 RUN adduser \
     --disabled-password \
     --gecos "" \
