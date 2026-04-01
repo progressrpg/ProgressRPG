@@ -13,8 +13,8 @@ from .serializers import (
     CreateCheckoutSessionRequestSerializer,
     CreateCheckoutSessionResponseSerializer,
 )
-from .models import UserSubscription
-from .webhooks import handle_checkout_session_completed, handle_subscription_event
+from .models import StripeEvent, UserSubscription
+from .webhooks import process_stripe_event
 
 logger = logging.getLogger("django")
 
@@ -39,28 +39,14 @@ class StripeWebhookView(APIView):
             )
             return HttpResponse(status=400)
 
-        event_type = event.get("type")
-        data = event.get("data", {}).get("object", {})
-        logger.info(
-            "[PAYMENTS.WEBHOOK] Received event type=%s event_id=%s object_id=%s",
-            event_type,
-            event.get("id"),
-            data.get("id"),
+        obj, created = StripeEvent.objects.get_or_create(
+            event_id=event.get("id"),
+            defaults={"payload": event},
         )
+        if not created:
+            return HttpResponse(status=200)
 
-        if event_type in {
-            "customer.subscription.created",
-            "customer.subscription.updated",
-            "customer.subscription.deleted",
-        }:
-            handle_subscription_event(data)
-        elif event_type == "checkout.session.completed":
-            handle_checkout_session_completed(data)
-        else:
-            logger.info(
-                "[PAYMENTS.WEBHOOK] Ignoring unhandled event type=%s",
-                event_type,
-            )
+        process_stripe_event(event)
 
         return HttpResponse(status=200)
 
@@ -74,9 +60,9 @@ class CreateCheckoutSessionView(APIView):
         active_subscription = UserSubscription.active_premium_for_user(request.user)
         if active_subscription and active_subscription.is_active_premium:
             logger.info(
-                "[PAYMENTS.CHECKOUT] Blocked checkout for user_id=%s due to active premium subscription_id=%s",
-                request.user.id,
-                active_subscription.stripe_subscription_id,
+                "[PAYMENTS.CHECKOUT] Blocked checkout "
+                f"for user_id={request.user.id} due to active premium "
+                f"subscription_id={active_subscription.stripe_subscription_id}"
             )
             return Response(
                 {"error": "User already has an active premium subscription."},
@@ -99,17 +85,14 @@ class CreateCheckoutSessionView(APIView):
 
         premium_price_id = price_id_by_plan[plan]
         logger.info(
-            "[PAYMENTS.CHECKOUT] Creating checkout session for user_id=%s plan=%s price_id=%s",
-            request.user.id,
-            plan,
-            premium_price_id,
+            "[PAYMENTS.CHECKOUT] Creating checkout session "
+            f"for user_id={request.user.id} plan={plan} price_id={premium_price_id}"
         )
 
         if not premium_price_id:
             logger.error(
-                "[PAYMENTS.CHECKOUT] Missing Stripe price id for user_id=%s selected_plan=%s",
-                request.user.id,
-                requested_plan,
+                "[PAYMENTS.CHECKOUT] Missing Stripe price id "
+                f"for user_id={request.user.id} selected_plan={requested_plan}"
             )
             return Response(
                 {
@@ -147,17 +130,15 @@ class CreateCheckoutSessionView(APIView):
                 cancel_url=cancel_url,
             )
             logger.info(
-                "[PAYMENTS.CHECKOUT] Created session_id=%s for user_id=%s client_reference_id=%s",
-                session.get("id"),
-                request.user.id,
-                str(request.user.id),
+                "[PAYMENTS.CHECKOUT] Created "
+                f"session_id={session.get('id')} for user_id={request.user.id} "
+                f"client_reference_id={request.user.id}"
             )
             return Response({"url": session.url})
         except Exception:
             logger.exception(
-                "[PAYMENTS.CHECKOUT] Error creating Stripe checkout session for user_id=%s plan=%s",
-                request.user.id,
-                plan,
+                "[PAYMENTS.CHECKOUT] Error creating Stripe checkout session "
+                f"for user_id={request.user.id} plan={plan}"
             )
             return Response(
                 {"error": "Unable to create checkout session."},

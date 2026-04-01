@@ -38,7 +38,7 @@ def provision_free_subscription(user):
     user_subscription.user = user
     user_subscription.active = subscription.status in {"active", "trialing"}
     user_subscription.plan = SubscriptionPlan.objects.filter(
-        stripe_plan_id=free_price_id
+        stripe_price_id=free_price_id
     ).first()
     user_subscription.save(update_fields=["user", "active", "plan"])
 

@@ -1,5 +1,14 @@
+from django.utils import timezone
 from django.db import models
 from django.conf import settings
+
+
+class StripeEvent(models.Model):
+    event_id = models.CharField(max_length=255, unique=True)
+    payload = models.JSONField()
+
+    def __repr__(self):
+        return self.event_id
 
 
 class SubscriptionPlan(models.Model):
@@ -9,7 +18,7 @@ class SubscriptionPlan(models.Model):
     interval = models.CharField(
         max_length=10, choices=[("monthly", "Monthly"), ("annual", "Annual")]
     )
-    stripe_plan_id = models.CharField(max_length=100)  # ID from Stripe dashboard
+    stripe_price_id = models.CharField(max_length=100)  # ID from Stripe dashboard
 
     def __str__(self):
         return self.name
@@ -21,7 +30,7 @@ class SubscriptionPlan(models.Model):
             getattr(settings, "STRIPE_PRICE_ID_PREMIUM_ANNUAL", ""),
         }
         premium_price_ids.discard("")
-        return self.stripe_plan_id in premium_price_ids
+        return self.stripe_price_id in premium_price_ids
 
 
 class UserSubscription(models.Model):
@@ -61,6 +70,26 @@ class UserSubscription(models.Model):
             .filter(user=user, active=True)
             .order_by("-start_date", "-id")
             .first()
+        )
+
+    def activate(self):
+        UserSubscription.objects.filter(user=self.user, active=True).exclude(
+            id=self.id
+        ).update(active=False, end_date=timezone.now())
+
+        self.active = True
+        self.end_date = None
+        self.save(update_fields=["active", "end_date"])
+
+    def deactivate(self):
+        self.active = False
+        self.end_date = timezone.now()
+        self.save(update_fields=["active", "end_date"])
+
+    @classmethod
+    def deactivate_all_for_user(cls, user):
+        cls.objects.filter(user=user, active=True).update(
+            active=False, end_date=timezone.now()
         )
 
     @property
