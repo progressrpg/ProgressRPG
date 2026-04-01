@@ -7,6 +7,7 @@
     "price": "0.00",
     "interval": "monthly",
     "stripe_price_id": "price_1SzfLuQCFC8LlZgCxV4IsVYE"
+  }
 },
 {
   "model": "payments.subscriptionplan",
@@ -16,6 +17,7 @@
     "price": "5.00",
     "interval": "monthly",
     "stripe_price_id": "price_1SzgxTQCFC8LlZgCcwkCOotQ"
+  }
 },
 {
   "model": "payments.subscriptionplan",
@@ -25,6 +27,7 @@
     "price": "50.00",
     "interval": "annual",
     "stripe_price_id": "price_1TAbFVQCFC8LlZgCn1xygFIA"
+  }
 },
 {
   "model": "users.invitecode",
