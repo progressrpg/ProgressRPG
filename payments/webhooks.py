@@ -1,63 +1,140 @@
 import logging
+import stripe
 
 from django.conf import settings
 from django.db import transaction
 
-from payments.models import SubscriptionPlan, UserSubscription
-from users.models import CustomUser
+from .models import SubscriptionPlan, UserSubscription
+from .utils import (
+    resolve_subscription_payload_and_model,
+    resolve_user_from_checkout_session,
+    extract_price_id,
+)
 
 logger = logging.getLogger("general")
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+def process_stripe_event(event):
+    event_type = event.get("type")
+
+    handlers = {
+        "checkout.session.completed": handle_checkout_session_completed,
+        "customer.subscription.updated": handle_subscription_updated,
+        "customer.subscription.deleted": handle_subscription_deleted,
+        "invoice.payment_failed": handle_payment_failed,
+    }
+
+    handler = handlers.get(event_type)
+    if handler:
+        handler(event)
 
 
 @transaction.atomic
-def handle_subscription_event(subscription):
-    """Update local subscription state from Stripe subscription webhook payload."""
-    metadata = subscription.get("metadata", {}) or {}
-    user_id = metadata.get("user_id")
+def handle_checkout_session_completed(event):
+    session = event["data"]["object"]
+    customer_id = session.get("customer")
 
-    if not user_id:
+    user = resolve_user_from_checkout_session(session)
+    subscription_id = session.get("subscription")
+    subscription_payload = session.get("subscription_details", {})
+
+    if not user:
         logger.warning(
-            "[PAYMENTS.WEBHOOK] Missing user_id metadata on subscription %s",
-            subscription.get("id"),
+            f"[PAYMENTS.WEBHOOK] checkout.session.completed for unknown user "
+            f"(customer_id={customer_id}, session_id={session.get('id')})"
         )
         return
 
-    try:
-        user = CustomUser.objects.get(id=user_id)
-    except CustomUser.DoesNotExist:
+    if not subscription_id:
         logger.warning(
-            "[PAYMENTS.WEBHOOK] User not found for webhook metadata user_id=%s", user_id
+            "[PAYMENTS.WEBHOOK] checkout.session.completed missing subscription id "
+            f"(session_id={session.get('id')})"
         )
         return
 
-    user_subscription, _ = UserSubscription.objects.get_or_create(user=user)
-    user_subscription.stripe_subscription_id = subscription.get("id")
-    user_subscription.active = subscription.get("status") in {"active", "trialing"}
+    if not user.stripe_customer_id:
+        user.stripe_customer_id = customer_id
+        user.save(update_fields=["stripe_customer_id"])
 
-    price_id = (
-        subscription.get("items", {}).get("data", [{}])[0].get("price", {}).get("id")
+    price_id = extract_price_id(subscription_payload)
+    if not price_id:
+        try:
+            retrieved_subscription = stripe.Subscription.retrieve(subscription_id)
+            price_id = extract_price_id(retrieved_subscription)
+        except Exception:
+            logger.exception(
+                "[PAYMENTS.WEBHOOK] Failed to retrieve subscription for checkout "
+                f"(subscription_id={subscription_id}, event_id={event.get('id')})"
+            )
+
+    plan = SubscriptionPlan.objects.filter(stripe_price_id=price_id).first()
+    if not plan:
+        logger.error(
+            "[PAYMENTS.WEBHOOK] No matching subscription plan "
+            f"for price_id={price_id} in event_id={event.get('id')}"
+        )
+        return
+
+    UserSubscription.deactivate_all_for_user(user)
+
+    UserSubscription.objects.create(
+        user=user,
+        plan=plan,
+        stripe_subscription_id=subscription_id,
+        active=True,
     )
+    return
+
+
+def handle_subscription_updated(event):
+    _, _, subscription_payload, subscription = resolve_subscription_payload_and_model(
+        event,
+        "subscription.updated",
+    )
+
+    if not subscription_payload or not subscription:
+        return
+
+    status = subscription_payload.get("status")
+
+    price_id = extract_price_id(subscription_payload)
     if price_id:
-        user_subscription.plan = SubscriptionPlan.objects.filter(
-            stripe_plan_id=price_id
-        ).first()
+        plan = SubscriptionPlan.objects.filter(stripe_price_id=price_id).first()
+        if plan and subscription.plan != plan:
+            subscription.plan = plan
+            subscription.save(update_fields=["plan"])
 
-    user_subscription.save(update_fields=["stripe_subscription_id", "active", "plan"])
+    if status in ["active", "trialing"]:
+        subscription.activate()
 
-    player = getattr(user, "player", None)
-    if player:
-        premium_price_ids = {
-            getattr(settings, "STRIPE_PRICE_ID_PREMIUM_MONTHLY", ""),
-            getattr(settings, "STRIPE_PRICE_ID_PREMIUM_ANNUAL", ""),
-        }
-        premium_price_ids.discard("")
-        player.is_premium = user_subscription.active and bool(
-            price_id and price_id in premium_price_ids
-        )
-        player.save(update_fields=["is_premium"])
+    elif status in ["canceled", "incomplete_expired", "unpaid"]:
+        subscription.deactivate()
 
-    logger.info(
-        "[PAYMENTS.WEBHOOK] Updated subscription %s for user %s",
-        subscription.get("id"),
-        user.id,
+    elif status == "past_due":
+        pass
+
+    return
+
+
+def handle_subscription_deleted(event):
+    _, _, _, subscription = resolve_subscription_payload_and_model(
+        event, "subscription.deleted"
     )
+
+    if not subscription:
+        return
+
+    subscription.deactivate()
+
+
+def handle_payment_failed(event):
+    _, _, _, subscription = resolve_subscription_payload_and_model(
+        event, "invoice.payment_failed"
+    )
+
+    if not subscription:
+        return
+
+    # subscription.deactivate()
+    return

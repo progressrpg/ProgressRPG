@@ -38,7 +38,6 @@ def perform_account_wipe():
         player.name = f"Deleted User {user.id}"
         player.bio = ""
         player.onboarding_step = 0
-        player.is_premium = False
         player.xp = 0
         player.level = 1
         player.last_seen = None

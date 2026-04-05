@@ -92,6 +92,9 @@ class CustomUser(AbstractUser):
     pending_delete = models.BooleanField(default=False)
     delete_at = models.DateTimeField(null=True, blank=True)
     is_confirmed = models.BooleanField(default=False)
+    stripe_customer_id = models.CharField(
+        max_length=255, blank=True, null=True, unique=True
+    )
 
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
@@ -116,6 +119,15 @@ class CustomUser(AbstractUser):
     @property
     def last_recorded_login(self):
         return UserLogin.last_recorded_login(self)
+
+    @property
+    def is_premium(self):
+        from payments.models import UserSubscription
+
+        subscription = UserSubscription.current_for_user(self)
+        if not subscription:
+            return False
+        return subscription.is_active_premium
 
     def __str__(self):
         return self.email
@@ -279,7 +291,6 @@ class Player(Person):
 
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     bio = models.TextField(max_length=1000, blank=True)
-    is_premium = models.BooleanField(default=False)
     is_online = models.BooleanField(default=False)
     active_connections = models.PositiveIntegerField(default=0)
     last_seen = models.DateTimeField(null=True, blank=True)
@@ -299,6 +310,10 @@ class Player(Person):
     @property
     def needs_onboarding(self):
         return self.onboarding_step < 2
+
+    @property
+    def is_premium(self):
+        return self.user.is_premium
 
     @property
     def group_name(self):

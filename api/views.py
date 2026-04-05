@@ -56,7 +56,6 @@ from character.models import Character, PlayerCharacterLink
 from character.serializers import CharacterSerializer
 
 from gameplay.models import XpModifier
-from gameplay.utils import send_group_message
 from gameplay.serializers import ActivityTimerSerializer, XpModifierSerializer
 from gameplay.serializers import ActivityTimerSerializer
 from gameplay.services.xp_modifiers import handle_online_login
@@ -78,6 +77,17 @@ logger = logging.getLogger("errors")
 logger_general = logging.getLogger("general")
 
 
+class AppConfigView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        return Response(
+            {
+                "stripe_live_mode": settings.STRIPE_LIVE_MODE,
+            }
+        )
+
+
 class IsOwnerPlayer(permissions.BasePermission):
     owner_attr = "player"
 
@@ -86,7 +96,6 @@ class IsOwnerPlayer(permissions.BasePermission):
         if player is None:
             return False
 
-        # Check if object has 'player' attribute and compare
         if hasattr(obj, "player"):
             return obj.player == player
 
@@ -99,7 +108,6 @@ class IsOwnerCharacter(permissions.BasePermission):
         if player is None:
             return False
 
-        # Check if the object's character is linked to the player and active
         if hasattr(obj, "character"):
             return PlayerCharacterLink.objects.filter(
                 player=player, character=obj.character, is_active=True
@@ -531,7 +539,7 @@ class DownloadUserDataAPIView(APIView):
                 "bio": player.bio,
                 "total_time": player.total_time,
                 "total_activities": player.total_activities,
-                "is_premium": player.is_premium,
+                "is_premium": user.is_premium,
             },
             "activities": activities_json,
             "character": {

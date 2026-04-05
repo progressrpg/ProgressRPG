@@ -14,15 +14,15 @@ ENV PORT=8000
 WORKDIR /app
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-ARG UID=10001
+ARG UID=1000
 RUN adduser \
     --disabled-password \
     --gecos "" \
-    --home "/nonexistent" \
-    --shell "/usr/sbin/nologin" \
-    --no-create-home \
+    --home "/home/appuser" \
+    --shell "/bin/bash" \
     --uid "${UID}" \
     appuser
+RUN mkdir -p /home/appuser && chown -R appuser:appuser /home/appuser
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq-dev \

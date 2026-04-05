@@ -1,10 +1,15 @@
 import React, { useState } from "react";
 
 import Button from "../../components/Button/Button";
+import { useGame } from "../../context/GameContext";
+import { useAppConfig } from "../../hooks/useAppConfig";
 import { apiFetch } from "../../../utils/api";
 import styles from "./CheckoutPage.module.scss";
 
 export default function CheckoutPage() {
+  const { player } = useGame();
+  const { data: appConfig } = useAppConfig();
+  const isStripeSandbox = appConfig?.stripe_live_mode === false;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedPlan, setSelectedPlan] = useState("monthly");
@@ -36,45 +41,57 @@ export default function CheckoutPage() {
   const annualActive = selectedPlan === "annual";
   const checkoutButtonLabel =
     selectedPlan === "monthly" ? "Go to Monthly Checkout" : "Go to Annual Checkout";
+  const isAlreadyPremium = Boolean(player?.is_premium);
 
   return (
     <div className={styles.page}>
+      {isStripeSandbox && (
+        <div className={styles.sandboxBanner}>
+          Test mode — Stripe is in sandbox mode. No real payments will be taken. To make a test payment, use card number "4242 4242 4242 4242", and any future expiration date and CVC.
+        </div>
+      )}
       <h1>Upgrade to Premium</h1>
-      <p className={styles.subtitle}>Choose the plan that fits you best.</p>
+      {isAlreadyPremium ? (
+        <p className={styles.subscribedNotice}>You are already subscribed!</p>
+      ) : (
+        <>
+          <p className={styles.subtitle}>Choose the plan that fits you best.</p>
 
-      <div className={styles.planGrid}>
-        <button
-          type="button"
-          onClick={() => setSelectedPlan("monthly")}
-          className={`${styles.planCard} ${monthlyActive ? styles.planCardActive : ""}`}
-        >
-          <h2 className={styles.planHeading}>Monthly</h2>
-          <p className={styles.planPrice}>£5 / month</p>
-          <p className={styles.planDescription}>Flexible monthly billing.</p>
-        </button>
+          <div className={styles.planGrid}>
+            <button
+              type="button"
+              onClick={() => setSelectedPlan("monthly")}
+              className={`${styles.planCard} ${monthlyActive ? styles.planCardActive : ""}`}
+            >
+              <h2 className={styles.planHeading}>Monthly</h2>
+              <p className={styles.planPrice}>£5 / month</p>
+              <p className={styles.planDescription}>Flexible monthly billing.</p>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setSelectedPlan("annual")}
-          className={`${styles.planCard} ${annualActive ? styles.planCardActive : ""}`}
-        >
-          <h2 className={styles.planHeading}>Annual</h2>
-          <p className={styles.planPrice}>£50 / year</p>
-          <p className={styles.planDescription}>
-            Save 17% compared with monthly.
+            <button
+              type="button"
+              onClick={() => setSelectedPlan("annual")}
+              className={`${styles.planCard} ${annualActive ? styles.planCardActive : ""}`}
+            >
+              <h2 className={styles.planHeading}>Annual</h2>
+              <p className={styles.planPrice}>£50 / year</p>
+              <p className={styles.planDescription}>
+                Save 17% compared with monthly.
+              </p>
+            </button>
+          </div>
+
+          <p className={styles.selectedPlanSummary}>
+            {selectedPlan === "monthly"
+              ? "You selected Monthly: £5 billed every month."
+              : "You selected Annual: £50 billed yearly (17% discount)."}
           </p>
-        </button>
-      </div>
 
-      <p className={styles.selectedPlanSummary}>
-        {selectedPlan === "monthly"
-          ? "You selected Monthly: £5 billed every month."
-          : "You selected Annual: £50 billed yearly (17% discount)."}
-      </p>
-
-      <Button onClick={handleCheckout} disabled={loading}>
-        {loading ? "Redirecting..." : checkoutButtonLabel}
-      </Button>
+          <Button onClick={handleCheckout} disabled={loading}>
+            {loading ? "Redirecting..." : checkoutButtonLabel}
+          </Button>
+        </>
+      )}
       {error ? <p className={styles.error}>{error}</p> : null}
     </div>
   );

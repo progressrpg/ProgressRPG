@@ -26,6 +26,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 dotenv_path = BASE_DIR / ".env"
 load_dotenv(dotenv_path)
 
+CURRENT_ENV = os.getenv("CURRENT_ENV", "local")
+
 DEBUG = os.getenv("DEBUG", "True") == "True"
 os.environ.setdefault("DEBUG", "True")
 
@@ -35,13 +37,15 @@ os.environ.setdefault(
     os.getenv("DJANGO_SETTINGS_MODULE", "progress_rpg.settings.dev"),
 )
 
-sentry_sdk.init(
-    dsn="https://644b2888f8bc11ad45e1975cde787ef6@o4509508988764160.ingest.de.sentry.io/4509508990926928",
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-    traces_sample_rate=1.0,
-)
+# see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=CURRENT_ENV,
+        send_default_pii=CURRENT_ENV != "production",
+        traces_sample_rate=1.0,
+    )
 
 APP_VERSION = "0.6.0-alpha"
 
@@ -288,6 +292,8 @@ LOGIN_URL = "/login/"  # Customize the login URL
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+STRIPE_LIVE_MODE = STRIPE_SECRET_KEY.startswith("sk_live_")
 
 # Canonical Stripe price IDs
 STRIPE_PRICE_ID_PREMIUM_MONTHLY = os.getenv("STRIPE_PRICE_ID_PREMIUM_MONTHLY", "")

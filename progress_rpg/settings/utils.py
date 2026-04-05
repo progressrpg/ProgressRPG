@@ -1,8 +1,6 @@
 import sys
 from django.conf import settings
-import socket, os, subprocess, psycopg2, re
-
-PG_ID_MAX_LENGTH = 63
+import socket, os, subprocess, re
 
 
 def is_running_in_docker():
@@ -64,112 +62,6 @@ def get_redis_url(default_db="0"):
     redis_port = os.getenv("REDIS_PORT", "6379")
     redis_db = os.getenv("REDIS_DB", default_db)
     return f"{redis_scheme}://{redis_host}:{redis_port}/{redis_db}"
-
-
-def get_branch_name():
-    """Return the current git branch name, safe for DB naming."""
-    try:
-        raw = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                stderr=subprocess.DEVNULL,
-            )
-            .decode("utf-8")
-            .strip()
-        )
-    except Exception:
-        return "default"
-
-    safe = re.sub(r"[^0-9a-zA-Z_]+", "_", raw)
-
-    safe = re.sub(r"_+", "_", safe)
-
-    safe = safe.strip("_")
-
-    if not safe:
-        safe = "default"
-
-    safe = safe[:PG_ID_MAX_LENGTH]
-
-    return safe
-
-
-def get_branch_db_name(base_name=None):
-    """Return database name with current branch suffix."""
-    branch = get_branch_name()
-    base_name = base_name or os.getenv("DB_NAME", "progress_rpg")
-    return f"{base_name}_{branch}"
-
-
-def db_exists(db_name=None):
-    """
-    Check if a PostgreSQL database already exists.
-
-    Returns True if it exists, False otherwise.
-    """
-    db_name = db_name or get_branch_db_name()
-    db_user = os.getenv("DB_USER", "duncan")
-    db_password = os.getenv("DB_PASSWORD", "")
-    db_host = get_postgres_host()
-    db_port = os.getenv("DB_PORT", "5432")
-
-    try:
-        conn = psycopg2.connect(
-            dbname="postgres",  # Connect to the default DB to query metadata
-            user=db_user,
-            password=db_password,
-            host=db_host,
-            port=db_port,
-        )
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s;", (db_name,))
-            return cur.fetchone() is not None
-    except psycopg2.Error as e:
-        print(f"⚠️ Could not connect to Postgres to check DB: {e}")
-        return False
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
-
-
-def ensure_branch_db_exists():
-    """Ensure a PostgreSQL database exists for the current branch, creating it if necessary."""
-    db_name = get_branch_db_name()
-    if db_exists(db_name):
-        print(f"✅ Database already exists: {db_name}", file=sys.stderr)
-        return False
-
-    db_user = os.getenv("DB_USER", "duncan")
-    db_password = os.getenv("DB_PASSWORD", "")
-    db_host = get_postgres_host()
-    db_port = os.getenv("DB_PORT", "5432")
-
-    print(f"⚙️ Creating database for branch: {db_name}")
-
-    try:
-        conn = psycopg2.connect(
-            dbname="postgres",
-            user=db_user,
-            password=db_password,
-            host=db_host,
-            port=db_port,
-        )
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            cur.execute(f"CREATE DATABASE {db_name};")
-        print(f"✅ Created database: {db_name}")
-        return True
-    except psycopg2.Error as e:
-        print(f"❌ Failed to create database {db_name}: {e}")
-        return False
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
 
 
 def migrate_and_seed(branch_db_name):
