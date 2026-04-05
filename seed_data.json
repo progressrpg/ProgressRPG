@@ -6,7 +6,7 @@
     "name": "Free (sandbox)",
     "price": "0.00",
     "interval": "monthly",
-    "stripe_price_id": "price_1SzfLuQCFC8LlZgCxV4IsVYE"
+    "stripe_price_id": ""
   }
 },
 {
@@ -16,7 +16,7 @@
     "name": "Premium monthly (sandbox)",
     "price": "5.00",
     "interval": "monthly",
-    "stripe_price_id": "price_1SzgxTQCFC8LlZgCcwkCOotQ"
+    "stripe_price_id": ""
   }
 },
 {
@@ -26,7 +26,7 @@
     "name": "Premium annual (sandbox)",
     "price": "50.00",
     "interval": "annual",
-    "stripe_price_id": "price_1TAbFVQCFC8LlZgCn1xygFIA"
+    "stripe_price_id": ""
   }
 },
 {
