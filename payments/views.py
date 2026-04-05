@@ -48,6 +48,10 @@ class StripeWebhookView(APIView):
             },
         )
 
+        logger.info(
+            f"[PAYMENTS.WEBHOOK] Received event_id={event.get('id')} type={event.get('type')} "
+        )
+
         # Already-processed events are safe to ignore.
         if not created and obj.processed_at:
             return HttpResponse(status=200)
@@ -77,6 +81,10 @@ class StripeWebhookView(APIView):
                 event.get("type"),
             )
             return HttpResponse(status=500)
+
+        logger.info(
+            f"[PAYMENTS.WEBHOOK] object created={created} existing_processed_at={obj.processed_at} existing_error={obj.processing_error}"
+        )
 
         return HttpResponse(status=200)
 
