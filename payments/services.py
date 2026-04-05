@@ -57,3 +57,24 @@ def provision_free_subscription(user):
         user_subscription.activate()
 
     return user_subscription
+
+
+def end_active_subscription_and_activate_free(user):
+    """Cancel a user's active subscription on Stripe (if premium) and provision a free one.
+
+    Returns the new free UserSubscription, or None if the user had no active subscription.
+    Raises stripe.error.StripeError if the Stripe cancellation fails.
+    """
+    active_sub = UserSubscription.active_for_user(user)
+    if active_sub is None:
+        return None
+
+    if (
+        active_sub.stripe_subscription_id
+        and active_sub.plan
+        and active_sub.plan.is_premium
+    ):
+        stripe.Subscription.cancel(active_sub.stripe_subscription_id)
+
+    active_sub.deactivate()
+    return provision_free_subscription(user)
