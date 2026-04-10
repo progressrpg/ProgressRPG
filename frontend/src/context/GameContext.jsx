@@ -55,8 +55,12 @@ export const GameProvider = ({ children }) => {
     const freshPlayer = await apiFetch(`/me/player/`);
     setPlayer(freshPlayer);
 
-    const freshCharacter = await apiFetch(`/me/character/`);
-    setCharacter(freshCharacter);
+    try {
+      const freshCharacter = await apiFetch(`/me/character/`);
+      setCharacter(freshCharacter);
+    } catch {
+      setCharacter(null);
+    }
   }, []);
 
   const fetchActivities = useCallback(async () => {

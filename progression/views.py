@@ -248,6 +248,9 @@ class CharacterActivityViewSet(viewsets.ModelViewSet):
     def current(self, request):
         character = request.user.player.current_character
 
+        if not character:
+            return Response({"current": None, "message": "No active character."})
+
         behaviour = getattr(character, "behaviour", None)
         if not behaviour:
             return Response(
@@ -280,7 +283,10 @@ class CharacterQuestViewSet(viewsets.ModelViewSet):
         if not player:
             return CharacterQuest.objects.none()
 
-        character = PlayerCharacterLink.get_character(player)
+        try:
+            character = PlayerCharacterLink.get_character(player)
+        except ValueError:
+            return CharacterQuest.objects.none()
         if not character:
             return CharacterQuest.objects.none()
         return CharacterQuest.objects.filter(character=character)

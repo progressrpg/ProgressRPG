@@ -7,7 +7,6 @@ from django.dispatch import receiver
 import logging
 
 from .models import Player, UserLogin
-from .utils import assign_character_to_player
 
 logger = logging.getLogger("general")
 
@@ -27,15 +26,6 @@ def create_player(sender, instance, created, raw=False, **kwargs):
         return
     if created:
         Player.objects.get_or_create(user=instance)
-
-
-@receiver(post_save, sender=Player)
-def assign_character(sender, instance, created, raw=False, **kwargs):
-    """Assign character when player created"""
-    if raw:
-        return
-    if created:
-        assign_character_to_player(instance)
 
 
 @receiver(user_logged_in)
