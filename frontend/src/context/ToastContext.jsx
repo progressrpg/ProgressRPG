@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useToasts } from '../hooks/useToasts';
-import ToastManager from '../components/Toast/ToastManager';
+// ToastManager is temporarily deactivated
+// import ToastManager from '../components/Toast/ToastManager';
 
 const ToastContext = createContext();
 
@@ -12,7 +13,7 @@ export function ToastProvider({ children, duration }) {
   return (
     <ToastContext.Provider value={{ toasts, showToast }}>
       {children}
-      <ToastManager messages={toasts} />
+      {/* <ToastManager messages={toasts} /> */}
     </ToastContext.Provider>
   );
 }

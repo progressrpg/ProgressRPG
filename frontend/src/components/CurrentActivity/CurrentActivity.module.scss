@@ -79,11 +79,6 @@
   animation: borderPulse 2s ease-in-out infinite;
 }
 
-.isActive .playerCard,
-.isActive .characterCard {
-  filter: saturate(1.2);
-}
-
 @keyframes borderPulse {
   0%,
   100% {

@@ -486,7 +486,7 @@ class ActivityTimer(Timer):
 
     def complete(self, newName=None):
         """
-        Complete the activity timer and calculate the XP reward for the activity.
+        Complete the activity timer and return the XP gained for the activity.
         """
         if not self.activity:
             logger.warning(
@@ -524,7 +524,7 @@ class ActivityTimer(Timer):
 
         self.reset()
 
-        return self
+        return xp_gained
 
     def _reset_hook(self):
         self.activity = None
@@ -589,9 +589,7 @@ class QuestTimer(Timer):
             raise RuntimeError("Cannot complete: character is None.")
 
         try:
-            from character.models import PlayerCharacterLink
-
-            player = PlayerCharacterLink.get_player(character)
+            player = character.current_player
 
             character.refresh_from_db()
 
@@ -600,15 +598,21 @@ class QuestTimer(Timer):
             rewards_summary = character.complete_quest(self.quest)
 
             xp_gained = rewards_summary["xp_gained"]
-            message_text = f"Quest completed. Character got {xp_gained} XP!"
-            ServerMessage.objects.create(
-                group=player.group_name,
-                type="notification",
-                action="notification",
-                data={"completion_data": rewards_summary},
-                message=message_text,
-                is_draft=False,
-            )
+            if player:
+                message_text = f"Quest completed. Character got {xp_gained} XP!"
+                ServerMessage.objects.create(
+                    group=player.group_name,
+                    type="notification",
+                    action="notification",
+                    data={"completion_data": rewards_summary},
+                    message=message_text,
+                    is_draft=False,
+                )
+            else:
+                logger.info(
+                    "[QUESTTIMER.COMPLETE] Character %s has no active player link; skipping quest completion notification.",
+                    character.id,
+                )
             return self, character
 
         except Exception as e:

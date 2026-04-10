@@ -60,8 +60,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]

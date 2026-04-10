@@ -225,7 +225,8 @@ class Character(Person, LifeCycleMixin, Movable):
         """
         Retrieve the player associated with this character.
         """
-        return PlayerCharacterLink.get_player(self)
+        link = self.active_link
+        return link.player if link else None
 
     def get_currency(self, code="coins") -> "CharacterCurrency":
         currency_def, _ = Currency.objects.get_or_create(

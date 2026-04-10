@@ -137,6 +137,13 @@ $button-variants: (
     hover: map.get(c.$accent-scale, 300),
     active: map.get(c.$accent-scale, 400),
     disabled: map.get(c.$accent-scale, 100)
+  ),
+  danger: (
+    tone: inverted,
+    bg: $color-danger,
+    hover: #b71c1c,
+    active: #8e0000,
+    disabled: rgba($color-danger, 0.4)
   )
 );
 

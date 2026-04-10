@@ -42,36 +42,6 @@
   }
 }
 
-.actions {
-  display: flex;
-  gap: v.$spacing-md;
-  justify-content: center;
-}
-
-.actionButton {
-  padding: v.$spacing-sm v.$spacing-lg;
-  border: 1px solid c.$color-border-primary;
-  border-radius: v.$border-radius;
-  background: transparent;
-  color: c.$color-border-primary;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  @include t.apply-text-style(t.$text-body);
-
-  &:hover {
-    background: rgba(c.$color-border-primary, 0.1);
-    border-color: #5a4cff;
-    color: #5a4cff;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    background: rgba(c.$color-border-primary, 0.2);
-    transform: translateY(0);
-  }
-}
-
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -108,6 +78,70 @@
   word-break: break-word;
 }
 
+.usernameItem {
+  grid-column: 1 / -1;
+}
+
+.usernameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: v.$spacing-sm;
+  flex-wrap: wrap;
+}
+
+.inlineButtonLink {
+  text-decoration: none;
+}
+
+.inlineButton {
+  white-space: nowrap;
+}
+
+.description {
+  margin-bottom: v.$spacing-md;
+  color: rgba(0, 0, 0, 0.7);
+  @include t.apply-text-style(t.$text-body);
+}
+
+.input {
+  padding: v.$spacing-sm;
+  border: 2px solid rgba(c.$color-border-primary, 0.3);
+  border-radius: v.$border-radius;
+  font-size: 1em;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  @include t.apply-text-style(t.$text-body);
+
+  &:focus {
+    outline: none;
+    border-color: c.$color-border-primary;
+  }
+}
+
+.deleteConfirmation {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-md;
+  padding: v.$padding-base;
+  border: 2px solid #d32f2f;
+  border-radius: v.$border-radius;
+  background: rgba(211, 47, 47, 0.05);
+}
+
+.warningText {
+  color: #d32f2f;
+  font-weight: 500;
+  margin: 0;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.buttonGroup {
+  display: flex;
+  gap: v.$spacing-sm;
+  flex-wrap: wrap;
+}
+
 .bioSection {
   margin-bottom: v.$spacing-md;
   padding-bottom: v.$spacing-md;
@@ -140,12 +174,11 @@
     grid-template-columns: 1fr;
   }
 
-  .actions {
-    flex-direction: column;
+  .inlineButton {
+    width: 100%;
   }
 
-  .actionButton {
+  .inlineButtonLink {
     width: 100%;
-    text-align: center;
   }
 }
