@@ -6,11 +6,17 @@ import styles from "./ActivityInput.module.scss";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
 
-// Track whether the daily reward modal has been shown this browser session
-const DAILY_REWARD_SESSION_KEY = "supportFlow_dailyRewardShown";
+const WELCOME_MESSAGE_LAST_EVENT_KEY = "supportFlow_lastLoginEventAtShown";
 
 export default function ActivityInput() {
-  const { activityTimer, fetchCharacterCurrent, fetchActivities } = useGame();
+  const {
+    activityTimer,
+    fetchCharacterCurrent,
+    fetchActivities,
+    loginState,
+    loginStreak,
+    loginEventAt,
+  } = useGame();
   const { currentActivity, status, stop, startActivity, elapsed } = activityTimer;
 
   const [name, setName] = useState("");
@@ -20,7 +26,7 @@ export default function ActivityInput() {
   const isActive = status === "active";
 
   const {
-    openDailyReward,
+    openWelcomeMessage,
     openActivityReward,
     openSupportMode,
     flowState,
@@ -33,17 +39,26 @@ export default function ActivityInput() {
       },
     });
 
-  // Show daily reward modal once per browser session.
-  // openDailyReward is stable (useCallback with no deps) so omitting it
-  // from the array is safe and intentional – we only want this to run once.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!sessionStorage.getItem(DAILY_REWARD_SESSION_KEY)) {
-      sessionStorage.setItem(DAILY_REWARD_SESSION_KEY, "true");
-      openDailyReward();
+    if (loginState === "none" || !loginEventAt) return;
+
+    let lastShownEventAt = null;
+    try {
+      lastShownEventAt = sessionStorage.getItem(WELCOME_MESSAGE_LAST_EVENT_KEY);
+    } catch {
+      // If sessionStorage is unavailable, fall back to opening the modal.
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    if (lastShownEventAt === loginEventAt) return;
+
+    openWelcomeMessage({ loginState, loginStreak });
+
+    try {
+      sessionStorage.setItem(WELCOME_MESSAGE_LAST_EVENT_KEY, loginEventAt);
+    } catch {
+      // Ignore storage failures and keep app flow functional.
+    }
+  }, [loginState, loginStreak, loginEventAt, openWelcomeMessage]);
 
   useEffect(() => () => timeoutRef.current && clearTimeout(timeoutRef.current), []);
 

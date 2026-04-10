@@ -107,6 +107,9 @@ class FetchInfoResponseSerializer(serializers.Serializer):
     activity_timer = serializers.JSONField()
     population_centre = serializers.JSONField(allow_null=True)
     xp_mods = serializers.ListField(child=serializers.JSONField())
+    login_state = serializers.CharField()
+    login_streak = serializers.IntegerField()
+    login_event_at = serializers.DateTimeField(allow_null=True)
 
 
 class DownloadUserDataPlayerSerializer(serializers.Serializer):

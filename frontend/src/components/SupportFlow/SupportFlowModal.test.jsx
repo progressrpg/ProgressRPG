@@ -36,14 +36,36 @@ describe("SupportFlowModal", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("opens daily reward screen", async () => {
+  it("opens welcome message screen", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(
+      <Fixture
+        initialEvent="OPEN_WELCOME_MESSAGE"
+        initialEventPayload={{ loginState: "streak_continues", loginStreak: 4 }}
+      />
+    );
     await user.click(screen.getByRole("button", { name: "Open" }));
     expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    expect(
+      screen.getByText("Welcome back! Your login streak is now 4 days.")
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Get support" })
+    ).toBeInTheDocument();
+  });
+
+  it("renders repeat-login welcome copy", async () => {
+    const user = userEvent.setup();
+    render(
+      <Fixture
+        initialEvent="OPEN_WELCOME_MESSAGE"
+        initialEventPayload={{ loginState: "already_logged_today", loginStreak: 4 }}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    expect(
+      screen.getByText("Welcome back! You logged in earlier today.")
     ).toBeInTheDocument();
   });
 
@@ -75,17 +97,17 @@ describe("SupportFlowModal", () => {
     ).toBeInTheDocument();
   });
 
-  it("navigates from daily reward to support menu", async () => {
+  it("navigates from welcome message to support menu", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     expect(screen.getByText("How are you feeling?")).toBeInTheDocument();
   });
 
-  it("back from support menu returns to daily reward", async () => {
+  it("back from support menu returns to welcome message", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
@@ -111,7 +133,7 @@ describe("SupportFlowModal", () => {
 
   it("back from ready menu returns to support menu", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "I'm ready to start" }));
@@ -122,7 +144,7 @@ describe("SupportFlowModal", () => {
 
   it("back from not-ready menu returns to support menu", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "I'm not ready yet" }));
@@ -133,7 +155,7 @@ describe("SupportFlowModal", () => {
 
   it("header back from activity input returns to ready menu", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "I'm ready to start" }));
@@ -147,7 +169,7 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
     render(
-      <Fixture initialEvent="OPEN_DAILY_REWARD" onConfirmActivity={onConfirm} />
+      <Fixture initialEvent="OPEN_WELCOME_MESSAGE" onConfirmActivity={onConfirm} />
     );
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
@@ -202,7 +224,7 @@ describe("SupportFlowModal", () => {
 
   it("closes modal when close button is clicked", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     expect(screen.getByText("Welcome back!")).toBeInTheDocument();
     await user.click(screen.getByLabelText("Close modal"));
@@ -211,7 +233,7 @@ describe("SupportFlowModal", () => {
 
   it("priority-three preset shows three task inputs", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "I'm ready to start" }));
@@ -234,7 +256,7 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
     render(
-      <Fixture initialEvent="OPEN_DAILY_REWARD" onConfirmActivity={onConfirm} />
+      <Fixture initialEvent="OPEN_WELCOME_MESSAGE" onConfirmActivity={onConfirm} />
     );
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
@@ -254,7 +276,7 @@ describe("SupportFlowModal", () => {
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.9);
 
     render(
-      <Fixture initialEvent="OPEN_DAILY_REWARD" onConfirmActivity={onConfirm} />
+      <Fixture initialEvent="OPEN_WELCOME_MESSAGE" onConfirmActivity={onConfirm} />
     );
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
@@ -279,7 +301,7 @@ describe("SupportFlowModal", () => {
 
   it("priority-three randomise remains disabled when empty", async () => {
     const user = userEvent.setup();
-    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "I'm ready to start" }));

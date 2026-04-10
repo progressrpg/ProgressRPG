@@ -2,7 +2,7 @@
 // Hook that manages SupportFlow modal state and exposes a clean API to callers.
 //
 // Usage:
-//   const { openDailyReward, openActivityReward, flowState, flowDispatch, handleConfirmActivity }
+//   const { openWelcomeMessage, openActivityReward, flowState, flowDispatch, handleConfirmActivity }
 //     = useSupportFlow({ onStartActivity });
 //
 // Then render <SupportFlowModal state={flowState} dispatch={flowDispatch} onConfirmActivity={handleConfirmActivity} />
@@ -26,8 +26,8 @@ export function useSupportFlow({ onStartActivity } = {}) {
   const flowStateRef = useRef(flowState);
   useEffect(() => { flowStateRef.current = flowState; }, [flowState]);
 
-  const openDailyReward = useCallback(() => {
-    flowDispatch({ type: "OPEN_DAILY_REWARD" });
+  const openWelcomeMessage = useCallback(({ loginState = "none", loginStreak = 0 } = {}) => {
+    flowDispatch({ type: "OPEN_WELCOME_MESSAGE", loginState, loginStreak });
   }, []);
 
   const openActivityReward = useCallback(({ xpGained = null, activityName = null } = {}) => {
@@ -42,13 +42,16 @@ export function useSupportFlow({ onStartActivity } = {}) {
     const state = flowStateRef.current;
     if (!state.isOpen) return;
     const { activityText, durationSeconds } = state.ctx;
-    const finalActivityText = activityTextOverride ?? activityText;
+    const finalActivityText =
+      typeof activityTextOverride === "string"
+        ? activityTextOverride
+        : activityText;
     onStartActivity?.({ activityText: finalActivityText, durationSeconds });
     flowDispatch({ type: "CLOSE" });
   }, [onStartActivity]);
 
   return {
-    openDailyReward,
+    openWelcomeMessage,
     openActivityReward,
     openSupportMode,
     flowState,

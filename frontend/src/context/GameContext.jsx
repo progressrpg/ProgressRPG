@@ -29,6 +29,9 @@ export const GameProvider = ({ children }) => {
     activityTimerInfo,
     populationCentreInfo,
     xpMods: xpModsOnload,
+    loginState,
+    loginStreak,
+    loginEventAt,
     loading,
     error,
     buildNumber,
@@ -140,6 +143,9 @@ export const GameProvider = ({ children }) => {
       setCharacterCurrentActivity,
       populationCentre,
       fetchPopulationCentre,
+      loginState,
+      loginStreak,
+      loginEventAt,
       loading,
       buildNumber,
     }),
@@ -158,6 +164,9 @@ export const GameProvider = ({ children }) => {
       buildNumber,
       populationCentre,
       fetchPopulationCentre,
+      loginState,
+      loginStreak,
+      loginEventAt,
     ]
   );
 

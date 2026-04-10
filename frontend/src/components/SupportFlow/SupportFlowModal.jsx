@@ -4,7 +4,7 @@
 
 import { useCallback } from "react";
 import Modal from "../Modal/Modal";
-import DailyRewardScreen from "./screens/DailyRewardScreen";
+import WelcomeMessageScreen from "./screens/WelcomeMessageScreen";
 import ActivityRewardScreen from "./screens/ActivityRewardScreen";
 import SupportMenuScreen from "./screens/SupportMenuScreen";
 import ActivityMenuScreen from "./screens/ActivityMenuScreen";
@@ -15,7 +15,7 @@ import PostSupportMenuScreen from "./screens/PostSupportMenuScreen";
 
 // Screen title lookup – keeps JSX clean
 const SCREEN_TITLES = {
-  DAILY_REWARD: "Welcome back!",
+  WELCOME_MESSAGE: "Welcome back!",
   ACTIVITY_REWARD: "Activity complete!",
   SUPPORT_MENU: "How are you feeling?",
   READY_ACTIVITY_MENU: "Choose an activity",
@@ -50,9 +50,11 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
 
   function renderScreen() {
     switch (screen) {
-      case "DAILY_REWARD":
+      case "WELCOME_MESSAGE":
         return (
-          <DailyRewardScreen
+          <WelcomeMessageScreen
+            loginState={ctx.welcomeMessageLoginState}
+            loginStreak={ctx.welcomeMessageLoginStreak}
             onStart={close}
             onSupport={() => dispatch({ type: "GO_SUPPORT_MENU", origin: "reward" })}
           />

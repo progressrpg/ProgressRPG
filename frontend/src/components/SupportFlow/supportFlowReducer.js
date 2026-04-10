@@ -70,6 +70,8 @@ export const ACTIVITY_PRESETS = {
 const initialCtx = (entrypoint = null) => ({
   entrypoint,
   supportMenuOrigin: null,
+  welcomeMessageLoginState: "none",
+  welcomeMessageLoginStreak: 0,
   xpGained: null,
   completedActivityName: null,
   supportActionId: null,
@@ -90,12 +92,24 @@ const initialCtx = (entrypoint = null) => ({
 export function supportFlowReducer(state, event) {
   // Global events that work regardless of current screen
   switch (event.type) {
-    case "OPEN_DAILY_REWARD":
+    case "OPEN_WELCOME_MESSAGE":
+      {
+        const parsedStreak = Number(event.loginStreak);
+        const normalizedStreak = Number.isFinite(parsedStreak) ? parsedStreak : 0;
+
       return {
         isOpen: true,
-        screen: "DAILY_REWARD",
-        ctx: initialCtx("daily"),
+        screen: "WELCOME_MESSAGE",
+        ctx: {
+          ...initialCtx("welcomeMessage"),
+          welcomeMessageLoginState:
+            typeof event.loginState === "string" && event.loginState.trim()
+              ? event.loginState.trim()
+              : "none",
+          welcomeMessageLoginStreak: normalizedStreak,
+        },
       };
+      }
 
     case "OPEN_SUPPORT_MODE":
       return {
@@ -145,8 +159,8 @@ export function supportFlowReducer(state, event) {
       };
 
     case "BACK_FROM_SUPPORT_MENU":
-      if (state.ctx.entrypoint === "daily") {
-        return { ...state, screen: "DAILY_REWARD" };
+      if (state.ctx.entrypoint === "welcomeMessage") {
+        return { ...state, screen: "WELCOME_MESSAGE" };
       }
       if (state.ctx.entrypoint === "postActivity") {
         return { ...state, screen: "ACTIVITY_REWARD" };
