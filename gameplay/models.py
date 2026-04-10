@@ -486,7 +486,7 @@ class ActivityTimer(Timer):
 
     def complete(self, newName=None):
         """
-        Complete the activity timer and calculate the XP reward for the activity.
+        Complete the activity timer and return the XP gained for the activity.
         """
         if not self.activity:
             logger.warning(
@@ -524,7 +524,7 @@ class ActivityTimer(Timer):
 
         self.reset()
 
-        return self
+        return xp_gained
 
     def _reset_hook(self):
         self.activity = None

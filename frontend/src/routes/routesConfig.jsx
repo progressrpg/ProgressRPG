@@ -9,7 +9,7 @@ const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage"));
 const AccountPage = lazy(() => import("../pages/Account/Account"));
 const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
-const VillagePage = lazy(() => import("../pages/VillagePage/VillagePage"));
+//const VillagePage = lazy(() => import("../pages/VillagePage/VillagePage"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
 const SkillsPage = lazy(() => import("../pages/SkillsPage"));
 const TasksPage = lazy(() => import("../pages/TasksPage"));
@@ -66,7 +66,7 @@ export const routes = [
       </PrivateRoute>
     ),
   },
-  {
+  /* {
     path: "/village",
     element: (
       <PrivateRoute>
@@ -75,7 +75,7 @@ export const routes = [
         </RequireOnboardingComplete>
       </PrivateRoute>
     ),
-  },
+  }, */
   {
     path: "/account",
     element: (

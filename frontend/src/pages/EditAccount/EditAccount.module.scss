@@ -64,6 +64,12 @@
   }
 }
 
+.stubMessage {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.7);
+  @include t.apply-text-style(t.$text-body);
+}
+
 .description {
   margin-bottom: v.$spacing-md;
   color: rgba(0, 0, 0, 0.7);

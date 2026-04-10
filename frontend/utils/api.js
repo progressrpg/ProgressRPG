@@ -21,7 +21,7 @@ function clearAuthAndRedirect() {
 
   // Give user feedback before redirect
   console.warn('[Auth] Session expired, redirecting to login...');
-  
+
   // Small delay to allow any error messages to display
   setTimeout(() => {
     window.location.href = '/login';
@@ -67,8 +67,9 @@ async function getValidAccessToken() {
 }
 
 
-export async function apiFetch(path, options = {}, explicitAccessToken=null) {
+export async function apiFetch(path, options = {}, explicitAccessToken = null) {
   try {
+    const { responseType = 'json', ...fetchOptions } = options;
     const accessToken = explicitAccessToken || await getValidAccessToken();
 
     if (!accessToken) {
@@ -76,13 +77,13 @@ export async function apiFetch(path, options = {}, explicitAccessToken=null) {
     }
 
     const headers = {
-      ...(options.headers || {}),
+      ...(fetchOptions.headers || {}),
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     };
 
     const response = await fetch(`${API_URL}${path}`, {
-      ...options,
+      ...fetchOptions,
       headers,
     });
 
@@ -104,7 +105,17 @@ export async function apiFetch(path, options = {}, explicitAccessToken=null) {
       throw new Error(errorText || 'API error');
     }
 
-    return response.json();
+    switch (responseType) {
+      case 'blob':
+        return response.blob();
+      case 'text':
+        return response.text();
+      case 'raw':
+        return response;
+      case 'json':
+      default:
+        return response.json();
+    }
   } catch (err) {
     console.error('apiFetch error:', err);
     throw err;

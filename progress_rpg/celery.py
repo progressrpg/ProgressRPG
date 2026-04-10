@@ -41,11 +41,11 @@ app.conf.beat_schedule = {
         "task": "users.tasks.perform_account_wipe",
         "schedule": crontab(minute=0, hour=0),
     },
-    "generate_character_days_1am": {
-        "task": "character.tasks.generate_character_days",
-        "schedule": crontab(hour=1, minute=0),
-        "args": (),
-    },
+    # "generate_character_days_1am": {
+    #     "task": "character.tasks.generate_character_days",
+    #     "schedule": crontab(hour=1, minute=0),
+    #     "args": (),
+    # },
     "calculate-daily-metrics": {
         "task": "metrics.tasks.calculate_daily_metrics",
         "schedule": crontab(hour=1, minute=0),  # Daily at 1 AM
