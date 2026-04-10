@@ -36,7 +36,7 @@ export default function Navbar({ onMenuClick }) {
         <div className={styles.leftLinks}>
           <Link to={isAuthenticated ? '/game' : '/'} aria-label={isAuthenticated ? 'Go to game' : 'Go to home'}>
             <Button
-              variant={isAuthenticated && isGamePage ? "secondary" : "primary"}
+              variant={isAuthenticated && isGamePage ? "primary" : "secondary"}
               className={styles.navLink}
             >
               {isAuthenticated ? 'Game' : 'Home'}
@@ -47,7 +47,7 @@ export default function Navbar({ onMenuClick }) {
             <>
               <Link to="/activities" aria-label="Go to activities">
                 <Button
-                  variant={isActivitiesPage ? 'secondary' : 'primary'}
+                  variant={isActivitiesPage ? 'primary' : 'secondary'}
                   className={styles.navLink}
                 >
                   Activities
@@ -78,7 +78,7 @@ export default function Navbar({ onMenuClick }) {
               <Link to="/account" aria-label="Go to your account">
                 <Button
                   className={styles.navLink}
-                  variant={isAccountPage ? 'secondary' : 'primary'}
+                  variant={isAccountPage ? 'primary' : 'secondary'}
                 >
                   Account
                 </Button>
@@ -119,7 +119,7 @@ export default function Navbar({ onMenuClick }) {
             <>
               <Link to="/game" aria-label="Go to game">
                 <Button
-                  variant={isGamePage ? "secondary" : "primary"}
+                  variant={isGamePage ? "primary" : "secondary"}
                   className={styles.navLink}
                 >
                   Game
