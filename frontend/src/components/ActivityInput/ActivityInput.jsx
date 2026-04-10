@@ -26,7 +26,10 @@ export default function ActivityInput() {
       },
     });
 
-  // Show daily reward modal once per browser session
+  // Show daily reward modal once per browser session.
+  // openDailyReward is stable (useCallback with no deps) so omitting it
+  // from the array is safe and intentional – we only want this to run once.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!sessionStorage.getItem(DAILY_REWARD_SESSION_KEY)) {
       sessionStorage.setItem(DAILY_REWARD_SESSION_KEY, "true");

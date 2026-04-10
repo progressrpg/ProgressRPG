@@ -7,7 +7,7 @@
 //
 // Then render <SupportFlowModal state={flowState} dispatch={flowDispatch} onConfirmActivity={handleConfirmActivity} />
 
-import { useReducer, useCallback } from "react";
+import { useReducer, useCallback, useRef, useEffect } from "react";
 import { supportFlowReducer } from "../components/SupportFlow/supportFlowReducer";
 
 /**
@@ -21,6 +21,11 @@ export function useSupportFlow({ onStartActivity } = {}) {
     isOpen: false,
   });
 
+  // Keep a ref to the latest flowState so handleConfirmActivity doesn't
+  // get recreated on every keystroke in the activity text input.
+  const flowStateRef = useRef(flowState);
+  useEffect(() => { flowStateRef.current = flowState; }, [flowState]);
+
   const openDailyReward = useCallback(() => {
     flowDispatch({ type: "OPEN_DAILY_REWARD" });
   }, []);
@@ -30,11 +35,12 @@ export function useSupportFlow({ onStartActivity } = {}) {
   }, []);
 
   const handleConfirmActivity = useCallback(() => {
-    if (!flowState.isOpen) return;
-    const { activityText, durationSeconds } = flowState.ctx;
+    const state = flowStateRef.current;
+    if (!state.isOpen) return;
+    const { activityText, durationSeconds } = state.ctx;
     onStartActivity?.({ activityText, durationSeconds });
     flowDispatch({ type: "CLOSE" });
-  }, [flowState, onStartActivity]);
+  }, [onStartActivity]);
 
   return {
     openDailyReward,
