@@ -394,24 +394,16 @@ class FetchInfoAPIView(APIView):
         player = request.user.player
         build_number = get_build_number()
 
-        try:
-            character = PlayerCharacterLink.get_character(player)
-        except ValueError as e:
-            logger.error(
-                f"[FETCH INFO] Error fetching character for player {player.id}: {e}",
-                exc_info=True,
-            )
-            return Response(
-                {"error": "Unable to fetch character for this player."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        active_link = player.active_link
+        character = active_link.character if active_link else None
 
         population_centre = None
-        if hasattr(character, "population_centre") and character.population_centre:
+        if character and character.population_centre:
             population_centre = character.population_centre
 
         logger.info(
-            f"[FETCH INFO] Fetching data for player {player.id}, character {character.id}"
+            f"[FETCH INFO] Fetching data for player {player.id}, "
+            f"character {character.id if character else None}"
         )
 
         # --- Track user session ---
@@ -425,11 +417,10 @@ class FetchInfoAPIView(APIView):
         last = player.last_seen
         player.last_seen = now
         player.save(update_fields=["last_seen"])
-        if not last or (now - last) > timedelta(minutes=30):
+        if character and (not last or (now - last) > timedelta(minutes=30)):
             logger.info(
                 f"[FETCH INFO] Online sync for player {player.id}, character {character.id}"
             )
-
             character.behaviour.sync_to_now()
 
         handle_online_login(player)
@@ -437,7 +428,6 @@ class FetchInfoAPIView(APIView):
         login_state_data = get_login_state(request.user)
 
         # --- Get active link xp modifiers ---
-        active_link = player.active_link
         xp_mods = []
         if active_link:
             now = timezone.now()
@@ -465,7 +455,9 @@ class FetchInfoAPIView(APIView):
                 "player": PlayerSerializer(player, context={"request": request}).data,
                 "character": CharacterSerializer(
                     character, context={"request": request}
-                ).data,
+                ).data
+                if character
+                else None,
                 "activity_timer": ActivityTimerSerializer(
                     player.activity_timer, context={"request": request}
                 ).data,
@@ -523,14 +515,8 @@ class DownloadUserDataAPIView(APIView):
     def get(self, request):
         user = request.user
         player = user.player
-        try:
-            character_obj = PlayerCharacterLink().get_character(player)
-        except Character.DoesNotExist:
-            logger.error(
-                f"Character not found for user {user.username} (ID: {user.id}).",
-                exc_info=True,
-            )
-            raise Http404("Character data not found.")
+        active_link = player.active_link
+        character_obj = active_link.character if active_link else None
 
         activities_json = PlayerActivitySerializer(
             player.activities.all(), many=True
@@ -553,7 +539,9 @@ class DownloadUserDataAPIView(APIView):
                 "character_name": character_obj.name,
                 "level": character_obj.level,
                 "total_activities": character_obj.total_activities,
-            },
+            }
+            if character_obj
+            else None,
         }
 
         logger.info(

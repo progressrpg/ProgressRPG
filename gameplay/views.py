@@ -49,23 +49,27 @@ class QuestViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def eligible(self, request):
-        player = request.user.player
-        try:
-            character = PlayerCharacterLink.get_character(player)
-        except ValueError as e:
-            logger.warning(
-                "Failed to get character for player %s: %s",
-                player.id if hasattr(player, "id") else player,
-                e,
-            )
-            return Response(
-                {"error": "Unable to determine eligible quests for your character."},
-                status=400,
-            )
+        # check_quest_eligibility is not called at this time.
+        # The character link and eligibility logic below is kept for future use:
+        #
+        #   player = request.user.player
+        #   try:
+        #       character = PlayerCharacterLink.get_character(player)
+        #   except ValueError as e:
+        #       logger.warning(
+        #           "Failed to get character for player %s: %s",
+        #           player.id if hasattr(player, "id") else player,
+        #           e,
+        #       )
+        #       return Response(
+        #           {"error": "Unable to determine eligible quests for your character."},
+        #           status=400,
+        #       )
+        #   eligible_quests = check_quest_eligibility(character, player)
+        #   serializer = self.get_serializer(eligible_quests, many=True)
+        #   return Response({"eligible_quests": serializer.data})
 
-        eligible_quests = check_quest_eligibility(character, player)
-        serializer = self.get_serializer(eligible_quests, many=True)
-        return Response({"eligible_quests": serializer.data})
+        return Response({"eligible_quests": []})
 
 
 class BaseTimerViewSet(viewsets.ViewSet):
@@ -152,6 +156,8 @@ class QuestTimerViewSet(BaseTimerViewSet):
 
     def get_timer(self, request):
         character = request.user.player.current_character
+        if character is None:
+            raise NotFound("No active character found. Please link a character to access quest timers.")
         timer = character.quest_timer
         if timer is None:
             raise NotFound(f"Quest timer not found")

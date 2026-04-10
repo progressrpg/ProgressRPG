@@ -57,13 +57,15 @@ export default function Infobar() {
         <span className={styles.xpModifiers}>{formatXpMods()}</span>
       </div>
 
-      <div className={`${styles.infoBox} ${styles.character}`}>
-        <span className={styles.label}>CHARACTER</span>
-        <div className={styles.content}>
-          <span className={styles.value}>{character.first_name}</span>
-          <span className={styles.level}>Level {character.level}</span>
+      {character && (
+        <div className={`${styles.infoBox} ${styles.character}`}>
+          <span className={styles.label}>CHARACTER</span>
+          <div className={styles.content}>
+            <span className={styles.value}>{character.first_name}</span>
+            <span className={styles.level}>Lv. {character.level}</span>
+          </div>
         </div>
-      </div>
+      )}
       */}
     </div>
   );

@@ -420,6 +420,10 @@ class CharacterNPCTests(TestCase):
         # Should now be an NPC
         self.assertTrue(self.player_character.is_npc)
 
+    def test_current_player_returns_none_without_active_link(self):
+        """Character.current_player should be None if there is no active link."""
+        self.assertIsNone(self.npc1.current_player)
+
     def test_has_available_classmethod(self):
         """Test the has_available classmethod returns True when NPCs are available"""
         # Should return True because we have NPCs with can_link=True and no active links
