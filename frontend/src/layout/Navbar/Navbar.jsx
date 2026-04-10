@@ -12,7 +12,7 @@ export default function Navbar({ onMenuClick }) {
   const accountMobileRef = useRef(null);
 
   const isGamePage = location.pathname === '/game';
-  const isVillagePage = location.pathname === '/village';
+  // const isVillagePage = location.pathname === '/village';
   const isActivitiesPage = location.pathname === '/activities';
   const isAccountPage = location.pathname === '/account';
 
@@ -53,14 +53,14 @@ export default function Navbar({ onMenuClick }) {
                   Activities
                 </Button>
               </Link>
-              <Link to="/village" aria-label="Go to village">
+              {/* <Link to="/village" aria-label="Go to village">
                 <Button
                   variant={isVillagePage ? 'secondary' : 'primary'}
                   className={styles.navLink}
                 >
                   Village
                 </Button>
-              </Link>
+              </Link> */}
             </>
           )}
         </div>
