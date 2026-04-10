@@ -38,19 +38,22 @@ export const ACTIVITY_PRESETS = {
     id: "tiniest_step",
     label: "Write the tiniest first step",
     durationSeconds: null,
-    placeholder: "e.g. open the document",
+    placeholder: "e.g. open the document, send one email, write one sentence",
+    hint: "Make it so small it feels almost too easy. Examples: open the file, write the first line, send a single message.",
   },
   five_minutes: {
     id: "five_minutes",
     label: "Do it for 5 minutes",
     durationSeconds: 5 * 60,
     placeholder: "e.g. work on the report",
+    hint: null,
   },
   other: {
     id: "other",
     label: "Something else",
     durationSeconds: null,
     placeholder: "What are you going to do?",
+    hint: null,
   },
 };
 

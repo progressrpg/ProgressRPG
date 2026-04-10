@@ -8,9 +8,7 @@ export default function SupportMenuScreen({ onReady, onNotReady }) {
       <p>How are you feeling right now?</p>
       <ButtonFrame>
         <Button onClick={onReady}>I&apos;m ready to start</Button>
-        <Button variant="secondary" onClick={onNotReady}>
-          I&apos;m not ready yet
-        </Button>
+        <Button onClick={onNotReady}>I&apos;m not ready yet</Button>
       </ButtonFrame>
     </div>
   );

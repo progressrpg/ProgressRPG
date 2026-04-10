@@ -8,9 +8,7 @@ export default function PostSupportMenuScreen({ onTryTask, onMoreSupport }) {
       <p>How are you feeling now?</p>
       <ButtonFrame>
         <Button onClick={onTryTask}>Try starting a task</Button>
-        <Button variant="secondary" onClick={onMoreSupport}>
-          Do another support action
-        </Button>
+        <Button onClick={onMoreSupport}>Do another support action</Button>
       </ButtonFrame>
     </div>
   );

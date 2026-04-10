@@ -8,9 +8,7 @@ import styles from "../SupportFlowModal.module.scss";
 export default function ActivityInputScreen({
   activityPresetId,
   activityText,
-  durationSeconds,
   onChangeText,
-  onChangeDuration,
   onConfirm,
   onBack,
 }) {
@@ -23,19 +21,13 @@ export default function ActivityInputScreen({
 
   const preset = ACTIVITY_PRESETS[activityPresetId];
   const placeholder = preset?.placeholder ?? "What are you going to do?";
+  const hint = preset?.hint ?? null;
 
-  const durationMinutes =
-    typeof durationSeconds === "number" ? Math.round(durationSeconds / 60) : "";
-
-  function handleDurationChange(e) {
-    const raw = e.target.value;
-    if (raw === "") {
-      onChangeDuration(null);
-    } else {
-      const mins = parseInt(raw, 10);
-      if (!isNaN(mins) && mins > 0) {
-        onChangeDuration(mins * 60);
-      }
+  function handleKeyDown(e) {
+    // Enter (without Shift) submits, same as clicking "Start activity"
+    if (e.key === "Enter" && !e.shiftKey && activityText.trim()) {
+      e.preventDefault();
+      onConfirm();
     }
   }
 
@@ -43,37 +35,24 @@ export default function ActivityInputScreen({
     <div className={styles.activityInputScreen}>
       <p>Describe what you&apos;ll do:</p>
 
+      {hint && <p className={styles.hint}>{hint}</p>}
+
       <textarea
         ref={inputRef}
         className={styles.activityTextArea}
         value={activityText}
         onChange={(e) => onChangeText(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={3}
         aria-label="Activity description"
       />
 
-      <div className={styles.durationRow}>
-        <label htmlFor="support-duration" className={styles.durationLabel}>
-          Time limit (minutes, optional):
-        </label>
-        <input
-          id="support-duration"
-          className={styles.durationInput}
-          type="number"
-          min={1}
-          value={durationMinutes}
-          onChange={handleDurationChange}
-          placeholder="e.g. 5"
-          aria-label="Optional time limit in minutes"
-        />
-      </div>
-
       <ButtonFrame>
         <Button onClick={onConfirm} disabled={!activityText.trim()}>
           Start activity
         </Button>
-        <Button variant="secondary" onClick={onBack}>
+        <Button onClick={onBack}>
           Back
         </Button>
       </ButtonFrame>

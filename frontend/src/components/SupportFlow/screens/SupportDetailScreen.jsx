@@ -23,9 +23,7 @@ export default function SupportDetailScreen({
       </ol>
       <ButtonFrame>
         <Button onClick={onTryTask}>Try starting a task</Button>
-        <Button variant="secondary" onClick={onDone}>
-          Do another support action
-        </Button>
+        <Button onClick={onDone}>Do another support action</Button>
       </ButtonFrame>
     </div>
   );

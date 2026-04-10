@@ -8,9 +8,7 @@ export default function DailyRewardScreen({ onStart, onSupport }) {
       <p>Welcome back! 🌟 You showed up today.</p>
       <ButtonFrame>
         <Button onClick={onStart}>Start</Button>
-        <Button variant="secondary" onClick={onSupport}>
-          Get support
-        </Button>
+        <Button onClick={onSupport}>Get support</Button>
       </ButtonFrame>
     </div>
   );

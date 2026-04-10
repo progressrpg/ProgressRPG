@@ -2,6 +2,7 @@
 // Container component that routes to the correct screen based on flow state.
 // Does NOT own state – the parent controls state via useSupportFlow().
 
+import { useCallback } from "react";
 import Modal from "../Modal/Modal";
 import DailyRewardScreen from "./screens/DailyRewardScreen";
 import ActivityRewardScreen from "./screens/ActivityRewardScreen";
@@ -25,13 +26,15 @@ const SCREEN_TITLES = {
 };
 
 export default function SupportFlowModal({ state, dispatch, onConfirmActivity }) {
+  // Stable close reference – prevents Modal's useEffect([onClose]) from
+  // re-running (and stealing focus) on every keystroke in text inputs.
+  const close = useCallback(() => {
+    dispatch({ type: "CLOSE" });
+  }, [dispatch]);
+
   if (!state.isOpen) return null;
 
   const { screen, ctx } = state;
-
-  function close() {
-    dispatch({ type: "CLOSE" });
-  }
 
   function renderScreen() {
     switch (screen) {

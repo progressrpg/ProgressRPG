@@ -7,10 +7,8 @@ export default function ActivityRewardScreen({ onContinue, onSupport }) {
     <div>
       <p>Great work! 🎉 You completed an activity.</p>
       <ButtonFrame>
-        <Button onClick={onContinue}>Continue</Button>
-        <Button variant="secondary" onClick={onSupport}>
-          Get support
-        </Button>
+        <Button onClick={onContinue}>Do another task</Button>
+        <Button onClick={onSupport}>Get support</Button>
       </ButtonFrame>
     </div>
   );

@@ -53,7 +53,7 @@ describe("SupportFlowModal", () => {
     await user.click(screen.getByRole("button", { name: "Open" }));
     expect(screen.getByText("Activity complete!")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Continue" })
+      screen.getByRole("button", { name: "Do another task" })
     ).toBeInTheDocument();
   });
 
@@ -110,7 +110,7 @@ describe("SupportFlowModal", () => {
     expect(screen.queryByText("Welcome back!")).not.toBeInTheDocument();
   });
 
-  it("5-minute preset sets duration automatically", async () => {
+  it("5-minute preset navigates to activity input screen", async () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
@@ -119,10 +119,10 @@ describe("SupportFlowModal", () => {
     await user.click(
       screen.getByRole("button", { name: "Do it for 5 minutes" })
     );
-    // Duration input should be pre-filled with 5
-    const durationInput = screen.getByRole("spinbutton", {
-      name: "Optional time limit in minutes",
-    });
-    expect(durationInput.value).toBe("5");
+    // Should land on activity input screen
+    expect(screen.getByText("Describe your activity")).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "Activity description" })
+    ).toBeInTheDocument();
   });
 });
