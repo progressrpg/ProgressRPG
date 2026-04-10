@@ -10,6 +10,7 @@ export default function useActivityTimer() {
   const [duration, setDuration] = useState(0); // total seconds for timer base
   const [elapsed, setElapsed] = useState(0);
   const [currentActivity, setCurrentActivity] = useState(null);
+  const [limitSeconds, setLimitSeconds] = useState(null); // optional time limit
 
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -20,6 +21,16 @@ export default function useActivityTimer() {
 
   const statusRef = useRef(status);
   useEffect(() => { statusRef.current = status; }, [status]);
+
+  // Mirror limitSeconds into a ref so tickMain can read it without stale closure issues
+  const limitRef = useRef(limitSeconds);
+  useEffect(() => { limitRef.current = limitSeconds; }, [limitSeconds]);
+
+  // Guard: ensures auto-submit fires at most once per activity
+  const didAutoStopRef = useRef(false);
+
+  // Stable ref to stop so tickMain can call it without becoming stale
+  const stopRef = useRef(null);
 
 
   // ----------------------------
@@ -32,7 +43,24 @@ export default function useActivityTimer() {
 
     const now = Date.now();
     const secondsPassed = Math.floor((now - startTimeRef.current) / 1000);
-    const newElapsed = pausedTimeRef.current + secondsPassed;
+    let newElapsed = pausedTimeRef.current + secondsPassed;
+
+    const limit = limitRef.current;
+    if (typeof limit === "number" && limit > 0) {
+      // Clamp displayed time to the limit
+      if (newElapsed >= limit) {
+        newElapsed = limit;
+        setElapsed(newElapsed);
+
+        // Auto-stop and submit exactly once
+        if (!didAutoStopRef.current) {
+          didAutoStopRef.current = true;
+          stopRef.current?.();
+        }
+        return;
+      }
+    }
+
     setElapsed(newElapsed);
   }, []);
 
@@ -42,9 +70,9 @@ export default function useActivityTimer() {
 
 
   const startActivity = useCallback(async (newActivity) => {
-    const { text, taskId } =
+    const { text, taskId, limitSeconds: newLimit } =
       typeof newActivity === "string"
-        ? { text: newActivity, taskId: null }
+        ? { text: newActivity, taskId: null, limitSeconds: null }
         : newActivity || {};
 
     if (!text?.trim()) return null;
@@ -55,6 +83,12 @@ export default function useActivityTimer() {
     setElapsed(0);
     pausedTimeRef.current = 0;
     startTimeRef.current = Date.now();
+
+    // Set time limit (null means no limit)
+    const resolvedLimit = Number.isFinite(newLimit) && newLimit > 0 ? newLimit : null;
+    setLimitSeconds(resolvedLimit);
+    limitRef.current = resolvedLimit;
+    didAutoStopRef.current = false;
 
     // Ensure only one interval exists
     if (timerRef.current) clearInterval(timerRef.current);
@@ -100,6 +134,9 @@ export default function useActivityTimer() {
       setStatus("empty");
       setElapsed(0);
       setCurrentActivity(null);
+      setLimitSeconds(null);
+      limitRef.current = null;
+      didAutoStopRef.current = false;
 
       throw err;
     }
@@ -137,6 +174,9 @@ export default function useActivityTimer() {
       setElapsed(0);
       setDuration(0);
       setCurrentActivity(null);
+      setLimitSeconds(null);
+      limitRef.current = null;
+      didAutoStopRef.current = false;
       pausedTimeRef.current = 0;
 
       return result;
@@ -147,6 +187,10 @@ export default function useActivityTimer() {
       throw err;
     }
   }, [status]);
+
+
+  // Keep stopRef in sync so tickMain can call stop without stale closure issues
+  useEffect(() => { stopRef.current = stop; }, [stop]);
 
 
   // ----------------------------
@@ -186,6 +230,7 @@ export default function useActivityTimer() {
     status,
     elapsed,
     duration,
+    limitSeconds,
     currentActivity,
     startActivity,
     stop,

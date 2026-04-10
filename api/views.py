@@ -59,6 +59,7 @@ from gameplay.models import XpModifier
 from gameplay.serializers import ActivityTimerSerializer, XpModifierSerializer
 from gameplay.serializers import ActivityTimerSerializer
 from gameplay.services.xp_modifiers import handle_online_login
+from users.services.login_services import get_login_state
 
 from locations.serializers import PopulationCentreSerializer
 
@@ -424,6 +425,8 @@ class FetchInfoAPIView(APIView):
 
         handle_online_login(player)
 
+        login_state_data = get_login_state(request.user)
+
         # --- Get active link xp modifiers ---
         xp_mods = []
         if active_link:
@@ -464,6 +467,9 @@ class FetchInfoAPIView(APIView):
                 "xp_mods": XpModifierSerializer(
                     xp_mods, many=True, context={"request": request}
                 ).data,
+                "login_state": login_state_data["login_state"],
+                "login_streak": login_state_data["login_streak"],
+                "login_event_at": login_state_data["login_event_at"],
             }
             return Response(data)
 

@@ -122,6 +122,17 @@ class ActivityTimerViewSet(BaseTimerViewSet):
         return timer
 
     @action(detail=False, methods=["post"])
+    def complete(self, request):
+        timer = self.get_timer(request)
+        name = request.data.get("activityName")
+
+        xp_gained = timer.complete(newName=name)
+
+        return Response(
+            {"activity_timer": self.serialize(timer), "xp_gained": xp_gained}
+        )
+
+    @action(detail=False, methods=["post"])
     def set_activity(self, request):
         timer = self.get_timer(request)
 

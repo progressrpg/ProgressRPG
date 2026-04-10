@@ -11,6 +11,7 @@
   padding: v.$button-padding;
   gap: v.$spacing-gap;
   border-radius: v.$button-radius;
+  border: 1px solid transparent;
 
   cursor: pointer;
   transition: background 0.2s ease, box-shadow 0.2s ease;
@@ -47,6 +48,15 @@
 
 .button.secondary {
   @include c.apply-button-variant(secondary);
+  border-color: rgba(c.$color-border-primary, 0.35);
+
+  &:hover {
+    border-color: rgba(c.$color-border-primary, 0.55);
+  }
+}
+
+.button.danger {
+  @include c.apply-button-variant(danger);
 }
 
 .fullWidth {

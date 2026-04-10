@@ -10,28 +10,25 @@ export const updatePlayer = async (data) => {
 };
 
 export const downloadUserData = async () => {
-  const accessToken = localStorage.getItem('accessToken');
   const response = await apiFetch("/download_user_data/", {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
+    responseType: 'raw',
   });
 
-  if (!response.ok) {
-    throw new Error('Failed to download user data');
-  }
-
   const blob = await response.blob();
+  const contentDisposition = response.headers.get('Content-Disposition') || '';
+  const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  const filename = filenameMatch?.[1] || `user-data-${new Date().toISOString().split('T')[0]}.json`;
 
   // Create download link
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.setAttribute('download', `user-data-${new Date().toISOString().split('T')[0]}.json`);
+  link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();
   link.parentNode.removeChild(link);
+  window.URL.revokeObjectURL(url);
 
   return { success: true };
 };
