@@ -138,6 +138,11 @@ describe("SupportFlowModal", () => {
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "I'm ready to start" }));
     expect(screen.getByText("Choose an activity")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Name the tiniest first step now. The activity is writing it down, not doing it yet."
+      )
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByText("How are you feeling?")).toBeInTheDocument();
   });
@@ -182,7 +187,7 @@ describe("SupportFlowModal", () => {
     expect(
       screen.queryByRole("textbox", { name: "Activity description" })
     ).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Start activity" }));
+    await user.click(screen.getByRole("button", { name: "Write it down" }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
