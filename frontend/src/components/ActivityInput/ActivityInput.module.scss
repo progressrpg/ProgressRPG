@@ -15,6 +15,17 @@ $row-control-height: 44px;
   width: min(100%, 720px);
 }
 
+.supportModeButton {
+  position: fixed;
+  top: 108px;
+  right: 16px;
+  max-width: calc(100vw - 24px);
+  z-index: 900;
+  border: 1px solid rgba(c.$color-border-primary, 0.35);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(2px);
+}
+
 .container {
   position: relative;
   isolation: isolate;
@@ -173,5 +184,14 @@ $row-control-height: 44px;
   }
   50% {
     box-shadow: 0 0 0 3px rgba(c.$color-border-primary, 0.4);
+  }
+}
+
+@media (max-width: 768px) {
+  .supportModeButton {
+    top: auto;
+    right: 12px;
+    bottom: 84px;
+    z-index: 1002;
   }
 }

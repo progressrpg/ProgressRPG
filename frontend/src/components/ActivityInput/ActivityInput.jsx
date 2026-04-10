@@ -19,7 +19,14 @@ export default function ActivityInput() {
 
   const isActive = status === "active";
 
-  const { openDailyReward, openActivityReward, flowState, flowDispatch, handleConfirmActivity } =
+  const {
+    openDailyReward,
+    openActivityReward,
+    openSupportMode,
+    flowState,
+    flowDispatch,
+    handleConfirmActivity,
+  } =
     useSupportFlow({
       onStartActivity: ({ activityText, durationSeconds }) => {
         startActivity({ text: activityText, limitSeconds: durationSeconds ?? null });
@@ -54,10 +61,15 @@ export default function ActivityInput() {
 
   async function handleToggle() {
     if (isActive) {
-      await stop(name);
+      const completedActivityName = (name || currentActivity?.name || "").trim();
+      const completion = await stop({ activityName: name });
+      const xpGained = completion?.xp_gained ?? null;
       setName("");
       await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
-      openActivityReward();
+      openActivityReward({
+        xpGained,
+        activityName: completedActivityName || null,
+      });
       return;
     }
 
@@ -79,6 +91,15 @@ export default function ActivityInput() {
 
   return (
     <>
+      <Button
+        onClick={openSupportMode}
+        variant="secondary"
+        className={styles.supportModeButton}
+        ariaLabel="Open support mode"
+      >
+        Need support?
+      </Button>
+
       <div className={styles.containerOuter}>
 
         <div

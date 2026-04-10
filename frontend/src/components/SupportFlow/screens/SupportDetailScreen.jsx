@@ -6,8 +6,7 @@ import styles from "../SupportFlowModal.module.scss";
 
 export default function SupportDetailScreen({
   supportActionId,
-  onDone,
-  onTryTask,
+  onBackToSupportMenu,
 }) {
   const action = SUPPORT_ACTIONS[supportActionId];
 
@@ -22,8 +21,7 @@ export default function SupportDetailScreen({
         ))}
       </ol>
       <ButtonFrame>
-        <Button onClick={onTryTask}>Try starting a task</Button>
-        <Button onClick={onDone}>Do another support action</Button>
+        <Button onClick={onBackToSupportMenu}>Back to support menu</Button>
       </ButtonFrame>
     </div>
   );

@@ -30,21 +30,27 @@ export function useSupportFlow({ onStartActivity } = {}) {
     flowDispatch({ type: "OPEN_DAILY_REWARD" });
   }, []);
 
-  const openActivityReward = useCallback(() => {
-    flowDispatch({ type: "OPEN_ACTIVITY_REWARD" });
+  const openActivityReward = useCallback(({ xpGained = null, activityName = null } = {}) => {
+    flowDispatch({ type: "OPEN_ACTIVITY_REWARD", xpGained, activityName });
   }, []);
 
-  const handleConfirmActivity = useCallback(() => {
+  const openSupportMode = useCallback(() => {
+    flowDispatch({ type: "OPEN_SUPPORT_MODE" });
+  }, []);
+
+  const handleConfirmActivity = useCallback((activityTextOverride = null) => {
     const state = flowStateRef.current;
     if (!state.isOpen) return;
     const { activityText, durationSeconds } = state.ctx;
-    onStartActivity?.({ activityText, durationSeconds });
+    const finalActivityText = activityTextOverride ?? activityText;
+    onStartActivity?.({ activityText: finalActivityText, durationSeconds });
     flowDispatch({ type: "CLOSE" });
   }, [onStartActivity]);
 
   return {
     openDailyReward,
     openActivityReward,
+    openSupportMode,
     flowState,
     flowDispatch,
     handleConfirmActivity,

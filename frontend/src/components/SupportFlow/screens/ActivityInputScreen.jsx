@@ -1,5 +1,5 @@
 // SupportFlow/screens/ActivityInputScreen.jsx
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "../../Button/Button";
 import ButtonFrame from "../../Button/ButtonFrame";
 import { ACTIVITY_PRESETS } from "../supportFlowReducer";
@@ -10,16 +10,25 @@ export default function ActivityInputScreen({
   activityText,
   onChangeText,
   onConfirm,
-  onBack,
+  onConfirmWithText,
 }) {
   const inputRef = useRef(null);
-
-  // Focus the text input when the screen mounts
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
   const preset = ACTIVITY_PRESETS[activityPresetId];
+  const isExamplesOnlyPreset = activityPresetId === "tiniest_step";
+  const isPriorityThreePreset = activityPresetId === "priority_three";
+  const [candidateTasks, setCandidateTasks] = useState(["", "", ""]);
+
+  // Focus the text input when editable input is shown
+  useEffect(() => {
+    if (!isExamplesOnlyPreset && !isPriorityThreePreset) {
+      inputRef.current?.focus();
+    }
+  }, [isExamplesOnlyPreset, isPriorityThreePreset]);
+
+  useEffect(() => {
+    setCandidateTasks(["", "", ""]);
+  }, [activityPresetId]);
+
   const placeholder = preset?.placeholder ?? "What are you going to do?";
   const hint = preset?.hint ?? null;
 
@@ -31,31 +40,93 @@ export default function ActivityInputScreen({
     }
   }
 
+  function handleCandidateChange(index, value) {
+    setCandidateTasks((previous) => {
+      const next = [...previous];
+      next[index] = value;
+      return next;
+    });
+  }
+
+  function handleStartCandidate(index) {
+    const selected = candidateTasks[index]?.trim();
+    if (!selected) return;
+    onConfirmWithText?.(selected);
+  }
+
+  const filledCandidates = useMemo(
+    () => candidateTasks.map((task) => task.trim()).filter(Boolean),
+    [candidateTasks]
+  );
+
+  function handleRandomizeStart() {
+    if (!filledCandidates.length) return;
+    const randomIndex = Math.floor(Math.random() * filledCandidates.length);
+    onConfirmWithText?.(filledCandidates[randomIndex]);
+  }
+
   return (
     <div className={styles.activityInputScreen}>
-      <p>Describe what you&apos;ll do:</p>
+      <p>
+        {isExamplesOnlyPreset
+          ? "Use one of these examples:"
+          : isPriorityThreePreset
+            ? "Write down the first three tasks that come into your head."
+            : "Describe what you'll do:"}
+      </p>
 
       {hint && <p className={styles.hint}>{hint}</p>}
 
-      <textarea
-        ref={inputRef}
-        className={styles.activityTextArea}
-        value={activityText}
-        onChange={(e) => onChangeText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        rows={3}
-        aria-label="Activity description"
-      />
+      {!isExamplesOnlyPreset && !isPriorityThreePreset && (
+        <textarea
+          ref={inputRef}
+          className={styles.activityTextArea}
+          value={activityText}
+          onChange={(e) => onChangeText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          rows={3}
+          aria-label="Activity description"
+        />
+      )}
 
-      <ButtonFrame>
-        <Button onClick={onConfirm} disabled={!activityText.trim()}>
-          Start activity
-        </Button>
-        <Button onClick={onBack}>
-          Back
-        </Button>
-      </ButtonFrame>
+      {isPriorityThreePreset && (
+        <div className={styles.priorityThreeContainer}>
+          {[0, 1, 2].map((index) => {
+            const taskValue = candidateTasks[index];
+            const taskNumber = index + 1;
+            return (
+              <div className={styles.priorityRow} key={`priority-task-${taskNumber}`}>
+                <input
+                  className={styles.priorityInput}
+                  type="text"
+                  value={taskValue}
+                  onChange={(e) => handleCandidateChange(index, e.target.value)}
+                  placeholder={`Task ${taskNumber}`}
+                  aria-label={`Task option ${taskNumber}`}
+                />
+                <Button
+                  onClick={() => handleStartCandidate(index)}
+                  disabled={!taskValue.trim()}
+                >
+                  Start this
+                </Button>
+              </div>
+            );
+          })}
+          <Button onClick={handleRandomizeStart} disabled={filledCandidates.length === 0}>
+            Randomise and start
+          </Button>
+        </div>
+      )}
+
+      {!isPriorityThreePreset && (
+        <ButtonFrame>
+          <Button onClick={onConfirm} disabled={!activityText.trim()}>
+            Start activity
+          </Button>
+        </ButtonFrame>
+      )}
     </div>
   );
 }

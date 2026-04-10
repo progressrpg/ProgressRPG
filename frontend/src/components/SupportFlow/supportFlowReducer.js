@@ -28,25 +28,31 @@ export const SUPPORT_ACTIONS = {
   },
   toilet: {
     id: "toilet",
-    label: "Go to the toilet",
-    steps: ["Stand up.", "Go now.", "Wash your hands.", "Come back ready."],
+    label: "Get moving",
+    steps: [
+      "Stand up.",
+      "Swing your arms around.",
+      "Walk up and down a bit.",
+      "Come back ready.",
+    ],
   },
 };
 
 export const ACTIVITY_PRESETS = {
   tiniest_step: {
     id: "tiniest_step",
-    label: "Write the tiniest first step",
+    label: "Write down the tiniest first step",
+    defaultActivityText: "Write down first step",
     durationSeconds: null,
     placeholder: "e.g. open the document, send one email, write one sentence",
     hint: "Make it so small it feels almost too easy. Examples: open the file, write the first line, send a single message.",
   },
-  five_minutes: {
-    id: "five_minutes",
-    label: "Do it for 5 minutes",
-    durationSeconds: 5 * 60,
-    placeholder: "e.g. work on the report",
-    hint: null,
+  priority_three: {
+    id: "priority_three",
+    label: "Help me choose a task",
+    durationSeconds: null,
+    placeholder: "What should you start with first?",
+    hint: "When you have written down some tasks, pick the one that feels most important or most urgent to start with. Alternatively, I'll pick one at random for you.",
   },
   other: {
     id: "other",
@@ -63,6 +69,9 @@ export const ACTIVITY_PRESETS = {
 
 const initialCtx = (entrypoint = null) => ({
   entrypoint,
+  supportMenuOrigin: null,
+  xpGained: null,
+  completedActivityName: null,
   supportActionId: null,
   activityPresetId: null,
   activityText: "",
@@ -88,12 +97,31 @@ export function supportFlowReducer(state, event) {
         ctx: initialCtx("daily"),
       };
 
+    case "OPEN_SUPPORT_MODE":
+      return {
+        isOpen: true,
+        screen: "SUPPORT_MENU",
+        ctx: initialCtx("manualSupport"),
+      };
+
     case "OPEN_ACTIVITY_REWARD":
+      {
+        const parsedXp = Number(event.xpGained);
+        const normalizedXp = Number.isFinite(parsedXp) ? parsedXp : null;
+
       return {
         isOpen: true,
         screen: "ACTIVITY_REWARD",
-        ctx: initialCtx("postActivity"),
+        ctx: {
+          ...initialCtx("postActivity"),
+          xpGained: normalizedXp,
+          completedActivityName:
+            typeof event.activityName === "string" && event.activityName.trim()
+              ? event.activityName.trim()
+              : null,
+        },
       };
+      }
 
     case "CLOSE":
       return { isOpen: false };
@@ -107,7 +135,23 @@ export function supportFlowReducer(state, event) {
 
   switch (event.type) {
     case "GO_SUPPORT_MENU":
-      return { ...state, screen: "SUPPORT_MENU" };
+      return {
+        ...state,
+        screen: "SUPPORT_MENU",
+        ctx: {
+          ...state.ctx,
+          supportMenuOrigin: event.origin ?? state.ctx.supportMenuOrigin,
+        },
+      };
+
+    case "BACK_FROM_SUPPORT_MENU":
+      if (state.ctx.entrypoint === "daily") {
+        return { ...state, screen: "DAILY_REWARD" };
+      }
+      if (state.ctx.entrypoint === "postActivity") {
+        return { ...state, screen: "ACTIVITY_REWARD" };
+      }
+      return state;
 
     case "READY_START":
       return {
@@ -129,7 +173,7 @@ export function supportFlowReducer(state, event) {
         ...state.ctx,
         activityPresetId: event.preset,
         durationSeconds: preset?.durationSeconds ?? null,
-        activityText: "",
+        activityText: preset?.defaultActivityText ?? "",
       };
       return { ...state, screen: "ACTIVITY_INPUT", ctx: newCtx };
     }

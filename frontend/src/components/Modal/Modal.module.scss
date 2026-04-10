@@ -58,6 +58,13 @@
   justify-content: center;
   align-items: center;
   min-height: 3rem;
+  padding: 0 4.5rem;
+}
+
+.backButton {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .closeButton {

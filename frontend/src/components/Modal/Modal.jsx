@@ -2,7 +2,14 @@ import React, { useEffect, useRef } from "react";
 import styles from "./Modal.module.scss";
 import Button from "../Button/Button"
 
-export default function Modal({ title, children, onClose, id = 'modal' }) {
+export default function Modal({
+  title,
+  children,
+  onClose,
+  onBack,
+  backLabel = "Back",
+  id = 'modal',
+}) {
   const modalRef = useRef(null);
   const previousFocusRef = useRef(null);
 
@@ -15,10 +22,10 @@ export default function Modal({ title, children, onClose, id = 'modal' }) {
   useEffect(() => {
     // Store previous focus
     previousFocusRef.current = document.activeElement;
-    
+
     // Focus modal
     modalRef.current?.focus();
-    
+
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
 
@@ -32,12 +39,12 @@ export default function Modal({ title, children, onClose, id = 'modal' }) {
         const focusableElements = modalRef.current?.querySelectorAll(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
-        
+
         if (!focusableElements || focusableElements.length === 0) return;
-        
+
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
-        
+
         if (e.shiftKey && document.activeElement === firstElement) {
           e.preventDefault();
           lastElement.focus();
@@ -73,6 +80,15 @@ export default function Modal({ title, children, onClose, id = 'modal' }) {
         onClick={(e) => e.stopPropagation()}
       >
         <header className={styles.modalHeader}>
+          {onBack ? (
+            <Button
+              onClick={onBack}
+              ariaLabel={backLabel}
+              className={styles.backButton}
+            >
+              {backLabel}
+            </Button>
+          ) : null}
           <h2 id={titleId}>{title}</h2>
           <Button
             onClick={onClose}

@@ -1,6 +1,7 @@
 // SupportFlow/SupportFlowModal.module.scss
 @use '../../styles/base/variables' as v;
 @use '../../styles/semantic/colors' as c;
+@use '../../styles/utilities/mixins' as m;
 
 .activityInputScreen {
   display: flex;
@@ -60,4 +61,59 @@
   li {
     margin-bottom: v.$spacing-xs;
   }
+}
+
+.priorityThreeContainer {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.priorityRow {
+  display: flex;
+  align-items: center;
+  gap: v.$spacing-sm;
+}
+
+.priorityInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  background: c.$color-bg;
+  color: c.$color-text-body;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.supportOptionList {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-md;
+}
+
+.supportOptionRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: v.$spacing-md;
+  padding-bottom: v.$spacing-sm;
+  border-bottom: 1px solid rgba(c.$color-border-primary, 0.25);
+
+  @include m.respond-to(sm) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.supportOptionText {
+  margin: 0;
+  flex: 1 1 auto;
 }

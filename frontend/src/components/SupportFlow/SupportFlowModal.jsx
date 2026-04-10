@@ -35,6 +35,18 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
   if (!state.isOpen) return null;
 
   const { screen, ctx } = state;
+  const canBackToReward =
+    screen === "SUPPORT_MENU" &&
+    ctx.supportMenuOrigin === "reward";
+
+  let onHeaderBack = null;
+  if (canBackToReward) {
+    onHeaderBack = () => dispatch({ type: "BACK_FROM_SUPPORT_MENU" });
+  } else if (screen === "READY_ACTIVITY_MENU" || screen === "NOT_READY_MENU") {
+    onHeaderBack = () => dispatch({ type: "GO_SUPPORT_MENU" });
+  } else if (screen === "ACTIVITY_INPUT") {
+    onHeaderBack = () => dispatch({ type: "READY_START" });
+  }
 
   function renderScreen() {
     switch (screen) {
@@ -42,15 +54,17 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
         return (
           <DailyRewardScreen
             onStart={close}
-            onSupport={() => dispatch({ type: "GO_SUPPORT_MENU" })}
+            onSupport={() => dispatch({ type: "GO_SUPPORT_MENU", origin: "reward" })}
           />
         );
 
       case "ACTIVITY_REWARD":
         return (
           <ActivityRewardScreen
+            xpGained={ctx.xpGained}
+            activityName={ctx.completedActivityName}
             onContinue={close}
-            onSupport={() => dispatch({ type: "GO_SUPPORT_MENU" })}
+            onSupport={() => dispatch({ type: "GO_SUPPORT_MENU", origin: "reward" })}
           />
         );
 
@@ -84,7 +98,7 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
               dispatch({ type: "SET_DURATION_SECONDS", seconds })
             }
             onConfirm={onConfirmActivity}
-            onBack={() => dispatch({ type: "READY_START" })}
+            onConfirmWithText={(text) => onConfirmActivity(text)}
           />
         );
 
@@ -99,8 +113,9 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
         return (
           <SupportDetailScreen
             supportActionId={ctx.supportActionId}
-            onDone={() => dispatch({ type: "POST_SUPPORT_MORE_SUPPORT" })}
-            onTryTask={() => dispatch({ type: "POST_SUPPORT_TRY_TASK" })}
+            onBackToSupportMenu={() =>
+              dispatch({ type: "GO_SUPPORT_MENU", origin: "regulation" })
+            }
           />
         );
 
@@ -124,6 +139,7 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
       id="support-flow-modal"
       title={SCREEN_TITLES[screen] ?? "Support"}
       onClose={close}
+      onBack={onHeaderBack}
     >
       {renderScreen()}
     </Modal>
