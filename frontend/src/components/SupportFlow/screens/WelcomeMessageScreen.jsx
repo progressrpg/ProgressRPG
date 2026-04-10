@@ -5,7 +5,7 @@ import ButtonFrame from "../../Button/ButtonFrame";
 function getWelcomeMessage(loginState, loginStreak) {
   switch (loginState) {
     case "first_login_ever":
-      return "Welcome! This is your first login, starting your streak.";
+      return "Welcome to Progress RPG. Let's get started!";
     case "already_logged_today":
       return `Welcome back! You logged in earlier today. Your login streak is ${loginStreak} days.`;
     case "streak_continues":

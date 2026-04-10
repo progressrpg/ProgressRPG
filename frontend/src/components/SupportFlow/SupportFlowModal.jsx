@@ -15,7 +15,7 @@ import PostSupportMenuScreen from "./screens/PostSupportMenuScreen";
 
 // Screen title lookup – keeps JSX clean
 const SCREEN_TITLES = {
-  WELCOME_MESSAGE: "Welcome back!",
+  WELCOME_MESSAGE: "Welcome!",
   ACTIVITY_REWARD: "Activity complete!",
   SUPPORT_MENU: "How are you feeling?",
   READY_ACTIVITY_MENU: "Choose an activity",

@@ -56,6 +56,11 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             )
             self.player_group = f"player_{self.player.id}"
 
+            if self.link is None:
+                logger.info(
+                    f"[CONNECT] Player {self.player.id} has no active character link; continuing with player-only websocket session."
+                )
+
             await database_sync_to_async(self.player.set_online)()
             is_online_now = await database_sync_to_async(
                 lambda: self.player.is_online
@@ -86,6 +91,15 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                     "message": "Server: Successful websocket connection",
                 }
             )
+
+            if self.character is None:
+                await self.send_json(
+                    {
+                        "type": "server_message",
+                        "action": "no_active_character",
+                        "message": "Connected without an active character.",
+                    }
+                )
         else:
             logger.warning(f"[CONNECT] Unauthenticated user attempted connection.")
             await self.close()
@@ -95,9 +109,14 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
     #########################
 
     async def disconnect(self, close_code):
+        player_id = getattr(getattr(self, "player", None), "id", "unknown")
         logger.info(
-            f"[DISCONNECT] WebSocket disconnecting. Player: {self.player.id} | Code: {close_code}"
+            f"[DISCONNECT] WebSocket disconnecting. Player: {player_id} | Code: {close_code}"
         )
+
+        if not hasattr(self, "player"):
+            return
+
         await database_sync_to_async(self.player.set_offline)()
         await self.channel_layer.group_discard("online_users", self.channel_name)
 
@@ -116,7 +135,8 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             ]:
                 await control_timers(self.player, self.activity_timer, "pause")
 
-            await sync_to_async(schedule_online_end)(self.link)
+            if self.link is not None:
+                await sync_to_async(schedule_online_end)(self.link)
 
     async def test_message(self, event):
         logger.info(f"[TEST MESSAGE] Received test message: {event}")
@@ -190,6 +210,28 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         logger.info(f"[HANDLE CLIENT REQUEST] Handling client request: {message}")
         action = message.get("action")
 
+        if (
+            action
+            in [
+                "create_activity",
+                "choose_quest",
+                "complete_quest",
+                "submit_activity",
+            ]
+            and self.character is None
+        ):
+            logger.info(
+                f"[HANDLE CLIENT REQUEST] Ignoring '{action}' for player {self.player.id}: no active character linked."
+            )
+            await self.send_json(
+                {
+                    "type": "error",
+                    "action": action,
+                    "message": "No active character linked.",
+                }
+            )
+            return
+
         if action == "start_timers":
             await control_timers(self.player, self.activity_timer, "start")
         elif action == "pause_timers":
@@ -223,7 +265,8 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 .filter(player=user.player, is_active=True)
                 .first()
             )
-            return user.player, link.character, link
+            character = link.character if link else None
+            return user.player, character, link
 
     @database_sync_to_async
     def get_activity_timer(self):
