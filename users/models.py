@@ -355,9 +355,8 @@ class Player(Person):
         """
         Retrieve the active character associated with this player.
         """
-        from character.models import PlayerCharacterLink
-
-        return PlayerCharacterLink.get_character(self)
+        link = self.active_link
+        return link.character if link else None
 
     def __str__(self):
         return self.name if self.name else "Unnamed player"

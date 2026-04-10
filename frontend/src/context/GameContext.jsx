@@ -29,6 +29,9 @@ export const GameProvider = ({ children }) => {
     activityTimerInfo,
     populationCentreInfo,
     xpMods: xpModsOnload,
+    loginState,
+    loginStreak,
+    loginEventAt,
     loading,
     error,
     buildNumber,
@@ -55,8 +58,14 @@ export const GameProvider = ({ children }) => {
     const freshPlayer = await apiFetch(`/me/player/`);
     setPlayer(freshPlayer);
 
-    const freshCharacter = await apiFetch(`/me/character/`);
-    setCharacter(freshCharacter);
+    try {
+      const freshCharacter = await apiFetch(`/me/character/`);
+      setCharacter(freshCharacter);
+    } catch (err) {
+      // A 404 is expected when the player has no linked character.
+      console.debug('[GameContext] No character linked for player:', err?.message);
+      setCharacter(null);
+    }
   }, []);
 
   const fetchActivities = useCallback(async () => {
@@ -140,6 +149,9 @@ export const GameProvider = ({ children }) => {
       setCharacterCurrentActivity,
       populationCentre,
       fetchPopulationCentre,
+      loginState,
+      loginStreak,
+      loginEventAt,
       loading,
       buildNumber,
     }),
@@ -158,6 +170,9 @@ export const GameProvider = ({ children }) => {
       buildNumber,
       populationCentre,
       fetchPopulationCentre,
+      loginState,
+      loginStreak,
+      loginEventAt,
     ]
   );
 

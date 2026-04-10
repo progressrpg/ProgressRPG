@@ -27,7 +27,7 @@ export default function OnboardingPage() {
         <p>When you start timing an activity, two things happen at the same time:</p>
         <ul>
           <li><strong>You</strong> work on a real task, at your own pace.</li>
-          <li><strong>Your character</strong> trains, explores, and grows in the game world.</li>
+          <li><strong>The game world</strong> tracks your progress and effort.</li>
         </ul>
         <p>Even small actions count.</p>
         <p>Starting is enough.</p>

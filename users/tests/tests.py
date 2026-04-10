@@ -164,6 +164,15 @@ class PlayerMethodsTest(TestCase):
         link = PlayerCharacterLink.objects.filter(player=player, is_active=True).first()
         self.assertEqual(link.character, self.character2)
 
+    def test_current_character_returns_none_without_active_link(self):
+        """Player.current_character should be None if there is no active link."""
+        player = self.user.player
+        PlayerCharacterLink.objects.filter(player=player, is_active=True).update(
+            is_active=False
+        )
+
+        self.assertIsNone(player.current_character)
+
 
 class UserLoginModelTest(TestCase):
     def setUp(self):

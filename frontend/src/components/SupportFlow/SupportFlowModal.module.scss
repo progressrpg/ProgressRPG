@@ -1,0 +1,119 @@
+// SupportFlow/SupportFlowModal.module.scss
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/utilities/mixins' as m;
+
+.activityInputScreen {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-md;
+}
+
+.activityTextArea {
+  width: 100%;
+  padding: v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  background: c.$color-bg;
+  color: c.$color-text-body;
+  font-size: 1rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.durationRow {
+  display: flex;
+  align-items: center;
+  gap: v.$spacing-sm;
+  flex-wrap: wrap;
+}
+
+.durationLabel {
+  flex: 1 1 auto;
+  font-size: 0.875rem;
+  color: c.$color-text-muted;
+}
+
+.durationInput {
+  width: 5rem;
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  background: c.$color-bg;
+  color: c.$color-text-body;
+  font-size: 1rem;
+}
+
+.detailIntro {
+  margin-bottom: v.$spacing-sm;
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: c.$color-text-muted;
+  margin-bottom: v.$spacing-sm;
+}
+
+.stepsList {
+  padding-left: v.$spacing-lg;
+  margin-bottom: v.$spacing-md;
+
+  li {
+    margin-bottom: v.$spacing-xs;
+  }
+}
+
+.priorityThreeContainer {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.priorityRow {
+  display: flex;
+  align-items: center;
+  gap: v.$spacing-sm;
+}
+
+.priorityInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: v.$spacing-sm;
+  border: 1px solid c.$color-border-primary;
+  border-radius: v.$border-radius;
+  background: c.$color-bg;
+  color: c.$color-text-body;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.supportOptionList {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-md;
+}
+
+.supportOptionRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: v.$spacing-md;
+  padding-bottom: v.$spacing-sm;
+  border-bottom: 1px solid rgba(c.$color-border-primary, 0.25);
+
+  @include m.respond-to(sm) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.supportOptionText {
+  margin: 0;
+  flex: 1 1 auto;
+}

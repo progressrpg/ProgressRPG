@@ -1,7 +1,6 @@
 import classNames from "classnames";
 import { useGame } from "../../context/GameContext";
 import ActivityInput from "../ActivityInput/ActivityInput";
-import CharacterCurrentActivity from "../CharacterCurrentActivity/CharacterCurrentActivity";
 import styles from "./CurrentActivity.module.scss";
 
 export default function CurrentActivity() {
@@ -13,10 +12,6 @@ export default function CurrentActivity() {
       <h3 className={styles.heading}>Activity timer</h3>
       <div className={styles.playerCard}>
         <ActivityInput />
-      </div>
-      <div className={classNames(styles.connector, { [styles.connectorActive]: isActive })} />
-      <div className={styles.characterCard}>
-        <CharacterCurrentActivity />
       </div>
     </section>
   );
