@@ -49,6 +49,7 @@
   justify-content: flex-start;
   overflow: hidden;
   height: 100%;
+  padding-top: v.$spacing-md;
   @include tc.two-column-layout;
 }
 
@@ -57,18 +58,26 @@
   position: relative;
   justify-content: center;
   align-items: center;
-  min-height: 3rem;
-  padding: 0 4.5rem;
+  min-height: 3.5rem;
+  padding: v.$spacing-sm 4.5rem;
+  border-bottom: 1px solid rgba(c.$color-border-primary, 0.4);
+}
+
+.modalHeader h2 {
+  margin: 0;
+  line-height: 1.2;
 }
 
 .backButton {
   position: absolute;
   left: 0;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .closeButton {
   position: absolute;
   right: 0rem;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
