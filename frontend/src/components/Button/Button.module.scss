@@ -48,6 +48,11 @@
 
 .button.secondary {
   @include c.apply-button-variant(secondary);
+  border-color: rgba(c.$color-border-primary, 0.35);
+
+  &:hover {
+    border-color: rgba(c.$color-border-primary, 0.55);
+  }
 }
 
 .button.danger {
