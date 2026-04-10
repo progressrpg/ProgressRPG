@@ -15,12 +15,14 @@ $row-control-height: 44px;
   width: min(100%, 720px);
 }
 
+.supportButtonRow {
+  display: flex;
+  justify-content: center;
+  padding-top: v.$spacing-md;
+}
+
 .supportModeButton {
-  position: fixed;
-  top: 108px;
-  right: 16px;
-  max-width: calc(100vw - 24px);
-  z-index: 900;
+  max-width: 100%;
   border: 1px solid rgba(c.$color-border-primary, 0.35);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(2px);
@@ -188,10 +190,7 @@ $row-control-height: 44px;
 }
 
 @media (max-width: 768px) {
-  .supportModeButton {
-    top: auto;
-    right: 12px;
-    bottom: 84px;
-    z-index: 1002;
+  .supportButtonRow {
+    justify-content: center;
   }
 }

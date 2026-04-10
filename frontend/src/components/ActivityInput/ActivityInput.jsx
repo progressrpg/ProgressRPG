@@ -106,17 +106,7 @@ export default function ActivityInput() {
 
   return (
     <>
-      <Button
-        onClick={openSupportMode}
-        variant="secondary"
-        className={styles.supportModeButton}
-        ariaLabel="Open support mode"
-      >
-        Need support?
-      </Button>
-
       <div className={styles.containerOuter}>
-
         <div
           className={classNames(styles.container, {
             [styles.isRunning]: isActive,
@@ -155,6 +145,17 @@ export default function ActivityInput() {
             </Button>
           </div>
 
+        </div>
+
+        <div className={styles.supportButtonRow}>
+          <Button
+            onClick={openSupportMode}
+            variant="secondary"
+            className={styles.supportModeButton}
+            ariaLabel="Open support mode"
+          >
+            Need support?
+          </Button>
         </div>
 
       </div>
