@@ -105,15 +105,23 @@ def character_apply_quest_results(character, quest):
     try:
         from gameplay.models import ServerMessage
 
-        for event in levelups:
-            ServerMessage.objects.create(
-                group=character.current_player.group_name,
-                type="notification",
-                action="notification",
-                message=f"Character {character.name} levelled up! Now level {event['new_level']}.",
-                data={"level": event["new_level"]},
-                is_draft=False,
+        player = character.current_player
+        if not player:
+            logger.info(
+                "[CHAR.COMPLETE_QUEST] Skipping level-up notification for character %s: no active player link.",
+                character.id,
             )
+            levelups = levelups or []
+        else:
+            for event in levelups:
+                ServerMessage.objects.create(
+                    group=player.group_name,
+                    type="notification",
+                    action="notification",
+                    message=f"Character {character.name} levelled up! Now level {event['new_level']}.",
+                    data={"level": event["new_level"]},
+                    is_draft=False,
+                )
     except Exception as e:
         logger.exception(
             f"[CHAR.COMPLETE_QUEST] Error notifying levelup for character {character.id}: {e}"

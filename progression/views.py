@@ -277,16 +277,11 @@ class CharacterQuestViewSet(viewsets.ModelViewSet):
         """
         Return CharacterQuest objects for the current user's active character.
         """
-        from character.models import PlayerCharacterLink
-
         player = _request_player_or_none(self.request)
         if not player:
             return CharacterQuest.objects.none()
 
-        try:
-            character = PlayerCharacterLink.get_character(player)
-        except ValueError:
-            return CharacterQuest.objects.none()
+        character = player.current_character
         if not character:
             return CharacterQuest.objects.none()
         return CharacterQuest.objects.filter(character=character)

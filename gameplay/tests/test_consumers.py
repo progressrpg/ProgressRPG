@@ -1,6 +1,6 @@
 from asgiref.sync import async_to_sync
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TransactionTestCase
 
 from character.models import PlayerCharacterLink
 from gameplay.consumers import TimerConsumer
@@ -27,17 +27,16 @@ class AsyncCallRecorder:
         return self.return_value
 
 
-class TimerConsumerNoCharacterTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = get_user_model().objects.create_user(
+class TimerConsumerNoCharacterTests(TransactionTestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
             email="ws-no-character@example.com",
             password="test-pass-123",
         )
-        cls.player = cls.user.player
+        self.player = self.user.player
 
         # Ensure this test user has no active player-character link.
-        PlayerCharacterLink.objects.filter(player=cls.player, is_active=True).update(
+        PlayerCharacterLink.objects.filter(player=self.player, is_active=True).update(
             is_active=False
         )
 
