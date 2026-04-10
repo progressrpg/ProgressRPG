@@ -33,7 +33,7 @@ export default function ActivityInputScreen({
   const hint = preset?.hint ?? null;
 
   function handleKeyDown(e) {
-    // Enter (without Shift) submits, same as clicking "Start activity"
+    // Enter (without Shift) submits the current activity input.
     if (e.key === "Enter" && !e.shiftKey && activityText.trim()) {
       e.preventDefault();
       onConfirm();
@@ -69,7 +69,7 @@ export default function ActivityInputScreen({
     <div className={styles.activityInputScreen}>
       <p>
         {isExamplesOnlyPreset
-          ? "Use one of these examples:"
+          ? "Write down one tiny first step from these examples:"
           : isPriorityThreePreset
             ? "Write down the first three tasks that come into your head."
             : "Describe what you'll do:"}
@@ -122,8 +122,8 @@ export default function ActivityInputScreen({
 
       {!isPriorityThreePreset && (
         <ButtonFrame>
-          <Button onClick={onConfirm} disabled={!activityText.trim()}>
-            Start activity
+          <Button onClick={() => onConfirm?.()} disabled={!activityText.trim()}>
+            {isExamplesOnlyPreset ? "Write it down" : "Start activity"}
           </Button>
         </ButtonFrame>
       )}
