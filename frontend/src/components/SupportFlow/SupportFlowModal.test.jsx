@@ -1,0 +1,128 @@
+// SupportFlow/SupportFlowModal.test.jsx
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useReducer } from "react";
+import SupportFlowModal from "./SupportFlowModal";
+import { supportFlowReducer } from "./supportFlowReducer";
+
+// Helper: renders SupportFlowModal with reducer state
+function Fixture({ initialEvent, onConfirmActivity = vi.fn() }) {
+  const [state, dispatch] = useReducer(supportFlowReducer, { isOpen: false });
+
+  // Fire the opening event once on mount via a button
+  return (
+    <>
+      <button onClick={() => dispatch({ type: initialEvent })}>Open</button>
+      <SupportFlowModal
+        state={state}
+        dispatch={dispatch}
+        onConfirmActivity={onConfirmActivity}
+      />
+    </>
+  );
+}
+
+describe("SupportFlowModal", () => {
+  it("renders nothing when modal is closed", () => {
+    const [state] = [{ isOpen: false }];
+    const { container } = render(
+      <SupportFlowModal
+        state={state}
+        dispatch={() => {}}
+        onConfirmActivity={() => {}}
+      />
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("opens daily reward screen", async () => {
+    const user = userEvent.setup();
+    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Get support" })
+    ).toBeInTheDocument();
+  });
+
+  it("opens activity reward screen", async () => {
+    const user = userEvent.setup();
+    render(<Fixture initialEvent="OPEN_ACTIVITY_REWARD" />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    expect(screen.getByText("Activity complete!")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Continue" })
+    ).toBeInTheDocument();
+  });
+
+  it("navigates from daily reward to support menu", async () => {
+    const user = userEvent.setup();
+    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await user.click(screen.getByRole("button", { name: "Get support" }));
+    expect(screen.getByText("How are you feeling?")).toBeInTheDocument();
+  });
+
+  it("navigates ready path to activity input and calls onConfirmActivity", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    render(
+      <Fixture initialEvent="OPEN_DAILY_REWARD" onConfirmActivity={onConfirm} />
+    );
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "I'm ready to start" }));
+    await user.click(
+      screen.getByRole("button", { name: "Write the tiniest first step" })
+    );
+    // Should be on Activity Input screen
+    expect(screen.getByText("Describe your activity")).toBeInTheDocument();
+    const textarea = screen.getByRole("textbox", { name: "Activity description" });
+    await user.type(textarea, "Open the document");
+    await user.click(screen.getByRole("button", { name: "Start activity" }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("navigates not-ready path to support detail", async () => {
+    const user = userEvent.setup();
+    render(<Fixture initialEvent="OPEN_ACTIVITY_REWARD" />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(
+      screen.getByRole("button", { name: "I'm not ready yet" })
+    );
+    expect(screen.getByText("Let's support you")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Breathing exercise" })
+    );
+    expect(screen.getByText("Support steps")).toBeInTheDocument();
+    expect(screen.getByText("Breathe in slowly for 4 counts.")).toBeInTheDocument();
+  });
+
+  it("closes modal when close button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    await user.click(screen.getByLabelText("Close modal"));
+    expect(screen.queryByText("Welcome back!")).not.toBeInTheDocument();
+  });
+
+  it("5-minute preset sets duration automatically", async () => {
+    const user = userEvent.setup();
+    render(<Fixture initialEvent="OPEN_DAILY_REWARD" />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "I'm ready to start" }));
+    await user.click(
+      screen.getByRole("button", { name: "Do it for 5 minutes" })
+    );
+    // Duration input should be pre-filled with 5
+    const durationInput = screen.getByRole("spinbutton", {
+      name: "Optional time limit in minutes",
+    });
+    expect(durationInput.value).toBe("5");
+  });
+});
