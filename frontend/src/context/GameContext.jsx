@@ -58,7 +58,9 @@ export const GameProvider = ({ children }) => {
     try {
       const freshCharacter = await apiFetch(`/me/character/`);
       setCharacter(freshCharacter);
-    } catch {
+    } catch (err) {
+      // A 404 is expected when the player has no linked character.
+      console.debug('[GameContext] No character linked for player:', err?.message);
       setCharacter(null);
     }
   }, []);

@@ -146,7 +146,7 @@ class QuestTimerViewSet(BaseTimerViewSet):
     def get_timer(self, request):
         character = request.user.player.current_character
         if character is None:
-            raise NotFound("No active character found.")
+            raise NotFound("No active character found. Please link a character to access quest timers.")
         timer = character.quest_timer
         if timer is None:
             raise NotFound(f"Quest timer not found")
