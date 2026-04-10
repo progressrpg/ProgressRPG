@@ -33,6 +33,12 @@ describe('Button', () => {
     expect(button.className).toMatch(/secondary/);
   });
 
+  it('applies danger variant class', () => {
+    const { container } = render(<Button variant="danger">Danger</Button>);
+    const button = container.querySelector('button');
+    expect(button.className).toMatch(/danger/);
+  });
+
   it('renders icon when provided', () => {
     const icon = <span data-testid="test-icon">🔥</span>;
     render(<Button icon={icon}>With Icon</Button>);
