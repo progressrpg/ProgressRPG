@@ -11,6 +11,7 @@ export default function useActivityTimer() {
   const [elapsed, setElapsed] = useState(0);
   const [currentActivity, setCurrentActivity] = useState(null);
   const [limitSeconds, setLimitSeconds] = useState(null); // optional time limit
+  const [limitReached, setLimitReached] = useState(false); // true after auto-stop fires; cleared on next startActivity or stop
 
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -55,6 +56,7 @@ export default function useActivityTimer() {
         // Auto-stop and submit exactly once
         if (!didAutoStopRef.current) {
           didAutoStopRef.current = true;
+          setLimitReached(true);
           stopRef.current?.();
         }
         return;
@@ -89,6 +91,7 @@ export default function useActivityTimer() {
     setLimitSeconds(resolvedLimit);
     limitRef.current = resolvedLimit;
     didAutoStopRef.current = false;
+    setLimitReached(false);
 
     // Ensure only one interval exists
     if (timerRef.current) clearInterval(timerRef.current);
@@ -137,6 +140,7 @@ export default function useActivityTimer() {
       setLimitSeconds(null);
       limitRef.current = null;
       didAutoStopRef.current = false;
+      setLimitReached(false);
 
       throw err;
     }
@@ -177,6 +181,7 @@ export default function useActivityTimer() {
       setLimitSeconds(null);
       limitRef.current = null;
       didAutoStopRef.current = false;
+      setLimitReached(false);
       pausedTimeRef.current = 0;
 
       return result;
@@ -231,6 +236,7 @@ export default function useActivityTimer() {
     elapsed,
     duration,
     limitSeconds,
+    limitReached,
     currentActivity,
     startActivity,
     stop,

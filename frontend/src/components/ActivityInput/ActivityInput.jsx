@@ -5,8 +5,10 @@ import Button from "../Button/Button";
 import styles from "./ActivityInput.module.scss";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
+import { playLimitReachedSound } from "../../utils/sounds";
 
 const WELCOME_MESSAGE_LAST_EVENT_KEY = "supportFlow_lastLoginEventAtShown";
+const FREE_LIMIT_SECONDS = 30 * 60;
 
 export default function ActivityInput() {
   const {
@@ -16,8 +18,11 @@ export default function ActivityInput() {
     loginState,
     loginStreak,
     loginEventAt,
+    player,
   } = useGame();
-  const { currentActivity, status, stop, startActivity, elapsed } = activityTimer;
+  const { currentActivity, status, stop, startActivity, elapsed, limitReached } = activityTimer;
+
+  const isPremium = Boolean(player?.is_premium);
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
@@ -35,7 +40,10 @@ export default function ActivityInput() {
   } =
     useSupportFlow({
       onStartActivity: ({ activityText, durationSeconds }) => {
-        startActivity({ text: activityText, limitSeconds: durationSeconds ?? null });
+        const limitSeconds = isPremium
+          ? (durationSeconds ?? null)
+          : durationSeconds ? Math.min(durationSeconds, FREE_LIMIT_SECONDS) : FREE_LIMIT_SECONDS;
+        startActivity({ text: activityText, limitSeconds });
       },
     });
 
@@ -74,6 +82,10 @@ export default function ActivityInput() {
     }
   }, [status, currentActivity]);
 
+  useEffect(() => {
+    if (limitReached) playLimitReachedSound();
+  }, [limitReached]);
+
   async function handleToggle() {
     if (isActive) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
@@ -89,7 +101,7 @@ export default function ActivityInput() {
     }
 
     if (!name.trim()) return;
-    await startActivity(name.trim());
+    await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : FREE_LIMIT_SECONDS });
   }
 
   function handleKeyDown(e) {

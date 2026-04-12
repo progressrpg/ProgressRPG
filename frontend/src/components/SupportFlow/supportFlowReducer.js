@@ -43,7 +43,7 @@ export const ACTIVITY_PRESETS = {
     id: "tiniest_step",
     label: "Write down the tiniest first step",
     defaultActivityText: "Write down first step",
-    durationSeconds: null,
+    durationSeconds: 180,
     placeholder: "e.g. open the document, send one email, write one sentence",
     hint: "Make it so small it feels almost too easy. Examples: open the file, write the first line, send a single message.",
   },
