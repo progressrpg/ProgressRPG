@@ -64,6 +64,10 @@ def get_redis_url(default_db="0"):
     return f"{redis_scheme}://{redis_host}:{redis_port}/{redis_db}"
 
 
+def get_dev_email_backend():
+    return os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+
+
 def migrate_and_seed(branch_db_name):
     """
     Run Django migrations and load seed data for the given branch database.
