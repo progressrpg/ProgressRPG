@@ -12,7 +12,7 @@ export default function CheckoutPage() {
   const isStripeSandbox = appConfig?.stripe_live_mode === false;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState("monthly");
+  const checkoutPlan = "monthly";
 
   const handleCheckout = async () => {
     setLoading(true);
@@ -21,7 +21,7 @@ export default function CheckoutPage() {
     try {
       const data = await apiFetch("/payments/create-checkout-session/", {
         method: "POST",
-        body: JSON.stringify({ plan: selectedPlan }),
+        body: JSON.stringify({ plan: checkoutPlan }),
       });
 
       if (!data?.url) {
@@ -37,10 +37,6 @@ export default function CheckoutPage() {
     }
   };
 
-  const monthlyActive = selectedPlan === "monthly";
-  const annualActive = selectedPlan === "annual";
-  const checkoutButtonLabel =
-    selectedPlan === "monthly" ? "Go to Monthly Checkout" : "Go to Annual Checkout";
   const isAlreadyPremium = Boolean(player?.is_premium);
 
   return (
@@ -55,40 +51,22 @@ export default function CheckoutPage() {
         <p className={styles.subscribedNotice}>You are already subscribed!</p>
       ) : (
         <>
-          <p className={styles.subtitle}>Choose the plan that fits you best.</p>
+          <p className={styles.subtitle}>Premium is currently available as a monthly subscription.</p>
 
           <div className={styles.planGrid}>
-            <button
-              type="button"
-              onClick={() => setSelectedPlan("monthly")}
-              className={`${styles.planCard} ${monthlyActive ? styles.planCardActive : ""}`}
-            >
+            <div className={`${styles.planCard} ${styles.planCardActive}`}>
               <h2 className={styles.planHeading}>Monthly</h2>
               <p className={styles.planPrice}>£5 / month</p>
               <p className={styles.planDescription}>Flexible monthly billing.</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedPlan("annual")}
-              className={`${styles.planCard} ${annualActive ? styles.planCardActive : ""}`}
-            >
-              <h2 className={styles.planHeading}>Annual</h2>
-              <p className={styles.planPrice}>£50 / year</p>
-              <p className={styles.planDescription}>
-                Save 17% compared with monthly.
-              </p>
-            </button>
+            </div>
           </div>
 
           <p className={styles.selectedPlanSummary}>
-            {selectedPlan === "monthly"
-              ? "You selected Monthly: £5 billed every month."
-              : "You selected Annual: £50 billed yearly (17% discount)."}
+            You selected Monthly: £5 billed every month.
           </p>
 
           <Button onClick={handleCheckout} disabled={loading}>
-            {loading ? "Redirecting..." : checkoutButtonLabel}
+            {loading ? "Redirecting..." : "Go to Monthly Checkout"}
           </Button>
         </>
       )}
