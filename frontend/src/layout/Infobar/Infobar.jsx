@@ -42,13 +42,20 @@ export default function Infobar() {
   return (
     <div className={styles.infoBar}>
       <div className={`${styles.infoBox} ${styles.player}`}>
-        <span className={styles.label}>YOU</span>
-        <div className={styles.content}>
-          <span className={styles.value}>{player.name}</span>
-          <span className={styles.level}>Level {player.level}</span>
+        <div className={styles.accountIcon} aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+          </svg>
         </div>
-        <div className={styles.content}>
-          <span className={styles.xp}>XP: {currentXp} / {nextLevelXp}</span>
+        <div className={styles.details}>
+          <div className={styles.content}>
+            <span className={styles.value}>{player.name}</span>
+            <span className={styles.level}>Level {player.level}</span>
+          </div>
+          <div className={styles.content}>
+            <span className={styles.xp}>XP: {currentXp} / {nextLevelXp}</span>
+          </div>
         </div>
       </div>
 

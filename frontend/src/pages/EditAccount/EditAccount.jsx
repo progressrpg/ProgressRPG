@@ -15,7 +15,7 @@ export default function EditAccount() {
         <section className={styles.section}>
           <h2>Coming Soon</h2>
           <p className={styles.stubMessage}>
-            This page is temporarily a stub. Username editing and account actions are available from the account page.
+            This page is temporarily a stub. Name editing and account actions are available from the account page.
           </p>
         </section>
       </div>

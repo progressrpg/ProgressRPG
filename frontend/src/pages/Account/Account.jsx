@@ -1,19 +1,50 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
 import { useMutation } from "@tanstack/react-query";
-import { downloadUserData, deleteAccount } from "../../api/player";
+import { updatePlayer, downloadUserData, deleteAccount } from "../../api/player";
 import Button from "../../components/Button/Button";
+import {
+  PLAYER_NAME_MAX_LENGTH,
+  getPlayerNameErrorMessage,
+  getPlayerNameValidation,
+} from "../../utils/playerNameValidation";
 import styles from "./Account.module.scss";
 
 export default function Account() {
-  const { player, character, loading } = useGame();
+  const { player, loading, fetchPlayerAndCharacter } = useGame();
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [nameError, setNameError] = useState("");
+
+  useEffect(() => {
+    if (player?.name) {
+      setDraftName(player.name);
+    }
+  }, [player?.name]);
+
+  const nameValidation = useMemo(
+    () => getPlayerNameValidation(draftName),
+    [draftName]
+  );
 
   const downloadUserDataMutation = useMutation({
     mutationFn: downloadUserData,
+  });
+
+  const updateNameMutation = useMutation({
+    mutationFn: updatePlayer,
+    onSuccess: async () => {
+      setNameError("");
+      setIsEditingName(false);
+      await fetchPlayerAndCharacter();
+    },
+    onError: (error) => {
+      setNameError(getPlayerNameErrorMessage(error));
+    },
   });
 
   const deleteAccountMutation = useMutation({
@@ -30,9 +61,15 @@ export default function Account() {
   const totalTimeSeconds = player?.total_time ?? 0;
   const totalHours = Math.floor(totalTimeSeconds / 3600);
   const totalMinutes = Math.floor((totalTimeSeconds % 3600) / 60);
-  const usernameDisplay = loading
+  const nameDisplay = loading
     ? "Loading..."
     : (player?.name?.trim() || "Unnamed player");
+  const currentPlayerName = player?.name?.trim() || "";
+  const isSaveDisabled = (
+    updateNameMutation.isPending
+    || !nameValidation.isValid
+    || nameValidation.normalized === currentPlayerName
+  );
 
   const handleDownloadData = () => {
     downloadUserDataMutation.mutate();
@@ -42,6 +79,27 @@ export default function Account() {
     if (deleteConfirmText === "DELETE") {
       deleteAccountMutation.mutate();
     }
+  };
+
+  const handleStartEditingName = () => {
+    setDraftName(currentPlayerName);
+    setNameError("");
+    setIsEditingName(true);
+  };
+
+  const handleCancelEditingName = () => {
+    setDraftName(currentPlayerName);
+    setNameError("");
+    setIsEditingName(false);
+  };
+
+  const handleSaveName = (event) => {
+    event.preventDefault();
+    if (isSaveDisabled) {
+      return;
+    }
+
+    updateNameMutation.mutate({ name: nameValidation.normalized });
   };
 
   return (
@@ -55,16 +113,65 @@ export default function Account() {
         <section className={styles.section}>
           <h2>Player</h2>
           <div className={styles.infoGrid}>
-            <div className={`${styles.infoItem} ${styles.usernameItem}`}>
-              <span className={styles.label}>Username</span>
-              <div className={styles.usernameRow}>
-                <span className={styles.value}>{usernameDisplay}</span>
-                <Link to="/edit-account" className={styles.inlineButtonLink}>
-                  <Button variant="secondary" className={styles.inlineButton}>
-                    Edit Username
+            <div className={`${styles.infoItem} ${styles.nameItem}`}>
+              <span className={styles.label}>Name</span>
+              {!isEditingName ? (
+                <div className={styles.nameRow}>
+                  <span className={styles.value}>{nameDisplay}</span>
+                  <Button
+                    variant="secondary"
+                    className={styles.inlineButton}
+                    onClick={handleStartEditingName}
+                  >
+                    Edit Name
                   </Button>
-                </Link>
-              </div>
+                </div>
+              ) : (
+                <form className={styles.nameEditor} onSubmit={handleSaveName}>
+                  <input
+                    type="text"
+                    value={draftName}
+                    onChange={(event) => {
+                      setDraftName(event.target.value);
+                      if (nameError) {
+                        setNameError("");
+                      }
+                    }}
+                    className={styles.input}
+                    placeholder="Enter your name"
+                    maxLength={PLAYER_NAME_MAX_LENGTH}
+                    autoFocus
+                  />
+                  <ul className={styles.rulesList}>
+                    {nameValidation.rules.map((rule) => (
+                      <li
+                        key={rule.id}
+                        className={
+                          rule.valid ? styles.ruleValid : styles.ruleInvalid
+                        }
+                      >
+                        {rule.label}
+                      </li>
+                    ))}
+                  </ul>
+                  {nameError && (
+                    <p className={styles.fieldError} role="alert">
+                      {nameError}
+                    </p>
+                  )}
+                  <div className={styles.buttonGroup}>
+                    <Button type="submit" disabled={isSaveDisabled}>
+                      {updateNameMutation.isPending ? "Saving..." : "Save Name"}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={handleCancelEditingName}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Level</span>

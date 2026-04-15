@@ -11,6 +11,7 @@ from rest_framework_simplejwt.serializers import (
 )
 
 from users.models import Player, InviteCode, UserLogin
+from users.validators import clean_player_name
 
 from django.contrib.auth import get_user_model
 
@@ -82,6 +83,13 @@ class UserSettingsSerializer(serializers.ModelSerializer):
 
 
 class Step1Serializer(serializers.ModelSerializer):
+    def validate_name(self, value):
+        try:
+            return clean_player_name(value)
+        except ValueError as exc:
+            logger.warning("Invalid player name provided: %s", exc)
+            raise serializers.ValidationError("Invalid player name.") from exc
+
     class Meta:
         model = Player
         fields = ["name"]

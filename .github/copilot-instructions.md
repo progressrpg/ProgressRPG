@@ -118,6 +118,8 @@ npm run dev
 
 ### Running Tests
 
+- When developing locally, prefer running backend and integration-style tests through Docker/`compose.yaml` so PostgreSQL, Redis, and other services match the expected app environment.
+
 **Backend:**
 ```bash
 python manage.py test
