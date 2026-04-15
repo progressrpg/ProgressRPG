@@ -13,6 +13,11 @@ export default function Modal({
   const modalRef = useRef(null);
   const previousFocusRef = useRef(null);
 
+  const handleHeaderControlPointerDown = (e) => {
+    // Keep focused text inputs from swallowing the first tap/click on modal controls.
+    e.preventDefault();
+  };
+
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
     onClose?.();
@@ -83,6 +88,8 @@ export default function Modal({
           {onBack ? (
             <Button
               onClick={onBack}
+              onMouseDown={handleHeaderControlPointerDown}
+              onPointerDown={handleHeaderControlPointerDown}
               ariaLabel={backLabel}
               className={styles.backButton}
             >
@@ -92,6 +99,8 @@ export default function Modal({
           <h2 id={titleId}>{title}</h2>
           <Button
             onClick={onClose}
+            onMouseDown={handleHeaderControlPointerDown}
+            onPointerDown={handleHeaderControlPointerDown}
             ariaLabel="Close modal"
             className={styles.closeButton}
           >
