@@ -13,9 +13,15 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from api.views import MeViewSet
 from api.serializers import CustomTokenObtainPairSerializer
 from progress_rpg.middleware.timezone import UserTimezoneMiddleware
+from users.serializers import PlayerSerializer
 from users.models import Player, UserLogin
 from progression.models import PlayerActivity
 from users.tasks import send_email_to_users_task
+from users.validators import (
+    PLAYER_NAME_MAX_LENGTH,
+    PLAYER_NAME_MIN_LENGTH,
+    generate_default_player_name,
+)
 
 from character.models import Character, PlayerCharacterLink
 
@@ -70,6 +76,94 @@ class UserCreationTest(TestCase):
         self.assertEqual(player.onboarding_step, 0)
         self.assertEqual(player.total_time, 0)
         self.assertEqual(player.total_activities, 0)
+        self.assertRegex(player.name, r"^player_\d{8}$")
+
+    def test_generated_player_names_are_unique(self):
+        user1 = self.UserModel.objects.create_user(
+            email="testuser3@example.com", password="testpassword123"
+        )
+        user2 = self.UserModel.objects.create_user(
+            email="testuser4@example.com", password="testpassword123"
+        )
+
+        self.assertNotEqual(user1.player.name, user2.player.name)
+
+    def test_generate_default_player_name_is_stable_for_a_player_id(self):
+        generated_name = generate_default_player_name(12345)
+
+        self.assertEqual(generated_name, generate_default_player_name(12345))
+        self.assertRegex(generated_name, r"^player_\d{8}$")
+
+
+class PlayerNameValidationTest(TestCase):
+    def setUp(self):
+        Character.objects.create(first_name="Jane", can_link=True)
+        self.user = get_user_model().objects.create_user(
+            email="player-name@example.com",
+            password="testpassword123",
+        )
+
+    def test_player_serializer_accepts_trimmed_valid_name(self):
+        serializer = PlayerSerializer(
+            self.user.player,
+            data={"name": "  Red Fox-7  "},
+            partial=True,
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["name"], "Red Fox-7")
+
+    def test_player_serializer_accepts_leading_and_trailing_punctuation(self):
+        serializer = PlayerSerializer(
+            self.user.player,
+            data={"name": "-Red Fox-"},
+            partial=True,
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["name"], "-Red Fox-")
+
+    def test_player_serializer_rejects_invalid_characters(self):
+        serializer = PlayerSerializer(
+            self.user.player,
+            data={"name": "bad!!name"},
+            partial=True,
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(
+            serializer.errors["name"][0],
+            "Use letters and numbers with single spaces, hyphens (-), apostrophes ('), underscores (_), or periods (.). No repeated separators, and spaces cannot appear at the start or end.",
+        )
+
+    def test_player_serializer_rejects_too_short_name(self):
+        serializer = PlayerSerializer(
+            self.user.player,
+            data={"name": "ab"},
+            partial=True,
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(
+            serializer.errors["name"][0],
+            (
+                f"Use between {PLAYER_NAME_MIN_LENGTH} and "
+                f"{PLAYER_NAME_MAX_LENGTH} characters."
+            ),
+        )
+
+    def test_player_serializer_rejects_repeated_separators(self):
+        serializer = PlayerSerializer(
+            self.user.player,
+            data={"name": "Red--Fox"},
+            partial=True,
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(
+            serializer.errors["name"][0],
+            "Use letters and numbers with single spaces, hyphens (-), apostrophes ('), underscores (_), or periods (.). No repeated separators, and spaces cannot appear at the start or end.",
+        )
 
 
 class OnboardingTest(TestCase):

@@ -7,6 +7,7 @@ from django.dispatch import receiver
 import logging
 
 from .models import Player, UserLogin
+from .validators import generate_default_player_name
 
 logger = logging.getLogger("general")
 
@@ -25,7 +26,10 @@ def create_player(sender, instance, created, raw=False, **kwargs):
     if raw:
         return
     if created:
-        Player.objects.get_or_create(user=instance)
+        player, _ = Player.objects.get_or_create(user=instance)
+        if not player.name:
+            player.name = generate_default_player_name(player.id)
+            player.save(update_fields=["name"])
 
 
 @receiver(user_logged_in)
