@@ -16,7 +16,7 @@ class PlayerSerializer(serializers.ModelSerializer):
         try:
             return clean_player_name(value)
         except ValueError as exc:
-            raise serializers.ValidationError(str(exc)) from exc
+            raise serializers.ValidationError("Invalid player name.") from exc
 
     class Meta:
         model = Player

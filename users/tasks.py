@@ -18,6 +18,29 @@ User = get_user_model()
 logger = logging.getLogger("general")
 
 
+def _send_email_message(
+    *,
+    subject,
+    plain_message,
+    from_email,
+    recipient_list,
+    html_message="",
+    headers=None,
+):
+    email = EmailMultiAlternatives(
+        subject,
+        plain_message,
+        from_email,
+        recipient_list,
+        headers=headers,
+    )
+
+    if html_message:
+        email.attach_alternative(html_message, "text/html")
+
+    email.send()
+
+
 @shared_task
 def perform_account_wipe():
     # Get players marked for deletion
@@ -76,15 +99,48 @@ def send_email_to_users_task(self, emails, subject, template_base, context, cc_a
 
         logger.info(f"[ASYNC SEND EMAIL] Sending '{subject}' to: {emails}")
 
-        email = EmailMultiAlternatives(
-            subject,
-            plain_message,
-            from_email,
-            emails,
+        _send_email_message(
+            subject=subject,
+            plain_message=plain_message,
+            from_email=from_email,
+            recipient_list=emails,
+            html_message=html_message,
         )
-        email.attach_alternative(html_message, "text/html")
-        email.send()
 
     except Exception as exc:
         logger.error(f"[ASYNC SEND EMAIL] Failed: {exc}")
+        raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, retry_backoff=True, max_retries=3)
+def send_rendered_email_task(
+    self,
+    recipient_list,
+    subject,
+    plain_message,
+    html_message="",
+    from_email="",
+    headers=None,
+):
+    """
+    Celery task to send an already-rendered email asynchronously.
+    """
+    try:
+        delivery_from = from_email or settings.DEFAULT_FROM_EMAIL
+
+        logger.info(
+            f"[ASYNC SEND RENDERED EMAIL] Sending '{subject}' to: {recipient_list}"
+        )
+
+        _send_email_message(
+            subject=subject,
+            plain_message=plain_message,
+            from_email=delivery_from,
+            recipient_list=recipient_list,
+            html_message=html_message,
+            headers=headers,
+        )
+
+    except Exception as exc:
+        logger.error(f"[ASYNC SEND RENDERED EMAIL] Failed: {exc}")
         raise self.retry(exc=exc)
