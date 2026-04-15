@@ -87,7 +87,8 @@ class Step1Serializer(serializers.ModelSerializer):
         try:
             return clean_player_name(value)
         except ValueError as exc:
-            raise serializers.ValidationError(str(exc)) from exc
+            logger.warning("Invalid player name provided: %s", exc)
+            raise serializers.ValidationError("Invalid player name.") from exc
 
     class Meta:
         model = Player
