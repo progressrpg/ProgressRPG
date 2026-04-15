@@ -73,6 +73,10 @@
   left: 0;
   top: 50%;
   transform: translateY(-50%);
+
+  &:active {
+    transform: translateY(-50%) scale(0.98);
+  }
 }
 
 .closeButton {
@@ -80,4 +84,8 @@
   right: 0rem;
   top: 50%;
   transform: translateY(-50%);
+
+  &:active {
+    transform: translateY(-50%) scale(0.98);
+  }
 }
