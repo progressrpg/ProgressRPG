@@ -1,7 +1,6 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
-from allauth.account.utils import user_email
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):
@@ -20,3 +19,6 @@ class CustomAccountAdapter(DefaultAccountAdapter):
             email_template = "account/email/email_confirmation"
 
         self.send_mail(email_template, emailconfirmation.email_address.email, ctx)
+
+    def get_reset_password_from_key_url(self, key):
+        return f"{settings.FRONTEND_URL.rstrip('/')}/reset-password/{key}"

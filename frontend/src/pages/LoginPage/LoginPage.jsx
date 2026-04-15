@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useLogin from '../../hooks/useLogin';
 import { useAuth } from '../../context/AuthContext';
 import Form from '../../components/Form/Form';
@@ -73,7 +73,10 @@ export default function LoginPage() {
           required
         />
         <p className={styles.footer}>
-          New here? <a href="/register">Create an account</a>
+          <Link to="/password-reset">Forgot your password?</Link>
+        </p>
+        <p className={styles.footer}>
+          New here? <Link to="/register">Create an account</Link>
         </p>
       </Form>
     </div>
