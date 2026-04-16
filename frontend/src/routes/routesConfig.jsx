@@ -5,6 +5,9 @@ const Home = lazy(() => import("../pages/Home/Home"));
 const LoginPage = lazy(() => import("../pages/LoginPage/LoginPage"));
 const LogoutPage = lazy(() => import("../pages/LogoutPage/LogoutPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage/RegisterPage"));
+const PasswordResetConfirmPage = lazy(() =>
+  import("../pages/PasswordResetConfirmPage/PasswordResetConfirmPage")
+);
 const ForgotPasswordPage = lazy(() => import("../pages/ForgotPasswordPage/ForgotPasswordPage"));
 const PrivacyPolicyPage = lazy(() => import("../pages/PrivacyPolicyPage/PrivacyPolicyPage"));
 const TermsOfServicePage = lazy(() => import("../pages/TermsOfServicePage/TermsOfServicePage"));
@@ -42,6 +45,10 @@ export const routes = [
   {
     path: "/register",
     element: <RegisterPage />,
+  },
+  {
+    path: "/reset-password/:key",
+    element: <PasswordResetConfirmPage />,
   },
   {
     path: "/forgot-password",
