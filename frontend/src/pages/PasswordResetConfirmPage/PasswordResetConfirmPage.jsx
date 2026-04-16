@@ -67,7 +67,7 @@ export default function PasswordResetConfirmPage() {
             This password reset link is invalid or incomplete.
           </p>
           <p className={styles.footer}>
-            <Link to="/password-reset">Request a new reset link</Link>
+            <Link to="/forgot-password">Contact support for a reset</Link>
           </p>
         </div>
       </div>

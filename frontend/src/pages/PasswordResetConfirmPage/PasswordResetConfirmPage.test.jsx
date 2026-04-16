@@ -21,6 +21,9 @@ describe('PasswordResetConfirmPage', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Invalid reset link' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Contact support for a reset' })
+    ).toHaveAttribute('href', '/forgot-password');
     expect(screen.queryByRole('button', { name: 'Update password' })).not.toBeInTheDocument();
   });
 

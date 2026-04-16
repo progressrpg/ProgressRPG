@@ -74,13 +74,10 @@ export default function LoginPage() {
           required
         />
         <p className={styles.footer}>
-          <Link to="/password-reset">Forgot your password?</Link>
-        </p>
-        <p className={styles.footer}>
           New here? <Link to="/register">Create an account</Link>
         </p>
         <p className={styles.footer}>
-          <a href="/forgot-password">Forgot your password?</a>
+          <Link to="/forgot-password">Forgot your password?</Link>
         </p>
       </Form>
     </div>

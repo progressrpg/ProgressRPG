@@ -5,9 +5,6 @@ const Home = lazy(() => import("../pages/Home/Home"));
 const LoginPage = lazy(() => import("../pages/LoginPage/LoginPage"));
 const LogoutPage = lazy(() => import("../pages/LogoutPage/LogoutPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage/RegisterPage"));
-const PasswordResetRequestPage = lazy(() =>
-  import("../pages/PasswordResetRequestPage/PasswordResetRequestPage")
-);
 const PasswordResetConfirmPage = lazy(() =>
   import("../pages/PasswordResetConfirmPage/PasswordResetConfirmPage")
 );
@@ -48,10 +45,6 @@ export const routes = [
   {
     path: "/register",
     element: <RegisterPage />,
-  },
-  {
-    path: "/password-reset",
-    element: <PasswordResetRequestPage />,
   },
   {
     path: "/reset-password/:key",
