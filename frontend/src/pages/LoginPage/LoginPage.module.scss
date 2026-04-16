@@ -8,15 +8,23 @@
   @include m.page-layout();
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   min-height: 100vh;
+  padding-top: v.$spacing-2xl;
+}
+
+.formFrame {
+  width: min(100%, 32rem);
 }
 
 .form {
   gap: v.$spacing-gap;
+  width: 100%;
 
   input {
+    width: 100%;
+    max-width: 28rem;
     padding: v.$spacing-sm;
     border-radius: v.$border-radius;
     @include m.border(c.$color-border-default);

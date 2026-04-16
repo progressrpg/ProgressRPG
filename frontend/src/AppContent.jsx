@@ -1,5 +1,6 @@
 // src/AppContent.jsx
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navbar from './layout/Navbar/Navbar';
 import NavDrawer from './layout/NavDrawer/NavDrawer';
 import Infobar from './layout/Infobar/Infobar';
@@ -15,13 +16,15 @@ const announcement = `Progress RPG is in alpha status, and under active developm
 export default function AppContent() {
   const { buildNumber } = useGame();
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const hideBanner = !isAuthenticated && location.pathname === '/';
 
   return (
     <div className="app-container">
       <Navbar onMenuClick={() => setDrawerOpen(true)}/>
       <NavDrawer drawerOpen={drawerOpen} onClose={() => setDrawerOpen(false)}/>
-      <StaticBanner message={`${announcement} (Build ${buildNumber})`} />
+      {!hideBanner && <StaticBanner message={`${announcement} (Build ${buildNumber})`} />}
       {isAuthenticated && <Infobar />}
       <AppRoutes />
       <Footer />

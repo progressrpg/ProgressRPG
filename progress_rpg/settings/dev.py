@@ -8,6 +8,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from .base import *
 from .utils import (
+    get_dev_email_backend,
     get_redis_url,
 )
 import sys
@@ -111,8 +112,7 @@ SECRET_KEY_FALLBACKS = [
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
 
-# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = get_dev_email_backend()
 DEFAULT_FROM_EMAIL = "Progress RPG <noreply@progressrpg.com>"
 print("DEBUG:", DEBUG, file=sys.stderr)
 

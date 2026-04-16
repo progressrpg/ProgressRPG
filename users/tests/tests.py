@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.http import HttpResponse
 from django.test import TestCase, Client, override_settings, tag
 from django.test.client import RequestFactory
@@ -6,17 +7,21 @@ from django.urls import reverse
 from datetime import date, timedelta
 from django.utils import timezone
 from unittest import skip
+from unittest.mock import patch
 import logging
+from types import SimpleNamespace
 
+from allauth.core import context as allauth_context
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from api.views import MeViewSet
 from api.serializers import CustomTokenObtainPairSerializer
 from progress_rpg.middleware.timezone import UserTimezoneMiddleware
+from users.adapters import CustomAccountAdapter
 from users.serializers import PlayerSerializer
 from users.models import Player, UserLogin
 from progression.models import PlayerActivity
-from users.tasks import send_email_to_users_task
+from users.tasks import send_email_to_users_task, send_rendered_email_task
 from users.validators import (
     PLAYER_NAME_MAX_LENGTH,
     PLAYER_NAME_MIN_LENGTH,
@@ -379,26 +384,77 @@ class EmailTaskTest(TestCase):
         emails = ["test@example.com"]
         subject = "Test Email"
         template_base = "emails/email_confirmation_message"
-        context = {"user": {"email": "test@example.com"}}
+        context = {
+            "user": {"email": "test@example.com"},
+            "activate_url": "https://example.com/confirm/test-token",
+        }
         cc_admin = False
 
-        # Run task synchronously
-        send_email_to_users_task(
-            emails=emails,
-            subject=subject,
-            template_base=template_base,
-            context=context,
-            cc_admin=cc_admin,
+        send_email_to_users_task.apply(
+            kwargs={
+                "emails": emails,
+                "subject": subject,
+                "template_base": template_base,
+                "context": context,
+                "cc_admin": cc_admin,
+            }
         )
 
         # Check that the email was sent
-        from django.core.mail import outbox
-
-        self.assertEqual(len(outbox), 1)  # one email was sent
-        email = outbox[0]
+        self.assertEqual(len(mail.outbox), 1)  # one email was sent
+        email = mail.outbox[0]
         self.assertEqual(email.subject, subject)
         self.assertEqual(email.to, emails)
         self.assertIn("test@example.com", email.body)
+
+    def test_send_rendered_email_task(self):
+        send_rendered_email_task.apply(
+            kwargs={
+                "recipient_list": ["rendered@example.com"],
+                "subject": "Rendered Email",
+                "plain_message": "plain body",
+                "html_message": "<p>html body</p>",
+                "from_email": "Progress RPG <noreply@progressrpg.com>",
+                "headers": {"X-Test": "1"},
+            }
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.subject, "Rendered Email")
+        self.assertEqual(email.to, ["rendered@example.com"])
+        self.assertEqual(email.body, "plain body")
+        self.assertEqual(email.extra_headers["X-Test"], "1")
+        alternative = email.alternatives[0]
+        alternative_content = getattr(alternative, "content", alternative[0])
+        self.assertEqual(alternative_content, "<p>html body</p>")
+
+
+class CustomAccountAdapterTest(TestCase):
+    def setUp(self):
+        Character.objects.create(first_name="Jane", can_link=True)
+        self.user = get_user_model().objects.create_user(
+            email="adapter@example.com",
+            password="testpassword123",
+        )
+
+    @patch("users.adapters.send_rendered_email_task.delay")
+    def test_send_confirmation_mail_queues_email_task(self, mock_delay):
+        request = RequestFactory().get("/")
+        adapter = CustomAccountAdapter()
+        emailconfirmation = SimpleNamespace(
+            key="confirm123",
+            email_address=SimpleNamespace(user=self.user, email=self.user.email),
+        )
+
+        with allauth_context.request_context(request):
+            adapter.send_confirmation_mail(request, emailconfirmation, signup=True)
+
+        mock_delay.assert_called_once()
+        kwargs = mock_delay.call_args.kwargs
+        self.assertEqual(kwargs["recipient_list"], [self.user.email])
+        self.assertTrue(kwargs["subject"])
+        self.assertIn("/confirm_email/confirm123", kwargs["plain_message"])
 
 
 class AssignCharacterTest(TestCase):
