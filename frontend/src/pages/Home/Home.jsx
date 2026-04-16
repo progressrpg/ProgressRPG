@@ -148,7 +148,7 @@ const features = [
     icon: '🎯',
     title: 'Meaningful progress',
     description:
-      'The current prototype already layers in quest storylines, experience points, and levels so everyday effort feels rewarding to come back to.',
+      'The current prototype already layers in timers, body doubling, storylines, and progression so everyday effort feels rewarding to come back to.',
   },
 ];
 
@@ -177,7 +177,7 @@ export default function Home() {
           <p className={styles.heroSubheading}>
             Progress RPG helps you take the first step and keep going with a task
             timer, gentle body doubling, and enough gameful progress to make
-            everyday effort feel worthwhile.
+            everyday effort feel like part of a bigger, more rewarding journey.
           </p>
           <div className={styles.heroCta}>
             <Link to="/register">
@@ -240,17 +240,21 @@ export default function Home() {
             Built to make getting things done feel better
           </h2>
           <p className={styles.storyLead}>
-            What started as a small idea has grown into a project built with care,
-            creativity, and a love of storytelling.
+            What started as a small idea has grown over four years into a project
+            built with care, creativity, and a love of storytelling.
           </p>
           <p className={styles.storyText}>
             The goal is simple: make getting things done feel fun, shared, and
             rewarding — especially if starting or finishing tasks feels hard.
           </p>
           <p className={styles.storyText}>
-            Today’s prototype already includes a task timer, body doubling, quest
-            storylines, experience points, and levels, with more to come as the
-            project grows.
+            Every task session is meant to help you work, rest, and play without
+            guilt or overwhelm, with more support added as the project grows.
+          </p>
+          <p className={styles.storyText}>
+            Progress RPG is a one-person passion project run as a social
+            enterprise: profits are reinvested into improving the app or donated
+            to charity.
           </p>
         </div>
       </section>
