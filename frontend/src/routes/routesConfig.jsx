@@ -56,6 +56,8 @@ export const routes = [
   {
     path: "/reset-password/:key",
     element: <PasswordResetConfirmPage />,
+  },
+  {
     path: "/forgot-password",
     element: <ForgotPasswordPage />,
   },
