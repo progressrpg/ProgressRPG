@@ -33,7 +33,7 @@ const HOME_STRUCTURED_DATA = {
   },
   creator: {
     '@type': 'Organization',
-    name: 'Progress RPG',
+    name: 'Making Progress',
     url: HOME_URL,
   },
 };
