@@ -8,15 +8,13 @@ import Form from '../../components/Form/Form';
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
 
-  const subject = encodeURIComponent('Password reset request');
-  const body = encodeURIComponent(
-    `Hi Support,\n\nPlease reset the password for my account: ${email}\n\nThanks`
-  );
-  const mailtoHref = `mailto:support@progressrpg.com?subject=${subject}&body=${body}`;
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    window.location.href = mailtoHref;
+    const subject = encodeURIComponent('Password reset request');
+    const body = encodeURIComponent(
+      `Hi Support,\n\nPlease reset the password for my account: ${email}\n\nThanks`
+    );
+    window.location.href = `mailto:support@progressrpg.com?subject=${subject}&body=${body}`;
   };
 
   return (
@@ -33,7 +31,9 @@ export default function ForgotPasswordPage() {
           email client with a pre-filled message to{' '}
           <a href="mailto:support@progressrpg.com">support@progressrpg.com</a>.
         </p>
+        <label htmlFor="forgot-password-email">Email address</label>
         <input
+          id="forgot-password-email"
           type="email"
           name="email"
           placeholder="Your account email"
