@@ -23,6 +23,8 @@ export default function ForgotPasswordPage() {
         title="🔑 Forgot Password"
         onSubmit={handleSubmit}
         submitLabel="Email Support"
+        frameClass={styles.formFrame}
+        className={styles.form}
       >
         <p>
           Automated password resets are temporarily unavailable while we set up

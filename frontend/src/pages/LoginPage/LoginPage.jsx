@@ -51,6 +51,7 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         isSubmitting={submitting}
         submitLabel="Log In"
+        frameClass={styles.formFrame}
         className={styles.form}
       >
         {error && <p className={styles.error} role="alert">{error}</p>}
