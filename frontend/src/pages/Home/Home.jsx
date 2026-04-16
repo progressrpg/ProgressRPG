@@ -5,6 +5,7 @@ import Button from '../../components/Button/Button';
 import styles from './Home.module.scss';
 
 const MAILCHIMP_ACTION_URL = import.meta.env.VITE_MAILCHIMP_ACTION_URL || '';
+const MAILCHIMP_HONEYPOT_NAME = import.meta.env.VITE_MAILCHIMP_HONEYPOT_NAME || 'b_honeypot';
 
 // Time (ms) to leave the hidden iframe alive so Mailchimp can finish processing
 // the POST before we clean it up from the DOM.
@@ -33,23 +34,17 @@ function MailchimpSignupForm() {
       // Use a hidden iframe to avoid CORS issues with Mailchimp
       const form = e.target;
       const data = new FormData(form);
+      const iframeName = `mc-submission-frame-${Date.now()}`;
 
-      const params = new URLSearchParams();
-      for (const [key, value] of data.entries()) {
-        params.append(key, value);
-      }
-
-      // Mailchimp requires a JSONP-style request from the browser.
-      // We submit via a temporary form to bypass CORS restrictions.
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
-      iframe.name = 'mc-submission-frame';
+      iframe.name = iframeName;
       document.body.appendChild(iframe);
 
       const hiddenForm = document.createElement('form');
       hiddenForm.method = 'POST';
-      hiddenForm.action = MAILCHIMP_ACTION_URL.replace('/post?', '/post-json?') + '&c=__mailchimp_noop__';
-      hiddenForm.target = 'mc-submission-frame';
+      hiddenForm.action = MAILCHIMP_ACTION_URL;
+      hiddenForm.target = iframeName;
 
       for (const [key, value] of data.entries()) {
         const input = document.createElement('input');
@@ -63,8 +58,12 @@ function MailchimpSignupForm() {
       hiddenForm.submit();
 
       setTimeout(() => {
-        document.body.removeChild(iframe);
-        document.body.removeChild(hiddenForm);
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+        if (document.body.contains(hiddenForm)) {
+          document.body.removeChild(hiddenForm);
+        }
       }, MAILCHIMP_CLEANUP_DELAY_MS);
 
       setStatus('success');
@@ -105,10 +104,10 @@ function MailchimpSignupForm() {
           disabled={status === 'submitting'}
         />
         {/* Honeypot field – name must match the auto-generated Mailchimp bot-field
-            for your list (format: b_<listid>_<tagid>). Update this name to
-            match the value from your Mailchimp embedded form code. */}
+            for your list (format: b_<listid>_<tagid>). Configure it with
+            VITE_MAILCHIMP_HONEYPOT_NAME when needed. */}
         <div style={{ position: 'absolute', left: '-5000px' }} aria-hidden="true">
-          <input type="text" name="b_honeypot" tabIndex={-1} defaultValue="" readOnly />
+          <input type="text" name={MAILCHIMP_HONEYPOT_NAME} tabIndex={-1} defaultValue="" readOnly />
         </div>
         <Button
           type="submit"
@@ -129,27 +128,27 @@ function MailchimpSignupForm() {
 const features = [
   {
     icon: '✅',
-    title: 'Stay on task',
+    title: 'Helps you get started',
     description:
-      'Log what you\'re working on and keep a steady rhythm. Progress RPG turns your real-world effort into in-game momentum.',
+      'Whether it’s chores, admin, or the task you’ve been avoiding for weeks, Progress RPG gives you a gentle structure for taking the first step.',
   },
   {
     icon: '⚡',
     title: 'Build momentum',
     description:
-      'Every session counts. Track streaks, watch your progress accumulate, and feel the satisfaction of consistent effort.',
+      'Use a task timer, return to your routines, and watch your progress accumulate one session at a time.',
   },
   {
     icon: '🤝',
-    title: 'Body-doubling, reimagined',
+    title: 'Body doubling, reimagined',
     description:
-      'Work alongside in-game companions who progress at the same time you do — a gentle, low-pressure presence to keep you moving.',
+      'Settle into shared sessions with a low-pressure sense of company that helps you keep going when it’s hard to focus alone.',
   },
   {
     icon: '🎯',
     title: 'Meaningful progress',
     description:
-      'Your activities translate into real skill growth in-game. The more you do the things you care about, the further you go.',
+      'The current prototype already layers in quest storylines, experience points, and levels so everyday effort feels rewarding to come back to.',
   },
 ];
 
@@ -173,11 +172,12 @@ export default function Home() {
       <section className={styles.hero} aria-labelledby="hero-heading">
         <div className={styles.heroContent}>
           <h1 id="hero-heading" className={styles.heroHeading}>
-            Your productivity,<br />levelled up
+            Turn effort into momentum
           </h1>
           <p className={styles.heroSubheading}>
-            Progress RPG is an early-access multiplayer game that helps you stay
-            focused, build habits, and track real-world effort — one session at a time.
+            Progress RPG helps you take the first step and keep going with a task
+            timer, gentle body doubling, and enough gameful progress to make
+            everyday effort feel worthwhile.
           </p>
           <div className={styles.heroCta}>
             <Link to="/register">
@@ -213,43 +213,64 @@ export default function Home() {
           <li className={styles.step}>
             <span className={styles.stepNumber}>1</span>
             <div>
-              <strong>Choose an activity</strong>
-              <p>Pick something you want to work on — studying, writing, coding, exercise, anything.</p>
+              <strong>Name the next thing</strong>
+              <p>Choose the task, chore, or tiny first step you want to tackle right now.</p>
             </div>
           </li>
           <li className={styles.step}>
             <span className={styles.stepNumber}>2</span>
             <div>
-              <strong>Start a session</strong>
-              <p>Log your time and let the game track your effort as you work.</p>
+              <strong>Start a timer or shared session</strong>
+              <p>Use the prototype’s task timer and body-doubling features to settle in and keep moving.</p>
             </div>
           </li>
           <li className={styles.step}>
             <span className={styles.stepNumber}>3</span>
             <div>
-              <strong>Watch yourself grow</strong>
-              <p>Real-world effort earns in-game progress. Keep the streak going and see how far you can go.</p>
+              <strong>Come back with more momentum</strong>
+              <p>Your effort is recorded, your progress grows, and tomorrow feels easier to begin.</p>
             </div>
           </li>
         </ol>
+      </section>
+
+      <section className={styles.storySection} aria-labelledby="story-heading">
+        <div className={styles.storyBox}>
+          <h2 id="story-heading" className={styles.storyHeading}>
+            Built to make getting things done feel better
+          </h2>
+          <p className={styles.storyLead}>
+            What started as a small idea has grown into a project built with care,
+            creativity, and a love of storytelling.
+          </p>
+          <p className={styles.storyText}>
+            The goal is simple: make getting things done feel fun, shared, and
+            rewarding — especially if starting or finishing tasks feels hard.
+          </p>
+          <p className={styles.storyText}>
+            Today’s prototype already includes a task timer, body doubling, quest
+            storylines, experience points, and levels, with more to come as the
+            project grows.
+          </p>
+        </div>
       </section>
 
       {/* Signup / Waitlist */}
       <section className={styles.signupSection} aria-labelledby="signup-heading">
         <div className={styles.signupBox}>
           <h2 id="signup-heading" className={styles.signupHeading}>
-            Get early access
+            Join the waiting list
           </h2>
           <p className={styles.signupBody}>
-            Progress RPG is in early access. Sign up for updates and be among the
-            first to play as we roll out new features.
+            Sign up for the waiting list and newsletter for updates on early access,
+            new features, and the next steps for Progress RPG.
           </p>
           <MailchimpSignupForm />
           <p className={styles.signupNote}>
-            Already have an account?{' '}
+            Want to try the prototype now?{' '}
             <Link to="/login">Log in</Link>
             {' · '}
-            <Link to="/register">Register</Link>
+            <Link to="/register">Create an account</Link>
           </p>
         </div>
       </section>
