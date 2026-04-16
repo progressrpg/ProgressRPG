@@ -40,8 +40,7 @@ export default function List({
         aria-label={ariaLabel}
       >
         {items.map((item, index) => {
-          {/* const isSelected = item === selectedItem;
-          const isHidden = item.isHidden; */}
+          const isSelected = item === selectedItem;
           const itemClass = getItemClassName?.(item, index);
           const itemToneValue = getItemTone?.(item, index) ?? itemTone;
 
