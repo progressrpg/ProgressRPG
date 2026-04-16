@@ -204,7 +204,7 @@ npx playwright test
 
 ## Deployment
 
-- Configured for Heroku deployment (see `Procfile`)
+- Render deployment configuration lives in `render.yaml` and `render-staging.yaml`
 - Docker support available (see `Dockerfile` and `compose.yaml`)
 - Static files handled by WhiteNoise
 - Frontend builds via Vite: `npm run build:production`
