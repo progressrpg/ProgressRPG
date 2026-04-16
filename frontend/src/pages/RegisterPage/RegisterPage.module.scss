@@ -1,0 +1,50 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+
+.page {
+  @include m.page-layout();
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 100vh;
+  padding-top: v.$spacing-2xl;
+}
+
+.formFrame {
+  width: min(100%, 32rem);
+  max-width: 80vw;
+  margin: 0 auto;
+  padding: v.$spacing-lg;
+  border-radius: v.$border-radius;
+  background-color: c.$color-bg;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+
+  @include m.respond-to(sm) {
+    padding: v.$spacing-xl;
+  }
+}
+
+.title {
+  margin-bottom: v.$spacing-lg;
+  text-align: center;
+  @include t.apply-text-style(t.$text-heading-2);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-gap;
+  width: 100%;
+  @include t.apply-text-style(t.$text-body);
+
+  a:hover {
+    text-decoration: underline;
+  }
+}
+
+.footer {
+  text-align: center;
+}
