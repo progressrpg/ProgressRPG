@@ -1,29 +1,296 @@
 @use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
 @use '../../styles/base/variables' as v;
 @use '../../styles/utilities/mixins' as m;
+@use '../../styles/tokens/colors' as tc;
+@use 'sass:map';
+
+// ─── Page shell ──────────────────────────────────────────────────────────────
 
 .page {
-  @include m.page-layout();
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
 }
 
-.header {
-  text-align: center;
+// ─── Shared section layout ───────────────────────────────────────────────────
 
-  h1 {
-    @include t.apply-text-style(t.$text-heading-1);
-    margin-bottom: v.$spacing-sm;
+.sectionHeading {
+  @include t.apply-text-style(t.$text-heading-2);
+  text-align: center;
+  margin-bottom: v.$spacing-lg;
+}
+
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+
+.hero {
+  background: linear-gradient(
+    160deg,
+    map.get(tc.$primary-scale, 600) 0%,
+    map.get(tc.$primary-scale, 500) 55%,
+    map.get(tc.$primary-scale, 300) 100%
+  );
+  color: tc.$color-light;
+  padding: v.$spacing-3xl v.$spacing-md;
+  display: flex;
+  justify-content: center;
+}
+
+.heroContent {
+  max-width: 720px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: v.$spacing-lg;
+}
+
+.heroHeading {
+  @include t.apply-text-style(t.$text-heading-1);
+  color: tc.$color-light;
+  margin: 0;
+
+  @include m.respond-to(md) {
+    font-size: 3rem;
+  }
+
+  @include m.respond-to(lg) {
+    font-size: 3.5rem;
+  }
+}
+
+.heroSubheading {
+  @include t.apply-text-style(t.$text-body);
+  color: tc.$color-light;
+  max-width: 560px;
+  margin: 0;
+  opacity: 0.92;
+
+  @include m.respond-to(md) {
+    font-size: 1.2rem;
+  }
+}
+
+.heroCta {
+  display: flex;
+  gap: v.$spacing-md;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  // Override button colours so they read well on the green hero background
+  a:first-child button {
+    background-color: tc.$color-light;
+    color: map.get(tc.$primary-scale, 600);
+
+    &:hover {
+      background-color: map.get(tc.$secondary-scale, 100);
+    }
+  }
+
+  a:last-child button {
+    background-color: transparent;
+    color: tc.$color-light;
+    border: 2px solid rgba(tc.$color-light, 0.7);
+
+    &:hover {
+      background-color: rgba(tc.$color-light, 0.1);
+      border-color: tc.$color-light;
+    }
+  }
+}
+
+// ─── Features ────────────────────────────────────────────────────────────────
+
+.features {
+  padding: v.$spacing-2xl v.$spacing-md;
+  background: c.$color-bg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.featureGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: v.$spacing-lg;
+  width: 100%;
+  max-width: 960px;
+
+  @include m.respond-to(md) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.featureCard {
+  background: map.get(tc.$secondary-scale, 100);
+  border-radius: v.$border-radius;
+  padding: v.$spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.featureIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.featureTitle {
+  @include t.apply-text-style(t.$text-heading-3);
+  margin: 0;
+}
+
+.featureDescription {
+  @include t.apply-text-style(t.$text-body);
+  margin: 0;
+}
+
+// ─── How it works ─────────────────────────────────────────────────────────────
+
+.howItWorks {
+  padding: v.$spacing-2xl v.$spacing-md;
+  background: map.get(tc.$secondary-scale, 100);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stepsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-lg;
+  width: 100%;
+  max-width: 640px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: v.$spacing-md;
+
+  strong {
+    @include t.apply-text-style(t.$text-heading-3);
+    display: block;
+    margin-bottom: v.$spacing-xs;
   }
 
   p {
-    margin-bottom: v.$spacing-lg;
+    margin: 0;
     @include t.apply-text-style(t.$text-body);
   }
 }
 
-.content {
+.stepNumber {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: map.get(tc.$primary-scale, 500);
+  color: tc.$color-light;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+// ─── Signup / Waitlist ────────────────────────────────────────────────────────
+
+.signupSection {
+  padding: v.$spacing-2xl v.$spacing-md;
+  background: c.$color-bg;
+  display: flex;
+  justify-content: center;
+}
+
+.signupBox {
+  background: map.get(tc.$secondary-scale, 100);
+  border-radius: v.$border-radius;
+  padding: v.$spacing-xl v.$spacing-lg;
+  max-width: 560px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: v.$spacing-gap;
-  width: 100%;
+  text-align: center;
+  gap: v.$spacing-md;
 }
+
+.signupHeading {
+  @include t.apply-text-style(t.$text-heading-2);
+  margin: 0;
+}
+
+.signupBody {
+  @include t.apply-text-style(t.$text-body);
+  margin: 0;
+  max-width: 440px;
+}
+
+.signupForm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.signupFields {
+  display: flex;
+  gap: v.$spacing-sm;
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.signupInput {
+  flex: 1 1 220px;
+  padding: v.$padding-base;
+  border: 1px solid map.get(tc.$primary-scale, 300);
+  border-radius: v.$border-radius;
+  @include t.apply-text-style(t.$text-body);
+  background: tc.$color-light;
+
+  &:focus {
+    outline: none;
+    border-color: map.get(tc.$primary-scale, 500);
+  }
+
+  &:focus-visible {
+    outline: 2px solid map.get(tc.$accent-scale, 200);
+    outline-offset: 2px;
+  }
+}
+
+.signupError {
+  @include t.apply-text-style(t.$text-caption);
+  color: c.$color-error;
+  margin: 0;
+}
+
+.signupSuccess {
+  padding: v.$spacing-md;
+  background: map.get(tc.$primary-scale, 50);
+  border-radius: v.$border-radius;
+  border: 1px solid map.get(tc.$primary-scale, 300);
+
+  p {
+    @include t.apply-text-style(t.$text-body);
+    margin: 0;
+  }
+}
+
+.signupNote {
+  @include t.apply-text-style(t.$text-caption);
+  margin: 0;
+  color: map.get(tc.$neutral-scale, 500);
+}
+
