@@ -14,12 +14,30 @@
   width: 100%;
 }
 
+.skipLink {
+  position: absolute;
+  top: -3rem;
+  left: v.$spacing-md;
+  z-index: 20;
+  padding: v.$spacing-sm v.$spacing-md;
+  border-radius: v.$border-radius;
+  background: tc.$color-light;
+  color: map.get(tc.$primary-scale, 700);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.18);
+  text-decoration: none;
+
+  &:focus {
+    top: v.$spacing-md;
+  }
+}
+
 // ─── Shared section layout ───────────────────────────────────────────────────
 
 .sectionHeading {
   @include t.apply-text-style(t.$text-heading-2);
   text-align: center;
   margin-bottom: v.$spacing-lg;
+  scroll-margin-top: 6rem;
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
@@ -73,31 +91,92 @@
   }
 }
 
-.heroCta {
+.heroHighlights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 40rem;
+  display: grid;
+  gap: v.$spacing-sm;
+}
+
+.heroHighlightItem {
+  background: rgba(tc.$color-light, 0.14);
+  border-left: 0.25rem solid rgba(tc.$color-light, 0.72);
+  border-radius: v.$border-radius;
+  padding: v.$spacing-sm v.$spacing-md;
+  text-align: left;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.jumpLinks {
   display: flex;
-  gap: v.$spacing-md;
   flex-wrap: wrap;
   justify-content: center;
+  gap: v.$spacing-sm;
+  width: 100%;
+  max-width: 40rem;
 
-  // Override button colours so they read well on the green hero background
-  a:first-child button {
-    background-color: tc.$color-light;
-    color: map.get(tc.$primary-scale, 600);
+  a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    padding: 0 v.$spacing-md;
+    border-radius: v.$button-radius;
+    border: 1px solid rgba(c.$color-border-primary, 0.35);
+    @include t.apply-text-style(t.$text-button);
+    @include c.apply-button-variant(secondary);
+    text-decoration: none;
 
     &:hover {
-      background-color: map.get(tc.$secondary-scale, 100);
+      border-color: rgba(c.$color-border-primary, 0.55);
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.267),
+        0 1px 3px 1px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active {
+      transform: scale(0.98);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
     }
   }
+}
 
-  a:last-child button {
-    background-color: transparent;
-    color: tc.$color-light;
-    border: 2px solid rgba(tc.$color-light, 0.7);
+.heroSignupBox {
+  background: map.get(tc.$secondary-scale, 100);
+  border: 1px solid map.get(tc.$secondary-scale, 300);
+  border-radius: v.$border-radius;
+  padding: v.$spacing-xl v.$spacing-lg;
+  max-width: 560px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: v.$spacing-md;
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.16);
+}
 
-    &:hover {
-      background-color: rgba(tc.$color-light, 0.1);
-      border-color: tc.$color-light;
-    }
+.heroSignupBody {
+  @include t.apply-text-style(t.$text-body);
+  margin: 0;
+  max-width: 440px;
+  color: map.get(tc.$neutral-scale, 700);
+}
+
+.heroSignupNote {
+  @include t.apply-text-style(t.$text-caption);
+  margin: 0;
+  color: map.get(tc.$neutral-scale, 600);
+
+  a {
+    color: map.get(tc.$primary-scale, 700);
   }
 }
 
@@ -224,6 +303,7 @@
 .storyHeading {
   @include t.apply-text-style(t.$text-heading-2);
   margin: 0;
+  scroll-margin-top: 6rem;
 }
 
 .storyLead {
@@ -238,35 +318,11 @@
 
 // ─── Signup / Waitlist ────────────────────────────────────────────────────────
 
-.signupSection {
-  padding: v.$spacing-2xl v.$spacing-md;
-  background: c.$color-bg;
-  display: flex;
-  justify-content: center;
-}
-
-.signupBox {
-  background: map.get(tc.$secondary-scale, 100);
-  border-radius: v.$border-radius;
-  padding: v.$spacing-xl v.$spacing-lg;
-  max-width: 560px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: v.$spacing-md;
-}
-
 .signupHeading {
   @include t.apply-text-style(t.$text-heading-2);
   margin: 0;
-}
-
-.signupBody {
-  @include t.apply-text-style(t.$text-body);
-  margin: 0;
-  max-width: 440px;
+  color: map.get(tc.$neutral-scale, 900);
+  scroll-margin-top: 6rem;
 }
 
 .signupForm {
@@ -274,6 +330,25 @@
   display: flex;
   flex-direction: column;
   gap: v.$spacing-sm;
+}
+
+.signupFieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-xs;
+  width: 100%;
+}
+
+.signupLabel {
+  @include t.apply-text-style(t.$text-body);
+  color: map.get(tc.$neutral-scale, 900);
+  font-weight: 700;
+}
+
+.signupHelp {
+  @include t.apply-text-style(t.$text-caption);
+  color: map.get(tc.$neutral-scale, 700);
+  margin: 0;
 }
 
 .signupFields {
@@ -297,6 +372,10 @@
     border-color: map.get(tc.$primary-scale, 500);
   }
 
+  &[aria-invalid='true'] {
+    border-color: c.$color-error;
+  }
+
   &:focus-visible {
     outline: 2px solid map.get(tc.$accent-scale, 200);
     outline-offset: 2px;
@@ -311,18 +390,13 @@
 
 .signupSuccess {
   padding: v.$spacing-md;
-  background: map.get(tc.$primary-scale, 50);
+  background: map.get(tc.$secondary-scale, 200);
   border-radius: v.$border-radius;
-  border: 1px solid map.get(tc.$primary-scale, 300);
+  border: 1px solid map.get(tc.$secondary-scale, 400);
 
   p {
     @include t.apply-text-style(t.$text-body);
     margin: 0;
+    color: map.get(tc.$neutral-scale, 900);
   }
-}
-
-.signupNote {
-  @include t.apply-text-style(t.$text-caption);
-  margin: 0;
-  color: map.get(tc.$neutral-scale, 500);
 }

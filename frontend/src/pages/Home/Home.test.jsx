@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
 import Home from './Home';
@@ -41,7 +42,35 @@ describe('Home', () => {
 
     expect(screen.getByRole('heading', { name: 'Turn effort into momentum' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Join the waiting list' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Quick links' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Email address')).toBeInTheDocument();
+    expect(screen.getByText('Only your email is required. We will use it for early-access and product updates.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Join the waitlist' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to top' })).toBeInTheDocument();
+  });
+
+  it('shows a clear error when the waitlist form is submitted without an email', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
+    const user = userEvent.setup();
+
+    renderHome();
+
+    await user.click(screen.getByRole('button', { name: 'Join the waitlist' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter an email address to join the waitlist.');
+    expect(screen.getByLabelText('Email address')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('shows a clear error when the waitlist form email is invalid', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
+    const user = userEvent.setup();
+
+    renderHome();
+
+    await user.type(screen.getByLabelText('Email address'), 'not-an-email');
+    await user.click(screen.getByRole('button', { name: 'Join the waitlist' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address, like name@example.com.');
   });
 
   it('redirects authenticated users to the game', async () => {

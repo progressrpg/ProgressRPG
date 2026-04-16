@@ -1,24 +1,83 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import BackToTopButton from '../../components/BackToTopButton/BackToTopButton';
 import Button from '../../components/Button/Button';
+import Seo from '../../components/Seo/Seo';
 import styles from './Home.module.scss';
 
-const MAILCHIMP_ACTION_URL = import.meta.env.VITE_MAILCHIMP_ACTION_URL || '';
-const MAILCHIMP_HONEYPOT_NAME = import.meta.env.VITE_MAILCHIMP_HONEYPOT_NAME || 'b_honeypot';
+const MAILCHIMP_ACTION_URL =
+  import.meta.env.VITE_MAILCHIMP_ACTION_URL ||
+  'https://progressrpg.us13.list-manage.com/subscribe/post?u=ca98ca16970fc3d18b18a655b&id=4d402738e3&f_id=0050ede1f0';
+const MAILCHIMP_HONEYPOT_NAME =
+  import.meta.env.VITE_MAILCHIMP_HONEYPOT_NAME ||
+  'b_ca98ca16970fc3d18b18a655b_4d402738e3';
+const MAILCHIMP_TAGS_VALUE =
+  import.meta.env.VITE_MAILCHIMP_TAGS_VALUE || '1560484';
+const HOME_URL = 'https://progressrpg.com/';
+const HOME_TITLE = 'Progress RPG | ADHD-Friendly Productivity Support Game';
+const HOME_DESCRIPTION =
+  'Progress RPG is an ADHD-friendly productivity game with task timers, supportive check-ins, and rewarding progress that helps you start and keep going.';
+const HOME_STRUCTURED_DATA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Progress RPG',
+  applicationCategory: 'ProductivityApplication',
+  operatingSystem: 'Web',
+  url: HOME_URL,
+  description: HOME_DESCRIPTION,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'GBP',
+  },
+  creator: {
+    '@type': 'Organization',
+    name: 'Progress RPG',
+    url: HOME_URL,
+  },
+};
+const heroHighlights = [
+  'Start with one task instead of trying to organise everything at once.',
+  'Use the support flow to choose a task, write the tiniest first step, or reset before you begin.',
+  'Watch your effort build into progress you can return to tomorrow.',
+];
 
 // Time (ms) to leave the hidden iframe alive so Mailchimp can finish processing
 // the POST before we clean it up from the DOM.
 const MAILCHIMP_CLEANUP_DELAY_MS = 3000;
 
+function getEmailValidationMessage(value) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return 'Enter an email address to join the waitlist.';
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
+    return 'Enter a valid email address, like name@example.com.';
+  }
+
+  return '';
+}
+
 function MailchimpSignupForm() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState('idle'); // 'idle' | 'submitting' | 'success' | 'error'
   const [errorMsg, setErrorMsg] = useState('');
+  const emailInputId = useId();
+  const emailHelpId = useId();
+  const emailErrorId = useId();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email) return;
+    const validationMessage = getEmailValidationMessage(email);
+
+    if (validationMessage) {
+      setStatus('error');
+      setErrorMsg(validationMessage);
+      return;
+    }
 
     setStatus('submitting');
     setErrorMsg('');
@@ -86,23 +145,40 @@ function MailchimpSignupForm() {
     <form
       className={styles.signupForm}
       onSubmit={handleSubmit}
-      aria-label="Join the waitlist"
+      aria-labelledby="signup-heading"
       noValidate
     >
+      <div className={styles.signupFieldGroup}>
+        <label className={styles.signupLabel} htmlFor={emailInputId}>
+          Email address
+        </label>
+        <p id={emailHelpId} className={styles.signupHelp}>
+          Only your email is required. We will use it for early-access and product updates.
+        </p>
+      </div>
       <div className={styles.signupFields}>
         <input
-          id="mc-email"
+          id={emailInputId}
           type="email"
           name="EMAIL"
           className={styles.signupInput}
           placeholder="your@email.com"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (status === 'error') {
+              setStatus('idle');
+              setErrorMsg('');
+            }
+          }}
           required
-          aria-label="Email address"
+          aria-describedby={status === 'error' ? `${emailHelpId} ${emailErrorId}` : emailHelpId}
+          aria-invalid={status === 'error' ? 'true' : 'false'}
           autoComplete="email"
+          inputMode="email"
           disabled={status === 'submitting'}
         />
+        <input type="hidden" name="tags" value={MAILCHIMP_TAGS_VALUE} />
         {/* Honeypot field – name must match the auto-generated Mailchimp bot-field
             for your list (format: b_<listid>_<tagid>). Configure it with
             VITE_MAILCHIMP_HONEYPOT_NAME when needed. */}
@@ -119,7 +195,7 @@ function MailchimpSignupForm() {
         </Button>
       </div>
       {status === 'error' && (
-        <p className={styles.signupError} role="alert">{errorMsg}</p>
+        <p id={emailErrorId} className={styles.signupError} role="alert">{errorMsg}</p>
       )}
     </form>
   );
@@ -140,15 +216,15 @@ const features = [
   },
   {
     icon: '🤝',
-    title: 'Body doubling, reimagined',
+    title: 'Support when you feel stuck',
     description:
-      'Settle into shared sessions with a low-pressure sense of company that helps you keep going when it’s hard to focus alone.',
+      'Check in with how you are feeling, choose whether you are ready, and get help picking a task or resetting before you start.',
   },
   {
     icon: '🎯',
     title: 'Meaningful progress',
     description:
-      'The current prototype already layers in timers, body doubling, storylines, and progression so everyday effort feels rewarding to come back to.',
+      'Timers, support steps, storylines, and progression all work together so everyday effort feels rewarding to come back to.',
   },
 ];
 
@@ -167,7 +243,17 @@ export default function Home() {
   }
 
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
+      <Seo
+        title={HOME_TITLE}
+        description={HOME_DESCRIPTION}
+        canonical={HOME_URL}
+        robots="index,follow"
+        structuredData={HOME_STRUCTURED_DATA}
+      />
+      <a className={styles.skipLink} href="#signup-heading">
+        Skip to waitlist form
+      </a>
       {/* Hero */}
       <section className={styles.hero} aria-labelledby="hero-heading">
         <div className={styles.heroContent}>
@@ -176,16 +262,34 @@ export default function Home() {
           </h1>
           <p className={styles.heroSubheading}>
             Progress RPG helps you take the first step and keep going with a task
-            timer, gentle body doubling, and enough gameful progress to make
-            everyday effort feel like part of a bigger, more rewarding journey.
+            timer, supportive check-ins, and clear next-step prompts that help
+            you choose an activity, reset when overwhelmed, and keep everyday
+            effort moving forward.
           </p>
-          <div className={styles.heroCta}>
-            <Link to="/register">
-              <Button variant="primary">Create your account</Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="secondary">Log in</Button>
-            </Link>
+          <ul className={styles.heroHighlights} aria-label="Quick summary">
+            {heroHighlights.map((highlight) => (
+              <li key={highlight} className={styles.heroHighlightItem}>
+                {highlight}
+              </li>
+            ))}
+          </ul>
+          <nav className={styles.jumpLinks} aria-label="Quick links">
+            <a href="#features-heading">Features</a>
+            <a href="#how-heading">How it works</a>
+            <a href="#story-heading">Story</a>
+          </nav>
+          <div className={styles.heroSignupBox}>
+            <h2 id="signup-heading" className={styles.signupHeading} tabIndex="-1">
+              Join the waiting list
+            </h2>
+            <p className={styles.heroSignupBody}>
+              Sign up for the waiting list and newsletter for updates on early
+              access, new features, and the next steps for Progress RPG.
+            </p>
+            <MailchimpSignupForm />
+            <p className={styles.heroSignupNote}>
+              Already have access? <Link to="/login">Log in</Link>
+            </p>
           </div>
         </div>
       </section>
@@ -208,7 +312,7 @@ export default function Home() {
 
       {/* How it works */}
       <section className={styles.howItWorks} aria-labelledby="how-heading">
-        <h2 id="how-heading" className={styles.sectionHeading}>How it works</h2>
+        <h2 id="how-heading" className={styles.sectionHeading} tabIndex="-1">How it works</h2>
         <ol className={styles.stepsList}>
           <li className={styles.step}>
             <span className={styles.stepNumber}>1</span>
@@ -220,8 +324,8 @@ export default function Home() {
           <li className={styles.step}>
             <span className={styles.stepNumber}>2</span>
             <div>
-              <strong>Start a timer or shared session</strong>
-              <p>Use the prototype’s task timer and body-doubling features to settle in and keep moving.</p>
+              <strong>Choose support that fits the moment</strong>
+              <p>Use the support flow to pick a task, write the tiniest first step, or take a short reset before you begin.</p>
             </div>
           </li>
           <li className={styles.step}>
@@ -236,7 +340,7 @@ export default function Home() {
 
       <section className={styles.storySection} aria-labelledby="story-heading">
         <div className={styles.storyBox}>
-          <h2 id="story-heading" className={styles.storyHeading}>
+          <h2 id="story-heading" className={styles.storyHeading} tabIndex="-1">
             Built to make getting things done feel better
           </h2>
           <p className={styles.storyLead}>
@@ -258,26 +362,7 @@ export default function Home() {
           </p>
         </div>
       </section>
-
-      {/* Signup / Waitlist */}
-      <section className={styles.signupSection} aria-labelledby="signup-heading">
-        <div className={styles.signupBox}>
-          <h2 id="signup-heading" className={styles.signupHeading}>
-            Join the waiting list
-          </h2>
-          <p className={styles.signupBody}>
-            Sign up for the waiting list and newsletter for updates on early access,
-            new features, and the next steps for Progress RPG.
-          </p>
-          <MailchimpSignupForm />
-          <p className={styles.signupNote}>
-            Want to try the prototype now?{' '}
-            <Link to="/login">Log in</Link>
-            {' · '}
-            <Link to="/register">Create an account</Link>
-          </p>
-        </div>
-      </section>
-    </div>
+      <BackToTopButton />
+    </main>
   );
 }
