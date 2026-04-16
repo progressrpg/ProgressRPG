@@ -51,6 +51,7 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         isSubmitting={submitting}
         submitLabel="Log In"
+        frameClass={styles.formFrame}
         className={styles.form}
       >
         {error && <p className={styles.error} role="alert">{error}</p>}
@@ -74,6 +75,9 @@ export default function LoginPage() {
         />
         <p className={styles.footer}>
           New here? <a href="/register">Create an account</a>
+        </p>
+        <p className={styles.footer}>
+          <a href="/forgot-password">Forgot your password?</a>
         </p>
       </Form>
     </div>
