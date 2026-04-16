@@ -1,0 +1,110 @@
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/utilities/mixins' as m;
+
+.page {
+  @include m.page-layout();
+  display: flex;
+  justify-content: center;
+  padding-top: v.$spacing-2xl;
+  padding-bottom: v.$spacing-2xl;
+}
+
+.card {
+  width: min(100%, 52rem);
+  background: c.$color-bg;
+  border-radius: v.$border-radius;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+  padding: v.$spacing-xl;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-lg;
+
+  @include m.respond-to(sm) {
+    padding: v.$spacing-2xl;
+  }
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.title {
+  @include t.apply-text-style(t.$text-heading-1);
+  margin: 0;
+  scroll-margin-top: 6rem;
+}
+
+.effectiveDate {
+  @include t.apply-text-style(t.$text-caption);
+  margin: 0;
+}
+
+.lead,
+.section p,
+.section li {
+  @include t.apply-text-style(t.$text-body);
+}
+
+.lead,
+.section p,
+.section ul {
+  margin: 0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-xl;
+}
+
+.toc {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+  padding: v.$spacing-lg;
+  border-radius: v.$border-radius;
+  background: c.$color-bg;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.tocTitle {
+  @include t.apply-text-style(t.$text-heading-3);
+  margin: 0;
+}
+
+.tocList {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-xs;
+}
+
+.tocList a {
+  @include t.apply-text-style(t.$text-body);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.sectionTitle {
+  @include t.apply-text-style(t.$text-heading-3);
+  margin: 0;
+  scroll-margin-top: 6rem;
+}
+
+.section ul {
+  padding-left: 1.25rem;
+}
+
+.contactLink {
+  word-break: break-word;
+}

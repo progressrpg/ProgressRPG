@@ -28,15 +28,20 @@ function AppWithAuth() {
   // Show loading screen until auth is resolved
   if (authLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        fontSize: '1.2rem'
-      }}>
-        Loading...
-      </div>
+      <main
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          padding: '1rem',
+        }}
+      >
+        <div role="status" aria-live="polite" aria-busy="true" style={{ fontSize: '1.2rem' }}>
+          <h1 className="sr-only">Loading Progress RPG</h1>
+          <span>Loading page...</span>
+        </div>
+      </main>
     );
   }
 
