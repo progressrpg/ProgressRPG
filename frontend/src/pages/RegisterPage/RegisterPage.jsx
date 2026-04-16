@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Form from '../../components/Form/Form';
 import useRegister from '../../hooks/useRegister';
 
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+const getTurnstileSiteKey = () => import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -18,6 +18,8 @@ export default function RegisterPage() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const location = useLocation();
   const [formState, setFormState] = useState("default");
+  const turnstileContainerRef = useRef(null);
+  const turnstileWidgetIdRef = useRef(null);
 
   useEffect(() => {
     // Reset form or state when location changes (even to the same path)
@@ -25,10 +27,58 @@ export default function RegisterPage() {
   }, [location.key]); // `key` changes on every navigation
 
   useEffect(() => {
-    // Expose a global callback for the Turnstile widget to call
-    window.__turnstileCallback = (token) => setTurnstileToken(token);
-    return () => { delete window.__turnstileCallback; };
-  }, []);
+    const siteKey = getTurnstileSiteKey();
+
+    if (!siteKey || !turnstileContainerRef.current) {
+      return undefined;
+    }
+
+    setTurnstileToken('');
+
+    let cancelled = false;
+    let retryTimeoutId = null;
+
+    const renderTurnstile = () => {
+      if (cancelled || !turnstileContainerRef.current) {
+        return;
+      }
+
+      const turnstile = window.turnstile;
+      if (!turnstile?.render) {
+        retryTimeoutId = window.setTimeout(renderTurnstile, 100);
+        return;
+      }
+
+      turnstileWidgetIdRef.current = turnstile.render(turnstileContainerRef.current, {
+        sitekey: siteKey,
+        callback: (token) => {
+          setTurnstileToken(token);
+          setError((currentError) => (
+            currentError === 'Please complete the security check.' ? '' : currentError
+          ));
+        },
+        'expired-callback': () => setTurnstileToken(''),
+        'error-callback': () => setTurnstileToken(''),
+      });
+    };
+
+    renderTurnstile();
+
+    return () => {
+      cancelled = true;
+
+      if (retryTimeoutId) {
+        window.clearTimeout(retryTimeoutId);
+      }
+
+      const turnstile = window.turnstile;
+      if (turnstile?.remove && turnstileWidgetIdRef.current !== null) {
+        turnstile.remove(turnstileWidgetIdRef.current);
+      }
+
+      turnstileWidgetIdRef.current = null;
+    };
+  }, [location.key]);
 
   const handleRegister = async e => {
     e.preventDefault();
@@ -143,7 +193,7 @@ export default function RegisterPage() {
               ),
               type: 'checkbox',
               checked: agreeToTerms,
-              onChange: e => setAgreeToTerms(e.target.checked),
+              onChange: setAgreeToTerms,
               required: true,
             },
           ]}
@@ -152,11 +202,7 @@ export default function RegisterPage() {
           submitLabel="Create Account"
           fieldErrors={fieldErrors}
         >
-          <div
-            className="cf-turnstile"
-            data-sitekey={TURNSTILE_SITE_KEY}
-            data-callback="__turnstileCallback"
-          />
+          <div ref={turnstileContainerRef} className="cf-turnstile" />
         </Form>
       )}
       {error && <p className="error" role="alert">{error}</p>}

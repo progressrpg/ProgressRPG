@@ -19,26 +19,28 @@ export default function Form({
   const [touched, setTouched] = useState({});
   const titleId = 'form-title-' + Math.random().toString(36).substr(2, 9);
 
-   const handleBlur = (name) => {
+  const handleBlur = (name) => {
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   const getError = (field) => {
+    const fieldValue = field.type === 'checkbox' ? field.checked : field.value;
+
     if (fieldErrors[field.name]?.[0]) {
       return fieldErrors[field.name][0];
     }
 
     if (!touched[field.name]) return '';
-    
-    if (field.required && !field.value) {
+
+    if (field.required && !fieldValue) {
       return 'This field is required';
     }
 
-    if (field.minLength && field.value?.length < field.minLength) {
+    if (field.minLength && fieldValue?.length < field.minLength) {
       return `Must be at least ${field.minLength} characters`;
     }
 
-    if (field.maxLength && field.value?.length > field.maxLength) {
+    if (field.maxLength && fieldValue?.length > field.maxLength) {
       return `Must be no more than ${field.maxLength} characters`;
     }
 
@@ -49,8 +51,8 @@ export default function Form({
     <div className={`${styles.formFrame} ${frameClass || ''}`}>
       {title && <h1 id={titleId} className={styles.formTitle}>{title}</h1>}
 
-      <form 
-        onSubmit={onSubmit} 
+      <form
+        onSubmit={onSubmit}
         className={`${styles.form} ${className || ''}`}
         noValidate
         aria-busy={isSubmitting}
@@ -59,21 +61,24 @@ export default function Form({
 
         <div role="group">
           {fields.map(field => (
-              <Input
-                key={field.name}
-                id={field.id || field.name}
-                label={field.label || field.name}
-                type={field.type}
-                value={field.value}
-                onChange={field.onChange}
-                placeholder={field.placeholder}
-                helpText={field.helpText}
-                required={field.required}
-                autoComplete={field.autoComplete}
-                error={getError(field)}
-                onBlur={() => handleBlur(field.name)}
-                disabled={disabled || isSubmitting}
-              />
+            <Input
+              key={field.name}
+              id={field.id || field.name}
+              label={field.label || field.name}
+              type={field.type}
+              value={field.value}
+              onChange={field.onChange}
+              placeholder={field.placeholder}
+              helpText={field.helpText}
+              required={field.required}
+              autoComplete={field.autoComplete}
+              checked={field.checked}
+              minLength={field.minLength}
+              maxLength={field.maxLength}
+              error={getError(field)}
+              onBlur={() => handleBlur(field.name)}
+              disabled={disabled || isSubmitting}
+            />
           ))}
         </div>
 
