@@ -77,7 +77,6 @@ urlpatterns = [
     # Auth urls
     path("ws_auth/", AsgiValidateTokenView.as_view(), name="ws_auth"),
     path("auth/", include(auth_urls)),
-    path("auth/", include("users.urls")),
     path("auth/jwt/create/", CustomTokenObtainPairView.as_view(), name="jwt_create"),
     path("auth/jwt/refresh/", CustomTokenRefreshView.as_view(), name="jwt_refresh"),
     path("auth/jwt/verify/", TokenVerifyView.as_view(), name="jwt_verify"),

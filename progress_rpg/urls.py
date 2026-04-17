@@ -11,7 +11,6 @@ from django.http import HttpResponseNotFound
 from django.urls import re_path, path, include
 from django.views.static import serve
 from django.views.generic.base import RedirectView
-from django.views.generic import TemplateView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
@@ -25,9 +24,7 @@ from progress_rpg.settings.base import FRONTEND_URL
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("accounts/", include("allauth.urls")),
     path("api/v1/", include("api.urls")),
-    path("", include("users.urls")),
     path("", include("payments.urls")),
     path("", include("gameworld.urls")),
     path("", include("server_management.urls")),

@@ -5,9 +5,9 @@ import styles from "./StaticBanner.module.scss";
 const StaticBanner = ({ message }) => {
   if (!message) return null;
   return (
-    <div className={styles.banner}>
+    <section className={styles.banner} aria-label="Site announcement">
       <p className={styles.bannerText}>{message}</p>
-    </div>
+    </section>
   );
 };
 
