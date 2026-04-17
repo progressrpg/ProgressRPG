@@ -87,13 +87,8 @@ export default function Navbar({ onMenuClick }) {
           ) : (
             <>
               <Link to="/login" aria-label="Log in to your account">
-                <Button variant="secondary" className={styles.navLink}>
-                  Log in
-                </Button>
-              </Link>
-              <Link to="/register" aria-label="Sign up for an account">
                 <Button variant="primary" className={styles.navLink}>
-                  Sign up
+                  Log in
                 </Button>
               </Link>
             </>
@@ -165,19 +160,9 @@ export default function Navbar({ onMenuClick }) {
             </>
           ) : (
             <>
-              <Link to="/home" aria-label="Go to home">
-                <Button variant="secondary" className={styles.navLink}>
-                  Home
-                </Button>
-              </Link>
               <Link to="/login" aria-label="Log in to your account">
-                <Button variant="secondary" className={styles.navLink}>
-                  Log in
-                </Button>
-              </Link>
-              <Link to="/register" aria-label="Sign up for an account">
                 <Button variant="primary" className={styles.navLink}>
-                  Register
+                  Log in
                 </Button>
               </Link>
             </>
