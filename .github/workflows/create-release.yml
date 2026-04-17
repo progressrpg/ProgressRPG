@@ -1,0 +1,48 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.17.1)"
+        required: true
+        default: "v0.17.1"
+      name:
+        description: "Release name"
+        required: true
+        default: "v0.17.1 Alpha (Hotfix)"
+      body:
+        description: "Release notes"
+        required: true
+        default: |
+          ## Hotfix
+
+          ### Bug Fixes
+          - Fix homepage Mailchimp signup flow
+
+          **Full Changelog**: https://github.com/progressrpg/ProgressRPG/compare/v0.17.0...v0.17.1
+      prerelease:
+        description: "Mark as pre-release"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ inputs.tag }}
+          release_name: ${{ inputs.name }}
+          body: ${{ inputs.body }}
+          draft: false
+          prerelease: ${{ inputs.prerelease }}

@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.17.1 - 2026-04-17
+
+- fix: repair homepage Mailchimp signup flow
+
+## v0.17.0 - 2026-04-17
+
+- Remove public Django template auth flows
+- Fix modal header button active state and add release template
+- Queue auth emails and default dev mail to console
+- Replace registration with waitlist page and add forgot-password flow
+- Fix accessibility and mailto construction in ForgotPasswordPage
+- Create logged-out landing page with Mailchimp signup form
+- Revise README for Progress RPG with detailed overview
+- Clean up obsolete root files
+- Add RegisterPage.backup.jsx with original self-serve registration form
+- Refine landing page messaging
+- Polish auth page layout
+- Refine landing page copy and banner behavior
+- Simplify logged-out public navigation
+- Add legal pages and accessibility checks
+- Improve home page SEO and accessibility
+- Update creator name from 'Progress RPG' to 'Making Progress'
+
 ## v0.15.6 - 2025-11-02
 
 - fix: pip and package tweaks
