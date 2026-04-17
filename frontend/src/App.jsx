@@ -9,7 +9,7 @@ import { WebSocketProvider } from './context/WebSocketContext';
 import MaintenanceWatcher from './components/MaintenanceWatcher';
 import AppContent from "./AppContent";
 
-import { initGA, logPageView } from '../utils/analytics';
+import { initGA, logPageView } from './utils/analytics';
 
 function RouteChangeTracker() {
   const location = useLocation();
