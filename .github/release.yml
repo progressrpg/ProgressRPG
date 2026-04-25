@@ -1,0 +1,55 @@
+changelog:
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - question
+      - wontfix
+      - triage
+  categories:
+    - title: Features
+      labels:
+        - feature
+
+    - title: Fixes and UX improvements
+      labels:
+        - bug
+        - known-issue
+        - Severity: critical
+        - Severity: high
+        - Severity: medium
+        - Severity: low
+
+    - title: Developer experience and quality
+      labels:
+        - documentation
+        - dependencies
+        - python
+        - javascript
+        - codex
+
+    - title: Other changes
+      labels:
+        - "*"
+
+change-template: "* $TITLE by @$AUTHOR in #$NUMBER"
+template: |
+  ## Highlights
+
+  ### Features
+  - Replace with a short human-written summary of the main feature changes in this release.
+
+  ### Fixes and UX improvements
+  - Replace with a short human-written summary of the most important fixes, polish, and behavior changes.
+
+  ### Developer experience and quality
+  - Replace with a short human-written summary of testing, tooling, deployment, and dependency updates.
+
+  ## Full changelog
+  <details>
+  <summary>Click to expand</summary>
+
+  $CHANGES
+  </details>
+
+  $CONTRIBUTORS

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Player
+from .validators import clean_player_name
 
 
 class PlayerSerializer(serializers.ModelSerializer):
@@ -10,6 +11,12 @@ class PlayerSerializer(serializers.ModelSerializer):
     login_streak = serializers.IntegerField(
         source="user.current_login_streak", read_only=True
     )
+
+    def validate_name(self, value):
+        try:
+            return clean_player_name(value)
+        except ValueError as exc:
+            raise serializers.ValidationError("Invalid player name.") from exc
 
     class Meta:
         model = Player

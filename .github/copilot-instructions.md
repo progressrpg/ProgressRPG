@@ -118,6 +118,8 @@ npm run dev
 
 ### Running Tests
 
+- When developing locally, prefer running backend and integration-style tests through Docker/`compose.yaml` so PostgreSQL, Redis, and other services match the expected app environment.
+
 **Backend:**
 ```bash
 python manage.py test
@@ -202,7 +204,7 @@ npx playwright test
 
 ## Deployment
 
-- Configured for Heroku deployment (see `Procfile`)
+- Render deployment configuration lives in `render.yaml` and `render-staging.yaml`
 - Docker support available (see `Dockerfile` and `compose.yaml`)
 - Static files handled by WhiteNoise
 - Frontend builds via Vite: `npm run build:production`

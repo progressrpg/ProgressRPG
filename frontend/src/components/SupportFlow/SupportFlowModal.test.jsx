@@ -170,6 +170,22 @@ describe("SupportFlowModal", () => {
     expect(screen.getByText("Choose an activity")).toBeInTheDocument();
   });
 
+  it("header back works while a task input is focused", async () => {
+    const user = userEvent.setup();
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "I'm ready to start" }));
+    await user.click(
+      screen.getByRole("button", { name: "Help me choose a task" })
+    );
+
+    screen.getByRole("textbox", { name: "Task option 1" }).focus();
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByText("Choose an activity")).toBeInTheDocument();
+  });
+
   it("tiniest-step preset shows examples only and can start without text input", async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
@@ -234,6 +250,22 @@ describe("SupportFlowModal", () => {
     expect(screen.getByText("Welcome back!")).toBeInTheDocument();
     await user.click(screen.getByLabelText("Close modal"));
     expect(screen.queryByText("Welcome back!")).not.toBeInTheDocument();
+  });
+
+  it("close button works while a task input is focused", async () => {
+    const user = userEvent.setup();
+    render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "I'm ready to start" }));
+    await user.click(
+      screen.getByRole("button", { name: "Help me choose a task" })
+    );
+
+    screen.getByRole("textbox", { name: "Task option 1" }).focus();
+
+    await user.click(screen.getByLabelText("Close modal"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("priority-three preset shows three task inputs", async () => {
