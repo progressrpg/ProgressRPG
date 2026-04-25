@@ -35,6 +35,7 @@ export const GameProvider = ({ children }) => {
     loading,
     error,
     buildNumber,
+    freeTimerLimitSeconds,
   } = useBootstrapGameData();
 
 
@@ -154,6 +155,7 @@ export const GameProvider = ({ children }) => {
       loginEventAt,
       loading,
       buildNumber,
+      freeTimerLimitSeconds,
     }),
     [
       player,
@@ -168,6 +170,7 @@ export const GameProvider = ({ children }) => {
       fetchCharacterCurrent,
       loading,
       buildNumber,
+      freeTimerLimitSeconds,
       populationCentre,
       fetchPopulationCentre,
       loginState,

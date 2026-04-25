@@ -8,7 +8,6 @@ import SupportFlowModal from "../SupportFlow/SupportFlowModal";
 import { playLimitReachedSound } from "../../utils/sounds";
 
 const WELCOME_MESSAGE_LAST_EVENT_KEY = "supportFlow_lastLoginEventAtShown";
-const FREE_LIMIT_SECONDS = 30 * 60;
 
 export default function ActivityInput() {
   const {
@@ -19,6 +18,7 @@ export default function ActivityInput() {
     loginStreak,
     loginEventAt,
     player,
+    freeTimerLimitSeconds,
   } = useGame();
   const { currentActivity, status, stop, startActivity, elapsed, limitReached } = activityTimer;
 
@@ -42,7 +42,7 @@ export default function ActivityInput() {
       onStartActivity: ({ activityText, durationSeconds }) => {
         const limitSeconds = isPremium
           ? (durationSeconds ?? null)
-          : durationSeconds ? Math.min(durationSeconds, FREE_LIMIT_SECONDS) : FREE_LIMIT_SECONDS;
+          : durationSeconds ? Math.min(durationSeconds, freeTimerLimitSeconds) : freeTimerLimitSeconds;
         startActivity({ text: activityText, limitSeconds });
       },
     });
@@ -101,7 +101,7 @@ export default function ActivityInput() {
     }
 
     if (!name.trim()) return;
-    await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : FREE_LIMIT_SECONDS });
+    await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
   }
 
   function handleKeyDown(e) {

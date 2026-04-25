@@ -300,6 +300,9 @@ STRIPE_PRICE_ID_PREMIUM_MONTHLY = os.getenv("STRIPE_PRICE_ID_PREMIUM_MONTHLY", "
 STRIPE_PRICE_ID_PREMIUM_ANNUAL = os.getenv("STRIPE_PRICE_ID_PREMIUM_ANNUAL", "")
 STRIPE_PRICE_ID_FREE = os.getenv("STRIPE_PRICE_ID_FREE", "")
 
+# Free-tier activity timer cap (seconds). Override via env var for local testing.
+FREE_TIMER_LIMIT_SECONDS = int(os.getenv("FREE_TIMER_LIMIT_SECONDS", 1800))
+
 # App URLs for Stripe redirects
 STRIPE_SUCCESS_URL = os.getenv(
     "STRIPE_SUCCESS_URL",

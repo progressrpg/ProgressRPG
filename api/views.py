@@ -470,6 +470,7 @@ class FetchInfoAPIView(APIView):
                 "login_state": login_state_data["login_state"],
                 "login_streak": login_state_data["login_streak"],
                 "login_event_at": login_state_data["login_event_at"],
+                "free_timer_limit_seconds": settings.FREE_TIMER_LIMIT_SECONDS,
             }
             return Response(data)
 
