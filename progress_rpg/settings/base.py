@@ -314,6 +314,17 @@ STRIPE_BILLING_RETURN_URL = os.getenv(
     f"{FRONTEND_URL}/account",
 )
 
+MAILCHIMP_API_KEY = os.getenv("MAILCHIMP_API_KEY", "")
+MAILCHIMP_AUDIENCE_ID = os.getenv("MAILCHIMP_AUDIENCE_ID", "")
+MAILCHIMP_SERVER_PREFIX = os.getenv("MAILCHIMP_SERVER_PREFIX", "")
+MAILCHIMP_SUBSCRIBE_STATUS = os.getenv("MAILCHIMP_SUBSCRIBE_STATUS", "pending")
+MAILCHIMP_TIMEOUT_SECONDS = os.getenv("MAILCHIMP_TIMEOUT_SECONDS", "5")
+MAILCHIMP_TAG_NAMES = [
+    tag_name.strip()
+    for tag_name in os.getenv("MAILCHIMP_TAG_NAMES", "").split(",")
+    if tag_name.strip()
+]
+
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
