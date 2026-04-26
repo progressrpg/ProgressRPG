@@ -65,6 +65,7 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
           <ActivityRewardScreen
             xpGained={ctx.xpGained}
             activityName={ctx.completedActivityName}
+            elapsedSeconds={ctx.completedActivityElapsedSeconds}
             onContinue={close}
             onSupport={() => dispatch({ type: "GO_SUPPORT_MENU", origin: "reward" })}
           />

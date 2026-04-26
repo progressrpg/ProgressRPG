@@ -74,7 +74,11 @@ describe("SupportFlowModal", () => {
     render(
       <Fixture
         initialEvent="OPEN_ACTIVITY_REWARD"
-        initialEventPayload={{ xpGained: "27", activityName: "Write tests" }}
+        initialEventPayload={{
+          xpGained: "27",
+          activityName: "Write tests",
+          elapsedSeconds: 90,
+        }}
       />
     );
     await user.click(screen.getByRole("button", { name: "Open" }));
@@ -82,6 +86,7 @@ describe("SupportFlowModal", () => {
     expect(
       screen.getByText('You completed "Write tests" and gained 27 XP.')
     ).toBeInTheDocument();
+    expect(screen.getByText("You spent 1:30 on this activity.")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Close window, use timer" })
     ).toBeInTheDocument();

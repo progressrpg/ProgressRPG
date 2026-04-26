@@ -5,6 +5,7 @@ import Button from "../Button/Button";
 import styles from "./ActivityInput.module.scss";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
+import { playLimitReachedSound } from "../../utils/sounds";
 
 const WELCOME_MESSAGE_LAST_EVENT_KEY = "supportFlow_lastLoginEventAtShown";
 
@@ -16,8 +17,21 @@ export default function ActivityInput() {
     loginState,
     loginStreak,
     loginEventAt,
+    player,
+    freeTimerLimitSeconds,
   } = useGame();
-  const { currentActivity, status, stop, startActivity, elapsed } = activityTimer;
+  const {
+    currentActivity,
+    status,
+    stop,
+    startActivity,
+    elapsed,
+    limitReached,
+    autoStopCompletion,
+    clearAutoStopCompletion,
+  } = activityTimer;
+
+  const isPremium = Boolean(player?.is_premium);
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
@@ -35,7 +49,10 @@ export default function ActivityInput() {
   } =
     useSupportFlow({
       onStartActivity: ({ activityText, durationSeconds }) => {
-        startActivity({ text: activityText, limitSeconds: durationSeconds ?? null });
+        const limitSeconds = isPremium
+          ? (durationSeconds ?? null)
+          : durationSeconds ? Math.min(durationSeconds, freeTimerLimitSeconds) : freeTimerLimitSeconds;
+        startActivity({ text: activityText, limitSeconds });
       },
     });
 
@@ -74,6 +91,47 @@ export default function ActivityInput() {
     }
   }, [status, currentActivity]);
 
+  useEffect(() => {
+    if (limitReached) playLimitReachedSound();
+  }, [limitReached]);
+
+  useEffect(() => {
+    if (!autoStopCompletion) return;
+
+    let cancelled = false;
+
+    async function handleAutoStopCompletion() {
+      setName("");
+
+      try {
+        await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
+      } catch (err) {
+        console.error("[ActivityInput] Failed to refresh after auto-stop:", err);
+      }
+
+      if (cancelled) return;
+
+      openActivityReward({
+        xpGained: autoStopCompletion.xpGained,
+        activityName: autoStopCompletion.activityName,
+        elapsedSeconds: autoStopCompletion.elapsedSeconds,
+      });
+      clearAutoStopCompletion();
+    }
+
+    handleAutoStopCompletion();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    autoStopCompletion,
+    clearAutoStopCompletion,
+    fetchActivities,
+    fetchCharacterCurrent,
+    openActivityReward,
+  ]);
+
   async function handleToggle() {
     if (isActive) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
@@ -84,12 +142,13 @@ export default function ActivityInput() {
       openActivityReward({
         xpGained,
         activityName: completedActivityName || null,
+        elapsedSeconds: elapsed,
       });
       return;
     }
 
     if (!name.trim()) return;
-    await startActivity(name.trim());
+    await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
   }
 
   function handleKeyDown(e) {
