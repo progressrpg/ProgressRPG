@@ -210,7 +210,7 @@ python-dateutil==2.9.0.post0
     #   celery
 python-decouple==3.8
     # via -r requirements.in
-python-dotenv==1.2.1
+python-dotenv==1.2.2
     # via -r requirements.in
 python-http-client==3.3.7
     # via sendgrid
