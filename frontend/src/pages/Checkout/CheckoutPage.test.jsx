@@ -18,7 +18,7 @@ vi.mock("../../hooks/useAppConfig", () => ({
   useAppConfig: () => mockUseAppConfig(),
 }));
 
-vi.mock("../../../utils/api", () => ({
+vi.mock("../../utils/api", () => ({
   apiFetch: (...args) => mockApiFetch(...args),
 }));
 

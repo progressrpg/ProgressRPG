@@ -15,6 +15,7 @@ from .views import (
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
     AppConfigView,
+    WaitlistSignupAPIView,
 )
 
 from character.views import CharacterViewSet
@@ -74,6 +75,7 @@ urlpatterns = [
     path("maintenance_status/", maintenance_status, name="maintenance_status"),
     path("app_config/", AppConfigView.as_view(), name="app_config"),
     path("fetch_info/", FetchInfoAPIView.as_view(), name="fetch_info"),
+    path("waitlist_signup/", WaitlistSignupAPIView.as_view(), name="waitlist_signup"),
     # Auth urls
     path("ws_auth/", AsgiValidateTokenView.as_view(), name="ws_auth"),
     path("auth/", include(auth_urls)),

@@ -5,19 +5,34 @@ import Button from "../Button/Button";
 import styles from "./ActivityInput.module.scss";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
+import { playLimitReachedSound } from "../../utils/sounds";
 
 const WELCOME_MESSAGE_LAST_EVENT_KEY = "supportFlow_lastLoginEventAtShown";
 
 export default function ActivityInput() {
   const {
     activityTimer,
+    fetchPlayerAndCharacter,
     fetchCharacterCurrent,
     fetchActivities,
     loginState,
     loginStreak,
     loginEventAt,
+    player,
+    freeTimerLimitSeconds,
   } = useGame();
-  const { currentActivity, status, stop, startActivity, elapsed } = activityTimer;
+  const {
+    currentActivity,
+    status,
+    stop,
+    startActivity,
+    elapsed,
+    limitReached,
+    autoStopCompletion,
+    clearAutoStopCompletion,
+  } = activityTimer;
+
+  const isPremium = Boolean(player?.is_premium);
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
@@ -35,7 +50,10 @@ export default function ActivityInput() {
   } =
     useSupportFlow({
       onStartActivity: ({ activityText, durationSeconds }) => {
-        startActivity({ text: activityText, limitSeconds: durationSeconds ?? null });
+        const limitSeconds = isPremium
+          ? (durationSeconds ?? null)
+          : durationSeconds ? Math.min(durationSeconds, freeTimerLimitSeconds) : freeTimerLimitSeconds;
+        startActivity({ text: activityText, limitSeconds });
       },
     });
 
@@ -74,22 +92,83 @@ export default function ActivityInput() {
     }
   }, [status, currentActivity]);
 
+  useEffect(() => {
+    if (limitReached) playLimitReachedSound();
+  }, [limitReached]);
+
+  useEffect(() => {
+    if (!autoStopCompletion) return;
+
+    let cancelled = false;
+
+    async function handleAutoStopCompletion() {
+      setName("");
+
+      try {
+        await Promise.all([
+          fetchPlayerAndCharacter(),
+          fetchCharacterCurrent(),
+          fetchActivities(),
+        ]);
+      } catch (err) {
+        console.error("[ActivityInput] Failed to refresh after auto-stop:", err);
+      }
+
+      if (cancelled) return;
+
+      openActivityReward({
+        xpGained: autoStopCompletion.xpGained,
+        baseXp: autoStopCompletion.baseXp,
+        xpMultiplier: autoStopCompletion.xpMultiplier,
+        levelUps: autoStopCompletion.levelUps,
+        activityName: autoStopCompletion.activityName,
+        elapsedSeconds: autoStopCompletion.elapsedSeconds,
+      });
+      clearAutoStopCompletion();
+    }
+
+    handleAutoStopCompletion();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    autoStopCompletion,
+    clearAutoStopCompletion,
+    fetchPlayerAndCharacter,
+    fetchActivities,
+    fetchCharacterCurrent,
+    openActivityReward,
+  ]);
+
   async function handleToggle() {
     if (isActive) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
       const completion = await stop({ activityName: name });
       const xpGained = completion?.xp_gained ?? null;
+      const baseXp = completion?.base_xp ?? null;
+      const xpMultiplier = completion?.xp_multiplier ?? null;
+      const levelUps = completion?.level_ups ?? [];
+      const elapsedSeconds = completion?.duration_seconds ?? elapsed;
       setName("");
-      await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
+      await Promise.all([
+        fetchPlayerAndCharacter(),
+        fetchCharacterCurrent(),
+        fetchActivities(),
+      ]);
       openActivityReward({
         xpGained,
+        baseXp,
+        xpMultiplier,
+        levelUps,
         activityName: completedActivityName || null,
+        elapsedSeconds,
       });
       return;
     }
 
     if (!name.trim()) return;
-    await startActivity(name.trim());
+    await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
   }
 
   function handleKeyDown(e) {

@@ -8,6 +8,23 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import './styles/main.scss';
 
+function canRenderReactQueryDevtools() {
+  if (!import.meta.env.DEV || typeof navigator === 'undefined') {
+    return false;
+  }
+
+  const locale = navigator.language || navigator.userLanguage;
+  if (!locale || typeof Intl?.Locale !== 'function') {
+    return true;
+  }
+
+  try {
+    new Intl.Locale(locale);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,7 +42,7 @@ root.render(
     <AuthProvider>
       <App />
     </AuthProvider>
-    {process.env.NODE_ENV === "development" && (
+    {canRenderReactQueryDevtools() && (
       <ReactQueryDevtools initialIsOpen={false} />
     )}
   </QueryClientProvider>

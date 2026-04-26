@@ -24,7 +24,7 @@ export default function AppContent() {
     <div className="app-container">
       <Navbar onMenuClick={() => setDrawerOpen(true)}/>
       <NavDrawer drawerOpen={drawerOpen} onClose={() => setDrawerOpen(false)}/>
-      {!hideBanner && <StaticBanner message={`${announcement} (Build ${buildNumber})`} />}
+      {!hideBanner && <StaticBanner message={`${announcement}`} />}
       {isAuthenticated && <Infobar />}
       <AppRoutes />
       <Footer />

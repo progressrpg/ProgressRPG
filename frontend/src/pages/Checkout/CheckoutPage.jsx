@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Button from "../../components/Button/Button";
 import { useGame } from "../../context/GameContext";
 import { useAppConfig } from "../../hooks/useAppConfig";
-import { apiFetch } from "../../../utils/api";
+import { apiFetch } from "../../utils/api";
 import styles from "./CheckoutPage.module.scss";
 
 export default function CheckoutPage() {

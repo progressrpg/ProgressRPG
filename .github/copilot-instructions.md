@@ -122,7 +122,10 @@ npm run dev
 
 **Backend:**
 ```bash
-python manage.py test
+docker compose up -d db redis
+docker compose run --rm migrate
+docker compose run --rm web python manage.py test
+docker compose down
 ```
 
 **Frontend:**
