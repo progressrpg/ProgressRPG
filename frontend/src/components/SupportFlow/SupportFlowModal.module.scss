@@ -122,6 +122,11 @@
   display: grid;
   gap: v.$spacing-xs;
   margin-bottom: v.$spacing-md;
+  width: min(100%, 18rem);
+  margin-inline: auto;
+  padding: v.$spacing-sm;
+  border: 1px solid rgba(c.$color-border-primary, 0.25);
+  border-radius: v.$border-radius;
 }
 
 .rewardBreakdownRow {
