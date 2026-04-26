@@ -88,7 +88,7 @@ describe("SupportFlowModal", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("You spent 1:30 on this activity.")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Close window, use timer" })
+      screen.getByRole("button", { name: "Return to timer" })
     ).toBeInTheDocument();
   });
 
