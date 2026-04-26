@@ -110,9 +110,16 @@ export const GameProvider = ({ children }) => {
 
   useEffect(() => {
     if (activityTimerInfo) {
-      activityTimer.loadFromServer(activityTimerInfo);
+      activityTimer.loadFromServer(activityTimerInfo, {
+        limitSeconds: player?.is_premium ? null : freeTimerLimitSeconds,
+      });
     }
-  }, [activityTimerInfo]);
+  }, [
+    activityTimer.loadFromServer,
+    activityTimerInfo,
+    freeTimerLimitSeconds,
+    player?.is_premium,
+  ]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {

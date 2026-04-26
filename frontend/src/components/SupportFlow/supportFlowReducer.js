@@ -74,6 +74,7 @@ const initialCtx = (entrypoint = null) => ({
   welcomeMessageLoginStreak: 0,
   xpGained: null,
   completedActivityName: null,
+  completedActivityElapsedSeconds: null,
   supportActionId: null,
   activityPresetId: null,
   activityText: "",
@@ -122,6 +123,11 @@ export function supportFlowReducer(state, event) {
       {
         const parsedXp = Number(event.xpGained);
         const normalizedXp = Number.isFinite(parsedXp) ? parsedXp : null;
+        const parsedElapsedSeconds = Number(event.elapsedSeconds);
+        const normalizedElapsedSeconds =
+          Number.isFinite(parsedElapsedSeconds) && parsedElapsedSeconds >= 0
+            ? parsedElapsedSeconds
+            : null;
 
       return {
         isOpen: true,
@@ -133,6 +139,7 @@ export function supportFlowReducer(state, event) {
             typeof event.activityName === "string" && event.activityName.trim()
               ? event.activityName.trim()
               : null,
+          completedActivityElapsedSeconds: normalizedElapsedSeconds,
         },
       };
       }

@@ -30,9 +30,17 @@ export function useSupportFlow({ onStartActivity } = {}) {
     flowDispatch({ type: "OPEN_WELCOME_MESSAGE", loginState, loginStreak });
   }, []);
 
-  const openActivityReward = useCallback(({ xpGained = null, activityName = null } = {}) => {
-    flowDispatch({ type: "OPEN_ACTIVITY_REWARD", xpGained, activityName });
-  }, []);
+  const openActivityReward = useCallback(
+    ({ xpGained = null, activityName = null, elapsedSeconds = null } = {}) => {
+      flowDispatch({
+        type: "OPEN_ACTIVITY_REWARD",
+        xpGained,
+        activityName,
+        elapsedSeconds,
+      });
+    },
+    []
+  );
 
   const openSupportMode = useCallback(() => {
     flowDispatch({ type: "OPEN_SUPPORT_MODE" });

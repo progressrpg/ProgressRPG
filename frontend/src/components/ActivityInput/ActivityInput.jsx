@@ -20,7 +20,16 @@ export default function ActivityInput() {
     player,
     freeTimerLimitSeconds,
   } = useGame();
-  const { currentActivity, status, stop, startActivity, elapsed, limitReached } = activityTimer;
+  const {
+    currentActivity,
+    status,
+    stop,
+    startActivity,
+    elapsed,
+    limitReached,
+    autoStopCompletion,
+    clearAutoStopCompletion,
+  } = activityTimer;
 
   const isPremium = Boolean(player?.is_premium);
 
@@ -86,6 +95,43 @@ export default function ActivityInput() {
     if (limitReached) playLimitReachedSound();
   }, [limitReached]);
 
+  useEffect(() => {
+    if (!autoStopCompletion) return;
+
+    let cancelled = false;
+
+    async function handleAutoStopCompletion() {
+      setName("");
+
+      try {
+        await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
+      } catch (err) {
+        console.error("[ActivityInput] Failed to refresh after auto-stop:", err);
+      }
+
+      if (cancelled) return;
+
+      openActivityReward({
+        xpGained: autoStopCompletion.xpGained,
+        activityName: autoStopCompletion.activityName,
+        elapsedSeconds: autoStopCompletion.elapsedSeconds,
+      });
+      clearAutoStopCompletion();
+    }
+
+    handleAutoStopCompletion();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    autoStopCompletion,
+    clearAutoStopCompletion,
+    fetchActivities,
+    fetchCharacterCurrent,
+    openActivityReward,
+  ]);
+
   async function handleToggle() {
     if (isActive) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
@@ -96,6 +142,7 @@ export default function ActivityInput() {
       openActivityReward({
         xpGained,
         activityName: completedActivityName || null,
+        elapsedSeconds: elapsed,
       });
       return;
     }
