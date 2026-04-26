@@ -118,6 +118,9 @@ export default function ActivityInput() {
 
       openActivityReward({
         xpGained: autoStopCompletion.xpGained,
+        baseXp: autoStopCompletion.baseXp,
+        xpMultiplier: autoStopCompletion.xpMultiplier,
+        levelUps: autoStopCompletion.levelUps,
         activityName: autoStopCompletion.activityName,
         elapsedSeconds: autoStopCompletion.elapsedSeconds,
       });
@@ -143,6 +146,10 @@ export default function ActivityInput() {
       const completedActivityName = (name || currentActivity?.name || "").trim();
       const completion = await stop({ activityName: name });
       const xpGained = completion?.xp_gained ?? null;
+      const baseXp = completion?.base_xp ?? null;
+      const xpMultiplier = completion?.xp_multiplier ?? null;
+      const levelUps = completion?.level_ups ?? [];
+      const elapsedSeconds = completion?.duration_seconds ?? elapsed;
       setName("");
       await Promise.all([
         fetchPlayerAndCharacter(),
@@ -151,8 +158,11 @@ export default function ActivityInput() {
       ]);
       openActivityReward({
         xpGained,
+        baseXp,
+        xpMultiplier,
+        levelUps,
         activityName: completedActivityName || null,
-        elapsedSeconds: elapsed,
+        elapsedSeconds,
       });
       return;
     }

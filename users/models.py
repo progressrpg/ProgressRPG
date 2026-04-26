@@ -315,6 +315,9 @@ class Player(Person):
     def is_premium(self):
         return self.user.is_premium
 
+    def get_activity_xp_multiplier(self):
+        return Decimal("2.0") if self.is_premium else Decimal("1.0")
+
     @property
     def group_name(self):
         """Returns the WebSocket group name for this player."""
@@ -391,6 +394,8 @@ class Player(Person):
                 data={"level": event["new_level"]},
                 is_draft=False,
             )
+
+        return [event["new_level"] for event in levelups]
 
     def change_character(self, new_character: "Character"):
         """

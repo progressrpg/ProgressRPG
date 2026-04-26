@@ -278,18 +278,33 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         xp = duration
         return xp
 
-    def complete(self):
+    def get_xp_reward_summary(self) -> Dict[str, Any]:
+        base_xp = self.calculate_base_xp(self.duration)
+        player = self.player
+        multiplier = player.get_activity_xp_multiplier()
+        multiplier_value = (
+            int(multiplier)
+            if multiplier == multiplier.to_integral_value()
+            else float(multiplier)
+        )
+        return {
+            "duration_seconds": self.duration,
+            "base_xp": base_xp,
+            "xp_multiplier": multiplier_value,
+            "xp_gained": int(Decimal(base_xp) * multiplier),
+        }
+
+    def complete(self, reward_summary: Dict[str, Any] | None = None):
         """
         Mark the record as completed if not already complete.
         """
         if getattr(self, "is_complete", False):
-            return getattr(self, "completed_at", None)
+            return self.xp_gained
 
         self.completed_at = timezone.now()
         self.is_complete = True
-        base_xp = self.calculate_base_xp(self.duration)
-        multiplier = self.player.get_xp_multiplier()
-        self.xp_gained = int(Decimal(base_xp) * multiplier)
+        reward_summary = reward_summary or self.get_xp_reward_summary()
+        self.xp_gained = cast(int, reward_summary["xp_gained"])
         self.save(update_fields=["completed_at", "is_complete", "xp_gained"])
 
         return self.xp_gained

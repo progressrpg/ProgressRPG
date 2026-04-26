@@ -63,6 +63,9 @@ describe('ActivityInput', () => {
         limitReached: false,
         autoStopCompletion: {
           xpGained: 12,
+          baseXp: 6,
+          xpMultiplier: 2,
+          levelUps: [3],
           activityName: 'Write docs',
           elapsedSeconds: 15,
         },
@@ -88,6 +91,9 @@ describe('ActivityInput', () => {
       expect(fetchActivities).toHaveBeenCalledTimes(1);
       expect(openActivityReward).toHaveBeenCalledWith({
         xpGained: 12,
+        baseXp: 6,
+        xpMultiplier: 2,
+        levelUps: [3],
         activityName: 'Write docs',
         elapsedSeconds: 15,
       });
@@ -97,7 +103,7 @@ describe('ActivityInput', () => {
 
   it('refreshes player data after a manual stop so the infobar updates xp', async () => {
     const user = userEvent.setup();
-    stop.mockResolvedValue({ xp_gained: 7 });
+    stop.mockResolvedValue({ xp_gained: 16, base_xp: 16, xp_multiplier: 1, level_ups: [2], duration_seconds: 16 });
 
     mockUseGame.mockReturnValue({
       activityTimer: {
@@ -130,9 +136,12 @@ describe('ActivityInput', () => {
       expect(fetchCharacterCurrent).toHaveBeenCalledTimes(1);
       expect(fetchActivities).toHaveBeenCalledTimes(1);
       expect(openActivityReward).toHaveBeenCalledWith({
-        xpGained: 7,
+        xpGained: 16,
+        baseXp: 16,
+        xpMultiplier: 1,
+        levelUps: [2],
         activityName: 'Write docs',
-        elapsedSeconds: 15,
+        elapsedSeconds: 16,
       });
     });
   });

@@ -31,12 +31,22 @@ export function useSupportFlow({ onStartActivity } = {}) {
   }, []);
 
   const openActivityReward = useCallback(
-    ({ xpGained = null, activityName = null, elapsedSeconds = null } = {}) => {
+    ({
+      xpGained = null,
+      activityName = null,
+      elapsedSeconds = null,
+      baseXp = null,
+      xpMultiplier = null,
+      levelUps = [],
+    } = {}) => {
       flowDispatch({
         type: "OPEN_ACTIVITY_REWARD",
         xpGained,
         activityName,
         elapsedSeconds,
+        baseXp,
+        xpMultiplier,
+        levelUps,
       });
     },
     []
