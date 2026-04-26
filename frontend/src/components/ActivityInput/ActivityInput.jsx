@@ -12,6 +12,7 @@ const WELCOME_MESSAGE_LAST_EVENT_KEY = "supportFlow_lastLoginEventAtShown";
 export default function ActivityInput() {
   const {
     activityTimer,
+    fetchPlayerAndCharacter,
     fetchCharacterCurrent,
     fetchActivities,
     loginState,
@@ -104,7 +105,11 @@ export default function ActivityInput() {
       setName("");
 
       try {
-        await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
+        await Promise.all([
+          fetchPlayerAndCharacter(),
+          fetchCharacterCurrent(),
+          fetchActivities(),
+        ]);
       } catch (err) {
         console.error("[ActivityInput] Failed to refresh after auto-stop:", err);
       }
@@ -127,6 +132,7 @@ export default function ActivityInput() {
   }, [
     autoStopCompletion,
     clearAutoStopCompletion,
+    fetchPlayerAndCharacter,
     fetchActivities,
     fetchCharacterCurrent,
     openActivityReward,
@@ -138,7 +144,11 @@ export default function ActivityInput() {
       const completion = await stop({ activityName: name });
       const xpGained = completion?.xp_gained ?? null;
       setName("");
-      await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
+      await Promise.all([
+        fetchPlayerAndCharacter(),
+        fetchCharacterCurrent(),
+        fetchActivities(),
+      ]);
       openActivityReward({
         xpGained,
         activityName: completedActivityName || null,

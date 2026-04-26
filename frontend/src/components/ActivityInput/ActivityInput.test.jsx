@@ -1,4 +1,5 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ActivityInput from './ActivityInput';
@@ -6,9 +7,12 @@ import ActivityInput from './ActivityInput';
 const mockUseGame = vi.fn();
 const mockUseSupportFlow = vi.fn();
 const openActivityReward = vi.fn();
+const fetchPlayerAndCharacter = vi.fn();
 const fetchCharacterCurrent = vi.fn();
 const fetchActivities = vi.fn();
 const clearAutoStopCompletion = vi.fn();
+const stop = vi.fn();
+const startActivity = vi.fn();
 
 vi.mock('../../context/GameContext', () => ({
   useGame: () => mockUseGame(),
@@ -29,10 +33,14 @@ vi.mock('../../utils/sounds', () => ({
 describe('ActivityInput', () => {
   beforeEach(() => {
     openActivityReward.mockReset();
+    fetchPlayerAndCharacter.mockReset();
     fetchCharacterCurrent.mockReset();
     fetchActivities.mockReset();
     clearAutoStopCompletion.mockReset();
+    stop.mockReset();
+    startActivity.mockReset();
 
+    fetchPlayerAndCharacter.mockResolvedValue(null);
     fetchCharacterCurrent.mockResolvedValue(null);
     fetchActivities.mockResolvedValue(null);
 
@@ -49,8 +57,8 @@ describe('ActivityInput', () => {
       activityTimer: {
         currentActivity: null,
         status: 'empty',
-        stop: vi.fn(),
-        startActivity: vi.fn(),
+        stop,
+        startActivity,
         elapsed: 0,
         limitReached: false,
         autoStopCompletion: {
@@ -60,6 +68,7 @@ describe('ActivityInput', () => {
         },
         clearAutoStopCompletion,
       },
+      fetchPlayerAndCharacter,
       fetchCharacterCurrent,
       fetchActivities,
       loginState: 'none',
@@ -74,6 +83,7 @@ describe('ActivityInput', () => {
     render(<ActivityInput />);
 
     await waitFor(() => {
+      expect(fetchPlayerAndCharacter).toHaveBeenCalledTimes(1);
       expect(fetchCharacterCurrent).toHaveBeenCalledTimes(1);
       expect(fetchActivities).toHaveBeenCalledTimes(1);
       expect(openActivityReward).toHaveBeenCalledWith({
@@ -82,6 +92,48 @@ describe('ActivityInput', () => {
         elapsedSeconds: 15,
       });
       expect(clearAutoStopCompletion).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('refreshes player data after a manual stop so the infobar updates xp', async () => {
+    const user = userEvent.setup();
+    stop.mockResolvedValue({ xp_gained: 7 });
+
+    mockUseGame.mockReturnValue({
+      activityTimer: {
+        currentActivity: { name: 'Write docs' },
+        status: 'active',
+        stop,
+        startActivity,
+        elapsed: 15,
+        limitReached: false,
+        autoStopCompletion: null,
+        clearAutoStopCompletion,
+      },
+      fetchPlayerAndCharacter,
+      fetchCharacterCurrent,
+      fetchActivities,
+      loginState: 'none',
+      loginStreak: 0,
+      loginEventAt: null,
+      player: { is_premium: false },
+      freeTimerLimitSeconds: 15,
+    });
+
+    render(<ActivityInput />);
+
+    await user.click(screen.getByRole('button', { name: 'Stop' }));
+
+    await waitFor(() => {
+      expect(stop).toHaveBeenCalledWith({ activityName: 'Write docs' });
+      expect(fetchPlayerAndCharacter).toHaveBeenCalledTimes(1);
+      expect(fetchCharacterCurrent).toHaveBeenCalledTimes(1);
+      expect(fetchActivities).toHaveBeenCalledTimes(1);
+      expect(openActivityReward).toHaveBeenCalledWith({
+        xpGained: 7,
+        activityName: 'Write docs',
+        elapsedSeconds: 15,
+      });
     });
   });
 });
