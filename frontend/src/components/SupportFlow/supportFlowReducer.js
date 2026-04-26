@@ -43,7 +43,7 @@ export const ACTIVITY_PRESETS = {
     id: "tiniest_step",
     label: "Write down the tiniest first step",
     defaultActivityText: "Write down first step",
-    durationSeconds: null,
+    durationSeconds: 180,
     placeholder: "e.g. open the document, send one email, write one sentence",
     hint: "Make it so small it feels almost too easy. Examples: open the file, write the first line, send a single message.",
   },
@@ -73,7 +73,11 @@ const initialCtx = (entrypoint = null) => ({
   welcomeMessageLoginState: "none",
   welcomeMessageLoginStreak: 0,
   xpGained: null,
+  rewardBaseXp: null,
+  rewardXpMultiplier: null,
+  rewardLevelUps: [],
   completedActivityName: null,
+  completedActivityElapsedSeconds: null,
   supportActionId: null,
   activityPresetId: null,
   activityText: "",
@@ -122,6 +126,24 @@ export function supportFlowReducer(state, event) {
       {
         const parsedXp = Number(event.xpGained);
         const normalizedXp = Number.isFinite(parsedXp) ? parsedXp : null;
+        const parsedElapsedSeconds = Number(event.elapsedSeconds);
+        const normalizedElapsedSeconds =
+          Number.isFinite(parsedElapsedSeconds) && parsedElapsedSeconds >= 0
+            ? parsedElapsedSeconds
+            : null;
+        const parsedBaseXp = Number(event.baseXp);
+        const normalizedBaseXp =
+          Number.isFinite(parsedBaseXp) && parsedBaseXp >= 0 ? parsedBaseXp : null;
+        const parsedXpMultiplier = Number(event.xpMultiplier);
+        const normalizedXpMultiplier =
+          Number.isFinite(parsedXpMultiplier) && parsedXpMultiplier > 0
+            ? parsedXpMultiplier
+            : null;
+        const normalizedLevelUps = Array.isArray(event.levelUps)
+          ? event.levelUps
+              .map((level) => Number(level))
+              .filter((level) => Number.isInteger(level) && level > 0)
+          : [];
 
       return {
         isOpen: true,
@@ -129,10 +151,14 @@ export function supportFlowReducer(state, event) {
         ctx: {
           ...initialCtx("postActivity"),
           xpGained: normalizedXp,
+          rewardBaseXp: normalizedBaseXp,
+          rewardXpMultiplier: normalizedXpMultiplier,
+          rewardLevelUps: normalizedLevelUps,
           completedActivityName:
             typeof event.activityName === "string" && event.activityName.trim()
               ? event.activityName.trim()
               : null,
+          completedActivityElapsedSeconds: normalizedElapsedSeconds,
         },
       };
       }

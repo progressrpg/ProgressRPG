@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
-import os
 
 
 class Command(BaseCommand):
@@ -20,12 +19,13 @@ class Command(BaseCommand):
         call_command("setup_world")
 
         self.stdout.write("⏳ Generating character days...")
-        try:
-            from character.tasks import generate_character_days
-
-            generate_character_days()
-            self.stdout.write("Character days generation complete.")
-        except ImportError as e:
-            self.stderr.write(f"Could not generate character days: {e}")
+        self.stdout.write("Character day generation is currently disabled.")
+        # try:
+        #     from character.tasks import generate_character_days
+        #
+        #     generate_character_days()
+        #     self.stdout.write("Character days generation complete.")
+        # except ImportError as e:
+        #     self.stderr.write(f"Could not generate character days: {e}")
 
         self.stdout.write(self.style.SUCCESS("✅ Full seed workflow finished."))

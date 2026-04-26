@@ -1,6 +1,6 @@
 // hooks/useActivityTimer.js
 import { useState, useRef, useEffect, useCallback } from "react";
-import { apiFetch } from "../../utils/api.js";
+import { apiFetch } from "../utils/api.js";
 //import { useGame } from "../context/GameContext.jsx";
 
 
@@ -11,6 +11,8 @@ export default function useActivityTimer() {
   const [elapsed, setElapsed] = useState(0);
   const [currentActivity, setCurrentActivity] = useState(null);
   const [limitSeconds, setLimitSeconds] = useState(null); // optional time limit
+  const [limitReached, setLimitReached] = useState(false); // true after auto-stop fires; cleared on next startActivity or stop
+  const [autoStopCompletion, setAutoStopCompletion] = useState(null);
 
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -22,6 +24,9 @@ export default function useActivityTimer() {
   const statusRef = useRef(status);
   useEffect(() => { statusRef.current = status; }, [status]);
 
+  const currentActivityRef = useRef(currentActivity);
+  useEffect(() => { currentActivityRef.current = currentActivity; }, [currentActivity]);
+
   // Mirror limitSeconds into a ref so tickMain can read it without stale closure issues
   const limitRef = useRef(limitSeconds);
   useEffect(() => { limitRef.current = limitSeconds; }, [limitSeconds]);
@@ -31,6 +36,11 @@ export default function useActivityTimer() {
 
   // Stable ref to stop so tickMain can call it without becoming stale
   const stopRef = useRef(null);
+
+  const normalizeLimitSeconds = useCallback((rawLimit) => {
+    const parsedLimit = Number(rawLimit);
+    return Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : null;
+  }, []);
 
 
   // ----------------------------
@@ -53,12 +63,18 @@ export default function useActivityTimer() {
         setElapsed(newElapsed);
 
         // Auto-stop and submit exactly once
-        if (!didAutoStopRef.current) {
-          didAutoStopRef.current = true;
-          stopRef.current?.();
+          if (!didAutoStopRef.current) {
+            didAutoStopRef.current = true;
+            setLimitReached(true);
+            stopRef.current?.({
+              activityName:
+                currentActivityRef.current?.name || currentActivityRef.current?.text,
+              elapsedSeconds: newElapsed,
+              source: "auto",
+            });
+          }
+          return;
         }
-        return;
-      }
     }
 
     setElapsed(newElapsed);
@@ -85,10 +101,12 @@ export default function useActivityTimer() {
     startTimeRef.current = Date.now();
 
     // Set time limit (null means no limit)
-    const resolvedLimit = Number.isFinite(newLimit) && newLimit > 0 ? newLimit : null;
+    const resolvedLimit = normalizeLimitSeconds(newLimit);
     setLimitSeconds(resolvedLimit);
     limitRef.current = resolvedLimit;
     didAutoStopRef.current = false;
+    setLimitReached(false);
+    setAutoStopCompletion(null);
 
     // Ensure only one interval exists
     if (timerRef.current) clearInterval(timerRef.current);
@@ -137,10 +155,11 @@ export default function useActivityTimer() {
       setLimitSeconds(null);
       limitRef.current = null;
       didAutoStopRef.current = false;
+      setLimitReached(false);
 
       throw err;
     }
-  }, [tickMain]);
+  }, [normalizeLimitSeconds, tickMain]);
 
 
   // ----------------------------
@@ -148,7 +167,8 @@ export default function useActivityTimer() {
   // ----------------------------
 
 
-  const stop = useCallback(async ({ activityName } = {}) => {
+  const stop = useCallback(
+    async ({ activityName, elapsedSeconds, source = "manual" } = {}) => {
     //console.log(`[useActivityTimer] Stop and submit timer`);
     //console.log("COMPLETE called", { status, duration, elapsed, currentActivity });
     //console.trace();
@@ -163,6 +183,15 @@ export default function useActivityTimer() {
 
     try {
       let result = null;
+      const completedActivityName = (
+        activityName ||
+        currentActivityRef.current?.name ||
+        currentActivityRef.current?.text ||
+        ""
+      ).trim();
+      const completedElapsedSeconds = Number.isFinite(Number(elapsedSeconds))
+        ? Number(elapsedSeconds)
+        : elapsedRef.current;
 
       result = await apiFetch(`/activity_timers/complete/`, { method: "POST", body: JSON.stringify({activityName}) });
       // if (reset) {
@@ -177,7 +206,19 @@ export default function useActivityTimer() {
       setLimitSeconds(null);
       limitRef.current = null;
       didAutoStopRef.current = false;
+      setLimitReached(false);
       pausedTimeRef.current = 0;
+
+      if (source === "auto") {
+        setAutoStopCompletion({
+          xpGained: result?.xp_gained ?? null,
+          baseXp: result?.base_xp ?? null,
+          xpMultiplier: result?.xp_multiplier ?? null,
+          levelUps: result?.level_ups ?? [],
+          activityName: completedActivityName || null,
+          elapsedSeconds: result?.duration_seconds ?? completedElapsedSeconds,
+        });
+      }
 
       return result;
     } catch (err) {
@@ -186,7 +227,9 @@ export default function useActivityTimer() {
       // but for MVP it's okay to leave it stopped and let user retry.
       throw err;
     }
-  }, [status]);
+    },
+    [status]
+  );
 
 
   // Keep stopRef in sync so tickMain can call stop without stale closure issues
@@ -211,19 +254,46 @@ export default function useActivityTimer() {
   }, []);
 
 
-  const loadFromServer = useCallback((serverData) => {
+  const loadFromServer = useCallback((serverData, { limitSeconds: incomingLimit } = {}) => {
     if (!serverData) return;
     //console.log("timer from server:", serverData);
     const { id, status, elapsed_time, duration, activity } = serverData;
+    const resolvedLimit = normalizeLimitSeconds(incomingLimit);
+    const nextElapsed = elapsed_time || 0;
+    const nextStatus = status || 'empty';
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
     setId(id || 0);
-    setStatus(status || 'empty');
-    setElapsed(elapsed_time || 0);
+    setStatus(nextStatus);
+    setElapsed(nextElapsed);
     setDuration(duration || 0);
+    setLimitSeconds(resolvedLimit);
+    limitRef.current = resolvedLimit;
+    didAutoStopRef.current = false;
+    setLimitReached(false);
+    setAutoStopCompletion(null);
+    pausedTimeRef.current = nextElapsed;
 
     if (activity) {
       setCurrentActivity(activity);
+    } else {
+      setCurrentActivity(null);
     }
+
+    if (nextStatus === 'active') {
+      startTimeRef.current = Date.now() - nextElapsed * 1000;
+      timerRef.current = setInterval(tickMain, 1000);
+    } else {
+      startTimeRef.current = null;
+    }
+  }, [normalizeLimitSeconds, tickMain]);
+
+  const clearAutoStopCompletion = useCallback(() => {
+    setAutoStopCompletion(null);
   }, []);
 
   return {
@@ -231,9 +301,12 @@ export default function useActivityTimer() {
     elapsed,
     duration,
     limitSeconds,
+    limitReached,
+    autoStopCompletion,
     currentActivity,
     startActivity,
     stop,
     loadFromServer,
+    clearAutoStopCompletion,
   };
 }

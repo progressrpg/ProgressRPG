@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import PopulationCentreMap from "../../components/Map/Map";
 import { useGame } from "../../context/GameContext";
-import { apiFetch } from "../../../utils/api";
+import { apiFetch } from "../../utils/api";
 import ProgressBar from "../../components/ProgressBar/ProgressBar";
 import PopulationCentreResidents from "../../components/PopulationCentreResidents/PopulationCentreResidents";
 

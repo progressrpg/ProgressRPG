@@ -149,6 +149,15 @@ class DeleteAccountResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
 
 
+class WaitlistSignupRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+
+class WaitlistSignupResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    state = serializers.ChoiceField(choices=["pending", "subscribed"])
+
+
 def _verify_turnstile(token: str) -> bool:
     secret = getattr(settings, "CF_TURNSTILE_SECRET_KEY", "")
     if not secret:

@@ -6,18 +6,7 @@ import Button from '../../components/Button/Button';
 import Seo from '../../components/Seo/Seo';
 import styles from './Home.module.scss';
 import { trackEvent } from '../../utils/analytics';
-
-const MAILCHIMP_ACTION_URL =
-  import.meta.env.VITE_MAILCHIMP_ACTION_URL ||
-  'https://progressrpg.us13.list-manage.com/subscribe/post?u=ca98ca16970fc3d18b18a655b&id=4d402738e3&f_id=0050ede1f0';
-const MAILCHIMP_HONEYPOT_NAME =
-  import.meta.env.VITE_MAILCHIMP_HONEYPOT_NAME ||
-  'b_ca98ca16970fc3d18b18a655b_4d402738e3';
-const MAILCHIMP_TAGS_VALUE =
-  import.meta.env.VITE_MAILCHIMP_TAGS_VALUE || '1560484';
-const MAILCHIMP_HOSTED_FORM_URL =
-  import.meta.env.VITE_MAILCHIMP_HOSTED_FORM_URL ||
-  'https://progressrpg.us13.list-manage.com/subscribe?u=ca98ca16970fc3d18b18a655b&id=4d402738e3&f_id=0050ede1f0';
+import useWaitlistSignup from '../../hooks/useWaitlistSignup';
 const HOME_URL = 'https://progressrpg.com/';
 const HOME_TITLE = 'Progress RPG | ADHD-Friendly Productivity Support Game';
 const HOME_DESCRIPTION =
@@ -46,9 +35,7 @@ const heroHighlights = [
   'Use the support flow to choose a task, write the tiniest first step, or reset before you begin.',
   'Watch your effort build into progress you can return to tomorrow.',
 ];
-
-// Time (ms) to leave the request alive before we treat it as failed.
-const MAILCHIMP_REQUEST_TIMEOUT_MS = 10000;
+const DEFAULT_WAITLIST_SUCCESS_MESSAGE = "You're on the list! We'll be in touch soon.";
 
 function getEmailValidationMessage(value) {
   const trimmedValue = value.trim();
@@ -64,91 +51,12 @@ function getEmailValidationMessage(value) {
   return '';
 }
 
-function getMailchimpJsonpUrl(actionUrl) {
-  const url = new URL(actionUrl, window.location.origin);
-  url.pathname = url.pathname.replace(/\/post$/, '/post-json');
-  return url;
-}
-
-function getMailchimpResponseMessage(message, fallbackMessage) {
-  if (!message) {
-    return fallbackMessage;
-  }
-
-  const parsedMessage = document.createElement('div');
-  parsedMessage.innerHTML = message;
-
-  return parsedMessage.textContent?.trim() || fallbackMessage;
-}
-
-function isAlreadySubscribedMessage(message) {
-  return /already subscribed/i.test(message);
-}
-
-function isCaptchaRedirectResponse(response, message) {
-  return response?.result === 'redirect' && /captcha/i.test(message);
-}
-
-function getMailchimpHostedSignupUrl(email) {
-  const url = new URL(MAILCHIMP_HOSTED_FORM_URL, window.location.origin);
-
-  if (email.trim()) {
-    url.searchParams.set('EMAIL', email.trim());
-  }
-
-  return url.toString();
-}
-
-function subscribeToMailchimp({ actionUrl, email, tagsValue, honeypotName }) {
-  return new Promise((resolve, reject) => {
-    const callbackName = `mailchimpSignupCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const url = getMailchimpJsonpUrl(actionUrl);
-    const script = document.createElement('script');
-    const timeoutId = window.setTimeout(() => {
-      cleanup();
-      reject(new Error('Signup is temporarily unavailable. Please try again later.'));
-    }, MAILCHIMP_REQUEST_TIMEOUT_MS);
-
-    function cleanup() {
-      window.clearTimeout(timeoutId);
-      delete window[callbackName];
-      script.remove();
-    }
-
-    url.searchParams.set('EMAIL', email.trim());
-    url.searchParams.set('c', callbackName);
-
-    if (tagsValue) {
-      url.searchParams.set('tags', tagsValue);
-    }
-
-    if (honeypotName) {
-      url.searchParams.set(honeypotName, '');
-    }
-
-    script.src = url.toString();
-    script.async = true;
-
-    window[callbackName] = (response) => {
-      cleanup();
-      resolve(response);
-    };
-
-    script.onerror = () => {
-      cleanup();
-      reject(new Error('Signup is temporarily unavailable. Please try again later.'));
-    };
-
-    document.body.appendChild(script);
-  });
-}
-
 function MailchimpSignupForm() {
+  const { requestWaitlistSignup } = useWaitlistSignup();
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState('idle'); // 'idle' | 'submitting' | 'success' | 'error' | 'captcha'
+  const [status, setStatus] = useState('idle'); // 'idle' | 'submitting' | 'success' | 'error'
   const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('🎉 You’re on the list! We’ll be in touch soon.');
-  const [captchaUrl, setCaptchaUrl] = useState('');
+  const [successMsg, setSuccessMsg] = useState(DEFAULT_WAITLIST_SUCCESS_MESSAGE);
   const emailInputId = useId();
   const emailHelpId = useId();
   const emailErrorId = useId();
@@ -174,75 +82,24 @@ function MailchimpSignupForm() {
 
     setStatus('submitting');
     setErrorMsg('');
-    setSuccessMsg('🎉 You’re on the list! We’ll be in touch soon.');
-    setCaptchaUrl('');
+    setSuccessMsg(DEFAULT_WAITLIST_SUCCESS_MESSAGE);
 
-    if (!MAILCHIMP_ACTION_URL) {
-      // Graceful degradation when not configured
+    const result = await requestWaitlistSignup(email.trim());
+    if (!result.success) {
       setStatus('error');
-      setErrorMsg('Signup is temporarily unavailable. Please try again later.');
+      setErrorMsg(result.errorMessage);
       return;
     }
 
-    try {
-      const response = await subscribeToMailchimp({
-        actionUrl: MAILCHIMP_ACTION_URL,
-        email,
-        tagsValue: MAILCHIMP_TAGS_VALUE,
-        honeypotName: MAILCHIMP_HONEYPOT_NAME,
-      });
-      const message = getMailchimpResponseMessage(
-        response?.msg,
-        'Something went wrong. Please try again.'
-      );
-
-      if (response?.result !== 'success') {
-        if (isAlreadySubscribedMessage(message)) {
-          setStatus('success');
-          setSuccessMsg('You’re already on the list with that email address.');
-          setEmail('');
-          return;
-        }
-
-        if (isCaptchaRedirectResponse(response, message)) {
-          setStatus('captcha');
-          setCaptchaUrl(getMailchimpHostedSignupUrl(email));
-          return;
-        }
-
-        setStatus('error');
-        setErrorMsg(message);
-        return;
-      }
-
-      setStatus('success');
-      setSuccessMsg('🎉 You’re on the list! We’ll be in touch soon.');
-      setEmail('');
-    } catch (error) {
-      setStatus('error');
-      setErrorMsg(
-        error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-      );
-    }
+    setStatus('success');
+    setSuccessMsg(result.message || DEFAULT_WAITLIST_SUCCESS_MESSAGE);
+    setEmail('');
   };
 
   if (status === 'success') {
     return (
       <div className={styles.signupSuccess} role="status" aria-live="polite">
         <p>{successMsg}</p>
-      </div>
-    );
-  }
-
-  if (status === 'captcha') {
-    return (
-      <div className={styles.signupSuccess} role="status" aria-live="polite">
-        <p>Mailchimp needs one extra verification step to complete your signup.</p>
-        <p>
-          <a href={captchaUrl || getMailchimpHostedSignupUrl(email)} target="_blank" rel="noreferrer">
-            Continue to the secure signup form
-          </a>
-        </p>
       </div>
     );
   }
@@ -284,13 +141,6 @@ function MailchimpSignupForm() {
           inputMode="email"
           disabled={status === 'submitting'}
         />
-        <input type="hidden" name="tags" value={MAILCHIMP_TAGS_VALUE} />
-        {/* Honeypot field – name must match the auto-generated Mailchimp bot-field
-            for your list (format: b_<listid>_<tagid>). Configure it with
-            VITE_MAILCHIMP_HONEYPOT_NAME when needed. */}
-        <div style={{ position: 'absolute', left: '-5000px' }} aria-hidden="true">
-          <input type="text" name={MAILCHIMP_HONEYPOT_NAME} tabIndex={-1} defaultValue="" readOnly />
-        </div>
         <Button
           type="submit"
           variant="primary"

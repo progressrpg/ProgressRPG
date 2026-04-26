@@ -1,5 +1,5 @@
 // src/api/player.js
-import { apiFetch } from "../../utils/api";
+import { apiFetch } from "../utils/api";
 
 export const updatePlayer = async (data) => {
   const response = await apiFetch("/me/player/", {

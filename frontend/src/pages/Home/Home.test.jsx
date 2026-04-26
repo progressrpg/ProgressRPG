@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -9,6 +9,7 @@ import Home from './Home';
 const mockNavigate = vi.fn();
 const mockUseAuth = vi.fn();
 const mockTrackEvent = vi.fn();
+const mockRequestWaitlistSignup = vi.fn();
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
@@ -16,6 +17,12 @@ vi.mock('../../context/AuthContext', () => ({
 
 vi.mock('../../utils/analytics', () => ({
   trackEvent: (...args) => mockTrackEvent(...args),
+}));
+
+vi.mock('../../hooks/useWaitlistSignup', () => ({
+  default: () => ({
+    requestWaitlistSignup: (...args) => mockRequestWaitlistSignup(...args),
+  }),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -34,26 +41,21 @@ function renderHome() {
   );
 }
 
-describe('Home', () => {
-  let appendChildSpy;
+function createDeferred() {
+  let resolve;
+  const promise = new Promise((resolvePromise) => {
+    resolve = resolvePromise;
+  });
 
+  return { promise, resolve };
+}
+
+describe('Home', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     mockUseAuth.mockReset();
     mockTrackEvent.mockReset();
-
-    const originalAppendChild = document.body.appendChild.bind(document.body);
-    appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation((node) => {
-      if (node instanceof HTMLScriptElement) {
-        return node;
-      }
-
-      return originalAppendChild(node);
-    });
-  });
-
-  afterEach(() => {
-    appendChildSpy?.mockRestore();
+    mockRequestWaitlistSignup.mockReset();
   });
 
   it('renders the logged-out landing page', () => {
@@ -80,6 +82,7 @@ describe('Home', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Enter an email address to join the waitlist.');
     expect(screen.getByLabelText('Email address')).toHaveAttribute('aria-invalid', 'true');
+    expect(mockRequestWaitlistSignup).not.toHaveBeenCalled();
   });
 
   it('shows a clear error when the waitlist form email is invalid', async () => {
@@ -92,127 +95,77 @@ describe('Home', () => {
     await user.click(screen.getByRole('button', { name: 'Join the waitlist' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address, like name@example.com.');
+    expect(mockRequestWaitlistSignup).not.toHaveBeenCalled();
   });
 
-  it('only shows success after Mailchimp confirms the signup', async () => {
+  it('only shows success after the backend confirms the signup', async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
     const user = userEvent.setup();
-    const windowKeysBefore = new Set(Object.keys(window));
+    const deferred = createDeferred();
+    mockRequestWaitlistSignup.mockReturnValue(deferred.promise);
 
     renderHome();
 
     await user.type(screen.getByLabelText('Email address'), 'newperson@example.com');
     await user.click(screen.getByRole('button', { name: 'Join the waitlist' }));
 
-    expect(screen.queryByText(/you’re on the list/i)).not.toBeInTheDocument();
+    expect(mockRequestWaitlistSignup).toHaveBeenCalledWith('newperson@example.com');
+    expect(screen.queryByText(/you'?re on the list/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Submitting your email' })).toBeDisabled();
 
-    const callbackName = Object.keys(window).find(
-      (key) => !windowKeysBefore.has(key) && key.startsWith('mailchimpSignupCallback_')
-    );
-
-    expect(callbackName).toBeTruthy();
-
-    window[callbackName]({
-      result: 'success',
-      msg: 'Thanks for subscribing!',
+    deferred.resolve({
+      success: true,
+      message: "You're on the list! We'll be in touch soon.",
     });
 
-    expect(await screen.findByRole('status')).toHaveTextContent('🎉 You’re on the list! We’ll be in touch soon.');
+    expect(await screen.findByRole('status')).toHaveTextContent("You're on the list! We'll be in touch soon.");
     expect(mockTrackEvent).toHaveBeenCalledWith('waitlist_signup_submitted', {
       form_name: 'mailchimp_waitlist',
       page: 'home',
     });
   });
 
-  it('shows a Mailchimp error instead of a false success message', async () => {
+  it('shows the backend error instead of a false success message', async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
     const user = userEvent.setup();
-    const windowKeysBefore = new Set(Object.keys(window));
+    mockRequestWaitlistSignup.mockResolvedValue({
+      success: false,
+      errorMessage: 'Unable to join the waitlist right now. Please try again later.',
+    });
 
     renderHome();
 
     await user.type(screen.getByLabelText('Email address'), 'existing@example.com');
     await user.click(screen.getByRole('button', { name: 'Join the waitlist' }));
 
-    const callbackName = Object.keys(window).find(
-      (key) => !windowKeysBefore.has(key) && key.startsWith('mailchimpSignupCallback_')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to join the waitlist right now. Please try again later.'
     );
-
-    expect(callbackName).toBeTruthy();
-
-    window[callbackName]({
-      result: 'error',
-      msg: '0 - Please enter a value',
-    });
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('0 - Please enter a value');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
-  it('treats already subscribed responses as a successful waitlist state', async () => {
+  it('shows the backend success message for pending confirmation signups', async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
     const user = userEvent.setup();
-    const windowKeysBefore = new Set(Object.keys(window));
+    mockRequestWaitlistSignup.mockResolvedValue({
+      success: true,
+      message: 'Check your email to confirm your place on the waitlist.',
+      state: 'pending',
+    });
 
     renderHome();
 
-    await user.type(screen.getByLabelText('Email address'), 'existing@example.com');
+    await user.type(screen.getByLabelText('Email address'), 'person@example.com');
     await user.click(screen.getByRole('button', { name: 'Join the waitlist' }));
 
-    const callbackName = Object.keys(window).find(
-      (key) => !windowKeysBefore.has(key) && key.startsWith('mailchimpSignupCallback_')
-    );
-
-    expect(callbackName).toBeTruthy();
-
-    window[callbackName]({
-      result: 'error',
-      msg: '0 - existing@example.com is already subscribed to list Progress RPG.',
-    });
-
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'You’re already on the list with that email address.'
+      'Check your email to confirm your place on the waitlist.'
     );
     expect(mockTrackEvent).toHaveBeenCalledWith('waitlist_signup_submitted', {
       form_name: 'mailchimp_waitlist',
       page: 'home',
     });
-  });
-
-  it('shows a hosted Mailchimp fallback when captcha verification is required', async () => {
-    mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
-    const user = userEvent.setup();
-    const windowKeysBefore = new Set(Object.keys(window));
-
-    renderHome();
-
-    await user.type(screen.getByLabelText('Email address'), 'person@gmail.com');
-    await user.click(screen.getByRole('button', { name: 'Join the waitlist' }));
-
-    const callbackName = Object.keys(window).find(
-      (key) => !windowKeysBefore.has(key) && key.startsWith('mailchimpSignupCallback_')
-    );
-
-    expect(callbackName).toBeTruthy();
-
-    window[callbackName]({
-      result: 'redirect',
-      msg: 'captcha',
-    });
-
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Mailchimp needs one extra verification step to complete your signup.'
-    );
-
-    const hostedLink = screen.getByRole('link', { name: 'Continue to the secure signup form' });
-    expect(hostedLink).toHaveAttribute(
-      'href',
-      expect.stringContaining('https://progressrpg.us13.list-manage.com/subscribe?')
-    );
-    expect(hostedLink).toHaveAttribute('href', expect.stringContaining('EMAIL=person%40gmail.com'));
-    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('redirects authenticated users to the game', async () => {

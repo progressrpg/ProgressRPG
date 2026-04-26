@@ -1,5 +1,5 @@
 // src/api/projects.js
-import { apiFetch } from "../../utils/api";
+import { apiFetch } from "../utils/api";
 
 export function fetchProjects() {
   return apiFetch("/projects/");
