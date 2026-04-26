@@ -5,6 +5,7 @@ import BackToTopButton from '../../components/BackToTopButton/BackToTopButton';
 import Button from '../../components/Button/Button';
 import Seo from '../../components/Seo/Seo';
 import styles from './Home.module.scss';
+import { trackEvent } from '../../utils/analytics';
 
 const MAILCHIMP_ACTION_URL =
   import.meta.env.VITE_MAILCHIMP_ACTION_URL ||
@@ -14,6 +15,9 @@ const MAILCHIMP_HONEYPOT_NAME =
   'b_ca98ca16970fc3d18b18a655b_4d402738e3';
 const MAILCHIMP_TAGS_VALUE =
   import.meta.env.VITE_MAILCHIMP_TAGS_VALUE || '1560484';
+const MAILCHIMP_HOSTED_FORM_URL =
+  import.meta.env.VITE_MAILCHIMP_HOSTED_FORM_URL ||
+  'https://progressrpg.us13.list-manage.com/subscribe?u=ca98ca16970fc3d18b18a655b&id=4d402738e3&f_id=0050ede1f0';
 const HOME_URL = 'https://progressrpg.com/';
 const HOME_TITLE = 'Progress RPG | ADHD-Friendly Productivity Support Game';
 const HOME_DESCRIPTION =
@@ -43,9 +47,8 @@ const heroHighlights = [
   'Watch your effort build into progress you can return to tomorrow.',
 ];
 
-// Time (ms) to leave the hidden iframe alive so Mailchimp can finish processing
-// the POST before we clean it up from the DOM.
-const MAILCHIMP_CLEANUP_DELAY_MS = 3000;
+// Time (ms) to leave the request alive before we treat it as failed.
+const MAILCHIMP_REQUEST_TIMEOUT_MS = 10000;
 
 function getEmailValidationMessage(value) {
   const trimmedValue = value.trim();
@@ -61,13 +64,103 @@ function getEmailValidationMessage(value) {
   return '';
 }
 
+function getMailchimpJsonpUrl(actionUrl) {
+  const url = new URL(actionUrl, window.location.origin);
+  url.pathname = url.pathname.replace(/\/post$/, '/post-json');
+  return url;
+}
+
+function getMailchimpResponseMessage(message, fallbackMessage) {
+  if (!message) {
+    return fallbackMessage;
+  }
+
+  const parsedMessage = document.createElement('div');
+  parsedMessage.innerHTML = message;
+
+  return parsedMessage.textContent?.trim() || fallbackMessage;
+}
+
+function isAlreadySubscribedMessage(message) {
+  return /already subscribed/i.test(message);
+}
+
+function isCaptchaRedirectResponse(response, message) {
+  return response?.result === 'redirect' && /captcha/i.test(message);
+}
+
+function getMailchimpHostedSignupUrl(email) {
+  const url = new URL(MAILCHIMP_HOSTED_FORM_URL, window.location.origin);
+
+  if (email.trim()) {
+    url.searchParams.set('EMAIL', email.trim());
+  }
+
+  return url.toString();
+}
+
+function subscribeToMailchimp({ actionUrl, email, tagsValue, honeypotName }) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `mailchimpSignupCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const url = getMailchimpJsonpUrl(actionUrl);
+    const script = document.createElement('script');
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('Signup is temporarily unavailable. Please try again later.'));
+    }, MAILCHIMP_REQUEST_TIMEOUT_MS);
+
+    function cleanup() {
+      window.clearTimeout(timeoutId);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    url.searchParams.set('EMAIL', email.trim());
+    url.searchParams.set('c', callbackName);
+
+    if (tagsValue) {
+      url.searchParams.set('tags', tagsValue);
+    }
+
+    if (honeypotName) {
+      url.searchParams.set(honeypotName, '');
+    }
+
+    script.src = url.toString();
+    script.async = true;
+
+    window[callbackName] = (response) => {
+      cleanup();
+      resolve(response);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('Signup is temporarily unavailable. Please try again later.'));
+    };
+
+    document.body.appendChild(script);
+  });
+}
+
 function MailchimpSignupForm() {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState('idle'); // 'idle' | 'submitting' | 'success' | 'error'
+  const [status, setStatus] = useState('idle'); // 'idle' | 'submitting' | 'success' | 'error' | 'captcha'
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('🎉 You’re on the list! We’ll be in touch soon.');
+  const [captchaUrl, setCaptchaUrl] = useState('');
   const emailInputId = useId();
   const emailHelpId = useId();
   const emailErrorId = useId();
+
+  useEffect(() => {
+    if (status === 'success') {
+      trackEvent('waitlist_signup_submitted', {
+        form_name: 'mailchimp_waitlist',
+        page: 'home',
+      });
+    }
+  }, [status]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,6 +174,8 @@ function MailchimpSignupForm() {
 
     setStatus('submitting');
     setErrorMsg('');
+    setSuccessMsg('🎉 You’re on the list! We’ll be in touch soon.');
+    setCaptchaUrl('');
 
     if (!MAILCHIMP_ACTION_URL) {
       // Graceful degradation when not configured
@@ -90,53 +185,64 @@ function MailchimpSignupForm() {
     }
 
     try {
-      // Use a hidden iframe to avoid CORS issues with Mailchimp
-      const form = e.target;
-      const data = new FormData(form);
-      const iframeName = `mc-submission-frame-${Date.now()}`;
+      const response = await subscribeToMailchimp({
+        actionUrl: MAILCHIMP_ACTION_URL,
+        email,
+        tagsValue: MAILCHIMP_TAGS_VALUE,
+        honeypotName: MAILCHIMP_HONEYPOT_NAME,
+      });
+      const message = getMailchimpResponseMessage(
+        response?.msg,
+        'Something went wrong. Please try again.'
+      );
 
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.name = iframeName;
-      document.body.appendChild(iframe);
+      if (response?.result !== 'success') {
+        if (isAlreadySubscribedMessage(message)) {
+          setStatus('success');
+          setSuccessMsg('You’re already on the list with that email address.');
+          setEmail('');
+          return;
+        }
 
-      const hiddenForm = document.createElement('form');
-      hiddenForm.method = 'POST';
-      hiddenForm.action = MAILCHIMP_ACTION_URL;
-      hiddenForm.target = iframeName;
+        if (isCaptchaRedirectResponse(response, message)) {
+          setStatus('captcha');
+          setCaptchaUrl(getMailchimpHostedSignupUrl(email));
+          return;
+        }
 
-      for (const [key, value] of data.entries()) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value;
-        hiddenForm.appendChild(input);
+        setStatus('error');
+        setErrorMsg(message);
+        return;
       }
 
-      document.body.appendChild(hiddenForm);
-      hiddenForm.submit();
-
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-        if (document.body.contains(hiddenForm)) {
-          document.body.removeChild(hiddenForm);
-        }
-      }, MAILCHIMP_CLEANUP_DELAY_MS);
-
       setStatus('success');
+      setSuccessMsg('🎉 You’re on the list! We’ll be in touch soon.');
       setEmail('');
-    } catch {
+    } catch (error) {
       setStatus('error');
-      setErrorMsg('Something went wrong. Please try again.');
+      setErrorMsg(
+        error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+      );
     }
   };
 
   if (status === 'success') {
     return (
       <div className={styles.signupSuccess} role="status" aria-live="polite">
-        <p>🎉 You&rsquo;re on the list! We&rsquo;ll be in touch soon.</p>
+        <p>{successMsg}</p>
+      </div>
+    );
+  }
+
+  if (status === 'captcha') {
+    return (
+      <div className={styles.signupSuccess} role="status" aria-live="polite">
+        <p>Mailchimp needs one extra verification step to complete your signup.</p>
+        <p>
+          <a href={captchaUrl || getMailchimpHostedSignupUrl(email)} target="_blank" rel="noreferrer">
+            Continue to the secure signup form
+          </a>
+        </p>
       </div>
     );
   }
