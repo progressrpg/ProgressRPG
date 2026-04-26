@@ -4,7 +4,7 @@ import Button from "../Button/Button";
 import ButtonFrame from "../Button/ButtonFrame";
 import Input from "../Input/Input";
 
-import { formatDuration } from "../../../utils/formatUtils.js";
+import { formatDuration } from "../../utils/formatUtils.js";
 import TimerDisplay from "./TimerDisplay.jsx";
 import styles from "./ActivityTimer.module.scss";
 

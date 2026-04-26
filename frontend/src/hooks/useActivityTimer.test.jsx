@@ -5,7 +5,7 @@ import useActivityTimer from './useActivityTimer';
 
 const mockApiFetch = vi.fn();
 
-vi.mock('../../utils/api.js', () => ({
+vi.mock("../utils/api.js", () => ({
   apiFetch: (...args) => mockApiFetch(...args),
 }));
 
@@ -35,7 +35,7 @@ describe('useActivityTimer', () => {
       }
 
       if (url === '/activity_timers/complete/') {
-        return Promise.resolve({ xp_gained: 5 });
+        return Promise.resolve({ xp_gained: 15, base_xp: 15, xp_multiplier: 1, level_ups: [2], duration_seconds: 15 });
       }
 
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
@@ -58,14 +58,17 @@ describe('useActivityTimer', () => {
     expect(result.current.status).toBe('empty');
     expect(result.current.elapsed).toBe(0);
     expect(result.current.autoStopCompletion).toEqual({
-      xpGained: 5,
+      xpGained: 15,
+      baseXp: 15,
+      xpMultiplier: 1,
+      levelUps: [2],
       activityName: 'Test activity',
       elapsedSeconds: 15,
     });
   });
 
   it('restores limit enforcement for active timers loaded from the server', async () => {
-    mockApiFetch.mockResolvedValue({ xp_gained: 3 });
+    mockApiFetch.mockResolvedValue({ xp_gained: 15, base_xp: 15, xp_multiplier: 1, level_ups: [], duration_seconds: 15 });
 
     const { result } = renderHook(() => useActivityTimer());
 
@@ -93,7 +96,10 @@ describe('useActivityTimer', () => {
     expect(result.current.status).toBe('empty');
     expect(result.current.limitSeconds).toBe(null);
     expect(result.current.autoStopCompletion).toEqual({
-      xpGained: 3,
+      xpGained: 15,
+      baseXp: 15,
+      xpMultiplier: 1,
+      levelUps: [],
       activityName: 'Restored activity',
       elapsedSeconds: 15,
     });

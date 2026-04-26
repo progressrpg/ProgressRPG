@@ -1,6 +1,6 @@
 // hooks/useActivityTimer.js
 import { useState, useRef, useEffect, useCallback } from "react";
-import { apiFetch } from "../../utils/api.js";
+import { apiFetch } from "../utils/api.js";
 //import { useGame } from "../context/GameContext.jsx";
 
 
@@ -212,8 +212,11 @@ export default function useActivityTimer() {
       if (source === "auto") {
         setAutoStopCompletion({
           xpGained: result?.xp_gained ?? null,
+          baseXp: result?.base_xp ?? null,
+          xpMultiplier: result?.xp_multiplier ?? null,
+          levelUps: result?.level_ups ?? [],
           activityName: completedActivityName || null,
-          elapsedSeconds: completedElapsedSeconds,
+          elapsedSeconds: result?.duration_seconds ?? completedElapsedSeconds,
         });
       }
 

@@ -126,11 +126,9 @@ class ActivityTimerViewSet(BaseTimerViewSet):
         timer = self.get_timer(request)
         name = request.data.get("activityName")
 
-        xp_gained = timer.complete(newName=name)
+        completion = timer.complete(newName=name)
 
-        return Response(
-            {"activity_timer": self.serialize(timer), "xp_gained": xp_gained}
-        )
+        return Response({"activity_timer": self.serialize(timer), **completion})
 
     @action(detail=False, methods=["post"])
     def set_activity(self, request):
@@ -157,7 +155,9 @@ class QuestTimerViewSet(BaseTimerViewSet):
     def get_timer(self, request):
         character = request.user.player.current_character
         if character is None:
-            raise NotFound("No active character found. Please link a character to access quest timers.")
+            raise NotFound(
+                "No active character found. Please link a character to access quest timers."
+            )
         timer = character.quest_timer
         if timer is None:
             raise NotFound(f"Quest timer not found")

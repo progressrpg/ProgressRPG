@@ -1,6 +1,6 @@
 // src/hooks/useOnboarding.js
 import { useMemo, useState, useCallback } from 'react';
-import { apiFetch } from '../../utils/api';
+import { apiFetch } from "../utils/api";
 import { useGame } from '../context/GameContext';
 
 export default function useOnboarding() {

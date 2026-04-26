@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 import { useBootstrapGameData } from '../hooks/useBootstrapGameData';
-import { apiFetch } from '../../utils/api';
+import { apiFetch } from "../utils/api";
 import useActivityTimer from '../hooks/useActivityTimer';
 import { useAuth } from './AuthContext';
 
