@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { apiFetch } from '../../utils/api';
+import { apiFetch } from "../utils/api";
 import { useAuth } from '../context/AuthContext.jsx';
 
 export function useBootstrapGameData() {

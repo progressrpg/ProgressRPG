@@ -86,7 +86,7 @@ describe('ActivityRewardScreen', () => {
       screen.getByText('You spent 1 minute on "Write tests".')
     ).toBeInTheDocument();
     expect(screen.getByText('1:00')).toBeInTheDocument();
-    expect(screen.getByText('Premium')).toBeInTheDocument();
+    expect(screen.getByText('Premium bonus')).toBeInTheDocument();
     expect(screen.getByText('x2')).toBeInTheDocument();
     expect(screen.getByText('120 XP')).toBeInTheDocument();
     expect(screen.getByText('Level up! You reached level 2.')).toBeInTheDocument();

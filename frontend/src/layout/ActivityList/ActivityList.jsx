@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiFetch } from '../../../utils/api';
+import { apiFetch } from "../../utils/api";
 import List from '../../components/List/List';
 
 export default function ActivityList() {

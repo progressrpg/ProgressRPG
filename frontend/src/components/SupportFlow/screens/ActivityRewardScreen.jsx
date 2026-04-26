@@ -1,31 +1,8 @@
 // SupportFlow/screens/ActivityRewardScreen.jsx
 import Button from "../../Button/Button";
 import ButtonFrame from "../../Button/ButtonFrame";
-import { formatDuration } from "../../../../utils/formatUtils.js";
+import { formatDuration, formatRewardDuration } from "../../../utils/formatUtils.js";
 import styles from "../SupportFlowModal.module.scss";
-
-function formatRewardDuration(durationSeconds) {
-  const totalSeconds = Math.max(0, Math.floor(durationSeconds));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    if (minutes > 0) {
-      return `${hours} hour${hours === 1 ? "" : "s"} ${minutes} minute${minutes === 1 ? "" : "s"}`;
-    }
-    return `${hours} hour${hours === 1 ? "" : "s"}`;
-  }
-
-  if (minutes > 0) {
-    if (seconds > 0) {
-      return `${minutes} minute${minutes === 1 ? "" : "s"} ${seconds} second${seconds === 1 ? "" : "s"}`;
-    }
-    return `${minutes} minute${minutes === 1 ? "" : "s"}`;
-  }
-
-  return `${seconds} second${seconds === 1 ? "" : "s"}`;
-}
 
 export default function ActivityRewardScreen({
   activityName,
@@ -71,7 +48,7 @@ export default function ActivityRewardScreen({
 
   if (hasRewardBreakdown && parsedMultiplier > 1) {
     if (parsedMultiplier === 2) {
-      multiplierLines.push({ label: "Premium", value: `x${formattedMultiplier}` });
+      multiplierLines.push({ label: "Premium bonus", value: `x${formattedMultiplier}` });
     } else {
       multiplierLines.push({ label: "Activity XP", value: `x${formattedMultiplier}` });
     }

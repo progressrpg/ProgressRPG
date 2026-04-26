@@ -5,7 +5,7 @@ import useActivityTimer from './useActivityTimer';
 
 const mockApiFetch = vi.fn();
 
-vi.mock('../../utils/api.js', () => ({
+vi.mock("../utils/api.js", () => ({
   apiFetch: (...args) => mockApiFetch(...args),
 }));
 

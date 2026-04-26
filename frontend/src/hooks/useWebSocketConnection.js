@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { API_BASE_URL } from '../config';
-import { apiFetch } from '../../utils/api';
+import { apiFetch } from "../utils/api";
 
 // WebSocket connection constants
 const RECONNECT_DELAY_MS = 3000;
