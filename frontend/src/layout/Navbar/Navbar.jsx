@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import styles from './Navbar.module.scss';
 import Button from '../../components/Button/Button';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 
 export default function Navbar({ onMenuClick }) {
   const { isAuthenticated } = useAuth();

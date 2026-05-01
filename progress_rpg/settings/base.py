@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 import sys
 import dj_database_url
@@ -168,8 +169,12 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
+SHORT_SESSION_REFRESH_TOKEN_LIFETIME = timedelta(days=1)
+LONG_SESSION_REFRESH_TOKEN_LIFETIME = timedelta(days=30)
+
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "REFRESH_TOKEN_LIFETIME": SHORT_SESSION_REFRESH_TOKEN_LIFETIME,
 }
 
 REST_USE_JWT = True

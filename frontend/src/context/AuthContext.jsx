@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { apiFetch } from "../utils/api";
-
-const AuthContext = createContext(null);
+import { AuthContext } from './authContext';
+import { clearAuthStorage, getStoredAuthTokens, storeAuthTokens } from '../utils/authStorage';
 
 export function AuthProvider({ children }) {
-  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken'));
-  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('refreshToken'));
+  const [accessToken, setAccessToken] = useState(() => getStoredAuthTokens().accessToken);
+  const [refreshToken, setRefreshToken] = useState(() => getStoredAuthTokens().refreshToken);
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
         const data = await apiFetch('/me/');
         setUser(data);
         setIsAuthenticated(true);
-      } catch (err) {
+      } catch {
         logout();
       } finally {
         setLoading(false);
@@ -37,9 +37,9 @@ export function AuthProvider({ children }) {
     verifyUser();
   }, [accessToken, refreshToken]);
 
-  const login = async (accessToken, refreshToken) => {
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+  const login = async (accessToken, refreshToken, options = {}) => {
+    const { rememberMe = true } = options;
+    storeAuthTokens(accessToken, refreshToken, rememberMe);
     setAccessToken(accessToken);
     setRefreshToken(refreshToken);
     setLoading(true);
@@ -51,7 +51,7 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       setIsAuthenticated(true);
       return data;
-    } catch (err) {
+    } catch {
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.clear();
+    clearAuthStorage();
     setAccessToken(null);
     setRefreshToken(null);
     setUser(null);
@@ -80,8 +80,4 @@ export function AuthProvider({ children }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

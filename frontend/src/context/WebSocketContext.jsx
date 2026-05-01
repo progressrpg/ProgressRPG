@@ -2,7 +2,7 @@
 import React, { useRef, useCallback } from 'react';
 import { useGame } from './GameContext';
 import { useToast } from './ToastContext';
-import { useAuth } from './AuthContext';
+import { useAuth } from './useAuth';
 import { useWebSocketConnection } from '../hooks/useWebSocketConnection';
 import { handleGlobalWebSocketEvent } from '../websockets/handleGlobalWebSocketEvent';
 import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';

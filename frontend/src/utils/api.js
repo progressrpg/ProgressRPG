@@ -1,6 +1,11 @@
 // src/utils/api.js
 import { jwtDecode } from "jwt-decode";
 import { API_BASE_URL } from "../config";
+import {
+  clearAuthStorage,
+  getStoredAuthTokens,
+  updateStoredAccessToken,
+} from "./authStorage";
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
@@ -9,14 +14,13 @@ function isTokenExpiringSoon(token, bufferSeconds = 60) {
     const { exp } = jwtDecode(token);
     const now = Date.now() / 1000;
     return exp - now < bufferSeconds;
-  } catch (err) {
+  } catch {
     return true; // treat invalid token as expiring
   }
 }
 
 function clearAuthAndRedirect() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
+  clearAuthStorage();
 
   // Give user feedback before redirect
   console.warn("[Auth] Session expired, redirecting to login...");
@@ -40,7 +44,7 @@ async function refreshAccessToken(refreshToken) {
     const data = await response.json();
 
     if (data.access_token) {
-      localStorage.setItem("accessToken", data.access_token);
+      updateStoredAccessToken(data.access_token);
       return data.access_token;
     }
     throw new Error("No access token returned from refresh");
@@ -50,8 +54,7 @@ async function refreshAccessToken(refreshToken) {
 }
 
 async function getValidAccessToken() {
-  const accessToken = localStorage.getItem("accessToken");
-  const refreshToken = localStorage.getItem("refreshToken");
+  const { accessToken, refreshToken } = getStoredAuthTokens();
   if (!accessToken || !refreshToken) throw new Error("Missing tokens");
 
   if (isTokenExpiringSoon(accessToken)) {

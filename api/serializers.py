@@ -31,6 +31,10 @@ def validate_timezone_name(value: str) -> str:
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    remember_me = serializers.BooleanField(
+        required=False, default=False, write_only=True
+    )
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -38,13 +42,23 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        remember_me = attrs.pop("remember_me", False)
         attrs["username"] = attrs.get("email")
         data = super().validate(attrs)
         UserLogin.objects.create(user=self.user)
 
+        if not remember_me:
+            return {
+                "access_token": data["access"],
+                "refresh_token": data["refresh"],
+            }
+
+        refresh = self.get_token(self.user)
+        refresh.set_exp(lifetime=settings.LONG_SESSION_REFRESH_TOKEN_LIFETIME)
+
         return {
-            "access_token": data["access"],
-            "refresh_token": data["refresh"],
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
         }
 
 

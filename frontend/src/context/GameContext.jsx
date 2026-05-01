@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useBootstrapGameData } from '../hooks/useBootstrapGameData';
 import { apiFetch } from "../utils/api";
 import useActivityTimer from '../hooks/useActivityTimer';
-import { useAuth } from './AuthContext';
+import { useAuth } from './useAuth';
 
 
 const GameContext = createContext();
