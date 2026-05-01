@@ -13,6 +13,9 @@ const fetchActivities = vi.fn();
 const clearAutoStopCompletion = vi.fn();
 const stop = vi.fn();
 const startActivity = vi.fn();
+const { playLimitReachedSound } = vi.hoisted(() => ({
+  playLimitReachedSound: vi.fn(),
+}));
 
 vi.mock('../../context/GameContext', () => ({
   useGame: () => mockUseGame(),
@@ -27,7 +30,7 @@ vi.mock('../SupportFlow/SupportFlowModal', () => ({
 }));
 
 vi.mock('../../utils/sounds', () => ({
-  playLimitReachedSound: vi.fn(),
+  playLimitReachedSound,
 }));
 
 describe('ActivityInput', () => {
@@ -39,6 +42,7 @@ describe('ActivityInput', () => {
     clearAutoStopCompletion.mockReset();
     stop.mockReset();
     startActivity.mockReset();
+    playLimitReachedSound.mockReset();
 
     fetchPlayerAndCharacter.mockResolvedValue(null);
     fetchCharacterCurrent.mockResolvedValue(null);
@@ -98,6 +102,7 @@ describe('ActivityInput', () => {
         activityName: 'Write docs',
         elapsedSeconds: 15,
       });
+      expect(playLimitReachedSound).toHaveBeenCalledTimes(1);
       expect(clearAutoStopCompletion).toHaveBeenCalledTimes(1);
     });
   });
@@ -145,6 +150,7 @@ describe('ActivityInput', () => {
         activityName: 'Write docs',
         elapsedSeconds: 16,
       });
+      expect(playLimitReachedSound).toHaveBeenCalledTimes(1);
     });
   });
 

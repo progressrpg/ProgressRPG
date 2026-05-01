@@ -28,7 +28,6 @@ export default function ActivityInput() {
     startActivity,
     elapsed,
     limitSeconds,
-    limitReached,
     autoStopCompletion,
     clearAutoStopCompletion,
   } = activityTimer;
@@ -94,10 +93,6 @@ export default function ActivityInput() {
   }, [status, currentActivity]);
 
   useEffect(() => {
-    if (limitReached) playLimitReachedSound();
-  }, [limitReached]);
-
-  useEffect(() => {
     if (!autoStopCompletion) return;
 
     let cancelled = false;
@@ -116,6 +111,8 @@ export default function ActivityInput() {
       }
 
       if (cancelled) return;
+
+      playLimitReachedSound();
 
       openActivityReward({
         xpGained: autoStopCompletion.xpGained,
@@ -157,6 +154,7 @@ export default function ActivityInput() {
         fetchCharacterCurrent(),
         fetchActivities(),
       ]);
+      playLimitReachedSound();
       openActivityReward({
         xpGained,
         baseXp,
