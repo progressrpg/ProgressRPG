@@ -10,6 +10,7 @@ export const SUPPORT_ACTIONS = {
   breathing: {
     id: "breathing",
     label: "Breathing exercise",
+    videoEmbedUrl: "https://www.youtube-nocookie.com/embed/aXItOY0sLRY",
     steps: [
       "Breathe in slowly for 4 counts.",
       "Hold for 4 counts.",

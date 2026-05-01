@@ -52,6 +52,21 @@
   font-size: 0.875rem;
   color: c.$color-text-muted;
   margin-bottom: v.$spacing-sm;
+.videoWrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: v.$border-radius;
+  overflow: hidden;
+  margin-bottom: v.$spacing-md;
+  background: rgba(c.$color-border-primary, 0.12);
+}
+
+.videoEmbed {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 }
 
 .stepsList {
@@ -95,6 +110,7 @@
 
 .supportOptionRow {
   display: flex;
+  width: 100%;
   flex-direction: column;
   align-items: flex-start;
   gap: v.$spacing-md;
@@ -104,6 +120,7 @@
   @include m.respond-to(sm) {
     flex-direction: row;
     align-items: center;
+  width: 100%;
     justify-content: space-between;
   }
 
