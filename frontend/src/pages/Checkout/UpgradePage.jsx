@@ -4,9 +4,9 @@ import Button from "../../components/Button/Button";
 import { useGame } from "../../context/GameContext";
 import { useAppConfig } from "../../hooks/useAppConfig";
 import { apiFetch } from "../../utils/api";
-import styles from "./CheckoutPage.module.scss";
+import styles from "./UpgradePage.module.scss";
 
-export default function CheckoutPage() {
+export default function UpgradePage() {
   const { player } = useGame();
   const { data: appConfig } = useAppConfig();
   const isStripeSandbox = appConfig?.stripe_live_mode === false;
@@ -43,7 +43,7 @@ export default function CheckoutPage() {
     <div className={styles.page}>
       {isStripeSandbox && (
         <div className={styles.sandboxBanner}>
-          Test mode — Stripe is in sandbox mode. No real payments will be taken. To make a test payment, use card number "4242 4242 4242 4242", and any future expiration date and CVC.
+          Test mode - Stripe is in sandbox mode. No real payments will be taken. To make a test payment, use card number "4242 4242 4242 4242", and any future expiration date and CVC.
         </div>
       )}
       <h1>Upgrade to Premium</h1>

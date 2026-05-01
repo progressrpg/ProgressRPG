@@ -1,5 +1,4 @@
 //src/pages/OnboardingPage/OnboardingPage.jsx
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './OnboardingPage.module.scss';
 import Button from '../../components/Button/Button';
@@ -15,7 +14,7 @@ export default function OnboardingPage() {
 
   const enter = async () => {
     const ok = await completeOnboarding();
-    if (ok) navigate("/game", { replace: true});
+    if (ok) navigate("/timer", { replace: true});
   };
 
   return (
@@ -40,7 +39,7 @@ export default function OnboardingPage() {
           onClick={enter}
           disabled={loading}
         >
-          Enter the game
+          Enter timer
         </Button>
       </div>
     </div>
