@@ -8,8 +8,6 @@ export default function MaintenanceWatcher() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // store where the user was before maintenance started
-  const previousLocationRef = useRef(null);
   const wasActiveRef = useRef(false);
   const timeoutRef = useRef(null);
 
@@ -37,7 +35,7 @@ export default function MaintenanceWatcher() {
           maintenance.previousLocation !== "/ maintenance"
         )
           ? maintenance.previousLocation
-          : "/game";
+          : "/timer";
 
           // clear justEnded and previousLocation
         setMaintenance((prev) => ({ ...prev, justEnded: false, previousLocation: null }));

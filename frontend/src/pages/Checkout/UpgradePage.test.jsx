@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import CheckoutPage from "./CheckoutPage";
+import UpgradePage from "./UpgradePage";
 
 const mockUseGame = vi.fn();
 const mockUseAppConfig = vi.fn();
@@ -22,7 +22,7 @@ vi.mock("../../utils/api", () => ({
   apiFetch: (...args) => mockApiFetch(...args),
 }));
 
-function renderCheckoutPage() {
+function renderUpgradePage() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -32,12 +32,12 @@ function renderCheckoutPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <CheckoutPage />
+      <UpgradePage />
     </QueryClientProvider>
   );
 }
 
-describe("CheckoutPage", () => {
+describe("UpgradePage", () => {
   beforeEach(() => {
     mockUseGame.mockReturnValue({
       player: { is_premium: false },
@@ -49,7 +49,7 @@ describe("CheckoutPage", () => {
   });
 
   it("shows only the monthly option", () => {
-    renderCheckoutPage();
+    renderUpgradePage();
 
     expect(screen.getByRole("heading", { name: "Monthly" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Annual" })).not.toBeInTheDocument();
@@ -64,7 +64,7 @@ describe("CheckoutPage", () => {
 
     mockApiFetch.mockResolvedValue({});
 
-    renderCheckoutPage();
+    renderUpgradePage();
 
     await user.click(screen.getByRole("button", { name: "Go to Monthly Checkout" }));
 

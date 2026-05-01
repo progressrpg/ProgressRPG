@@ -55,3 +55,22 @@ class ActivityTimerPremiumRewardTests(TestCase):
         )
         self.assertEqual(self.player.level, 1)
         self.assertEqual(self.player.xp, 20)
+
+    def test_auto_completion_clamps_duration_to_client_elapsed(self):
+        timer = self.player.activity_timer
+        timer.new_activity("Auto stop focus")
+        activity = timer.activity
+
+        timer.status = "paused"
+        timer.elapsed_time = 179
+        timer.start_time = None
+        timer.save(update_fields=["status", "elapsed_time", "start_time"])
+
+        completion = timer.complete(
+            client_elapsed_seconds=180,
+            completion_source="auto",
+        )
+
+        activity.refresh_from_db()
+        self.assertEqual(activity.duration, 180)
+        self.assertEqual(completion["duration_seconds"], 180)

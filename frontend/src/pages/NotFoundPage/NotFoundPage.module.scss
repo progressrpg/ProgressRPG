@@ -1,0 +1,48 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+
+.page {
+  @include m.page-layout(680px, 680px);
+  min-height: 60vh;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: v.$spacing-sm;
+}
+
+.code {
+  @include t.apply-text-style(t.$text-heading-1);
+  color: c.$color-border-primary;
+  margin: 0;
+}
+
+.copy {
+  margin: 0;
+  max-width: 48ch;
+}
+
+.actions {
+  margin-top: v.$spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+  align-items: center;
+}
+
+.homeLink {
+  color: c.$color-border-primary;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+@media (min-width: 640px) {
+  .actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}

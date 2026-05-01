@@ -1,0 +1,96 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/utilities/list-pages' as lp;
+@use '../../styles/semantic/colors' as c;
+
+.page {
+  @include m.page-layout();
+}
+
+.header {
+  @include lp.list-page-header;
+}
+
+.addSkillForm {
+  @include lp.list-page-add-form;
+}
+
+.addSkillInput {
+  @include lp.list-page-add-input;
+}
+
+.skillsList {
+  @include lp.list-page-list;
+}
+
+.skillItem {
+  @include lp.list-page-item;
+}
+
+.skillDetails {
+  @include lp.list-page-details;
+}
+
+.editInput {
+  @include lp.list-page-edit-input;
+}
+
+.actions {
+  @include lp.list-page-actions;
+}
+
+.editButton,
+.saveButton,
+.cancelButton,
+.deleteButton {
+  @include lp.list-page-action-button-base;
+}
+
+.editButton {
+  border: 1px solid c.$color-border-primary;
+  background: transparent;
+  color: c.$color-border-primary;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.1);
+  }
+}
+
+.saveButton {
+  border: 1px solid c.$color-border-primary;
+  background: c.$color-border-primary;
+  color: c.$color-bg;
+
+  &:hover {
+    filter: brightness(1.05);
+  }
+}
+
+.cancelButton {
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: transparent;
+  color: rgba(0, 0, 0, 0.7);
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+}
+
+.deleteButton {
+  border: 1px solid #d32f2f;
+  background: transparent;
+  color: #d32f2f;
+
+  &:hover {
+    background: rgba(211, 47, 47, 0.1);
+    border-color: #b71c1c;
+    color: #b71c1c;
+  }
+}
+
+.emptyState {
+  @include lp.list-page-empty-state;
+}
+
+@media (max-width: 768px) {
+  @include lp.list-page-mobile;
+}
