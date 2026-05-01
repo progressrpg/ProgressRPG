@@ -111,10 +111,8 @@ def _apply_mailchimp_tags(
         payload = {}
 
     logger.warning(
-        "[WAITLIST] Mailchimp tag update failed status=%s title=%s detail=%s",
+        "[WAITLIST] Mailchimp tag update failed status=%s",
         response.status_code,
-        payload.get("title", ""),
-        payload.get("detail", ""),
     )
 
 
