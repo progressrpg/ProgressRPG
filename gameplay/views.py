@@ -125,8 +125,21 @@ class ActivityTimerViewSet(BaseTimerViewSet):
     def complete(self, request):
         timer = self.get_timer(request)
         name = request.data.get("activityName")
+        raw_elapsed_seconds = request.data.get("elapsedSeconds")
+        raw_source = request.data.get("source")
 
-        completion = timer.complete(newName=name)
+        try:
+            client_elapsed_seconds = int(raw_elapsed_seconds)
+        except (TypeError, ValueError):
+            client_elapsed_seconds = None
+
+        completion_source = raw_source if raw_source in {"auto", "manual"} else "manual"
+
+        completion = timer.complete(
+            newName=name,
+            client_elapsed_seconds=client_elapsed_seconds,
+            completion_source=completion_source,
+        )
 
         return Response({"activity_timer": self.serialize(timer), **completion})
 
