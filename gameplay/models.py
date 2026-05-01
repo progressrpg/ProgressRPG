@@ -484,7 +484,12 @@ class ActivityTimer(Timer):
         if self.activity:
             self.activity.rename(name)
 
-    def complete(self, newName=None):
+    def complete(
+        self,
+        newName=None,
+        client_elapsed_seconds: int | None = None,
+        completion_source: str = "manual",
+    ):
         """
         Complete the activity timer and return the XP gained for the activity.
         """
@@ -492,7 +497,13 @@ class ActivityTimer(Timer):
             logger.warning(
                 f"[COMPLETE] Timer {self.id} has no activity assigned — skipping activity.complete()"
             )
-            return 0
+            return {
+                "duration_seconds": 0,
+                "base_xp": 0,
+                "xp_multiplier": 1,
+                "xp_gained": 0,
+                "level_ups": [],
+            }
 
         if self.status == "completed":
             logger.warning(
@@ -501,12 +512,27 @@ class ActivityTimer(Timer):
 
         super().complete()
 
+        if completion_source == "auto":
+            try:
+                parsed_client_elapsed = int(client_elapsed_seconds)
+            except (TypeError, ValueError):
+                parsed_client_elapsed = None
+
+            if (
+                parsed_client_elapsed is not None
+                and parsed_client_elapsed > self.elapsed_time
+            ):
+                self.elapsed_time = parsed_client_elapsed
+                self.save(update_fields=["elapsed_time"])
+
         if newName:
             self.rename_activity(newName)
         self.update_activity_time()
 
-        xp_gained = self.activity.complete()
-        self.player.add_activity(self.elapsed_time, xp=xp_gained)
+        reward_summary = self.activity.get_xp_reward_summary()
+        xp_gained = self.activity.complete(reward_summary=reward_summary)
+        level_ups = self.player.add_activity(self.elapsed_time, xp=xp_gained)
+        reward_summary["level_ups"] = level_ups
 
         message_text = f"Activity submitted. You got {xp_gained} XP!"
         ServerMessage.objects.create(
@@ -524,7 +550,7 @@ class ActivityTimer(Timer):
 
         self.reset()
 
-        return xp_gained
+        return reward_summary
 
     def _reset_hook(self):
         self.activity = None

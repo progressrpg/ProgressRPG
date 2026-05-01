@@ -79,7 +79,7 @@ export default function ActivityTimeline() {
 
         <List
           items={unifiedActivities}
-          getKey={(act) => `${act.player ? 'player' : 'character'}-${act.id ?? i}`}
+          getKey={(act, i) => `${act.player ? 'player' : 'character'}-${act.id ?? i}`}
           renderItem={(act) => (
             <div className={styles.line}>
               {act.player ? 'You' : character?.first_name || 'Character' } finished <strong>{act.name.toLowerCase() || act.kind || "an activity"}</strong> —{" "}

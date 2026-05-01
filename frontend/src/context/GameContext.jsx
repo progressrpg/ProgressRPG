@@ -1,14 +1,16 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // GameContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 import { useBootstrapGameData } from '../hooks/useBootstrapGameData';
-import { apiFetch } from '../../utils/api';
+import { apiFetch } from "../utils/api";
 import useActivityTimer from '../hooks/useActivityTimer';
 import { useAuth } from './AuthContext';
 
 
 const GameContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useGame = () => {
   return useContext(GameContext);
 }
@@ -18,7 +20,6 @@ const getActivityWindow = () => {
   const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   return {
     start: since.toISOString(),
-    end: now.toISOString(),
   };
 };
 
@@ -35,6 +36,7 @@ export const GameProvider = ({ children }) => {
     loading,
     error,
     buildNumber,
+    freeTimerLimitSeconds,
   } = useBootstrapGameData();
 
 
@@ -47,6 +49,7 @@ export const GameProvider = ({ children }) => {
   const [populationCentre, setPopulationCentre] = useState(populationCentreInfo);
 
   const activityTimer = useActivityTimer();
+  const { loadFromServer } = activityTimer;
 
 
   // ----------------------------------------
@@ -72,10 +75,10 @@ export const GameProvider = ({ children }) => {
     const activityWindow = getActivityWindow();
     const [playerData, charData] = await Promise.all([
       apiFetch(
-        `/player-activities/?is_complete=true&completed_at_after=${activityWindow.start}&completed_at_before=${activityWindow.end}`
+        `/player-activities/?is_complete=true&completed_at_after=${activityWindow.start}`
       ),
       apiFetch(
-        `/character-activities/?is_complete=true&completed_at_after=${activityWindow.start}&completed_at_before=${activityWindow.end}`
+        `/character-activities/?is_complete=true&completed_at_after=${activityWindow.start}`
       ),
     ]);
     setPlayerActivities(await playerData?.results ?? []);
@@ -109,9 +112,16 @@ export const GameProvider = ({ children }) => {
 
   useEffect(() => {
     if (activityTimerInfo) {
-      activityTimer.loadFromServer(activityTimerInfo);
+      loadFromServer(activityTimerInfo, {
+        limitSeconds: player?.is_premium ? null : freeTimerLimitSeconds,
+      });
     }
-  }, [activityTimerInfo]);
+  }, [
+    loadFromServer,
+    activityTimerInfo,
+    freeTimerLimitSeconds,
+    player?.is_premium,
+  ]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -154,6 +164,7 @@ export const GameProvider = ({ children }) => {
       loginEventAt,
       loading,
       buildNumber,
+      freeTimerLimitSeconds,
     }),
     [
       player,
@@ -168,6 +179,7 @@ export const GameProvider = ({ children }) => {
       fetchCharacterCurrent,
       loading,
       buildNumber,
+      freeTimerLimitSeconds,
       populationCentre,
       fetchPopulationCentre,
       loginState,

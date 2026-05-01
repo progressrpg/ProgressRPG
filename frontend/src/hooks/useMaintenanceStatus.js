@@ -1,7 +1,7 @@
 // hooks/useMaintenanceStatus.js
 import { useMaintenanceContext } from '../context/MaintenanceContext';
 import { useCallback } from 'react';
-import { apiFetch } from '../../utils/api';
+import { apiFetch } from "../utils/api";
 
 export function useMaintenanceStatus() {
   const { maintenance, setMaintenance } = useMaintenanceContext();

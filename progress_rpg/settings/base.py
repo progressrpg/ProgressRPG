@@ -300,6 +300,9 @@ STRIPE_PRICE_ID_PREMIUM_MONTHLY = os.getenv("STRIPE_PRICE_ID_PREMIUM_MONTHLY", "
 STRIPE_PRICE_ID_PREMIUM_ANNUAL = os.getenv("STRIPE_PRICE_ID_PREMIUM_ANNUAL", "")
 STRIPE_PRICE_ID_FREE = os.getenv("STRIPE_PRICE_ID_FREE", "")
 
+# Free-tier activity timer cap (seconds). Override via env var for local testing.
+FREE_TIMER_LIMIT_SECONDS = int(os.getenv("FREE_TIMER_LIMIT_SECONDS", 1800))
+
 # App URLs for Stripe redirects
 STRIPE_SUCCESS_URL = os.getenv(
     "STRIPE_SUCCESS_URL",
@@ -313,6 +316,17 @@ STRIPE_BILLING_RETURN_URL = os.getenv(
     "STRIPE_BILLING_RETURN_URL",
     f"{FRONTEND_URL}/account",
 )
+
+MAILCHIMP_API_KEY = os.getenv("MAILCHIMP_API_KEY", "")
+MAILCHIMP_AUDIENCE_ID = os.getenv("MAILCHIMP_AUDIENCE_ID", "")
+MAILCHIMP_SERVER_PREFIX = os.getenv("MAILCHIMP_SERVER_PREFIX", "")
+MAILCHIMP_SUBSCRIBE_STATUS = os.getenv("MAILCHIMP_SUBSCRIBE_STATUS", "pending")
+MAILCHIMP_TIMEOUT_SECONDS = os.getenv("MAILCHIMP_TIMEOUT_SECONDS", "5")
+MAILCHIMP_TAG_NAMES = [
+    tag_name.strip()
+    for tag_name in os.getenv("MAILCHIMP_TAG_NAMES", "").split(",")
+    if tag_name.strip()
+]
 
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"

@@ -3,8 +3,6 @@ from allauth.core import context as allauth_context
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 
-from users.tasks import send_rendered_email_task
-
 
 class CustomAccountAdapter(DefaultAccountAdapter):
     def send_mail(self, template_prefix: str, email: str, context: dict) -> None:
@@ -56,3 +54,6 @@ class CustomAccountAdapter(DefaultAccountAdapter):
             email_template = "account/email/email_confirmation"
 
         self.send_mail(email_template, emailconfirmation.email_address.email, ctx)
+
+    def get_reset_password_from_key_url(self, key):
+        return f"{settings.FRONTEND_URL.rstrip('/')}/reset-password/{key}"

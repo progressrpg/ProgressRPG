@@ -1,5 +1,5 @@
 // src/api/skills.js
-import { apiFetch } from "../../utils/api";
+import { apiFetch } from "../utils/api";
 /*
 Expected backend shape (example):
 SkillGroup: { id, name, colour, icon }

@@ -25,10 +25,6 @@ export default function ActivityInputScreen({
     }
   }, [isExamplesOnlyPreset, isPriorityThreePreset]);
 
-  useEffect(() => {
-    setCandidateTasks(["", "", ""]);
-  }, [activityPresetId]);
-
   const placeholder = preset?.placeholder ?? "What are you going to do?";
   const hint = preset?.hint ?? null;
 
@@ -67,15 +63,21 @@ export default function ActivityInputScreen({
 
   return (
     <div className={styles.activityInputScreen}>
-      <p>
+      <p className={styles.readableText}>
         {isExamplesOnlyPreset
-          ? "Write down one tiny first step from these examples:"
+          ? "Write down your next tiny action on paper or your phone."
           : isPriorityThreePreset
             ? "Write down the first three tasks that come into your head."
             : "Describe what you'll do:"}
       </p>
 
-      {hint && <p className={styles.hint}>{hint}</p>}
+      {isExamplesOnlyPreset && (
+        <p className={`${styles.hint} ${styles.readableText}`}>
+          Example: if your task is washing dishes, your first step can be "stand up and walk to the kitchen". After you write something down, you have permission to just breathe for the rest of the timer.
+        </p>
+      )}
+
+      {hint && <p className={`${styles.hint} ${styles.readableText}`}>{hint}</p>}
 
       {!isExamplesOnlyPreset && !isPriorityThreePreset && (
         <textarea

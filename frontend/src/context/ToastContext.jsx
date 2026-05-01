@@ -1,6 +1,6 @@
 // context/ToastContext.jsx
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useToasts } from '../hooks/useToasts';
 // ToastManager is temporarily deactivated
 // import ToastManager from '../components/Toast/ToastManager';
@@ -18,6 +18,7 @@ export function ToastProvider({ children, duration }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {

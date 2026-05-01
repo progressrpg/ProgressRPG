@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Modal from "../../../components/Modal/Modal";
 import Button from "../../../components/Button/Button";
 import ButtonFrame from "../../../components/Button/ButtonFrame";
@@ -16,16 +16,12 @@ export default function TaskSupportModal({
   lastDuration,
   setLastDuration,
 }) {
-  const [modalState, setModalState] = useState('welcome'); // welcome | walkthrough | suggestion | postQuest
+  const [modalState, setModalState] = useState(
+    () => (taskSupportActive ? "postQuest" : "welcome")
+  ); // welcome | walkthrough | suggestion | postQuest
   const [suggestion, setSuggestion] = useState();
 
   const { quests } = useGame();
-
-  useEffect(() => {
-    if (taskSupportActive) {
-      setModalState("postQuest");
-    }
-  }, [taskSupportActive]);
 
   // Simple suggestion mapping (MVP)
   const suggestions = {

@@ -25,7 +25,7 @@ export default function MaintenancePage() {
     const returnTo =
     (maintenance.previousLocation && maintenance.previousLocation !== '/maintenance')
       ? maintenance.previousLocation
-      : '/game';
+      : '/timer';
     // clear flags before navigating
     setMaintenance((prev) => ({ ...prev, justEnded: false, previousLocation: null }));
     navigate(returnTo, { replace: true });

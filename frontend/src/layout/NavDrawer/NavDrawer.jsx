@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styles from './NavDrawer.module.scss';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function NavDrawer({ drawerOpen, onClose }) {
   const drawerRef = useRef(null);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (drawerOpen) {
@@ -49,8 +51,18 @@ export default function NavDrawer({ drawerOpen, onClose }) {
         </div>
 
         <ul className={styles["nav-drawer-links"]} role="list">
-          <li><Link to="/activities" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Activities</Link></li>
-          {/* <li><Link to="/village" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Village</Link></li> */}
+          {isAuthenticated ? (
+            <>
+              <li><Link to="/activities" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Activities</Link></li>
+              {/* <li><Link to="/village" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Village</Link></li> */}
+            </>
+          ) : (
+            <>
+              <li><Link to="/" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Home</Link></li>
+              <li><Link to="/login" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Log in</Link></li>
+              <li><Link to="/register" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Join the waiting list</Link></li>
+            </>
+          )}
         </ul>
       </nav>
     </>

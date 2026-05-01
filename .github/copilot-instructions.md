@@ -122,7 +122,10 @@ npm run dev
 
 **Backend:**
 ```bash
-python manage.py test
+docker compose up -d db redis
+docker compose run --rm migrate
+docker compose run --rm web python manage.py test
+docker compose down
 ```
 
 **Frontend:**
@@ -204,7 +207,7 @@ npx playwright test
 
 ## Deployment
 
-- Configured for Heroku deployment (see `Procfile`)
+- Render deployment configuration lives in `render.yaml` and `render-staging.yaml`
 - Docker support available (see `Dockerfile` and `compose.yaml`)
 - Static files handled by WhiteNoise
 - Frontend builds via Vite: `npm run build:production`

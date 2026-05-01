@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useGame } from "../../context/GameContext";
 import Button from "../Button/Button";
 import ButtonFrame from "../Button/ButtonFrame";
 import Input from "../Input/Input";
 
-import { formatDuration } from "../../../utils/formatUtils.js";
+import { formatDuration } from "../../utils/formatUtils.js";
 import TimerDisplay from "./TimerDisplay.jsx";
 import styles from "./ActivityTimer.module.scss";
 
@@ -30,29 +30,18 @@ export function ActivityTimer() {
     startActivity,
     stop,
   } = activityTimer;
-
-  useEffect(() => {
-    if (activity && activityName === '') {
-      setActivityName(activity.name);
-    }
-  }, [activity?.name]);
-
-  const [selectedTask, setSelectedTask] = useState('');
-  useEffect(() => {
-    if (activity?.taskId != null) {
-      setSelectedTask(activity.taskId.toString());
-    }
-  }, [activity?.taskId])
+  const resolvedActivityName = activityName || activity?.name || '';
+  const selectedTask = activity?.taskId?.toString() ?? '';
 
   const displayTime = formatDuration(elapsed);
 
   const updateActivity = useUpdateActivity();
 
   const handleSubmitActivity = async () => {
-    try {
-      if (activity?.id) {
-        await updateActivity.mutateAsync({ activityId: activity.id, data: {name: activityName}});
-      }
+      try {
+        if (activity?.id) {
+          await updateActivity.mutateAsync({ activityId: activity.id, data: {name: resolvedActivityName}});
+        }
 
       const result = await stop();
 
@@ -80,7 +69,7 @@ export function ActivityTimer() {
       <Input
         id="activity-input"
         label="Activity"
-        value={activityName}
+        value={resolvedActivityName}
         onChange={handleInputChange}
         placeholder="Enter activity"
       />
@@ -152,11 +141,11 @@ export function ActivityTimer() {
 
       <ButtonFrame>
         <Button
-        onClick={() => startActivity({
-          text: activityName,
-          taskId: selectedTask || null,
-          })
-        }
+         onClick={() => startActivity({
+           text: resolvedActivityName,
+           taskId: selectedTask || null,
+           })
+         }
         disabled={status !== "empty"}
       >
         Start Activity

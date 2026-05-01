@@ -5,25 +5,43 @@ import Button from "../Button/Button";
 import styles from "./ActivityInput.module.scss";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
+import { playLimitReachedSound } from "../../utils/sounds";
 
 const WELCOME_MESSAGE_LAST_EVENT_KEY = "supportFlow_lastLoginEventAtShown";
 
 export default function ActivityInput() {
   const {
     activityTimer,
+    fetchPlayerAndCharacter,
     fetchCharacterCurrent,
     fetchActivities,
     loginState,
     loginStreak,
     loginEventAt,
+    player,
+    freeTimerLimitSeconds,
   } = useGame();
-  const { currentActivity, status, stop, startActivity, elapsed } = activityTimer;
+  const {
+    currentActivity,
+    status,
+    stop,
+    startActivity,
+    elapsed,
+    limitSeconds,
+    autoStopCompletion,
+    clearAutoStopCompletion,
+  } = activityTimer;
+
+  const isPremium = Boolean(player?.is_premium);
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
   const inputRef = useRef(null);
 
   const isActive = status === "active";
+  const inputValue = isActive
+    ? (name || currentActivity?.name || "")
+    : name;
 
   const {
     openWelcomeMessage,
@@ -35,7 +53,10 @@ export default function ActivityInput() {
   } =
     useSupportFlow({
       onStartActivity: ({ activityText, durationSeconds }) => {
-        startActivity({ text: activityText, limitSeconds: durationSeconds ?? null });
+        const limitSeconds = isPremium
+          ? (durationSeconds ?? null)
+          : durationSeconds ? Math.min(durationSeconds, freeTimerLimitSeconds) : freeTimerLimitSeconds;
+        startActivity({ text: activityText, limitSeconds });
       },
     });
 
@@ -66,30 +87,84 @@ export default function ActivityInput() {
     if (!inputRef.current) return;
     inputRef.current.style.height = "auto";
     inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-  }, [name]);
+  }, [inputValue]);
 
   useEffect(() => {
-    if (status === "active" && currentActivity?.name) {
-      setName(currentActivity.name);
+    if (!autoStopCompletion) return;
+
+    let cancelled = false;
+
+    async function handleAutoStopCompletion() {
+      setName("");
+
+      try {
+        await Promise.all([
+          fetchPlayerAndCharacter(),
+          fetchCharacterCurrent(),
+          fetchActivities(),
+        ]);
+      } catch (err) {
+        console.error("[ActivityInput] Failed to refresh after auto-stop:", err);
+      }
+
+      if (cancelled) return;
+
+      playLimitReachedSound();
+
+      openActivityReward({
+        xpGained: autoStopCompletion.xpGained,
+        baseXp: autoStopCompletion.baseXp,
+        xpMultiplier: autoStopCompletion.xpMultiplier,
+        levelUps: autoStopCompletion.levelUps,
+        activityName: autoStopCompletion.activityName,
+        elapsedSeconds: autoStopCompletion.elapsedSeconds,
+      });
+      clearAutoStopCompletion();
     }
-  }, [status, currentActivity]);
+
+    handleAutoStopCompletion();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    autoStopCompletion,
+    clearAutoStopCompletion,
+    fetchPlayerAndCharacter,
+    fetchActivities,
+    fetchCharacterCurrent,
+    openActivityReward,
+  ]);
 
   async function handleToggle() {
     if (isActive) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
       const completion = await stop({ activityName: name });
       const xpGained = completion?.xp_gained ?? null;
+      const baseXp = completion?.base_xp ?? null;
+      const xpMultiplier = completion?.xp_multiplier ?? null;
+      const levelUps = completion?.level_ups ?? [];
+      const elapsedSeconds = completion?.duration_seconds ?? elapsed;
       setName("");
-      await Promise.all([fetchCharacterCurrent(), fetchActivities()]);
+      await Promise.all([
+        fetchPlayerAndCharacter(),
+        fetchCharacterCurrent(),
+        fetchActivities(),
+      ]);
+      playLimitReachedSound();
       openActivityReward({
         xpGained,
+        baseXp,
+        xpMultiplier,
+        levelUps,
         activityName: completedActivityName || null,
+        elapsedSeconds,
       });
       return;
     }
 
     if (!name.trim()) return;
-    await startActivity(name.trim());
+    await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
   }
 
   function handleKeyDown(e) {
@@ -103,6 +178,23 @@ export default function ActivityInput() {
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
+  const formattedLimit =
+    typeof limitSeconds === "number" && limitSeconds > 0
+      ? `${Math.floor(limitSeconds / 60)}:${(limitSeconds % 60)
+          .toString()
+          .padStart(2, "0")}`
+      : null;
+  const warningThresholdSeconds =
+    typeof limitSeconds === "number" && limitSeconds > 0
+      ? limitSeconds * 0.9
+      : null;
+  const showAutoStopWarning =
+    isActive &&
+    typeof limitSeconds === "number" &&
+    limitSeconds > 0 &&
+    warningThresholdSeconds !== null &&
+    elapsed >= warningThresholdSeconds &&
+    elapsed < limitSeconds;
 
   return (
     <>
@@ -118,7 +210,7 @@ export default function ActivityInput() {
               <textarea
                 id="activity-name"
                 ref={inputRef}
-                value={name}
+                value={inputValue}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="What are you working on? e.g. washing dishes"
@@ -146,6 +238,12 @@ export default function ActivityInput() {
           </div>
 
         </div>
+
+        {showAutoStopWarning && (
+          <p className={styles.limitWarning}>
+            This timer will stop automatically when it reaches {formattedLimit}.
+          </p>
+        )}
 
         <div className={styles.supportButtonRow}>
           <Button

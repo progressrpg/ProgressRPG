@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useLogin from '../../hooks/useLogin';
 import { useAuth } from '../../context/AuthContext';
 import Form from '../../components/Form/Form';
@@ -30,7 +30,7 @@ export default function LoginPage() {
         if (result2.onboarding_step && result2.onboarding_step < 4) {
           navigate('/onboarding');
         } else {
-          navigate('/game');
+          navigate('/timer');
         }
 
       } catch (err) {
@@ -51,6 +51,7 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         isSubmitting={submitting}
         submitLabel="Log In"
+        frameClass={styles.formFrame}
         className={styles.form}
       >
         {error && <p className={styles.error} role="alert">{error}</p>}
@@ -73,7 +74,10 @@ export default function LoginPage() {
           required
         />
         <p className={styles.footer}>
-          New here? <a href="/register">Create an account</a>
+          New here? <Link to="/register">Create an account</Link>
+        </p>
+        <p className={styles.footer}>
+          <Link to="/forgot-password">Forgot your password?</Link>
         </p>
       </Form>
     </div>

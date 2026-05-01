@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import GameSection from '../GameSection';
 import ActivityPanel from './ActivityPanel';
 import { ActivityTimer } from '../../../components/Timer/ActivityTimer';

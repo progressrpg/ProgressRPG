@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { apiFetch } from '../../utils/api';
+import { apiFetch } from "../utils/api";
 import { useAuth } from '../context/AuthContext.jsx';
 
 export function useBootstrapGameData() {
@@ -16,6 +16,7 @@ export function useBootstrapGameData() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buildNumber, setBuildNumber] = useState(true);
+  const [freeTimerLimitSeconds, setFreeTimerLimitSeconds] = useState(1800);
 
   useEffect(() => {
     if (authLoading) return;
@@ -43,6 +44,7 @@ export function useBootstrapGameData() {
         setLoginStreak(Number(info.login_streak) || 0);
         setLoginEventAt(info.login_event_at || null);
         setBuildNumber(info.build_number);
+        setFreeTimerLimitSeconds(info.free_timer_limit_seconds ?? 1800);
       } catch (err) {
         console.error('[Bootstrap] Error loading game data:', err);
         setError('Something went wrong while loading game data.');
@@ -64,6 +66,7 @@ export function useBootstrapGameData() {
     loginStreak,
     loginEventAt,
     buildNumber,
+    freeTimerLimitSeconds,
     loading,
     error
   };

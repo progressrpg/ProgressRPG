@@ -10,6 +10,7 @@ export const SUPPORT_ACTIONS = {
   breathing: {
     id: "breathing",
     label: "Breathing exercise",
+    videoEmbedUrl: "https://www.youtube-nocookie.com/embed/aXItOY0sLRY",
     steps: [
       "Breathe in slowly for 4 counts.",
       "Hold for 4 counts.",
@@ -42,10 +43,10 @@ export const ACTIVITY_PRESETS = {
   tiniest_step: {
     id: "tiniest_step",
     label: "Write down the tiniest first step",
-    defaultActivityText: "Write down first step",
-    durationSeconds: null,
-    placeholder: "e.g. open the document, send one email, write one sentence",
-    hint: "Make it so small it feels almost too easy. Examples: open the file, write the first line, send a single message.",
+    defaultActivityText: "Write down first step on phone or paper",
+    durationSeconds: 180,
+    placeholder: "Write your next tiny step",
+    hint: "One line is enough. Keep it tiny and easy to start.",
   },
   priority_three: {
     id: "priority_three",
@@ -73,7 +74,11 @@ const initialCtx = (entrypoint = null) => ({
   welcomeMessageLoginState: "none",
   welcomeMessageLoginStreak: 0,
   xpGained: null,
+  rewardBaseXp: null,
+  rewardXpMultiplier: null,
+  rewardLevelUps: [],
   completedActivityName: null,
+  completedActivityElapsedSeconds: null,
   supportActionId: null,
   activityPresetId: null,
   activityText: "",
@@ -122,6 +127,24 @@ export function supportFlowReducer(state, event) {
       {
         const parsedXp = Number(event.xpGained);
         const normalizedXp = Number.isFinite(parsedXp) ? parsedXp : null;
+        const parsedElapsedSeconds = Number(event.elapsedSeconds);
+        const normalizedElapsedSeconds =
+          Number.isFinite(parsedElapsedSeconds) && parsedElapsedSeconds >= 0
+            ? parsedElapsedSeconds
+            : null;
+        const parsedBaseXp = Number(event.baseXp);
+        const normalizedBaseXp =
+          Number.isFinite(parsedBaseXp) && parsedBaseXp >= 0 ? parsedBaseXp : null;
+        const parsedXpMultiplier = Number(event.xpMultiplier);
+        const normalizedXpMultiplier =
+          Number.isFinite(parsedXpMultiplier) && parsedXpMultiplier > 0
+            ? parsedXpMultiplier
+            : null;
+        const normalizedLevelUps = Array.isArray(event.levelUps)
+          ? event.levelUps
+              .map((level) => Number(level))
+              .filter((level) => Number.isInteger(level) && level > 0)
+          : [];
 
       return {
         isOpen: true,
@@ -129,10 +152,14 @@ export function supportFlowReducer(state, event) {
         ctx: {
           ...initialCtx("postActivity"),
           xpGained: normalizedXp,
+          rewardBaseXp: normalizedBaseXp,
+          rewardXpMultiplier: normalizedXpMultiplier,
+          rewardLevelUps: normalizedLevelUps,
           completedActivityName:
             typeof event.activityName === "string" && event.activityName.trim()
               ? event.activityName.trim()
               : null,
+          completedActivityElapsedSeconds: normalizedElapsedSeconds,
         },
       };
       }

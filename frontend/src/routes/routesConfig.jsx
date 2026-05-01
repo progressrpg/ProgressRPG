@@ -1,24 +1,33 @@
 import React, { lazy } from "react";
+import { Navigate } from "react-router-dom";
 
 // Lazy load pages
 const Home = lazy(() => import("../pages/Home/Home"));
 const LoginPage = lazy(() => import("../pages/LoginPage/LoginPage"));
 const LogoutPage = lazy(() => import("../pages/LogoutPage/LogoutPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage/RegisterPage"));
+const PasswordResetConfirmPage = lazy(() =>
+  import("../pages/PasswordResetConfirmPage/PasswordResetConfirmPage")
+);
+const ForgotPasswordPage = lazy(() => import("../pages/ForgotPasswordPage/ForgotPasswordPage"));
+const PrivacyPolicyPage = lazy(() => import("../pages/PrivacyPolicyPage/PrivacyPolicyPage"));
+const TermsOfServicePage = lazy(() => import("../pages/TermsOfServicePage/TermsOfServicePage"));
+const SupportPage = lazy(() => import("../pages/SupportPage/SupportPage"));
 const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage"));
 const AccountPage = lazy(() => import("../pages/Account/Account"));
 const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
 //const VillagePage = lazy(() => import("../pages/VillagePage/VillagePage"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
-const SkillsPage = lazy(() => import("../pages/SkillsPage"));
-const TasksPage = lazy(() => import("../pages/TasksPage"));
+const NotFoundPage = lazy(() => import("../pages/NotFoundPage/NotFoundPage"));
+// const SkillsPage = lazy(() => import("../pages/SkillsPage/SkillsPage"));
+const TasksPage = lazy(() => import("../pages/TasksPage/TasksPage"));
 const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
-const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
+// const CategoriesPage = lazy(() => import("../pages/CategoriesPage/CategoriesPage"));
 const ActivityTimelinePage = lazy(() => import("../pages/Game2/ActivityTimelinePage"))
 const SuccessPage = lazy(() => import("../pages/SuccessPage"));
 const CancelPage = lazy(() => import("../pages/CancelPage"));
-const CheckoutPage = lazy(() => import("../pages/Checkout/CheckoutPage"));
+const UpgradePage = lazy(() => import("../pages/Checkout/UpgradePage"));
 
 import PrivateRoute from "../components/PrivateRoute";
 import RequireOnboardingComplete from "../components/RequireOnboardingComplete";
@@ -41,6 +50,26 @@ export const routes = [
     element: <RegisterPage />,
   },
   {
+    path: "/reset-password/:key",
+    element: <PasswordResetConfirmPage />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: "/privacy-policy",
+    element: <PrivacyPolicyPage />,
+  },
+  {
+    path: "/terms-of-service",
+    element: <TermsOfServicePage />,
+  },
+  {
+    path: "/support",
+    element: <SupportPage />,
+  },
+  {
     path: "/confirm_email/:key",
     element: <ConfirmationPage />,
   },
@@ -57,7 +86,7 @@ export const routes = [
     ),
   },
   {
-    path: "/game",
+    path: "/timer",
     element: (
       <PrivateRoute>
         <RequireOnboardingComplete>
@@ -87,14 +116,18 @@ export const routes = [
     ),
   },
   {
-    path: "/checkout",
+    path: "/upgrade",
     element: (
       <PrivateRoute>
         <RequireOnboardingComplete>
-          <CheckoutPage />
+          <UpgradePage />
         </RequireOnboardingComplete>
       </PrivateRoute>
     ),
+  },
+  {
+    path: "/checkout",
+    element: <Navigate to="/upgrade" replace />,
   },
   {
     path: "/payment-success",
@@ -126,16 +159,16 @@ export const routes = [
       </PrivateRoute>
     ),
   },
-  {
-    path: "/skills",
-    element: (
-      <PrivateRoute>
-        <RequireOnboardingComplete>
-          <SkillsPage />
-        </RequireOnboardingComplete>
-      </PrivateRoute>
-    ),
-  },
+  // {
+  //   path: "/skills",
+  //   element: (
+  //     <PrivateRoute>
+  //       <RequireOnboardingComplete>
+  //         <SkillsPage />
+  //       </RequireOnboardingComplete>
+  //     </PrivateRoute>
+  //   ),
+  // },
   {
     path: "/tasks",
     element: (
@@ -156,18 +189,31 @@ export const routes = [
       </PrivateRoute>
     ),
   },
-  {
-    path: "/categories",
-    element: (
-      <PrivateRoute>
-        <RequireOnboardingComplete>
-          <CategoriesPage />
-        </RequireOnboardingComplete>
-      </PrivateRoute>
-    ),
-  },
+  // {
+  //   path: "/categories",
+  //   element: (
+  //     <PrivateRoute>
+  //       <RequireOnboardingComplete>
+  //         <CategoriesPage />
+  //       </RequireOnboardingComplete>
+  //     </PrivateRoute>
+  //   ),
+  // },
+  // Premium-only route pattern:
+  // {
+  //   path: "/premium-example",
+  //   element: (
+  //     <PrivateRoute>
+  //       <RequireOnboardingComplete>
+  //         <RequirePremium>
+  //           <SomePremiumPage />
+  //         </RequirePremium>
+  //       </RequireOnboardingComplete>
+  //     </PrivateRoute>
+  //   ),
+  // },
   {
     path: "*",
-    element: <h2>404: Page Not Found</h2>,
+    element: <NotFoundPage />,
   },
 ];

@@ -30,6 +30,7 @@ from drf_spectacular.utils import extend_schema, inline_serializer
 
 # from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -47,9 +48,16 @@ from api.serializers import (
     FetchInfoResponseSerializer,
     DownloadUserDataResponseSerializer,
     DeleteAccountResponseSerializer,
+    WaitlistSignupRequestSerializer,
+    WaitlistSignupResponseSerializer,
     CustomRegisterSerializer,
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
+)
+from api.mailchimp import (
+    MailchimpConfigurationError,
+    MailchimpRequestError,
+    subscribe_email_to_waitlist,
 )
 
 from character.models import Character, PlayerCharacterLink
@@ -87,6 +95,44 @@ class AppConfigView(APIView):
                 "stripe_live_mode": settings.STRIPE_LIVE_MODE,
             }
         )
+
+
+class WaitlistSignupAPIView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = WaitlistSignupResponseSerializer
+    request_serializer_class = WaitlistSignupRequestSerializer
+
+    @method_decorator(ratelimit(key="ip", rate="10/h", method="POST", block=True))
+    def post(self, request):
+        serializer = self.request_serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        email_domain = email.split("@")[-1] if "@" in email else ""
+
+        try:
+            response_data = subscribe_email_to_waitlist(email)
+        except MailchimpConfigurationError:
+            logger.error(
+                "[WAITLIST] Missing Mailchimp configuration email_domain=%s",
+                email_domain,
+            )
+            return Response(
+                {"detail": "Waitlist signup is temporarily unavailable."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except MailchimpRequestError as exc:
+            logger.warning(
+                "[WAITLIST] Mailchimp rejected signup email_domain=%s status=%s",
+                email_domain,
+                exc.response_status,
+            )
+            return Response(
+                {"detail": exc.user_message},
+                status=exc.response_status,
+            )
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class IsOwnerPlayer(permissions.BasePermission):
@@ -453,11 +499,11 @@ class FetchInfoAPIView(APIView):
                 "message": "Player and character fetched",
                 "build_number": build_number,
                 "player": PlayerSerializer(player, context={"request": request}).data,
-                "character": CharacterSerializer(
-                    character, context={"request": request}
-                ).data
-                if character
-                else None,
+                "character": (
+                    CharacterSerializer(character, context={"request": request}).data
+                    if character
+                    else None
+                ),
                 "activity_timer": ActivityTimerSerializer(
                     player.activity_timer, context={"request": request}
                 ).data,
@@ -470,6 +516,7 @@ class FetchInfoAPIView(APIView):
                 "login_state": login_state_data["login_state"],
                 "login_streak": login_state_data["login_streak"],
                 "login_event_at": login_state_data["login_event_at"],
+                "free_timer_limit_seconds": settings.FREE_TIMER_LIMIT_SECONDS,
             }
             return Response(data)
 
@@ -534,14 +581,16 @@ class DownloadUserDataAPIView(APIView):
                 "is_premium": user.is_premium,
             },
             "activities": activities_json,
-            "character": {
-                "id": character_obj.id,
-                "character_name": character_obj.name,
-                "level": character_obj.level,
-                "total_activities": character_obj.total_activities,
-            }
-            if character_obj
-            else None,
+            "character": (
+                {
+                    "id": character_obj.id,
+                    "character_name": character_obj.name,
+                    "level": character_obj.level,
+                    "total_activities": character_obj.total_activities,
+                }
+                if character_obj
+                else None
+            ),
         }
 
         logger.info(

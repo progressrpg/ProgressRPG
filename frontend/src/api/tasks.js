@@ -1,5 +1,5 @@
 // src/api/tasks.js
-import { apiFetch } from "../../utils/api";
+import { apiFetch } from "../utils/api";
 /*
 Expected backend shape (example):
 Skill: { id, name, group, xp, level }
