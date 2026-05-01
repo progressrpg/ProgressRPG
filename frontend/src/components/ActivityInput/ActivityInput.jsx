@@ -39,6 +39,9 @@ export default function ActivityInput() {
   const inputRef = useRef(null);
 
   const isActive = status === "active";
+  const inputValue = isActive
+    ? (name || currentActivity?.name || "")
+    : name;
 
   const {
     openWelcomeMessage,
@@ -84,13 +87,7 @@ export default function ActivityInput() {
     if (!inputRef.current) return;
     inputRef.current.style.height = "auto";
     inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-  }, [name]);
-
-  useEffect(() => {
-    if (status === "active" && currentActivity?.name) {
-      setName(currentActivity.name);
-    }
-  }, [status, currentActivity]);
+  }, [inputValue]);
 
   useEffect(() => {
     if (!autoStopCompletion) return;
@@ -213,7 +210,7 @@ export default function ActivityInput() {
               <textarea
                 id="activity-name"
                 ref={inputRef}
-                value={name}
+                value={inputValue}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="What are you working on? e.g. washing dishes"
