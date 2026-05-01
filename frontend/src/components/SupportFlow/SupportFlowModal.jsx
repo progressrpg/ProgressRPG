@@ -55,6 +55,7 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
           <WelcomeMessageScreen
             loginState={ctx.welcomeMessageLoginState}
             loginStreak={ctx.welcomeMessageLoginStreak}
+            loginRewardXp={ctx.welcomeMessageRewardXp}
             onStart={close}
             onSupport={() => dispatch({ type: "GO_SUPPORT_MENU", origin: "reward" })}
           />
@@ -67,6 +68,8 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
             baseXp={ctx.rewardBaseXp}
             xpMultiplier={ctx.rewardXpMultiplier}
             levelUps={ctx.rewardLevelUps}
+            isAutoStopped={ctx.rewardIsAutoStopped}
+            showUpgradePrompt={ctx.rewardShowUpgradePrompt}
             activityName={ctx.completedActivityName}
             elapsedSeconds={ctx.completedActivityElapsedSeconds}
             onContinue={close}

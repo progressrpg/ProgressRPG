@@ -99,6 +99,8 @@ describe('ActivityInput', () => {
         baseXp: 6,
         xpMultiplier: 2,
         levelUps: [3],
+        isAutoStopped: true,
+        showUpgradePrompt: true,
         activityName: 'Write docs',
         elapsedSeconds: 15,
       });
@@ -147,6 +149,8 @@ describe('ActivityInput', () => {
         baseXp: 16,
         xpMultiplier: 1,
         levelUps: [2],
+        isAutoStopped: false,
+        showUpgradePrompt: true,
         activityName: 'Write docs',
         elapsedSeconds: 16,
       });

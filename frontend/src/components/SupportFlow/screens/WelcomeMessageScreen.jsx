@@ -17,12 +17,19 @@ function getWelcomeMessage(loginState, loginStreak) {
   }
 }
 
-export default function WelcomeMessageScreen({ loginState, loginStreak, onStart, onSupport }) {
+export default function WelcomeMessageScreen({
+  loginState,
+  loginStreak,
+  loginRewardXp,
+  onStart,
+  onSupport,
+}) {
   const message = getWelcomeMessage(loginState, loginStreak);
 
   return (
     <div>
       <p>{message}</p>
+      {Number(loginRewardXp) > 0 ? <p>You earned +{loginRewardXp} XP from today's login.</p> : null}
       <ButtonFrame>
         <Button onClick={onStart}>Start</Button>
         <Button onClick={onSupport}>Get support</Button>

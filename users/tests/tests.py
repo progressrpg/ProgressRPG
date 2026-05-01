@@ -247,6 +247,69 @@ class JwtLoginTrackingTest(TestCase):
         self.assertEqual(UserLogin.objects.filter(user=self.user).count(), 1)
 
 
+class DailyLoginRewardTest(TestCase):
+    def setUp(self):
+        Character.objects.create(first_name="Jane", can_link=True)
+        self.user = get_user_model().objects.create_user(
+            email="daily-login@example.com",
+            password="testpassword123",
+        )
+
+    def _login_via_jwt(self):
+        serializer = CustomTokenObtainPairSerializer(
+            data={
+                "email": self.user.email,
+                "password": "testpassword123",
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def _seed_login_days(self, days_ago_values):
+        now = timezone.now()
+        seeded_rows = UserLogin.objects.bulk_create(
+            [UserLogin(user=self.user) for _ in days_ago_values]
+        )
+        for row, days_ago in zip(seeded_rows, days_ago_values):
+            UserLogin.objects.filter(pk=row.pk).update(
+                timestamp=now - timedelta(days=days_ago)
+            )
+
+    def test_first_login_of_day_rewards_10_xp(self):
+        self.assertEqual(self.user.player.xp, 0)
+
+        self._login_via_jwt()
+
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.xp, 10)
+
+    def test_streak_day_two_rewards_12_xp(self):
+        # Seed only yesterday so today's login is streak day 2.
+        self._seed_login_days([1])
+
+        self._login_via_jwt()
+
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.xp, 12)
+
+    def test_streak_reset_rewards_10_xp(self):
+        # Seed two days ago so the streak resets on today's login.
+        self._seed_login_days([2])
+
+        self._login_via_jwt()
+
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.xp, 10)
+
+    def test_streak_reward_is_capped_at_20_xp(self):
+        # Seed a long streak up to yesterday; today's reward should cap at 20.
+        self._seed_login_days(range(1, 10))
+
+        self._login_via_jwt()
+
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.xp, 20)
+
+
 class UserTimezoneApiTest(TestCase):
     def setUp(self):
         Character.objects.create(first_name="Jane", can_link=True)

@@ -11,6 +11,10 @@ LOGIN_STATE_ALREADY_LOGGED_TODAY = "already_logged_today"
 LOGIN_STATE_STREAK_CONTINUES = "streak_continues"
 LOGIN_STATE_STREAK_RESET = "streak_reset"
 
+LOGIN_REWARD_BASE_XP = 10
+LOGIN_REWARD_STREAK_STEP_XP = 2
+LOGIN_REWARD_MAX_XP = 20
+
 
 def _build_login_message(previous_login, today, streak):
     if not previous_login:
@@ -32,6 +36,7 @@ def get_login_state(user):
             "login_state": LOGIN_STATE_NONE,
             "login_streak": 0,
             "login_event_at": None,
+            "login_reward_xp": 0,
         }
 
     latest_login = user.logins.order_by("-timestamp").first()
@@ -40,6 +45,7 @@ def get_login_state(user):
             "login_state": LOGIN_STATE_NONE,
             "login_streak": 0,
             "login_event_at": None,
+            "login_reward_xp": 0,
         }
 
     login_event_at = latest_login.timestamp.isoformat()
@@ -50,6 +56,7 @@ def get_login_state(user):
             "login_state": LOGIN_STATE_ALREADY_LOGGED_TODAY,
             "login_streak": streak,
             "login_event_at": login_event_at,
+            "login_reward_xp": 0,
         }
 
     previous_login = (
@@ -72,6 +79,7 @@ def get_login_state(user):
         "login_state": state,
         "login_streak": streak,
         "login_event_at": login_event_at,
+        "login_reward_xp": calculate_daily_login_reward(state, streak),
     }
 
 
@@ -91,6 +99,27 @@ def update_login_streak(user):
     return ""
 
 
+def calculate_daily_login_reward(login_state: str, streak: int) -> int:
+    """Return XP reward for a qualifying daily login event."""
+    if login_state == LOGIN_STATE_ALREADY_LOGGED_TODAY:
+        return 0
+
+    if login_state == LOGIN_STATE_STREAK_CONTINUES:
+        streak_bonus = max(streak - 1, 0) * LOGIN_REWARD_STREAK_STEP_XP
+        return min(LOGIN_REWARD_BASE_XP + streak_bonus, LOGIN_REWARD_MAX_XP)
+
+    return LOGIN_REWARD_BASE_XP
+
+
 def handle_first_login_of_day(user):
-    """Compatibility wrapper around the login streak updater."""
+    """Apply daily login reward and return the login message."""
+    login_state_data = get_login_state(user)
+    reward_xp = calculate_daily_login_reward(
+        login_state=login_state_data["login_state"],
+        streak=login_state_data["login_streak"],
+    )
+
+    if reward_xp > 0:
+        user.player.add_xp(reward_xp)
+
     return update_login_streak(user)

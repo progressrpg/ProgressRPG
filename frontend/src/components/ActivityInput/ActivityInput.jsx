@@ -18,6 +18,7 @@ export default function ActivityInput() {
     loginState,
     loginStreak,
     loginEventAt,
+    loginRewardXp,
     player,
     freeTimerLimitSeconds,
   } = useGame();
@@ -72,14 +73,14 @@ export default function ActivityInput() {
 
     if (lastShownEventAt === loginEventAt) return;
 
-    openWelcomeMessage({ loginState, loginStreak });
+    openWelcomeMessage({ loginState, loginStreak, loginRewardXp });
 
     try {
       sessionStorage.setItem(WELCOME_MESSAGE_LAST_EVENT_KEY, loginEventAt);
     } catch {
       // Ignore storage failures and keep app flow functional.
     }
-  }, [loginState, loginStreak, loginEventAt, openWelcomeMessage]);
+  }, [loginState, loginStreak, loginEventAt, loginRewardXp, openWelcomeMessage]);
 
   useEffect(() => () => timeoutRef.current && clearTimeout(timeoutRef.current), []);
 
@@ -116,6 +117,8 @@ export default function ActivityInput() {
         baseXp: autoStopCompletion.baseXp,
         xpMultiplier: autoStopCompletion.xpMultiplier,
         levelUps: autoStopCompletion.levelUps,
+        isAutoStopped: true,
+        showUpgradePrompt: !isPremium,
         activityName: autoStopCompletion.activityName,
         elapsedSeconds: autoStopCompletion.elapsedSeconds,
       });
@@ -139,7 +142,7 @@ export default function ActivityInput() {
   async function handleToggle() {
     if (isActive) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
-      const completion = await stop({ activityName: name });
+      const completion = await stop({ activityName: completedActivityName });
       const xpGained = completion?.xp_gained ?? null;
       const baseXp = completion?.base_xp ?? null;
       const xpMultiplier = completion?.xp_multiplier ?? null;
@@ -157,6 +160,8 @@ export default function ActivityInput() {
         baseXp,
         xpMultiplier,
         levelUps,
+        isAutoStopped: false,
+        showUpgradePrompt: !isPremium,
         activityName: completedActivityName || null,
         elapsedSeconds,
       });

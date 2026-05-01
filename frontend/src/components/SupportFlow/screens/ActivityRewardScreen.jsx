@@ -10,6 +10,8 @@ export default function ActivityRewardScreen({
   baseXp,
   xpMultiplier,
   levelUps = [],
+  isAutoStopped = false,
+  showUpgradePrompt = false,
   elapsedSeconds,
   onContinue,
   onSupport,
@@ -44,6 +46,12 @@ export default function ActivityRewardScreen({
         .map((level) => Number(level))
         .filter((level) => Number.isInteger(level) && level > 0)
     : [];
+  const shouldShowUpgradePrompt = Boolean(showUpgradePrompt);
+  const upgradeMessage = shouldShowUpgradePrompt
+    ? isAutoStopped
+      ? "Need more time? Upgrade to Premium for unlimited timer sessions."
+      : "Want even more rewards? Upgrade to Premium for double XP on activities."
+    : null;
   const multiplierLines = [];
 
   if (hasRewardBreakdown && parsedMultiplier > 1) {
@@ -86,9 +94,13 @@ export default function ActivityRewardScreen({
         <p key={level}>Level up! You reached level {level}.</p>
       ))}
       {!hasActivityName && hasXp && <p>You gained {parsedXp} XP!</p>}
+      {upgradeMessage && <p>{upgradeMessage}</p>}
       <ButtonFrame>
         <Button onClick={onContinue}>Return to timer</Button>
         <Button onClick={onSupport}>Get support</Button>
+        {shouldShowUpgradePrompt && (
+          <Button as="a" href="/upgrade">Upgrade to Premium</Button>
+        )}
       </ButtonFrame>
     </div>
   );

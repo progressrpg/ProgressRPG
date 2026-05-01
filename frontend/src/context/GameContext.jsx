@@ -33,6 +33,7 @@ export const GameProvider = ({ children }) => {
     loginState,
     loginStreak,
     loginEventAt,
+    loginRewardXp,
     loading,
     error,
     buildNumber,
@@ -162,6 +163,7 @@ export const GameProvider = ({ children }) => {
       loginState,
       loginStreak,
       loginEventAt,
+      loginRewardXp,
       loading,
       buildNumber,
       freeTimerLimitSeconds,
@@ -185,6 +187,7 @@ export const GameProvider = ({ children }) => {
       loginState,
       loginStreak,
       loginEventAt,
+      loginRewardXp,
     ]
   );
 
