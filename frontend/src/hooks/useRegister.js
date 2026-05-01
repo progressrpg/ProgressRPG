@@ -1,6 +1,6 @@
 // hooks/useRegister.js
 import { useCallback, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { API_BASE_URL } from '../config';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
@@ -53,8 +53,6 @@ export default function useRegister() {
        // fallback: handle unexpected case (tokens returned)
       const { accessToken, refreshToken } = data;
       if (accessToken && refreshToken) {
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
         await login(accessToken, refreshToken);
         return { success: true };
       }

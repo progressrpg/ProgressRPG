@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { API_BASE_URL } from "../config";
 
 const API_URL = `${API_BASE_URL}/api/v1`;
@@ -9,22 +9,29 @@ export default function ConfirmationPage() {
   const { key } = useParams();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const alreadyConfirmed = Boolean(key) && sessionStorage.getItem("confirmedKey") === key;
 
-  const [status, setStatus] = useState("loading"); // loading | success | error
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState(() => {
+    if (!key) {
+      return "error";
+    }
+
+    return alreadyConfirmed ? "success" : "loading";
+  }); // loading | success | error
+  const [message, setMessage] = useState(() => {
+    if (!key) {
+      return "Invalid confirmation link.";
+    }
+
+    return alreadyConfirmed ? "Email already confirmed! Redirecting..." : "";
+  });
 
   useEffect(() => {
     if (!key) {
-      setStatus("error");
-      setMessage("Invalid confirmation link.");
       return;
     }
 
-    // Prevent re-confirmation in the same session
-    const confirmedKey = sessionStorage.getItem("confirmedKey");
-    if (confirmedKey === key) {
-      setStatus("success");
-      setMessage("Email already confirmed! Redirecting...");
+    if (alreadyConfirmed) {
       setTimeout(() => navigate("/onboarding"), 2000);
       return;
     }
@@ -55,14 +62,14 @@ export default function ConfirmationPage() {
           setStatus("error");
           setMessage(data?.message || "Confirmation failed.");
         }
-      } catch (err) {
+      } catch {
         setStatus("error");
         setMessage("Something went wrong.");
       }
     }
 
     confirmEmail();
-  }, [key, navigate, login]);
+  }, [alreadyConfirmed, key, navigate, login]);
 
   return (
     <div>

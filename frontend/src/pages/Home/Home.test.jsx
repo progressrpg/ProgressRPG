@@ -11,7 +11,7 @@ const mockUseAuth = vi.fn();
 const mockTrackEvent = vi.fn();
 const mockRequestWaitlistSignup = vi.fn();
 
-vi.mock('../../context/AuthContext', () => ({
+vi.mock('../../context/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 

@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { MaintenanceProvider } from './context/MaintenanceContext';
 import { ToastProvider } from './context/ToastContext';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
 import { GameProvider } from './context/GameContext';
 import { BrowserRouter, useLocation } from 'react-router-dom';
 import { WebSocketProvider } from './context/WebSocketContext';

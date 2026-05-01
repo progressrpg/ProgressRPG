@@ -1,10 +1,12 @@
 import hashlib
+from datetime import datetime, timezone
 
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 from unittest import skip
 from unittest.mock import patch, MagicMock
 
@@ -40,6 +42,58 @@ class TestMeViewSet(APITestCase):
         res = self.client.get(self.me_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["email"], self.user.email)
+
+
+class CustomTokenObtainPairViewTests(APITestCase):
+    def setUp(self):
+        self.url = reverse("jwt_create")
+        self.user = User.objects.create_user(
+            email="rememberme@example.com",
+            password="pass12345",
+        )
+
+    def _refresh_expiry(self, refresh_token):
+        exp_timestamp = RefreshToken(refresh_token)["exp"]
+        return datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+
+    def test_login_uses_short_session_refresh_lifetime_by_default(self):
+        response = self.client.post(
+            self.url,
+            {"email": self.user.email, "password": "pass12345"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", response.data)
+        self.assertIn("refresh_token", response.data)
+
+        short_expiry = self._refresh_expiry(response.data["refresh_token"])
+        lifetime = short_expiry - datetime.now(timezone.utc)
+
+        self.assertLess(lifetime.days, 2)
+
+    def test_login_uses_long_session_refresh_lifetime_when_remembered(self):
+        short_response = self.client.post(
+            self.url,
+            {"email": self.user.email, "password": "pass12345"},
+            format="json",
+        )
+        long_response = self.client.post(
+            self.url,
+            {
+                "email": self.user.email,
+                "password": "pass12345",
+                "remember_me": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(long_response.status_code, status.HTTP_200_OK)
+
+        short_expiry = self._refresh_expiry(short_response.data["refresh_token"])
+        long_expiry = self._refresh_expiry(long_response.data["refresh_token"])
+
+        self.assertGreater(long_expiry, short_expiry)
 
 
 @override_settings(

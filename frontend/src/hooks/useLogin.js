@@ -5,14 +5,14 @@ import { API_BASE_URL } from '../config';
 const API_URL = `${API_BASE_URL}/api/v1`;
 
 export default function useLogin() {
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email, password, rememberMe = false) => {
     try {
       const response = await fetch(`${API_URL}/auth/jwt/create/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, remember_me: rememberMe }),
       });
 
       if (!response.ok) {
@@ -33,10 +33,6 @@ export default function useLogin() {
           `Login endpoint returned an invalid response payload. url=${response.url} status=${response.status} contentType=${contentType || '<none>'} body=${responsePreview}`
         );
       }
-
-      //console.log('useLogin, data:', data);
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
 
       return {
         success: true,
