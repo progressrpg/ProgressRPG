@@ -96,16 +96,16 @@ describe("SupportFlowModal", () => {
     await user.click(screen.getByRole("button", { name: "Open" }));
     expect(screen.getByText("Activity complete!")).toBeInTheDocument();
     expect(
-      screen.getByText("Great work! 🎉 You completed an activity.")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('You spent 1 minute 30 seconds on "Write tests".')
+      screen.getByText('Nice work ⚔️ You spent 1 minute 30 seconds on "Write tests".')
     ).toBeInTheDocument();
     expect(screen.getByText("Total XP gained")).toBeInTheDocument();
-    expect(screen.getByText("27 XP")).toBeInTheDocument();
+    expect(screen.getByText("+27 XP")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Return to timer" })
+      screen.getByRole("button", { name: "Start supported session" })
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Return to timer" })
+    ).not.toBeInTheDocument();
   });
 
   it("opens support mode directly to support menu", async () => {
@@ -140,7 +140,7 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_ACTIVITY_REWARD" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
-    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "Start supported session" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByText("Activity complete!")).toBeInTheDocument();
   });
@@ -233,7 +233,7 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_ACTIVITY_REWARD" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
-    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "Start supported session" }));
     await user.click(
       screen.getByRole("button", { name: "I'm not ready yet" })
     );
@@ -252,7 +252,7 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_ACTIVITY_REWARD" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
-    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "Start supported session" }));
     await user.click(screen.getByRole("button", { name: "I'm not ready yet" }));
     await user.click(
       screen.getByRole("button", { name: "Breathing exercise" })

@@ -54,10 +54,26 @@ export default function ActivityInput() {
   } =
     useSupportFlow({
       onStartActivity: ({ activityText, durationSeconds }) => {
-        const limitSeconds = isPremium
-          ? (durationSeconds ?? null)
-          : durationSeconds ? Math.min(durationSeconds, freeTimerLimitSeconds) : freeTimerLimitSeconds;
-        startActivity({ text: activityText, limitSeconds });
+        const parsedDuration = Number(durationSeconds);
+        const hasCustomDuration = Number.isFinite(parsedDuration) && parsedDuration > 0;
+
+        let resolvedLimitSeconds = null;
+        let limitReason = null;
+
+        if (isPremium) {
+          resolvedLimitSeconds = hasCustomDuration ? parsedDuration : null;
+        } else if (!hasCustomDuration) {
+          resolvedLimitSeconds = freeTimerLimitSeconds;
+          limitReason = "free_limit";
+        } else if (parsedDuration > freeTimerLimitSeconds) {
+          resolvedLimitSeconds = freeTimerLimitSeconds;
+          limitReason = "free_limit";
+        } else {
+          resolvedLimitSeconds = parsedDuration;
+          limitReason = "preset_limit";
+        }
+
+        startActivity({ text: activityText, limitSeconds: resolvedLimitSeconds, limitReason });
       },
     });
 
@@ -112,13 +128,15 @@ export default function ActivityInput() {
 
       playLimitReachedSound();
 
+      const isFreeLimitAutoStop = autoStopCompletion?.stopReason === "free_limit";
+
       openActivityReward({
         xpGained: autoStopCompletion.xpGained,
         baseXp: autoStopCompletion.baseXp,
         xpMultiplier: autoStopCompletion.xpMultiplier,
         levelUps: autoStopCompletion.levelUps,
         isAutoStopped: true,
-        showUpgradePrompt: !isPremium,
+        showUpgradePrompt: !isPremium && isFreeLimitAutoStop,
         activityName: autoStopCompletion.activityName,
         elapsedSeconds: autoStopCompletion.elapsedSeconds,
       });

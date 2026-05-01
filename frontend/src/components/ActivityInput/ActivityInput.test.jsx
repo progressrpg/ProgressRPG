@@ -71,6 +71,7 @@ describe('ActivityInput', () => {
           baseXp: 6,
           xpMultiplier: 2,
           levelUps: [3],
+          stopReason: 'free_limit',
           activityName: 'Write docs',
           elapsedSeconds: 15,
         },
@@ -155,6 +156,53 @@ describe('ActivityInput', () => {
         elapsedSeconds: 16,
       });
       expect(playLimitReachedSound).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('does not show free-limit upgrade prompt for non-free auto-stop reasons', async () => {
+    mockUseGame.mockReturnValue({
+      activityTimer: {
+        currentActivity: null,
+        status: 'empty',
+        stop,
+        startActivity,
+        elapsed: 0,
+        limitSeconds: null,
+        limitReached: false,
+        autoStopCompletion: {
+          xpGained: 12,
+          baseXp: 6,
+          xpMultiplier: 2,
+          levelUps: [3],
+          stopReason: 'preset_limit',
+          activityName: 'Write docs',
+          elapsedSeconds: 15,
+        },
+        clearAutoStopCompletion,
+      },
+      fetchPlayerAndCharacter,
+      fetchCharacterCurrent,
+      fetchActivities,
+      loginState: 'none',
+      loginStreak: 0,
+      loginEventAt: null,
+      player: { is_premium: false },
+      freeTimerLimitSeconds: 15,
+    });
+
+    render(<ActivityInput />);
+
+    await waitFor(() => {
+      expect(openActivityReward).toHaveBeenCalledWith({
+        xpGained: 12,
+        baseXp: 6,
+        xpMultiplier: 2,
+        levelUps: [3],
+        isAutoStopped: true,
+        showUpgradePrompt: false,
+        activityName: 'Write docs',
+        elapsedSeconds: 15,
+      });
     });
   });
 

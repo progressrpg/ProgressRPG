@@ -19,12 +19,23 @@ describe('ActivityRewardScreen', () => {
     );
 
     expect(
-      screen.getByText('You spent 1 minute 30 seconds on "Write tests".')
+      screen.getByText('Nice work ⚔️ You spent 1 minute 30 seconds on "Write tests".')
     ).toBeInTheDocument();
-    expect(screen.getByText('Time')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Reward' })).not.toBeInTheDocument();
     expect(screen.getByText('1:30')).toBeInTheDocument();
     expect(screen.getByText('Total XP gained')).toBeInTheDocument();
-    expect(screen.getByText('27 XP')).toBeInTheDocument();
+    expect(screen.getByText('Time')).toBeInTheDocument();
+    expect(screen.getByText('+27 XP')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Next action' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Close window to manage the timer yourself, or...')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Start supported session' })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Return to timer' })
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('XP multipliers:')).not.toBeInTheDocument();
   });
 
@@ -43,7 +54,7 @@ describe('ActivityRewardScreen', () => {
     );
 
     expect(
-      screen.getByText('You spent 21 seconds on "Quick task".')
+      screen.getByText('Nice work ⚔️ You spent 21 seconds on "Quick task".')
     ).toBeInTheDocument();
     expect(screen.getByText('0:21')).toBeInTheDocument();
   });
@@ -63,7 +74,7 @@ describe('ActivityRewardScreen', () => {
     );
 
     expect(
-      screen.getByText('You spent 2 hours 5 minutes on "Deep work".')
+      screen.getByText('Nice work ⚔️ You spent 2 hours 5 minutes on "Deep work".')
     ).toBeInTheDocument();
     expect(screen.getByText('2:05:00')).toBeInTheDocument();
   });
@@ -83,12 +94,12 @@ describe('ActivityRewardScreen', () => {
     );
 
     expect(
-      screen.getByText('You spent 1 minute on "Write tests".')
+      screen.getByText('Nice work ⚔️ You spent 1 minute on "Write tests".')
     ).toBeInTheDocument();
     expect(screen.getByText('1:00')).toBeInTheDocument();
     expect(screen.getByText('Premium bonus')).toBeInTheDocument();
     expect(screen.getByText('x2')).toBeInTheDocument();
-    expect(screen.getByText('120 XP')).toBeInTheDocument();
+    expect(screen.getByText('+120 XP')).toBeInTheDocument();
     expect(screen.getByText('Level up! You reached level 2.')).toBeInTheDocument();
   });
 
@@ -114,6 +125,7 @@ describe('ActivityRewardScreen', () => {
     expect(
       screen.getByRole('link', { name: 'Upgrade to Premium' })
     ).toHaveAttribute('href', '/upgrade');
+    expect(screen.queryByRole('heading', { name: 'Upgrade' })).not.toBeInTheDocument();
   });
 
   it('shows manual-stop premium XP prompt and button for free users', () => {
@@ -136,6 +148,7 @@ describe('ActivityRewardScreen', () => {
       screen.getByText('Want even more rewards? Upgrade to Premium for double XP on activities.')
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Upgrade to Premium' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Upgrade' })).not.toBeInTheDocument();
   });
 
   it('does not show upgrade prompt when upgrade CTA is disabled', () => {
@@ -159,6 +172,9 @@ describe('ActivityRewardScreen', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Upgrade to Premium' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Upgrade' })
     ).not.toBeInTheDocument();
   });
 });

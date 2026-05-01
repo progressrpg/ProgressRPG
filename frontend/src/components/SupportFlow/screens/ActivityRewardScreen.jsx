@@ -13,7 +13,6 @@ export default function ActivityRewardScreen({
   isAutoStopped = false,
   showUpgradePrompt = false,
   elapsedSeconds,
-  onContinue,
   onSupport,
 }) {
   const hasActivityName = typeof activityName === "string" && activityName.trim();
@@ -53,6 +52,15 @@ export default function ActivityRewardScreen({
       : "Want even more rewards? Upgrade to Premium for double XP on activities."
     : null;
   const multiplierLines = [];
+  let rewardSummaryLine = "Nice work ⚔️ You completed an activity.";
+
+  if (formattedElapsed && hasActivityName) {
+    rewardSummaryLine = `Nice work ⚔️ You spent ${formattedElapsed} on "${activityName.trim()}".`;
+  } else if (hasActivityName) {
+    rewardSummaryLine = `Nice work ⚔️ You completed "${activityName.trim()}".`;
+  } else if (formattedElapsed) {
+    rewardSummaryLine = `Nice work ⚔️ You spent ${formattedElapsed} focused.`;
+  }
 
   if (hasRewardBreakdown && parsedMultiplier > 1) {
     if (parsedMultiplier === 2) {
@@ -64,12 +72,9 @@ export default function ActivityRewardScreen({
 
   return (
     <div>
-      <p>Great work! 🎉 You completed an activity.</p>
-      {formattedElapsed && hasActivityName && (
-        <p>You spent {formattedElapsed} on "{activityName.trim()}".</p>
-      )}
       {(hasElapsedSeconds || hasXp) && (
         <div className={styles.rewardBreakdown}>
+          <p className={styles.rewardSummary}>{rewardSummaryLine}</p>
           {condensedElapsed && (
             <div className={styles.rewardBreakdownRow}>
               <span className={styles.rewardBreakdownLabel}>Time</span>
@@ -83,25 +88,36 @@ export default function ActivityRewardScreen({
             </div>
           ))}
           {hasXp && (
-            <div className={styles.rewardBreakdownRow}>
+            <div className={styles.rewardBreakdownRowPrimary}>
               <span className={styles.rewardBreakdownLabel}>Total XP gained</span>
-              <span className={styles.rewardBreakdownValue}>{parsedXp} XP</span>
+              <span className={styles.rewardBreakdownValue}>+{parsedXp} XP</span>
             </div>
           )}
         </div>
       )}
+      {!(hasElapsedSeconds || hasXp) && <p>{rewardSummaryLine}</p>}
       {normalizedLevelUps.map((level) => (
         <p key={level}>Level up! You reached level {level}.</p>
       ))}
       {!hasActivityName && hasXp && <p>You gained {parsedXp} XP!</p>}
-      {upgradeMessage && <p>{upgradeMessage}</p>}
-      <ButtonFrame>
-        <Button onClick={onContinue}>Return to timer</Button>
-        <Button onClick={onSupport}>Get support</Button>
+
+      <div className={styles.actionRow}>
         {shouldShowUpgradePrompt && (
-          <Button as="a" href="/upgrade">Upgrade to Premium</Button>
+          <div className={styles.upgradePanel}>
+            {upgradeMessage && <p>{upgradeMessage}</p>}
+            <ButtonFrame>
+              <Button as="a" href="/upgrade">Upgrade to Premium</Button>
+            </ButtonFrame>
+          </div>
         )}
-      </ButtonFrame>
+
+        <div className={styles.supportPanel}>
+          <p>Close window to manage the timer yourself, or...</p>
+          <ButtonFrame>
+            <Button onClick={onSupport}>Start supported session</Button>
+          </ButtonFrame>
+        </div>
+      </div>
     </div>
   );
 }

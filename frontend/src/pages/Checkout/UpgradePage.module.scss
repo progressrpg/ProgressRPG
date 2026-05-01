@@ -8,6 +8,29 @@
   margin-top: 0.5rem;
 }
 
+.benefitsCard {
+  margin-top: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #c8d8f2;
+  border-radius: 10px;
+  background: #f5f9ff;
+}
+
+.benefitsHeading {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+}
+
+.benefitsList {
+  margin: 0;
+  padding-left: 1.2rem;
+
+  li + li {
+    margin-top: 0.35rem;
+  }
+}
+
 .subscribedNotice {
   margin-top: 1rem;
   padding: 1rem 1.25rem;
@@ -52,11 +75,6 @@
 
 .planDescription {
   margin: 0.5rem 0 0;
-  color: #5f6c7b;
-}
-
-.selectedPlanSummary {
-  margin-top: 0;
   color: #5f6c7b;
 }
 
