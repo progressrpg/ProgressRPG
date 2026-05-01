@@ -68,7 +68,7 @@ describe('useActivityTimer', () => {
   });
 
   it('restores limit enforcement for active timers loaded from the server', async () => {
-    mockApiFetch.mockResolvedValue({ xp_gained: 15, base_xp: 15, xp_multiplier: 1, level_ups: [], duration_seconds: 15 });
+    mockApiFetch.mockResolvedValue({ xp_gained: 15, base_xp: 15, xp_multiplier: 1, level_ups: [], duration_seconds: 14 });
 
     const { result } = renderHook(() => useActivityTimer());
 

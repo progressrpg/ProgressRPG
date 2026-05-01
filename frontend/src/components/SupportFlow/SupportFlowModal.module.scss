@@ -9,6 +9,10 @@
   gap: v.$spacing-md;
 }
 
+.readableText {
+  max-width: 58ch;
+}
+
 .activityTextArea {
   width: 100%;
   padding: v.$spacing-sm;
@@ -46,6 +50,21 @@
 
 .detailIntro {
   margin-bottom: v.$spacing-sm;
+}
+
+.videoWrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: v.$border-radius;
+  overflow: hidden;
+  margin-bottom: v.$spacing-md;
+  background: rgba(c.$color-border-primary, 0.12);
+}
+
+.videoEmbed {
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 .hint {
@@ -91,6 +110,7 @@
   display: flex;
   flex-direction: column;
   gap: v.$spacing-md;
+  width: 100%;
 }
 
 .supportOptionRow {
@@ -100,6 +120,7 @@
   gap: v.$spacing-md;
   padding-bottom: v.$spacing-sm;
   border-bottom: 1px solid rgba(c.$color-border-primary, 0.25);
+  width: 100%;
 
   @include m.respond-to(sm) {
     flex-direction: row;

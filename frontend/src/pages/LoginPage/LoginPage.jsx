@@ -30,7 +30,7 @@ export default function LoginPage() {
         if (result2.onboarding_step && result2.onboarding_step < 4) {
           navigate('/onboarding');
         } else {
-          navigate('/game');
+          navigate('/timer');
         }
 
       } catch (err) {

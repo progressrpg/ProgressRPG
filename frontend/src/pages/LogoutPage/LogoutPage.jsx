@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useWebSocket } from '../../context/WebSocketContext';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 export default function LogoutPage() {
   //console.log('[LogoutPage] mounted');

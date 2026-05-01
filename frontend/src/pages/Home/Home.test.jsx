@@ -168,13 +168,13 @@ describe('Home', () => {
     });
   });
 
-  it('redirects authenticated users to the game', async () => {
+  it('redirects authenticated users to the timer', async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: true, loading: false });
 
     const { container } = renderHome();
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/game', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/timer', { replace: true });
     });
     expect(container).toBeEmptyDOMElement();
   });

@@ -22,35 +22,39 @@
   background: c.$color-bg;
 
   width: 90%;
-  max-width: 95vw;
+  max-width: min(95vw, 950px);
+  height: auto;
   max-height: 90vh;
-  min-height: 60vh;
+  min-height: 0;
   border-radius: v.$border-radius;
   overflow: hidden;
   box-shadow: 0 v.$spacing-sm v.$spacing-md rgba(0,0,0,0.2);
 
   gap: v.$spacing-gap;
   padding: v.$padding-base;
-
-
-	@include m.respond-to(sm) {
-		min-height: 70vh;
-	}
-
-	@include m.respond-to(xl) {
-		min-height: 40vh;
-    max-width: 1400px;
-	}
 }
 
 .modalContent {
   display: flex;
-  flex: 1;
-  justify-content: flex-start;
-  overflow: hidden;
-  height: 100%;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
   padding-top: v.$spacing-md;
+  padding-bottom: v.$spacing-md;
   @include tc.two-column-layout;
+
+  // Constrain content width for readability (override mixin's 100vw)
+  max-width: 58ch;
+  margin-inline: auto;
+
+  // On narrow screens the mixin uses a column layout; keep content anchored
+  // to the top rather than vertically centered.
+  justify-content: flex-start;
+
+  @include m.respond-to(sm) {
+    justify-content: center;
+  }
 }
 
 .modalHeader {

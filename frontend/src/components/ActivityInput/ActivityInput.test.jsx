@@ -13,6 +13,9 @@ const fetchActivities = vi.fn();
 const clearAutoStopCompletion = vi.fn();
 const stop = vi.fn();
 const startActivity = vi.fn();
+const { playLimitReachedSound } = vi.hoisted(() => ({
+  playLimitReachedSound: vi.fn(),
+}));
 
 vi.mock('../../context/GameContext', () => ({
   useGame: () => mockUseGame(),
@@ -27,7 +30,7 @@ vi.mock('../SupportFlow/SupportFlowModal', () => ({
 }));
 
 vi.mock('../../utils/sounds', () => ({
-  playLimitReachedSound: vi.fn(),
+  playLimitReachedSound,
 }));
 
 describe('ActivityInput', () => {
@@ -39,6 +42,7 @@ describe('ActivityInput', () => {
     clearAutoStopCompletion.mockReset();
     stop.mockReset();
     startActivity.mockReset();
+    playLimitReachedSound.mockReset();
 
     fetchPlayerAndCharacter.mockResolvedValue(null);
     fetchCharacterCurrent.mockResolvedValue(null);
@@ -60,6 +64,7 @@ describe('ActivityInput', () => {
         stop,
         startActivity,
         elapsed: 0,
+        limitSeconds: null,
         limitReached: false,
         autoStopCompletion: {
           xpGained: 12,
@@ -97,6 +102,7 @@ describe('ActivityInput', () => {
         activityName: 'Write docs',
         elapsedSeconds: 15,
       });
+      expect(playLimitReachedSound).toHaveBeenCalledTimes(1);
       expect(clearAutoStopCompletion).toHaveBeenCalledTimes(1);
     });
   });
@@ -112,6 +118,7 @@ describe('ActivityInput', () => {
         stop,
         startActivity,
         elapsed: 15,
+        limitSeconds: 15,
         limitReached: false,
         autoStopCompletion: null,
         clearAutoStopCompletion,
@@ -143,6 +150,67 @@ describe('ActivityInput', () => {
         activityName: 'Write docs',
         elapsedSeconds: 16,
       });
+      expect(playLimitReachedSound).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('shows an auto-stop warning after 90 percent of a limited timer has elapsed', () => {
+    mockUseGame.mockReturnValue({
+      activityTimer: {
+        currentActivity: { name: 'Write docs' },
+        status: 'active',
+        stop,
+        startActivity,
+        elapsed: 27,
+        limitSeconds: 30,
+        limitReached: false,
+        autoStopCompletion: null,
+        clearAutoStopCompletion,
+      },
+      fetchPlayerAndCharacter,
+      fetchCharacterCurrent,
+      fetchActivities,
+      loginState: 'none',
+      loginStreak: 0,
+      loginEventAt: null,
+      player: { is_premium: false },
+      freeTimerLimitSeconds: 30,
+    });
+
+    render(<ActivityInput />);
+
+    expect(
+      screen.getByText('This timer will stop automatically when it reaches 0:30.')
+    ).toBeInTheDocument();
+  });
+
+  it('does not show the auto-stop warning before 90 percent of the limit', () => {
+    mockUseGame.mockReturnValue({
+      activityTimer: {
+        currentActivity: { name: 'Write docs' },
+        status: 'active',
+        stop,
+        startActivity,
+        elapsed: 26,
+        limitSeconds: 30,
+        limitReached: false,
+        autoStopCompletion: null,
+        clearAutoStopCompletion,
+      },
+      fetchPlayerAndCharacter,
+      fetchCharacterCurrent,
+      fetchActivities,
+      loginState: 'none',
+      loginStreak: 0,
+      loginEventAt: null,
+      player: { is_premium: false },
+      freeTimerLimitSeconds: 30,
+    });
+
+    render(<ActivityInput />);
+
+    expect(
+      screen.queryByText('This timer will stop automatically when it reaches 0:30.')
+    ).not.toBeInTheDocument();
   });
 });

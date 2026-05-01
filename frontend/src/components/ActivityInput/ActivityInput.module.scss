@@ -15,6 +15,12 @@ $row-control-height: 44px;
   width: min(100%, 720px);
 }
 
+.limitWarning {
+  margin: v.$spacing-sm 0 0;
+  text-align: left;
+  color: c.$color-text-body;
+}
+
 .supportButtonRow {
   display: flex;
   justify-content: center;

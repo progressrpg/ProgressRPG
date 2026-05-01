@@ -11,7 +11,7 @@ export default function Navbar({ onMenuClick }) {
   const [accountOpenMobile, setAccountOpenMobile] = useState(false);
   const accountMobileRef = useRef(null);
 
-  const isGamePage = location.pathname === '/game';
+  const isTimerPage = location.pathname === '/timer';
   // const isVillagePage = location.pathname === '/village';
   const isActivitiesPage = location.pathname === '/activities';
   const isAccountPage = location.pathname === '/account';
@@ -34,12 +34,12 @@ export default function Navbar({ onMenuClick }) {
       <nav className={styles.navbar} aria-label="Main navigation">
 
         <div className={styles.leftLinks}>
-          <Link to={isAuthenticated ? '/game' : '/'} aria-label={isAuthenticated ? 'Go to game' : 'Go to home'}>
+          <Link to={isAuthenticated ? '/timer' : '/'} aria-label={isAuthenticated ? 'Go to timer' : 'Go to home'}>
             <Button
-              variant={isAuthenticated && isGamePage ? "primary" : "secondary"}
+              variant={isAuthenticated && isTimerPage ? "primary" : "secondary"}
               className={styles.navLink}
             >
-              {isAuthenticated ? 'Game' : 'Home'}
+              {isAuthenticated ? 'Timer' : 'Home'}
             </Button>
           </Link>
 
@@ -112,12 +112,12 @@ export default function Navbar({ onMenuClick }) {
           </button>
           {isAuthenticated ? (
             <>
-              <Link to="/game" aria-label="Go to game">
+              <Link to="/timer" aria-label="Go to timer">
                 <Button
-                  variant={isGamePage ? "primary" : "secondary"}
+                  variant={isTimerPage ? "primary" : "secondary"}
                   className={styles.navLink}
                 >
-                  Game
+                  Timer
                 </Button>
               </Link>
               <div className={styles.accountMenu} ref={accountMobileRef}>

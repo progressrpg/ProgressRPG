@@ -190,7 +190,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate('/game', { replace: true });
+      navigate('/timer', { replace: true });
     }
   }, [isAuthenticated, loading, navigate]);
 
