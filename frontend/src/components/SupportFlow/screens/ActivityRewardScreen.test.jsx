@@ -91,4 +91,74 @@ describe('ActivityRewardScreen', () => {
     expect(screen.getByText('120 XP')).toBeInTheDocument();
     expect(screen.getByText('Level up! You reached level 2.')).toBeInTheDocument();
   });
+
+  it('shows auto-stop upgrade prompt and button for free users', () => {
+    render(
+      <ActivityRewardScreen
+        activityName="Write tests"
+        xpGained={27}
+        baseXp={27}
+        xpMultiplier={1}
+        levelUps={[]}
+        elapsedSeconds={90}
+        isAutoStopped
+        showUpgradePrompt
+        onContinue={vi.fn()}
+        onSupport={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Need more time? Upgrade to Premium for unlimited timer sessions.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Upgrade to Premium' })
+    ).toHaveAttribute('href', '/upgrade');
+  });
+
+  it('shows manual-stop premium XP prompt and button for free users', () => {
+    render(
+      <ActivityRewardScreen
+        activityName="Write tests"
+        xpGained={27}
+        baseXp={27}
+        xpMultiplier={1}
+        levelUps={[]}
+        elapsedSeconds={90}
+        isAutoStopped={false}
+        showUpgradePrompt
+        onContinue={vi.fn()}
+        onSupport={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Want even more rewards? Upgrade to Premium for double XP on activities.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Upgrade to Premium' })).toBeInTheDocument();
+  });
+
+  it('does not show upgrade prompt when upgrade CTA is disabled', () => {
+    render(
+      <ActivityRewardScreen
+        activityName="Write tests"
+        xpGained={27}
+        baseXp={27}
+        xpMultiplier={1}
+        levelUps={[]}
+        elapsedSeconds={90}
+        isAutoStopped
+        showUpgradePrompt={false}
+        onContinue={vi.fn()}
+        onSupport={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByText(/Upgrade to Premium/)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Upgrade to Premium' })
+    ).not.toBeInTheDocument();
+  });
 });
