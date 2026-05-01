@@ -59,6 +59,7 @@ export default function Account() {
     ? "Loading..."
     : (player?.name?.trim() || "Unnamed player");
   const currentPlayerName = player?.name?.trim() || "";
+  const accountType = player?.is_premium ? "Premium" : "Free";
   const isSaveDisabled = (
     updateNameMutation.isPending
     || !nameValidation.isValid
@@ -98,10 +99,6 @@ export default function Account() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1>Account</h1>
-      </div>
-
       <div className={styles.content}>
         {/* Player Information */}
         <section className={styles.section}>
@@ -185,13 +182,29 @@ export default function Account() {
                 {`${totalHours}h ${totalMinutes}m`}
               </span>
             </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2>Billing</h2>
+          <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Premium</span>
-              <span className={styles.value}>
-                {player?.is_premium ? "Yes" : "No"}
-              </span>
+              <span className={styles.label}>Account Type</span>
+              <span className={styles.value}>{accountType}</span>
             </div>
           </div>
+          <p className={styles.description}>
+            Manage your subscription and billing details in the Stripe customer portal.
+          </p>
+          <Button
+            as="a"
+            href="https://billing.stripe.com/p/login/test_fZucN7dm23whgwNf3N4ow00"
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="secondary"
+          >
+            Open Billing Portal
+          </Button>
         </section>
 
         {/* Character Information */}
@@ -245,7 +258,7 @@ export default function Account() {
           ) : (
             <div className={styles.deleteConfirmation}>
               <p className={styles.warningText}>
-                ⚠️ This will permanently delete your account and all data. Type "DELETE" to confirm:
+                This will permanently delete your account and all data. Type "DELETE" to confirm:
               </p>
               <input
                 type="text"

@@ -1,18 +1,12 @@
 // context/WebSocketContext.jsx
-import React, { createContext, useContext, useRef, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { useGame } from './GameContext';
 import { useToast } from './ToastContext';
 import { useAuth } from './AuthContext';
 import { useWebSocketConnection } from '../hooks/useWebSocketConnection';
 import { handleGlobalWebSocketEvent } from '../websockets/handleGlobalWebSocketEvent';
 import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
-
-const WebSocketContext = createContext();
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const useWebSocket = () => {
-  return useContext(WebSocketContext);
-}
+import { WebSocketContext } from './webSocketContext';
 
 export const WebSocketProvider = ({ children }) => {
   const { player } = useGame();

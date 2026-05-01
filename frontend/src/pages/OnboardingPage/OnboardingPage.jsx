@@ -14,7 +14,7 @@ export default function OnboardingPage() {
 
   const enter = async () => {
     const ok = await completeOnboarding();
-    if (ok) navigate("/game", { replace: true});
+    if (ok) navigate("/timer", { replace: true});
   };
 
   return (
@@ -39,7 +39,7 @@ export default function OnboardingPage() {
           onClick={enter}
           disabled={loading}
         >
-          Enter the game
+          Enter timer
         </Button>
       </div>
     </div>

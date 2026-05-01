@@ -1,6 +1,6 @@
 // hooks/useWebSocketEvent.js
 import { useEffect } from 'react';
-import { useWebSocket } from '../context/WebSocketContext';
+import { useWebSocket } from './useWebSocket';
 
 export function useWebSocketEvent(callback) {
   const { addEventHandler } = useWebSocket();

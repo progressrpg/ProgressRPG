@@ -5,6 +5,7 @@ import { apiFetch } from "../utils/api.js";
 
 
 export default function useActivityTimer() {
+  const [_id, setId] = useState(0);
   const [status, setStatus] = useState("empty"); // "empty", "active", "waiting", "completed"
   const [duration, setDuration] = useState(0); // total seconds for timer base
   const [elapsed, setElapsed] = useState(0);
@@ -192,7 +193,20 @@ export default function useActivityTimer() {
         ? Number(elapsedSeconds)
         : elapsedRef.current;
 
-      result = await apiFetch(`/activity_timers/complete/`, { method: "POST", body: JSON.stringify({activityName}) });
+      result = await apiFetch(`/activity_timers/complete/`, {
+        method: "POST",
+        body: JSON.stringify({
+          activityName,
+          elapsedSeconds: completedElapsedSeconds,
+          source,
+        }),
+      });
+      const parsedResultDurationSeconds = Number(result?.duration_seconds);
+      const resolvedCompletionElapsedSeconds = Number.isFinite(parsedResultDurationSeconds)
+        ? source === "auto"
+          ? Math.max(parsedResultDurationSeconds, completedElapsedSeconds)
+          : parsedResultDurationSeconds
+        : completedElapsedSeconds;
       // if (reset) {
       //   await apiFetch(`/activity_timers/reset/`, { method: "POST" });
       // }
@@ -215,7 +229,7 @@ export default function useActivityTimer() {
           xpMultiplier: result?.xp_multiplier ?? null,
           levelUps: result?.level_ups ?? [],
           activityName: completedActivityName || null,
-          elapsedSeconds: result?.duration_seconds ?? completedElapsedSeconds,
+          elapsedSeconds: resolvedCompletionElapsedSeconds,
         });
       }
 
@@ -256,7 +270,7 @@ export default function useActivityTimer() {
   const loadFromServer = useCallback((serverData, { limitSeconds: incomingLimit } = {}) => {
     if (!serverData) return;
     //console.log("timer from server:", serverData);
-    const { status, elapsed_time, duration, activity } = serverData;
+    const { id, status, elapsed_time, duration, activity } = serverData;
     const resolvedLimit = normalizeLimitSeconds(incomingLimit);
     const nextElapsed = elapsed_time || 0;
     const nextStatus = status || 'empty';
@@ -266,6 +280,7 @@ export default function useActivityTimer() {
       timerRef.current = null;
     }
 
+    setId(id || 0);
     setStatus(nextStatus);
     setElapsed(nextElapsed);
     setDuration(duration || 0);

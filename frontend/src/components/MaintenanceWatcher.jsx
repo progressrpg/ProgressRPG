@@ -35,7 +35,7 @@ export default function MaintenanceWatcher() {
           maintenance.previousLocation !== "/ maintenance"
         )
           ? maintenance.previousLocation
-          : "/game";
+          : "/timer";
 
           // clear justEnded and previousLocation
         setMaintenance((prev) => ({ ...prev, justEnded: false, previousLocation: null }));

@@ -20,7 +20,6 @@ const getActivityWindow = () => {
   const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   return {
     start: since.toISOString(),
-    end: now.toISOString(),
   };
 };
 
@@ -76,10 +75,10 @@ export const GameProvider = ({ children }) => {
     const activityWindow = getActivityWindow();
     const [playerData, charData] = await Promise.all([
       apiFetch(
-        `/player-activities/?is_complete=true&completed_at_after=${activityWindow.start}&completed_at_before=${activityWindow.end}`
+        `/player-activities/?is_complete=true&completed_at_after=${activityWindow.start}`
       ),
       apiFetch(
-        `/character-activities/?is_complete=true&completed_at_after=${activityWindow.start}&completed_at_before=${activityWindow.end}`
+        `/character-activities/?is_complete=true&completed_at_after=${activityWindow.start}`
       ),
     ]);
     setPlayerActivities(await playerData?.results ?? []);

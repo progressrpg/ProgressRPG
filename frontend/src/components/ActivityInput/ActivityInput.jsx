@@ -27,7 +27,7 @@ export default function ActivityInput() {
     stop,
     startActivity,
     elapsed,
-    limitReached,
+    limitSeconds,
     autoStopCompletion,
     clearAutoStopCompletion,
   } = activityTimer;
@@ -39,9 +39,6 @@ export default function ActivityInput() {
   const inputRef = useRef(null);
 
   const isActive = status === "active";
-  const inputValue = isActive
-    ? (name || currentActivity?.name || "")
-    : name;
 
   const {
     openWelcomeMessage,
@@ -90,8 +87,10 @@ export default function ActivityInput() {
   }, [name]);
 
   useEffect(() => {
-    if (limitReached) playLimitReachedSound();
-  }, [limitReached]);
+    if (status === "active" && currentActivity?.name) {
+      setName(currentActivity.name);
+    }
+  }, [status, currentActivity]);
 
   useEffect(() => {
     if (!autoStopCompletion) return;
@@ -112,6 +111,8 @@ export default function ActivityInput() {
       }
 
       if (cancelled) return;
+
+      playLimitReachedSound();
 
       openActivityReward({
         xpGained: autoStopCompletion.xpGained,
@@ -140,8 +141,8 @@ export default function ActivityInput() {
 
   async function handleToggle() {
     if (isActive) {
-      const completedActivityName = inputValue.trim();
-      const completion = await stop({ activityName: inputValue });
+      const completedActivityName = (name || currentActivity?.name || "").trim();
+      const completion = await stop({ activityName: name });
       const xpGained = completion?.xp_gained ?? null;
       const baseXp = completion?.base_xp ?? null;
       const xpMultiplier = completion?.xp_multiplier ?? null;
@@ -153,6 +154,7 @@ export default function ActivityInput() {
         fetchCharacterCurrent(),
         fetchActivities(),
       ]);
+      playLimitReachedSound();
       openActivityReward({
         xpGained,
         baseXp,
@@ -164,8 +166,8 @@ export default function ActivityInput() {
       return;
     }
 
-     if (!name.trim()) return;
-     await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
+    if (!name.trim()) return;
+    await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
   }
 
   function handleKeyDown(e) {
@@ -179,6 +181,23 @@ export default function ActivityInput() {
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
+  const formattedLimit =
+    typeof limitSeconds === "number" && limitSeconds > 0
+      ? `${Math.floor(limitSeconds / 60)}:${(limitSeconds % 60)
+          .toString()
+          .padStart(2, "0")}`
+      : null;
+  const warningThresholdSeconds =
+    typeof limitSeconds === "number" && limitSeconds > 0
+      ? limitSeconds * 0.9
+      : null;
+  const showAutoStopWarning =
+    isActive &&
+    typeof limitSeconds === "number" &&
+    limitSeconds > 0 &&
+    warningThresholdSeconds !== null &&
+    elapsed >= warningThresholdSeconds &&
+    elapsed < limitSeconds;
 
   return (
     <>
@@ -194,7 +213,7 @@ export default function ActivityInput() {
               <textarea
                 id="activity-name"
                 ref={inputRef}
-                value={inputValue}
+                value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="What are you working on? e.g. washing dishes"
@@ -222,6 +241,12 @@ export default function ActivityInput() {
           </div>
 
         </div>
+
+        {showAutoStopWarning && (
+          <p className={styles.limitWarning}>
+            This timer will stop automatically when it reaches {formattedLimit}.
+          </p>
+        )}
 
         <div className={styles.supportButtonRow}>
           <Button

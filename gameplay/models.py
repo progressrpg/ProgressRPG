@@ -484,7 +484,12 @@ class ActivityTimer(Timer):
         if self.activity:
             self.activity.rename(name)
 
-    def complete(self, newName=None):
+    def complete(
+        self,
+        newName=None,
+        client_elapsed_seconds: int | None = None,
+        completion_source: str = "manual",
+    ):
         """
         Complete the activity timer and return the XP gained for the activity.
         """
@@ -506,6 +511,19 @@ class ActivityTimer(Timer):
             )
 
         super().complete()
+
+        if completion_source == "auto":
+            try:
+                parsed_client_elapsed = int(client_elapsed_seconds)
+            except (TypeError, ValueError):
+                parsed_client_elapsed = None
+
+            if (
+                parsed_client_elapsed is not None
+                and parsed_client_elapsed > self.elapsed_time
+            ):
+                self.elapsed_time = parsed_client_elapsed
+                self.save(update_fields=["elapsed_time"])
 
         if newName:
             self.rename_activity(newName)
