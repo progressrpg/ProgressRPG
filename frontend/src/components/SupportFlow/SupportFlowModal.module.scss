@@ -9,6 +9,10 @@
   gap: v.$spacing-md;
 }
 
+.readableText {
+  max-width: 58ch;
+}
+
 .activityTextArea {
   width: 100%;
   padding: v.$spacing-sm;
@@ -48,10 +52,6 @@
   margin-bottom: v.$spacing-sm;
 }
 
-.hint {
-  font-size: 0.875rem;
-  color: c.$color-text-muted;
-  margin-bottom: v.$spacing-sm;
 .videoWrapper {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -67,6 +67,10 @@
   border: 0;
 }
 
+.hint {
+  font-size: 0.875rem;
+  color: c.$color-text-muted;
+  margin-bottom: v.$spacing-sm;
 }
 
 .stepsList {
@@ -106,21 +110,21 @@
   display: flex;
   flex-direction: column;
   gap: v.$spacing-md;
+  width: 100%;
 }
 
 .supportOptionRow {
   display: flex;
-  width: 100%;
   flex-direction: column;
   align-items: flex-start;
   gap: v.$spacing-md;
   padding-bottom: v.$spacing-sm;
   border-bottom: 1px solid rgba(c.$color-border-primary, 0.25);
+  width: 100%;
 
   @include m.respond-to(sm) {
     flex-direction: row;
     align-items: center;
-  width: 100%;
     justify-content: space-between;
   }
 

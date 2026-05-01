@@ -27,6 +27,7 @@ export default function ActivityInput() {
     stop,
     startActivity,
     elapsed,
+    limitSeconds,
     limitReached,
     autoStopCompletion,
     clearAutoStopCompletion,
@@ -182,6 +183,23 @@ export default function ActivityInput() {
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
+  const formattedLimit =
+    typeof limitSeconds === "number" && limitSeconds > 0
+      ? `${Math.floor(limitSeconds / 60)}:${(limitSeconds % 60)
+          .toString()
+          .padStart(2, "0")}`
+      : null;
+  const warningThresholdSeconds =
+    typeof limitSeconds === "number" && limitSeconds > 0
+      ? limitSeconds * 0.9
+      : null;
+  const showAutoStopWarning =
+    isActive &&
+    typeof limitSeconds === "number" &&
+    limitSeconds > 0 &&
+    warningThresholdSeconds !== null &&
+    elapsed >= warningThresholdSeconds &&
+    elapsed < limitSeconds;
 
   return (
     <>
@@ -225,6 +243,12 @@ export default function ActivityInput() {
           </div>
 
         </div>
+
+        {showAutoStopWarning && (
+          <p className={styles.limitWarning}>
+            This timer will stop automatically when it reaches {formattedLimit}.
+          </p>
+        )}
 
         <div className={styles.supportButtonRow}>
           <Button

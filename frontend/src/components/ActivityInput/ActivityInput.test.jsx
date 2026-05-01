@@ -60,6 +60,7 @@ describe('ActivityInput', () => {
         stop,
         startActivity,
         elapsed: 0,
+        limitSeconds: null,
         limitReached: false,
         autoStopCompletion: {
           xpGained: 12,
@@ -112,6 +113,7 @@ describe('ActivityInput', () => {
         stop,
         startActivity,
         elapsed: 15,
+        limitSeconds: 15,
         limitReached: false,
         autoStopCompletion: null,
         clearAutoStopCompletion,
@@ -144,5 +146,65 @@ describe('ActivityInput', () => {
         elapsedSeconds: 16,
       });
     });
+  });
+
+  it('shows an auto-stop warning after 90 percent of a limited timer has elapsed', () => {
+    mockUseGame.mockReturnValue({
+      activityTimer: {
+        currentActivity: { name: 'Write docs' },
+        status: 'active',
+        stop,
+        startActivity,
+        elapsed: 27,
+        limitSeconds: 30,
+        limitReached: false,
+        autoStopCompletion: null,
+        clearAutoStopCompletion,
+      },
+      fetchPlayerAndCharacter,
+      fetchCharacterCurrent,
+      fetchActivities,
+      loginState: 'none',
+      loginStreak: 0,
+      loginEventAt: null,
+      player: { is_premium: false },
+      freeTimerLimitSeconds: 30,
+    });
+
+    render(<ActivityInput />);
+
+    expect(
+      screen.getByText('This timer will stop automatically when it reaches 0:30.')
+    ).toBeInTheDocument();
+  });
+
+  it('does not show the auto-stop warning before 90 percent of the limit', () => {
+    mockUseGame.mockReturnValue({
+      activityTimer: {
+        currentActivity: { name: 'Write docs' },
+        status: 'active',
+        stop,
+        startActivity,
+        elapsed: 26,
+        limitSeconds: 30,
+        limitReached: false,
+        autoStopCompletion: null,
+        clearAutoStopCompletion,
+      },
+      fetchPlayerAndCharacter,
+      fetchCharacterCurrent,
+      fetchActivities,
+      loginState: 'none',
+      loginStreak: 0,
+      loginEventAt: null,
+      player: { is_premium: false },
+      freeTimerLimitSeconds: 30,
+    });
+
+    render(<ActivityInput />);
+
+    expect(
+      screen.queryByText('This timer will stop automatically when it reaches 0:30.')
+    ).not.toBeInTheDocument();
   });
 });
