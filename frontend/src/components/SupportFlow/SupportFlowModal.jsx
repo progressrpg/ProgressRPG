@@ -94,6 +94,7 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
       case "ACTIVITY_INPUT":
         return (
           <ActivityInputScreen
+            key={ctx.activityPresetId ?? "default"}
             activityPresetId={ctx.activityPresetId}
             activityText={ctx.activityText}
             durationSeconds={ctx.durationSeconds}

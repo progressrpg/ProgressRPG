@@ -5,7 +5,6 @@ import { apiFetch } from "../utils/api.js";
 
 
 export default function useActivityTimer() {
-  const [id, setId] = useState(0);
   const [status, setStatus] = useState("empty"); // "empty", "active", "waiting", "completed"
   const [duration, setDuration] = useState(0); // total seconds for timer base
   const [elapsed, setElapsed] = useState(0);
@@ -257,7 +256,7 @@ export default function useActivityTimer() {
   const loadFromServer = useCallback((serverData, { limitSeconds: incomingLimit } = {}) => {
     if (!serverData) return;
     //console.log("timer from server:", serverData);
-    const { id, status, elapsed_time, duration, activity } = serverData;
+    const { status, elapsed_time, duration, activity } = serverData;
     const resolvedLimit = normalizeLimitSeconds(incomingLimit);
     const nextElapsed = elapsed_time || 0;
     const nextStatus = status || 'empty';
@@ -267,7 +266,6 @@ export default function useActivityTimer() {
       timerRef.current = null;
     }
 
-    setId(id || 0);
     setStatus(nextStatus);
     setElapsed(nextElapsed);
     setDuration(duration || 0);

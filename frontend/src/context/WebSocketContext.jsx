@@ -9,6 +9,7 @@ import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 
 const WebSocketContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useWebSocket = () => {
   return useContext(WebSocketContext);
 }

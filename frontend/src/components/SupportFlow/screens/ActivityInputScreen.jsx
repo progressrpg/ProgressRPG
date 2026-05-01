@@ -25,10 +25,6 @@ export default function ActivityInputScreen({
     }
   }, [isExamplesOnlyPreset, isPriorityThreePreset]);
 
-  useEffect(() => {
-    setCandidateTasks(["", "", ""]);
-  }, [activityPresetId]);
-
   const placeholder = preset?.placeholder ?? "What are you going to do?";
   const hint = preset?.hint ?? null;
 

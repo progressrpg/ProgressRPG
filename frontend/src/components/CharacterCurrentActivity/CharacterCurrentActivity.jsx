@@ -8,10 +8,9 @@ export default function CharacterCurrentActivity() {
     character,
     characterCurrentActivity,
     fetchCharacterCurrent,
-    activityTimer,
   } = useGame();
 
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     fetchCharacterCurrent();
@@ -48,8 +47,6 @@ export default function CharacterCurrentActivity() {
   characterCurrentActivity.name?.trim().toLowerCase() ||
   characterCurrentActivity.kind ||
   "an activity";
-
-  const isActive = activityTimer?.status === "active";
 
   return (
 

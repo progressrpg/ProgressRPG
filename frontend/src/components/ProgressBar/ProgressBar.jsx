@@ -53,11 +53,7 @@ const ProgressBar = ({
       <div className={styles.progressTrack}>
         <div
           ref={fillRef}
-          className={[
-            styles.progressBarFill,
-            styles[color] || styles.default,
-            paused ? styles.paused : "",
-          ].join(" ")}
+          className={progressClass}
           style={{ width: `${percent}%` }}
         >
           {label && showInsideLabel && (

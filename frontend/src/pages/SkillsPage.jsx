@@ -1,9 +1,8 @@
 // src/pages/SkillsPage.jsx
 import { useState } from "react";
-import { useSkills, useCreateSkill, useUpdateSkill, useDeleteSkill  } from "../hooks/useSkills";
+import { useSkills, useCreateSkill, useDeleteSkill  } from "../hooks/useSkills";
 
 import ExpandableCard from "../components/Form/Card/Card";
-import Form from "../components/Form/Form";
 import Input from "../components/Input/Input";
 import Button from "../components/Button/Button";
 import List from "../components/List/List";
@@ -12,12 +11,11 @@ import List from "../components/List/List";
 export default function SkillsPage() {
   const { data: skills, isLoading } = useSkills();
   const createSkill = useCreateSkill();
-  const updateSkill = useUpdateSkill();
   const deleteSkill = useDeleteSkill();
   const [newName, setNewName] = useState("");
-  
+
   if (isLoading) return <p>Loading skills…</p>;
-  
+
   return (
     <div>
       <h1>Skills</h1>

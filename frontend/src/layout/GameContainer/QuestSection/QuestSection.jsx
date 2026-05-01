@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import QuestModal from '../QuestModal/QuestModal';
 import TaskSupportModal from '../TaskSupport/TaskSupport';
 import GameSection from '../GameSection';
@@ -16,20 +16,8 @@ export default function QuestSection() {
   const [taskSupportActive, setTaskSupportActive] = useState(false);
   const [lastTaskSupportDuration, setLastTaskSupportDuration] = useState();
 
-
-  useEffect(() => {
-    if (questTimer.isComplete && status === 'active') {
-      completeQuest();
-    }
-  }, [questTimer.isComplete, status]);
-
   const canChooseQuest = (status === 'completed' || status === 'empty');
-
-  useEffect(() => {
-    if (canChooseQuest && taskSupportActive) {
-      setShowTaskSupport(true);
-    }
-  }, [canChooseQuest, taskSupportActive])
+  const isTaskSupportOpen = showTaskSupport || (taskSupportActive && canChooseQuest);
 
 
   return (
@@ -66,9 +54,14 @@ export default function QuestSection() {
         />
       )}
 
-      {showTaskSupport && (
+      {isTaskSupportOpen && (
         <TaskSupportModal
-          onClose={() => setShowTaskSupport(false)}
+          onClose={() => {
+            setShowTaskSupport(false);
+            if (canChooseQuest) {
+              setTaskSupportActive(false);
+            }
+          }}
           onChooseQuest={(quest, duration) => {
             assignSubject(quest, duration);
             setShowTaskSupport(false);

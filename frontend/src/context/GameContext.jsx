@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // GameContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
@@ -9,6 +10,7 @@ import { useAuth } from './AuthContext';
 
 const GameContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useGame = () => {
   return useContext(GameContext);
 }
@@ -48,6 +50,7 @@ export const GameProvider = ({ children }) => {
   const [populationCentre, setPopulationCentre] = useState(populationCentreInfo);
 
   const activityTimer = useActivityTimer();
+  const { loadFromServer } = activityTimer;
 
 
   // ----------------------------------------
@@ -110,12 +113,12 @@ export const GameProvider = ({ children }) => {
 
   useEffect(() => {
     if (activityTimerInfo) {
-      activityTimer.loadFromServer(activityTimerInfo, {
+      loadFromServer(activityTimerInfo, {
         limitSeconds: player?.is_premium ? null : freeTimerLimitSeconds,
       });
     }
   }, [
-    activityTimer.loadFromServer,
+    loadFromServer,
     activityTimerInfo,
     freeTimerLimitSeconds,
     player?.is_premium,

@@ -39,6 +39,9 @@ export default function ActivityInput() {
   const inputRef = useRef(null);
 
   const isActive = status === "active";
+  const inputValue = isActive
+    ? (name || currentActivity?.name || "")
+    : name;
 
   const {
     openWelcomeMessage,
@@ -85,12 +88,6 @@ export default function ActivityInput() {
     inputRef.current.style.height = "auto";
     inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
   }, [name]);
-
-  useEffect(() => {
-    if (status === "active" && currentActivity?.name) {
-      setName(currentActivity.name);
-    }
-  }, [status, currentActivity]);
 
   useEffect(() => {
     if (limitReached) playLimitReachedSound();
@@ -143,8 +140,8 @@ export default function ActivityInput() {
 
   async function handleToggle() {
     if (isActive) {
-      const completedActivityName = (name || currentActivity?.name || "").trim();
-      const completion = await stop({ activityName: name });
+      const completedActivityName = inputValue.trim();
+      const completion = await stop({ activityName: inputValue });
       const xpGained = completion?.xp_gained ?? null;
       const baseXp = completion?.base_xp ?? null;
       const xpMultiplier = completion?.xp_multiplier ?? null;
@@ -167,8 +164,8 @@ export default function ActivityInput() {
       return;
     }
 
-    if (!name.trim()) return;
-    await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
+     if (!name.trim()) return;
+     await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
   }
 
   function handleKeyDown(e) {
@@ -197,7 +194,7 @@ export default function ActivityInput() {
               <textarea
                 id="activity-name"
                 ref={inputRef}
-                value={name}
+                value={inputValue}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="What are you working on? e.g. washing dishes"

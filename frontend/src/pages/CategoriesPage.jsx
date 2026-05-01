@@ -1,9 +1,8 @@
 // src/pages/CategoriesPage.jsx
 import { useState } from "react";
-import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory  } from "../hooks/useCategories";
+import { useCategories, useCreateCategory, useDeleteCategory  } from "../hooks/useCategories";
 
 import ExpandableCard from "../components/Form/Card/Card";
-import Form from "../components/Form/Form";
 import Input from "../components/Input/Input";
 import Button from "../components/Button/Button";
 import List from "../components/List/List";
@@ -12,12 +11,11 @@ import List from "../components/List/List";
 export default function CategoriesPage() {
   const { data: categories, isLoading } = useCategories();
   const createCategory = useCreateCategory();
-  const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
   const [newName, setNewName] = useState("");
-  
+
   if (isLoading) return <p>Loading categories…</p>;
-  
+
   return (
     <div>
       <h1>Categories</h1>

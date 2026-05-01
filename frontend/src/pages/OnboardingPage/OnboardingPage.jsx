@@ -1,5 +1,4 @@
 //src/pages/OnboardingPage/OnboardingPage.jsx
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './OnboardingPage.module.scss';
 import Button from '../../components/Button/Button';

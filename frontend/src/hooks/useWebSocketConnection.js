@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from "../utils/api";
@@ -13,6 +14,7 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
   const reconnectTimeoutRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const intentionalCloseRef = useRef(false);
+  const connectRef = useRef(null);
 
   const connect = useCallback(async () => {
     if (!shouldConnect) {
@@ -74,7 +76,7 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
           console.log(`[WS] Scheduling reconnection in ${RECONNECT_DELAY_MS}ms...`);
           reconnectTimeoutRef.current = setTimeout(() => {
             console.log('[WS] Attempting reconnection...');
-            connect();
+            connectRef.current?.();
           }, RECONNECT_DELAY_MS);
         }
       };
@@ -94,10 +96,14 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
       // Retry connection after delay on connection failure
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log('[WS] Retrying after connection failure...');
-        connect();
+        connectRef.current?.();
       }, RETRY_DELAY_MS);
     }
   }, [playerId, onMessage, onError, onClose, onOpen, shouldConnect]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     if (shouldConnect) {
@@ -136,7 +142,7 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
     if (socketRef.current) {
       try {
         socketRef.current.close(code, reason);
-      } catch (e) {
+      } catch {
         // some browsers are fussy about close(reason)
         socketRef.current.close(code);
       }

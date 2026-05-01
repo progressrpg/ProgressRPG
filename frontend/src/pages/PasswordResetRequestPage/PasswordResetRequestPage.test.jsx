@@ -8,13 +8,13 @@ import PasswordResetRequestPage from './PasswordResetRequestPage';
 describe('PasswordResetRequestPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
   });
 
   it('submits the reset request and shows a success message', async () => {
     const user = userEvent.setup();
 
-    global.fetch.mockResolvedValue({
+    globalThis.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({ detail: 'Password reset e-mail has been sent.' }),
     });
@@ -28,7 +28,7 @@ describe('PasswordResetRequestPage', () => {
     await user.type(screen.getByLabelText(/email/i), 'player@example.com');
     await user.click(screen.getByRole('button', { name: 'Send reset link' }));
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/v1/auth/password/reset/'),
       expect.objectContaining({
         method: 'POST',

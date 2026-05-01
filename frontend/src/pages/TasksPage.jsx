@@ -1,9 +1,8 @@
 // src/pages/TasksPage.jsx
 import { useState } from "react";
-import { useTasks, useCreateTask, useUpdateTask, useDeleteTask  } from "../hooks/useTasks";
+import { useTasks, useCreateTask, useDeleteTask  } from "../hooks/useTasks";
 
 import ExpandableCard from "../components/Form/Card/Card";
-import Form from "../components/Form/Form";
 import Input from "../components/Input/Input";
 import Button from "../components/Button/Button";
 import List from "../components/List/List";
@@ -12,7 +11,6 @@ import List from "../components/List/List";
 export default function TasksPage() {
   const { data: tasks, isLoading } = useTasks();
   const createTask = useCreateTask();
-  const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const [newName, setNewName] = useState("");
 
