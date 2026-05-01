@@ -9,7 +9,7 @@ function isTokenExpiringSoon(token, bufferSeconds = 60) {
     const { exp } = jwtDecode(token);
     const now = Date.now() / 1000;
     return exp - now < bufferSeconds;
-  } catch (err) {
+  } catch {
     return true; // treat invalid token as expiring
   }
 }

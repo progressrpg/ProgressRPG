@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
 import { useMutation } from "@tanstack/react-query";
@@ -19,12 +19,6 @@ export default function Account() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [nameError, setNameError] = useState("");
-
-  useEffect(() => {
-    if (player?.name) {
-      setDraftName(player.name);
-    }
-  }, [player?.name]);
 
   const nameValidation = useMemo(
     () => getPlayerNameValidation(draftName),
