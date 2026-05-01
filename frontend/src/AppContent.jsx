@@ -19,14 +19,17 @@ export default function AppContent() {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const hideBanner = !isAuthenticated && location.pathname === '/';
+  const hideInfobar = location.pathname === '/support';
 
   return (
     <div className="app-container">
       <Navbar onMenuClick={() => setDrawerOpen(true)}/>
       <NavDrawer drawerOpen={drawerOpen} onClose={() => setDrawerOpen(false)}/>
       {!hideBanner && <StaticBanner message={`${announcement}`} />}
-      {isAuthenticated && <Infobar />}
-      <AppRoutes />
+      {isAuthenticated && !hideInfobar && <Infobar />}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <AppRoutes />
+      </main>
       <Footer />
       {isAuthenticated && <FeedbackWidget />}
     </div>

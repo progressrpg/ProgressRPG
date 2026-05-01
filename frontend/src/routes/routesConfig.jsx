@@ -11,6 +11,7 @@ const PasswordResetConfirmPage = lazy(() =>
 const ForgotPasswordPage = lazy(() => import("../pages/ForgotPasswordPage/ForgotPasswordPage"));
 const PrivacyPolicyPage = lazy(() => import("../pages/PrivacyPolicyPage/PrivacyPolicyPage"));
 const TermsOfServicePage = lazy(() => import("../pages/TermsOfServicePage/TermsOfServicePage"));
+const SupportPage = lazy(() => import("../pages/SupportPage/SupportPage"));
 const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage/OnboardingPage"));
 const AccountPage = lazy(() => import("../pages/Account/Account"));
@@ -61,6 +62,10 @@ export const routes = [
   {
     path: "/terms-of-service",
     element: <TermsOfServicePage />,
+  },
+  {
+    path: "/support",
+    element: <SupportPage />,
   },
   {
     path: "/confirm_email/:key",
