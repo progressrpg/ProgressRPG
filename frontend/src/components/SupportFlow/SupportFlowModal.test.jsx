@@ -45,7 +45,7 @@ describe("SupportFlowModal", () => {
       />
     );
     await user.click(screen.getByRole("button", { name: "Open" }));
-    expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome!" })).toBeInTheDocument();
     expect(
       screen.getByText("Welcome back! Your login streak is now 4 days.")
     ).toBeInTheDocument();
@@ -65,7 +65,9 @@ describe("SupportFlowModal", () => {
     );
     await user.click(screen.getByRole("button", { name: "Open" }));
     expect(
-      screen.getByText("Welcome back! You logged in earlier today.")
+      screen.getByText(
+        "Welcome back! You logged in earlier today. Your login streak is 4 days."
+      )
     ).toBeInTheDocument();
   });
 
@@ -116,7 +118,8 @@ describe("SupportFlowModal", () => {
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome!" })).toBeInTheDocument();
+    expect(screen.getByText(/welcome back!/i)).toBeInTheDocument();
   });
 
   it("back from support menu returns to activity reward", async () => {
@@ -252,9 +255,9 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
-    expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome!" })).toBeInTheDocument();
     await user.click(screen.getByLabelText("Close modal"));
-    expect(screen.queryByText("Welcome back!")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Welcome!" })).not.toBeInTheDocument();
   });
 
   it("close button works while a task input is focused", async () => {

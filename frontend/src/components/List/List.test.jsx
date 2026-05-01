@@ -6,7 +6,7 @@ import List from './List';
 describe('List', () => {
   it('renders empty list when no items are provided', () => {
     const { container } = render(<List items={[]} />);
-    
+
     const list = container.querySelector('ul');
     expect(list).toBeInTheDocument();
     expect(list.children).toHaveLength(0);
@@ -14,9 +14,9 @@ describe('List', () => {
 
   it('renders list items', () => {
     const items = ['Apple', 'Banana', 'Cherry'];
-    
+
     render(<List items={items} />);
-    
+
     expect(screen.getByText('Apple')).toBeInTheDocument();
     expect(screen.getByText('Banana')).toBeInTheDocument();
     expect(screen.getByText('Cherry')).toBeInTheDocument();
@@ -25,9 +25,9 @@ describe('List', () => {
   it('uses renderItem function when provided', () => {
     const items = [{ name: 'Apple' }, { name: 'Banana' }];
     const renderItem = (item) => <span>{item.name.toUpperCase()}</span>;
-    
+
     render(<List items={items} renderItem={renderItem} />);
-    
+
     expect(screen.getByText('APPLE')).toBeInTheDocument();
     expect(screen.getByText('BANANA')).toBeInTheDocument();
   });
@@ -38,11 +38,11 @@ describe('List', () => {
       { id: 'b', name: 'Banana' }
     ];
     const getKey = (item) => item.id;
-    
+
     const { container } = render(
       <List items={items} getKey={getKey} renderItem={(item) => item.name} />
     );
-    
+
     const listItems = container.querySelectorAll('li');
     expect(listItems).toHaveLength(2);
   });
@@ -52,9 +52,9 @@ describe('List', () => {
       { id: 1, name: 'Item 1' },
       { id: 2, name: 'Item 2' }
     ];
-    
+
     render(<List items={items} renderItem={(item) => item.name} />);
-    
+
     expect(screen.getByText('Item 1')).toBeInTheDocument();
     expect(screen.getByText('Item 2')).toBeInTheDocument();
   });
@@ -63,17 +63,17 @@ describe('List', () => {
     const user = userEvent.setup();
     const items = ['Apple', 'Banana'];
     const handleSelect = vi.fn();
-    
+
     render(
-      <List 
-        items={items} 
-        selectable={true}
+      <List
+        items={items}
+        canSelect={true}
         onSelect={handleSelect}
       />
     );
-    
+
     await user.click(screen.getByText('Apple'));
-    
+
     expect(handleSelect).toHaveBeenCalledWith('Apple');
   });
 
@@ -81,31 +81,31 @@ describe('List', () => {
     const user = userEvent.setup();
     const items = ['Apple', 'Banana'];
     const handleSelect = vi.fn();
-    
+
     render(
-      <List 
-        items={items} 
-        selectable={false}
+      <List
+        items={items}
+        canSelect={false}
         onSelect={handleSelect}
       />
     );
-    
+
     await user.click(screen.getByText('Apple'));
-    
+
     expect(handleSelect).not.toHaveBeenCalled();
   });
 
   it('applies selected class to selected item', () => {
     const items = ['Apple', 'Banana'];
-    
+
     render(
-      <List 
-        items={items} 
+      <List
+        items={items}
         selectedItem="Apple"
         selectable={true}
       />
     );
-    
+
     const appleItem = screen.getByText('Apple').closest('li');
     expect(appleItem.className).toMatch(/selected/);
   });
@@ -114,7 +114,7 @@ describe('List', () => {
     const { container } = render(
       <List items={['Apple']} className="custom-list" />
     );
-    
+
     const list = container.querySelector('ul');
     expect(list.className).toMatch(/custom-list/);
   });
@@ -123,7 +123,7 @@ describe('List', () => {
     const { container } = render(
       <List items={['Apple']} sectionClass="custom-section" />
     );
-    
+
     const section = container.querySelector('section');
     expect(section.className).toMatch(/custom-section/);
   });
@@ -131,11 +131,11 @@ describe('List', () => {
   it('uses getItemClassName for custom item classes', () => {
     const items = ['Red', 'Green', 'Blue'];
     const getItemClassName = (item) => `color-${item.toLowerCase()}`;
-    
+
     render(
       <List items={items} getItemClassName={getItemClassName} />
     );
-    
+
     const redItem = screen.getByText('Red').closest('li');
     expect(redItem.className).toMatch(/color-red/);
   });
@@ -145,11 +145,11 @@ describe('List', () => {
       { id: 1, name: 'Visible', isHidden: false },
       { id: 2, name: 'Hidden', isHidden: true }
     ];
-    
+
     render(
       <List items={items} renderItem={(item) => item.name} />
     );
-    
+
     const hiddenItem = screen.getByText('Hidden').closest('li');
     expect(hiddenItem.className).toMatch(/hidden/);
   });
@@ -158,9 +158,9 @@ describe('List', () => {
     const itemsWithResults = {
       results: ['Apple', 'Banana', 'Cherry']
     };
-    
+
     render(<List items={itemsWithResults} />);
-    
+
     expect(screen.getByText('Apple')).toBeInTheDocument();
     expect(screen.getByText('Banana')).toBeInTheDocument();
     expect(screen.getByText('Cherry')).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('List', () => {
 
   it('handles non-array items gracefully', () => {
     const { container } = render(<List items={undefined} />);
-    
+
     const list = container.querySelector('ul');
     expect(list.children).toHaveLength(0);
   });

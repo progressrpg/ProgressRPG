@@ -41,6 +41,43 @@ class TestMeViewSet(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["email"], self.user.email)
 
+    def test_me_player_patch_updates_name(self):
+        self.authenticate()
+
+        res = self.client.patch(
+            self.me_player_url, {"name": "  Red Fox  "}, format="json"
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.name, "Red Fox")
+        self.assertEqual(res.data["name"], "Red Fox")
+
+    def test_me_player_patch_rejects_invalid_name(self):
+        self.authenticate()
+        original_name = self.user.player.name
+
+        res = self.client.patch(
+            self.me_player_url, {"name": "bad!!name"}, format="json"
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.name, original_name)
+        self.assertIn("name", res.data)
+
+    def test_complete_onboarding_sets_flag(self):
+        self.authenticate()
+        self.user.player.onboarding_completed = False
+        self.user.player.save(update_fields=["onboarding_completed"])
+
+        res = self.client.post(self.me_complete_onboarding_url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.user.player.refresh_from_db()
+        self.assertTrue(self.user.player.onboarding_completed)
+        self.assertEqual(res.data, {"onboarding_completed": True})
+
 
 @override_settings(
     MAILCHIMP_API_KEY="mailchimp-api-key-us13",
