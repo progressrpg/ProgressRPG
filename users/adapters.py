@@ -3,6 +3,8 @@ from allauth.core import context as allauth_context
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 
+from users.tasks import send_rendered_email_task
+
 
 class CustomAccountAdapter(DefaultAccountAdapter):
     def send_mail(self, template_prefix: str, email: str, context: dict) -> None:
