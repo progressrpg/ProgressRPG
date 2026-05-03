@@ -5,6 +5,11 @@ import { API_BASE_URL } from '../config';
 export default function PlayerSocketListener({ onEvent }) {
   const { player } = useGame();
   const socketRef = useRef(null);
+  const onEventRef = useRef(onEvent);
+
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
 
   useEffect(() => {
     if (!player?.id) return;
@@ -51,7 +56,7 @@ export default function PlayerSocketListener({ onEvent }) {
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            onEvent?.(data);
+            onEventRef.current?.(data);
           } catch (err) {
             console.error('[WS] JSON parse error:', err);
           }

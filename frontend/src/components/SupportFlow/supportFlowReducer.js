@@ -46,7 +46,7 @@ export const ACTIVITY_PRESETS = {
     defaultActivityText: "Write down first step on phone or paper",
     durationSeconds: 180,
     placeholder: "Write your next tiny step",
-    hint: "One line is enough. Keep it tiny and easy to start.",
+    hint: "This timer will complete after 3 minutes, but you can finish early if you want.",
   },
   priority_three: {
     id: "priority_three",
@@ -73,10 +73,13 @@ const initialCtx = (entrypoint = null) => ({
   supportMenuOrigin: null,
   welcomeMessageLoginState: "none",
   welcomeMessageLoginStreak: 0,
+  welcomeMessageRewardXp: 0,
   xpGained: null,
   rewardBaseXp: null,
   rewardXpMultiplier: null,
   rewardLevelUps: [],
+  rewardIsAutoStopped: false,
+  rewardShowUpgradePrompt: false,
   completedActivityName: null,
   completedActivityElapsedSeconds: null,
   supportActionId: null,
@@ -101,6 +104,9 @@ export function supportFlowReducer(state, event) {
       {
         const parsedStreak = Number(event.loginStreak);
         const normalizedStreak = Number.isFinite(parsedStreak) ? parsedStreak : 0;
+        const parsedRewardXp = Number(event.loginRewardXp);
+        const normalizedRewardXp =
+          Number.isFinite(parsedRewardXp) && parsedRewardXp > 0 ? parsedRewardXp : 0;
 
       return {
         isOpen: true,
@@ -112,6 +118,7 @@ export function supportFlowReducer(state, event) {
               ? event.loginState.trim()
               : "none",
           welcomeMessageLoginStreak: normalizedStreak,
+          welcomeMessageRewardXp: normalizedRewardXp,
         },
       };
       }
@@ -145,6 +152,8 @@ export function supportFlowReducer(state, event) {
               .map((level) => Number(level))
               .filter((level) => Number.isInteger(level) && level > 0)
           : [];
+        const normalizedIsAutoStopped = Boolean(event.isAutoStopped);
+        const normalizedShowUpgradePrompt = Boolean(event.showUpgradePrompt);
 
       return {
         isOpen: true,
@@ -155,6 +164,8 @@ export function supportFlowReducer(state, event) {
           rewardBaseXp: normalizedBaseXp,
           rewardXpMultiplier: normalizedXpMultiplier,
           rewardLevelUps: normalizedLevelUps,
+          rewardIsAutoStopped: normalizedIsAutoStopped,
+          rewardShowUpgradePrompt: normalizedShowUpgradePrompt,
           completedActivityName:
             typeof event.activityName === "string" && event.activityName.trim()
               ? event.activityName.trim()

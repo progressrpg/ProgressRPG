@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
         const data = await apiFetch('/me/');
         setUser(data);
         setIsAuthenticated(true);
-      } catch (err) {
+      } catch {
         logout();
       } finally {
         setLoading(false);
@@ -51,7 +51,7 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       setIsAuthenticated(true);
       return data;
-    } catch (err) {
+    } catch {
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -82,6 +82,7 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }

@@ -10,6 +10,10 @@
   width: 100%;
   max-width: 420px;
   margin: v.$spacing-md auto 0;
+
+  @include m.respond-to(sm, down) {
+    max-width: 100%;
+  }
 }
 
 .infoBox {
@@ -78,6 +82,21 @@
     white-space: nowrap;
     margin-left: auto;
     text-align: right;
+  }
+
+  @include m.respond-to(sm, down) {
+    .label {
+      font-size: 0.6875rem;
+    }
+
+    .value {
+      font-size: 0.8125rem;
+    }
+
+    .level,
+    .xp {
+      font-size: 0.6875rem;
+    }
   }
 }
 

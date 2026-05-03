@@ -76,14 +76,15 @@
 }
 
 .deleteButton {
-  border: 1px solid #d32f2f;
-  background: transparent;
-  color: #d32f2f;
+  transition: filter 0.2s ease, color 0.2s ease;
 
   &:hover {
-    background: rgba(211, 47, 47, 0.1);
-    border-color: #b71c1c;
-    color: #b71c1c;
+    filter: brightness(0.94);
+    color: rgba(c.$color-text-invert, 0.96);
+  }
+
+  &:active {
+    filter: brightness(0.88);
   }
 }
 
@@ -91,6 +92,6 @@
   @include lp.list-page-empty-state;
 }
 
-@media (max-width: 768px) {
+@include m.respond-to(md, down) {
   @include lp.list-page-mobile;
 }

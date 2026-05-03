@@ -1,7 +1,9 @@
 // src/pages/ActivitiesPage.jsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useActivities } from "../hooks/useActivities";
 import { useDeleteActivity, useUpdateActivity } from "../hooks/useActivities";
+import Button from "../components/Button/Button";
+import Modal from "../components/Modal/Modal";
 import styles from "./ActivitiesPage.module.scss";
 
 // Helper to format duration nicely
@@ -76,6 +78,7 @@ export default function ActivitiesPage() {
   const [activeTab, setActiveTab] = useState("today");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [activityPendingDelete, setActivityPendingDelete] = useState(null);
 
   // Group activities by date
   const groupedActivities = useMemo(() => {
@@ -116,8 +119,6 @@ export default function ActivitiesPage() {
     return byDate;
   }, [groupedActivities, activeTab]);
 
-  if (isLoading) return <p>Loading activities…</p>;
-
   const hasActivities = activities && activities.length > 0;
   const currentTabActivities = groupedActivities[activeTab];
   const hasTabActivities = currentTabActivities && currentTabActivities.length > 0;
@@ -127,10 +128,11 @@ export default function ActivitiesPage() {
     setEditingName(activity.name);
   };
 
-  const handleEditSave = (activityId) => {
+  const handleEditSave = () => {
+    if (!editingId) return;
     if (editingName.trim()) {
       updateActivity.mutate({
-        activityId,
+        activityId: editingId,
         data: { name: editingName }
       });
       setEditingId(null);
@@ -138,10 +140,40 @@ export default function ActivitiesPage() {
     }
   };
 
-  const handleEditCancel = () => {
+  const handleEditCancel = useCallback(() => {
     setEditingId(null);
     setEditingName("");
+  }, []);
+
+  const handleDeleteRequest = (activity) => {
+    setActivityPendingDelete(activity);
   };
+
+  const handleDeleteCancel = useCallback(() => {
+    setActivityPendingDelete(null);
+  }, []);
+
+  const handleDeleteConfirm = () => {
+    if (!activityPendingDelete?.id) return;
+    deleteActivity.mutate(activityPendingDelete.id);
+    setActivityPendingDelete(null);
+  };
+
+  const editingActivity = activities?.find((activity) => activity.id === editingId) || null;
+  const editingActivityDurationLabel = editingActivity
+    ? formatDuration(Number(editingActivity.duration) || 0)
+    : "-";
+  const editingActivityCompletedTimeLabel = editingActivity?.completed_at
+    ? new Date(editingActivity.completed_at).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "-";
+  const editingActivityXpLabel = editingActivity
+    ? Number(editingActivity.xp_gained) || 0
+    : 0;
+
+  if (isLoading) return <p>Loading activities…</p>;
 
   return (
     <div className={styles.page}>
@@ -157,13 +189,14 @@ export default function ActivitiesPage() {
               { key: "yesterday", label: `Yesterday (${groupedActivities.yesterday.length})` },
               { key: "today", label: `Today (${groupedActivities.today.length})` },
             ].map(({ key, label }) => (
-              <button
+              <Button
                 key={key}
+                variant={activeTab === key ? "primary" : "secondary"}
                 className={`${styles.dateButton} ${activeTab === key ? styles.active : ""}`}
                 onClick={() => setActiveTab(key)}
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -171,29 +204,30 @@ export default function ActivitiesPage() {
             <div className={styles.activitiesList}>
               {Object.entries(activitiesByTab).map(([dateKey, dayActivities]) => (
                 <div key={dateKey}>
+                  {(() => {
+                    const dayDurationTotalSeconds = dayActivities.reduce(
+                      (sum, activity) => sum + (Number(activity.duration) || 0),
+                      0
+                    );
+                    const dayXpTotal = dayActivities.reduce(
+                      (sum, activity) => sum + (Number(activity.xp_gained) || 0),
+                      0
+                    );
+                    const headingLabel = formatDate(new Date(dateKey));
+
+                    return (
                   <h3 style={{ margin: "1em 0 0.5em", fontSize: "0.95em", opacity: 0.7 }}>
-                    {formatDate(new Date(dateKey))}
+                    {headingLabel} ({dayActivities.length} activities, {formatDuration(dayDurationTotalSeconds)}, {dayXpTotal} XP)
                   </h3>
+                    );
+                  })()}
                   {dayActivities.map((activity) => (
                     <div key={activity.id} className={styles.activityItem}>
                       <div className={styles.activityDetails}>
-                        {editingId === activity.id ? (
-                          <input
-                            type="text"
-                            className={styles.editInput}
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleEditSave(activity.id);
-                              if (e.key === "Escape") handleEditCancel();
-                            }}
-                          />
-                        ) : (
-                          <div className={styles.name}>{activity.name}</div>
-                        )}
+                        <div className={styles.name}>{activity.name}</div>
                         <div className={styles.meta}>
                           Duration: {formatDuration(activity.duration)} •{" "}
+                          {activity.xp_gained} XP gained •{" "}
                           {new Date(activity.completed_at).toLocaleTimeString("en-US", {
                             hour: "2-digit",
                             minute: "2-digit"
@@ -201,41 +235,22 @@ export default function ActivitiesPage() {
                         </div>
                       </div>
                       <div className={styles.actions}>
-                        {editingId === activity.id ? (
-                          <>
-                            <button
-                              className={styles.saveButton}
-                              onClick={() => handleEditSave(activity.id)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              className={styles.cancelButton}
-                              onClick={handleEditCancel}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              className={styles.editButton}
-                              onClick={() => handleEditStart(activity)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className={styles.deleteButton}
-                              onClick={() => {
-                                if (confirm("Delete this activity?")) {
-                                  deleteActivity.mutate(activity.id);
-                                }
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
+                        <>
+                          <Button
+                            variant="secondary"
+                            className={styles.editButton}
+                            onClick={() => handleEditStart(activity)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="secondaryDanger"
+                            className={styles.deleteButton}
+                            onClick={() => handleDeleteRequest(activity)}
+                          >
+                            Delete
+                          </Button>
+                        </>
                       </div>
                     </div>
                   ))}
@@ -254,6 +269,66 @@ export default function ActivitiesPage() {
         <div className={styles.emptyState}>
           <p>No activities recorded yet.</p>
         </div>
+      )}
+
+      {activityPendingDelete && (
+        <Modal
+          id="delete-activity-modal"
+          title="Delete activity?"
+          onClose={handleDeleteCancel}
+        >
+          <div className={styles.deleteConfirmContent}>
+            <p>
+              Are you sure you want to delete
+              {activityPendingDelete.name ? ` "${activityPendingDelete.name}"` : " this activity"}?
+            </p>
+            <div className={styles.deleteConfirmActions}>
+              <Button variant="secondary" onClick={handleDeleteCancel}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={handleDeleteConfirm}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {editingId && (
+        <Modal
+          id="edit-activity-modal"
+          title="Edit activity"
+          onClose={handleEditCancel}
+        >
+          <div className={styles.editConfirmContent}>
+            <p className={styles.editConfirmMeta}>
+              Duration: {editingActivityDurationLabel} • Completed: {editingActivityCompletedTimeLabel} • {editingActivityXpLabel} XP gained
+            </p>
+            <p>
+              Update activity name
+              {editingActivity?.name ? ` for "${editingActivity.name}"` : ""}:
+            </p>
+            <input
+              type="text"
+              className={styles.editInput}
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleEditSave();
+                if (e.key === "Escape") handleEditCancel();
+              }}
+            />
+            <div className={styles.editConfirmActions}>
+              <Button variant="secondary" onClick={handleEditCancel}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleEditSave}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

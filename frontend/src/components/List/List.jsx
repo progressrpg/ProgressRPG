@@ -38,19 +38,17 @@ export default function List({
         }, className)}
         role={canSelect ? 'listbox' : 'list'}
         aria-label={ariaLabel}
-      >
+        >
         {items.map((item, index) => {
-          {/* const isSelected = item === selectedItem;
-          const isHidden = item.isHidden; */}
+          const isSelected = item === selectedItem;
           const itemClass = getItemClassName?.(item, index);
-          const itemToneValue = getItemTone?.(item, index) ?? itemTone;
-
-          const tone = item.player ? 'player' : item.character ? 'character' : 'neutral';
+          const tone = getItemTone?.(item, index)
+            ?? (item.player ? 'player' : item.character ? 'character' : itemTone);
           return (
             <Li
               key={getKey ? getKey(item, index) : (item.id || index)}
               className={itemClass}
-              isSelected={item === selectedItem}
+              isSelected={isSelected}
               isHidden={item.isHidden}
               tone={tone}
               onClick={() => canSelect && onSelect?.(item)}

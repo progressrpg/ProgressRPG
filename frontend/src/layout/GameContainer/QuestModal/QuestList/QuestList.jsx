@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styles from './QuestList.module.scss';
 import List from '../../../../components/List/List';
 
 export default function QuestList({ quests, selectedQuest, onSelect }) {
-  const [selected, setSelected] = useState(null);
-
   return (
     <div className={styles.questList}>
       <List
@@ -13,7 +11,7 @@ export default function QuestList({ quests, selectedQuest, onSelect }) {
         selectedItem={selectedQuest}
         onSelect={onSelect}
         getItemKey={(quest) => quest.id ?? quest.name}
-        renderItem={(quest, isSelected) => (
+        renderItem={(quest) => (
           <>
             {quest.name}
           </>

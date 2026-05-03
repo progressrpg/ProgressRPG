@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import styles from './Form.module.scss';
 import Button from '../Button/Button';
 import ButtonFrame from '../Button/ButtonFrame';
@@ -17,7 +17,7 @@ export default function Form({
   fieldErrors = {}
 }) {
   const [touched, setTouched] = useState({});
-  const titleId = 'form-title-' + Math.random().toString(36).substr(2, 9);
+  const titleId = useId();
 
    const handleBlur = (name) => {
     setTouched((prev) => ({ ...prev, [name]: true }));
@@ -29,7 +29,7 @@ export default function Form({
     }
 
     if (!touched[field.name]) return '';
-    
+
     if (field.required && !field.value) {
       return 'This field is required';
     }
@@ -49,8 +49,8 @@ export default function Form({
     <div className={`${styles.formFrame} ${frameClass || ''}`}>
       {title && <h1 id={titleId} className={styles.formTitle}>{title}</h1>}
 
-      <form 
-        onSubmit={onSubmit} 
+      <form
+        onSubmit={onSubmit}
         className={`${styles.form} ${className || ''}`}
         noValidate
         aria-busy={isSubmitting}

@@ -41,13 +41,20 @@ describe("SupportFlowModal", () => {
     render(
       <Fixture
         initialEvent="OPEN_WELCOME_MESSAGE"
-        initialEventPayload={{ loginState: "streak_continues", loginStreak: 4 }}
+        initialEventPayload={{
+          loginState: "streak_continues",
+          loginStreak: 4,
+          loginRewardXp: 16,
+        }}
       />
     );
     await user.click(screen.getByRole("button", { name: "Open" }));
-    expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome!" })).toBeInTheDocument();
     expect(
       screen.getByText("Welcome back! Your login streak is now 4 days.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("You earned +16 XP from today's login.")
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start" })).toBeInTheDocument();
     expect(
@@ -65,8 +72,13 @@ describe("SupportFlowModal", () => {
     );
     await user.click(screen.getByRole("button", { name: "Open" }));
     expect(
-      screen.getByText("Welcome back! You logged in earlier today.")
+      screen.getByText(
+        "Welcome back! You logged in earlier today. Your login streak is 4 days."
+      )
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/You earned \+\d+ XP from today's login\./)
+    ).not.toBeInTheDocument();
   });
 
   it("opens activity reward screen", async () => {
@@ -84,11 +96,15 @@ describe("SupportFlowModal", () => {
     await user.click(screen.getByRole("button", { name: "Open" }));
     expect(screen.getByText("Activity complete!")).toBeInTheDocument();
     expect(
-      screen.getByText('You completed "Write tests" and gained 27 XP.')
+      screen.getByText('Nice work ⚔️ You spent 1 minute 30 seconds on "Write tests".')
     ).toBeInTheDocument();
-    expect(screen.getByText("You spent 1:30 on this activity.")).toBeInTheDocument();
+    expect(screen.getByText("Total XP gained")).toBeInTheDocument();
+    expect(screen.getByText("+27 XP")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Return to timer" })
+      screen.getByRole("button", { name: "Continue with support in 3.." })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Back to timer" })
     ).toBeInTheDocument();
   });
 
@@ -116,16 +132,23 @@ describe("SupportFlowModal", () => {
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(screen.getByRole("button", { name: "Get support" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome!" })).toBeInTheDocument();
+    expect(screen.getByText(/welcome back!/i)).toBeInTheDocument();
   });
 
   it("back from support menu returns to activity reward", async () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_ACTIVITY_REWARD" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
-    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "Continue with support in 3.." }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByText("Activity complete!")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Continue with support" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Continue with support in/i })
+    ).not.toBeInTheDocument();
   });
 
   it("support mode menu does not show reward back button", async () => {
@@ -216,7 +239,7 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_ACTIVITY_REWARD" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
-    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "Continue with support in 3.." }));
     await user.click(
       screen.getByRole("button", { name: "I'm not ready yet" })
     );
@@ -235,7 +258,7 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_ACTIVITY_REWARD" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
-    await user.click(screen.getByRole("button", { name: "Get support" }));
+    await user.click(screen.getByRole("button", { name: "Continue with support in 3.." }));
     await user.click(screen.getByRole("button", { name: "I'm not ready yet" }));
     await user.click(
       screen.getByRole("button", { name: "Breathing exercise" })
@@ -252,9 +275,9 @@ describe("SupportFlowModal", () => {
     const user = userEvent.setup();
     render(<Fixture initialEvent="OPEN_WELCOME_MESSAGE" />);
     await user.click(screen.getByRole("button", { name: "Open" }));
-    expect(screen.getByText("Welcome back!")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome!" })).toBeInTheDocument();
     await user.click(screen.getByLabelText("Close modal"));
-    expect(screen.queryByText("Welcome back!")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Welcome!" })).not.toBeInTheDocument();
   });
 
   it("close button works while a task input is focused", async () => {

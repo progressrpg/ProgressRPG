@@ -33,6 +33,7 @@ export default function useActivityTimer() {
 
   // Guard: ensures auto-submit fires at most once per activity
   const didAutoStopRef = useRef(false);
+  const autoStopReasonRef = useRef(null);
 
   // Stable ref to stop so tickMain can call it without becoming stale
   const stopRef = useRef(null);
@@ -71,6 +72,7 @@ export default function useActivityTimer() {
                 currentActivityRef.current?.name || currentActivityRef.current?.text,
               elapsedSeconds: newElapsed,
               source: "auto",
+              stopReason: autoStopReasonRef.current,
             });
           }
           return;
@@ -86,9 +88,9 @@ export default function useActivityTimer() {
 
 
   const startActivity = useCallback(async (newActivity) => {
-    const { text, taskId, limitSeconds: newLimit } =
+    const { text, taskId, limitSeconds: newLimit, limitReason = null } =
       typeof newActivity === "string"
-        ? { text: newActivity, taskId: null, limitSeconds: null }
+        ? { text: newActivity, taskId: null, limitSeconds: null, limitReason: null }
         : newActivity || {};
 
     if (!text?.trim()) return null;
@@ -104,6 +106,10 @@ export default function useActivityTimer() {
     const resolvedLimit = normalizeLimitSeconds(newLimit);
     setLimitSeconds(resolvedLimit);
     limitRef.current = resolvedLimit;
+    autoStopReasonRef.current =
+      resolvedLimit && typeof limitReason === "string" && limitReason.trim()
+        ? limitReason.trim()
+        : null;
     didAutoStopRef.current = false;
     setLimitReached(false);
     setAutoStopCompletion(null);
@@ -154,6 +160,7 @@ export default function useActivityTimer() {
       setCurrentActivity(null);
       setLimitSeconds(null);
       limitRef.current = null;
+      autoStopReasonRef.current = null;
       didAutoStopRef.current = false;
       setLimitReached(false);
 
@@ -168,7 +175,7 @@ export default function useActivityTimer() {
 
 
   const stop = useCallback(
-    async ({ activityName, elapsedSeconds, source = "manual" } = {}) => {
+    async ({ activityName, elapsedSeconds, source = "manual", stopReason = null } = {}) => {
     //console.log(`[useActivityTimer] Stop and submit timer`);
     //console.log("COMPLETE called", { status, duration, elapsed, currentActivity });
     //console.trace();
@@ -218,11 +225,16 @@ export default function useActivityTimer() {
       setCurrentActivity(null);
       setLimitSeconds(null);
       limitRef.current = null;
+      autoStopReasonRef.current = null;
       didAutoStopRef.current = false;
       setLimitReached(false);
       pausedTimeRef.current = 0;
 
       if (source === "auto") {
+        const normalizedStopReason =
+          typeof stopReason === "string" && stopReason.trim()
+            ? stopReason.trim()
+            : null;
         setAutoStopCompletion({
           xpGained: result?.xp_gained ?? null,
           baseXp: result?.base_xp ?? null,
@@ -230,6 +242,7 @@ export default function useActivityTimer() {
           levelUps: result?.level_ups ?? [],
           activityName: completedActivityName || null,
           elapsedSeconds: resolvedCompletionElapsedSeconds,
+          ...(normalizedStopReason ? { stopReason: normalizedStopReason } : {}),
         });
       }
 
@@ -286,6 +299,7 @@ export default function useActivityTimer() {
     setDuration(duration || 0);
     setLimitSeconds(resolvedLimit);
     limitRef.current = resolvedLimit;
+    autoStopReasonRef.current = null;
     didAutoStopRef.current = false;
     setLimitReached(false);
     setAutoStopCompletion(null);

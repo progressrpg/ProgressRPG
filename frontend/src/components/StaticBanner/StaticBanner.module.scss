@@ -1,16 +1,22 @@
 @use '../../styles/semantic/typography' as t;
 @use '../../styles/semantic/colors' as c;
 @use '../../styles/semantic/spacing' as s;
+@use '../../styles/utilities/mixins' as m;
 @use 'sass:map';
 
 .banner {
   width: 100%;
   padding: s.$card-padding;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  background-color: c.$color-bg-invert;
+  background-color: c.$color-border-primary;
 }
 
 .bannerText {
   @include t.apply-text-style(t.$text-body);
   @include c.apply-text-tone(map.get(c.$text-tone, inverted));
+
+  @include m.respond-to(md, down) {
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
 }

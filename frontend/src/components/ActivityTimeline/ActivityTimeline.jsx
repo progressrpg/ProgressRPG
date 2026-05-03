@@ -30,8 +30,13 @@ export default function ActivityTimeline() {
     characterActivities,
     fetchActivities,
     character,
+    player,
+    freeTimerLimitSeconds,
+    activityTimer,
     loading,
   } = useGame();
+
+  const isPremium = Boolean(player?.is_premium);
 
   useEffect(() => {
     fetchActivities();
@@ -79,11 +84,34 @@ export default function ActivityTimeline() {
 
         <List
           items={unifiedActivities}
-          getKey={(act) => `${act.player ? 'player' : 'character'}-${act.id ?? i}`}
+          getKey={(act, i) => `${act.player ? 'player' : 'character'}-${act.id ?? i}`}
+          getItemClassName={() => styles.activityLineItem}
           renderItem={(act) => (
             <div className={styles.line}>
-              {act.player ? 'You' : character?.first_name || 'Character' } finished <strong>{act.name.toLowerCase() || act.kind || "an activity"}</strong> —{" "}
-              {formatDuration(act.duration)}
+              <span className={styles.lineText}>
+                {act.player ? 'You' : character?.first_name || 'Character' } finished <strong>{act.name?.toLowerCase() || act.kind || "an activity"}</strong> —{" "}
+                {formatDuration(act.duration)}
+              </span>
+              <button
+                type="button"
+                className={styles.playButton}
+                onClick={async (event) => {
+                  event.currentTarget.blur();
+
+                  const activityText = (act.name || act.kind || "").trim();
+                  if (!activityText) return;
+                  if (activityTimer?.status === "active") return;
+
+                  await activityTimer?.startActivity({
+                    text: activityText,
+                    limitSeconds: isPremium ? null : freeTimerLimitSeconds,
+                  });
+                }}
+                aria-label={`Restart ${act.name || act.kind || "activity"}`}
+                title="Do this activity again"
+              >
+                ▷
+              </button>
               {/* {act.completed_at
                 ? new Date(act.completed_at).toLocaleTimeString([], {
                   hour: "2-digit",

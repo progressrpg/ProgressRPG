@@ -51,11 +51,12 @@ describe("UpgradePage", () => {
   it("shows only the monthly option", () => {
     renderUpgradePage();
 
-    expect(screen.getByRole("heading", { name: "Monthly" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Premium benefits" })).toBeInTheDocument();
+    expect(screen.getByText("Double XP on all activity rewards.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Premium membership" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Monthly" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Annual" })).not.toBeInTheDocument();
-    expect(
-      screen.getByText("You selected Monthly: £5 billed every month.")
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/You selected Monthly/i)).not.toBeInTheDocument();
   });
 
   it("submits checkout with the monthly plan", async () => {
@@ -66,7 +67,7 @@ describe("UpgradePage", () => {
 
     renderUpgradePage();
 
-    await user.click(screen.getByRole("button", { name: "Go to Monthly Checkout" }));
+    await user.click(screen.getByRole("button", { name: "Go to checkout" }));
 
     expect(mockApiFetch).toHaveBeenCalledWith("/payments/create-checkout-session/", {
       method: "POST",

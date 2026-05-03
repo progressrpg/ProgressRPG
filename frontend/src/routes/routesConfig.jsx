@@ -1,5 +1,6 @@
 import React, { lazy } from "react";
 import { Navigate } from "react-router-dom";
+import FeatureToggle from "../components/FeatureToggle";
 
 // Lazy load pages
 const Home = lazy(() => import("../pages/Home/Home"));
@@ -174,7 +175,11 @@ export const routes = [
     element: (
       <PrivateRoute>
         <RequireOnboardingComplete>
-          <TasksPage />
+          <FeatureToggle
+            flag="tasksPage"
+          >
+            <TasksPage />
+          </FeatureToggle>
         </RequireOnboardingComplete>
       </PrivateRoute>
     ),

@@ -1,8 +1,11 @@
 // SupportFlow/screens/ActivityRewardScreen.jsx
+import { useEffect, useRef, useState } from "react";
 import Button from "../../Button/Button";
 import ButtonFrame from "../../Button/ButtonFrame";
 import { formatDuration, formatRewardDuration } from "../../../utils/formatUtils.js";
 import styles from "../SupportFlowModal.module.scss";
+
+const SUPPORT_COUNTDOWN_MS = 3000;
 
 export default function ActivityRewardScreen({
   activityName,
@@ -10,10 +13,41 @@ export default function ActivityRewardScreen({
   baseXp,
   xpMultiplier,
   levelUps = [],
+  isAutoStopped = false,
+  showUpgradePrompt = false,
   elapsedSeconds,
+  enableAutoSupportCountdown = true,
   onContinue,
   onSupport,
 }) {
+  const shouldEnableCountdown = Boolean(enableAutoSupportCountdown);
+  const [remainingMs, setRemainingMs] = useState(SUPPORT_COUNTDOWN_MS);
+  const [isCountdownPaused, setIsCountdownPaused] = useState(false);
+  const hasAutoContinuedRef = useRef(false);
+
+  useEffect(() => {
+    if (!shouldEnableCountdown || isCountdownPaused || hasAutoContinuedRef.current) {
+      return undefined;
+    }
+
+    const intervalId = setInterval(() => {
+      setRemainingMs((prev) => {
+        const next = Math.max(0, prev - 100);
+        if (next === 0 && !hasAutoContinuedRef.current) {
+          hasAutoContinuedRef.current = true;
+          onSupport?.();
+        }
+        return next;
+      });
+    }, 100);
+
+    return () => clearInterval(intervalId);
+  }, [isCountdownPaused, onSupport, shouldEnableCountdown]);
+
+  const countdownSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+  const continueButtonLabel = shouldEnableCountdown
+    ? `Continue with support in ${countdownSeconds}..`
+    : "Continue with support";
   const hasActivityName = typeof activityName === "string" && activityName.trim();
   const parsedXp = Number(xpGained);
   const hasXp = Number.isFinite(parsedXp);
@@ -44,7 +78,23 @@ export default function ActivityRewardScreen({
         .map((level) => Number(level))
         .filter((level) => Number.isInteger(level) && level > 0)
     : [];
+  const isLikelyPremiumUser = parsedMultiplier === 2;
+  const shouldShowUpgradePrompt = Boolean(showUpgradePrompt) && !isLikelyPremiumUser;
+  const upgradeMessage = shouldShowUpgradePrompt
+    ? isAutoStopped
+      ? "Need more time? Upgrade to Premium for unlimited timer sessions."
+      : "Want even more rewards? Upgrade to Premium for double XP on activities."
+    : null;
   const multiplierLines = [];
+  let rewardSummaryLine = "Nice work ⚔️ You completed an activity.";
+
+  if (formattedElapsed && hasActivityName) {
+    rewardSummaryLine = `Nice work ⚔️ You spent ${formattedElapsed} on "${activityName.trim()}".`;
+  } else if (hasActivityName) {
+    rewardSummaryLine = `Nice work ⚔️ You completed "${activityName.trim()}".`;
+  } else if (formattedElapsed) {
+    rewardSummaryLine = `Nice work ⚔️ You spent ${formattedElapsed} focused.`;
+  }
 
   if (hasRewardBreakdown && parsedMultiplier > 1) {
     if (parsedMultiplier === 2) {
@@ -56,12 +106,9 @@ export default function ActivityRewardScreen({
 
   return (
     <div>
-      <p>Great work! 🎉 You completed an activity.</p>
-      {formattedElapsed && hasActivityName && (
-        <p>You spent {formattedElapsed} on "{activityName.trim()}".</p>
-      )}
       {(hasElapsedSeconds || hasXp) && (
         <div className={styles.rewardBreakdown}>
+          <p className={styles.rewardSummary}>{rewardSummaryLine}</p>
           {condensedElapsed && (
             <div className={styles.rewardBreakdownRow}>
               <span className={styles.rewardBreakdownLabel}>Time</span>
@@ -75,21 +122,56 @@ export default function ActivityRewardScreen({
             </div>
           ))}
           {hasXp && (
-            <div className={styles.rewardBreakdownRow}>
+            <div className={styles.rewardBreakdownRowPrimary}>
               <span className={styles.rewardBreakdownLabel}>Total XP gained</span>
-              <span className={styles.rewardBreakdownValue}>{parsedXp} XP</span>
+              <span className={styles.rewardBreakdownValue}>+{parsedXp} XP</span>
             </div>
           )}
         </div>
       )}
+      {!(hasElapsedSeconds || hasXp) && <p>{rewardSummaryLine}</p>}
       {normalizedLevelUps.map((level) => (
         <p key={level}>Level up! You reached level {level}.</p>
       ))}
       {!hasActivityName && hasXp && <p>You gained {parsedXp} XP!</p>}
-      <ButtonFrame>
-        <Button onClick={onContinue}>Return to timer</Button>
-        <Button onClick={onSupport}>Get support</Button>
-      </ButtonFrame>
+
+      <div className={styles.actionRow}>
+        <div
+          className={`${styles.supportPanel} ${isCountdownPaused ? styles.supportPanelPaused : ""}`}
+          onPointerEnter={shouldEnableCountdown ? () => setIsCountdownPaused(true) : undefined}
+          onPointerLeave={shouldEnableCountdown ? () => setIsCountdownPaused(false) : undefined}
+        >
+          <div className={styles.supportPanelActions}>
+            <ButtonFrame>
+              <Button
+                onClick={onSupport}
+                className={shouldEnableCountdown ? styles.supportCountdownButton : undefined}
+                style={
+                  shouldEnableCountdown
+                    ? { "--support-countdown-duration": `${SUPPORT_COUNTDOWN_MS}ms` }
+                    : undefined
+                }
+              >
+                {continueButtonLabel}
+              </Button>
+            </ButtonFrame>
+            <ButtonFrame>
+              <Button variant="secondary" onClick={onContinue}>
+                Back to timer
+              </Button>
+            </ButtonFrame>
+          </div>
+        </div>
+
+        {shouldShowUpgradePrompt && (
+          <div className={styles.upgradePanel}>
+            {upgradeMessage && <p>{upgradeMessage}</p>}
+            <ButtonFrame>
+              <Button as="a" href="/upgrade" variant="secondary">Upgrade to Premium</Button>
+            </ButtonFrame>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

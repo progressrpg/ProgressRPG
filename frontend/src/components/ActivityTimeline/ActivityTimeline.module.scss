@@ -69,9 +69,52 @@
 
 
 .line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: v.$spacing-sm;
+  width: 100%;
   @include c.apply-text-tone(map.get(c.$text-tone, default));
   font-size: 1rem;
   line-height: 1.5;
+
+  @include m.respond-to(md, down) {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+}
+
+.lineText {
+  min-width: 0;
+}
+
+.playButton {
+  border: none;
+  background: transparent;
+  color: c.$color-border-primary;
+  border-radius: v.$border-radius;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(0.125rem);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.1);
+  }
+}
+
+.activityLineItem:hover .playButton,
+.activityLineItem:focus-within .playButton {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
 }
 
 .header {

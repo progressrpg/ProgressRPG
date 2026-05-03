@@ -94,38 +94,42 @@ export default function TasksPage() {
               <div className={styles.actions}>
                 {editingId === task.id ? (
                   <>
-                    <button
+                    <Button
                       className={styles.saveButton}
                       onClick={() => handleEditSave(task.id)}
                       type="button"
                     >
                       Save
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
                       className={styles.cancelButton}
                       onClick={handleEditCancel}
                       type="button"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   <>
-                    <button
+                    <Button
+                      variant="secondary"
                       className={styles.toggleButton}
                       onClick={() => handleToggleComplete(task)}
                       type="button"
                     >
                       {task.is_complete ? "Mark incomplete" : "Mark complete"}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
                       className={styles.editButton}
                       onClick={() => handleEditStart(task)}
                       type="button"
                     >
                       Edit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="danger"
                       className={styles.deleteButton}
                       onClick={() => {
                         if (confirm("Delete this task?")) {
@@ -135,7 +139,7 @@ export default function TasksPage() {
                       type="button"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

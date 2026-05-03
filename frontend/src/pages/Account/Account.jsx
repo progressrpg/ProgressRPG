@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
 import { useMutation } from "@tanstack/react-query";
@@ -19,12 +19,6 @@ export default function Account() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [nameError, setNameError] = useState("");
-
-  useEffect(() => {
-    if (player?.name) {
-      setDraftName(player.name);
-    }
-  }, [player?.name]);
 
   const nameValidation = useMemo(
     () => getPlayerNameValidation(draftName),
@@ -120,7 +114,7 @@ export default function Account() {
                     className={styles.inlineButton}
                     onClick={handleStartEditingName}
                   >
-                    Edit Name
+                    Edit name
                   </Button>
                 </div>
               ) : (
@@ -179,11 +173,11 @@ export default function Account() {
               <span className={styles.value}>{currentXp} / {nextLevelXp}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Total Activities</span>
+              <span className={styles.label}>Total activities</span>
               <span className={styles.value}>{player?.total_activities || 0}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Total Time</span>
+              <span className={styles.label}>Total time</span>
               <span className={styles.value}>
                 {`${totalHours}h ${totalMinutes}m`}
               </span>
@@ -193,24 +187,39 @@ export default function Account() {
 
         <section className={styles.section}>
           <h2>Billing</h2>
-          <div className={styles.infoGrid}>
+          <div className={styles.billingRow}>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Account Type</span>
+              <span className={styles.label}>Account type</span>
               <span className={styles.value}>{accountType}</span>
             </div>
+            <div className={styles.billingAction}>
+              {player?.is_premium ? (
+                <>
+                  <p className={styles.description}>
+                    Manage your subscription and billing details in the Stripe customer portal.
+                  </p>
+                  <Button
+                    as="a"
+                    href="https://billing.stripe.com/p/login/test_fZucN7dm23whgwNf3N4ow00"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="secondary"
+                  >
+                    Open billing portal
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className={styles.description}>
+                    Ready for more focus tools and rewards?
+                  </p>
+                  <Button as="a" href="/upgrade">
+                    Upgrade
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-          <p className={styles.description}>
-            Manage your subscription and billing details in the Stripe customer portal.
-          </p>
-          <Button
-            as="a"
-            href="https://billing.stripe.com/p/login/test_fZucN7dm23whgwNf3N4ow00"
-            target="_blank"
-            rel="noopener noreferrer"
-            variant="secondary"
-          >
-            Open Billing Portal
-          </Button>
         </section>
 
         {/* Character Information */}
@@ -227,7 +236,7 @@ export default function Account() {
                 <span className={styles.value}>{character.level || 0}</span>
               </div>
               <div className={styles.infoItem}>
-                <span className={styles.label}>Total Activities</span>
+                <span className={styles.label}>Total activities</span>
                 <span className={styles.value}>{character.total_activities || 0}</span>
               </div>
             </div>

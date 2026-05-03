@@ -1,7 +1,6 @@
 from django.contrib.gis.geos import Point
 from django.test import TestCase
 from unittest.mock import patch
-from unittest import skip
 
 from .models import Node, Path, Building, Journey
 from character.models import Character
@@ -92,7 +91,6 @@ class LocationsModelsTestCase(TestCase):
             # The task should be scheduled because this is the first moving character
             mocked_task.assert_called()
 
-    @skip("Not currently working?!")
     def test_journey_serialize_and_advance(self):
         # Create a Journey manually spanning A -> B -> C
         journey = Journey.objects.create(
@@ -118,8 +116,16 @@ class LocationsModelsTestCase(TestCase):
         self.assertTrue(progressed)
         journey.refresh_from_db()
         self.assertEqual(journey.current_index, 1)
+        self.assertEqual(journey.current_node(), self.node_b)
+        self.assertEqual(journey.next_node(), self.node_c)
 
         # Advance twice to finish
+        progressed = journey.advance_node()
+        self.assertTrue(progressed)
+        journey.refresh_from_db()
+        self.assertEqual(journey.current_index, 2)
+        self.assertIsNone(journey.next_node())
+
         progressed = journey.advance_node()
         self.assertFalse(progressed)
         journey.refresh_from_db()
