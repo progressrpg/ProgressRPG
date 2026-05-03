@@ -155,7 +155,7 @@ describe("Account", () => {
       screen.getByText(/Manage your subscription and billing details/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Open Billing Portal" })
+      screen.getByRole("link", { name: "Open billing portal" })
     ).toHaveAttribute(
       "href",
       "https://billing.stripe.com/p/login/test_fZucN7dm23whgwNf3N4ow00"

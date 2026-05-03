@@ -87,31 +87,34 @@ export default function SkillsPage() {
               <div className={styles.actions}>
                 {editingId === skill.id ? (
                   <>
-                    <button
+                    <Button
                       className={styles.saveButton}
                       onClick={() => handleEditSave(skill.id)}
                       type="button"
                     >
                       Save
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
                       className={styles.cancelButton}
                       onClick={handleEditCancel}
                       type="button"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   <>
-                    <button
+                    <Button
+                      variant="secondary"
                       className={styles.editButton}
                       onClick={() => handleEditStart(skill)}
                       type="button"
                     >
                       Edit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="danger"
                       className={styles.deleteButton}
                       onClick={() => {
                         if (confirm("Delete this skill?")) {
@@ -121,7 +124,7 @@ export default function SkillsPage() {
                       type="button"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

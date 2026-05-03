@@ -114,7 +114,7 @@ export default function Account() {
                     className={styles.inlineButton}
                     onClick={handleStartEditingName}
                   >
-                    Edit Name
+                    Edit name
                   </Button>
                 </div>
               ) : (
@@ -173,11 +173,11 @@ export default function Account() {
               <span className={styles.value}>{currentXp} / {nextLevelXp}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Total Activities</span>
+              <span className={styles.label}>Total activities</span>
               <span className={styles.value}>{player?.total_activities || 0}</span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Total Time</span>
+              <span className={styles.label}>Total time</span>
               <span className={styles.value}>
                 {`${totalHours}h ${totalMinutes}m`}
               </span>
@@ -189,7 +189,7 @@ export default function Account() {
           <h2>Billing</h2>
           <div className={styles.billingRow}>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Account Type</span>
+              <span className={styles.label}>Account type</span>
               <span className={styles.value}>{accountType}</span>
             </div>
             <div className={styles.billingAction}>
@@ -205,7 +205,7 @@ export default function Account() {
                     rel="noopener noreferrer"
                     variant="secondary"
                   >
-                    Open Billing Portal
+                    Open billing portal
                   </Button>
                 </>
               ) : (
@@ -236,7 +236,7 @@ export default function Account() {
                 <span className={styles.value}>{character.level || 0}</span>
               </div>
               <div className={styles.infoItem}>
-                <span className={styles.label}>Total Activities</span>
+                <span className={styles.label}>Total activities</span>
                 <span className={styles.value}>{character.total_activities || 0}</span>
               </div>
             </div>

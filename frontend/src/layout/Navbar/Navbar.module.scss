@@ -41,6 +41,18 @@
   justify-content: flex-end;
 }
 
+.leftLinks a,
+.rightLinks a {
+  text-decoration: none;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &:visited {
+    text-decoration: none;
+  }
+}
+
 .navLink {
     @include t.apply-text-style(t.$text-link);
     @include c.apply-text-tone(map.get(c.$text-tone, invert));
