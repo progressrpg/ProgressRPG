@@ -67,6 +67,19 @@ class TestMeViewSet(APITestCase):
         self.assertEqual(self.user.player.name, original_name)
         self.assertIn("name", res.data)
 
+    def test_me_player_patch_rejects_profane_name(self):
+        self.authenticate()
+        original_name = self.user.player.name
+
+        res = self.client.patch(
+            self.me_player_url, {"name": "b1tch-mage"}, format="json"
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.name, original_name)
+        self.assertIn("name", res.data)
+
     def test_complete_onboarding_sets_flag(self):
         self.authenticate()
         self.user.player.onboarding_completed = False
