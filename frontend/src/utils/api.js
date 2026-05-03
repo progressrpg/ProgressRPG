@@ -49,7 +49,7 @@ async function refreshAccessToken(refreshToken) {
   }
 }
 
-async function getValidAccessToken() {
+export async function getValidAccessToken() {
   const accessToken = localStorage.getItem("accessToken");
   const refreshToken = localStorage.getItem("refreshToken");
   if (!accessToken || !refreshToken) throw new Error("Missing tokens");
