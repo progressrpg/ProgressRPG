@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import styles from './NavDrawer.module.scss';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -6,6 +6,15 @@ import { useAuth } from '../../context/AuthContext';
 export default function NavDrawer({ drawerOpen, onClose }) {
   const drawerRef = useRef(null);
   const { isAuthenticated } = useAuth();
+
+  const handleClose = useCallback(() => {
+    const activeElement = document.activeElement;
+    if (drawerRef.current?.contains(activeElement)) {
+      activeElement?.blur?.();
+    }
+
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     if (drawerOpen) {
@@ -15,7 +24,7 @@ export default function NavDrawer({ drawerOpen, onClose }) {
       // Handle Escape key
       const handleEscape = (e) => {
         if (e.key === 'Escape') {
-          onClose();
+          handleClose();
         }
       };
 
@@ -25,14 +34,14 @@ export default function NavDrawer({ drawerOpen, onClose }) {
         document.removeEventListener('keydown', handleEscape);
       };
     }
-  }, [drawerOpen, onClose]);
+  }, [drawerOpen, handleClose]);
 
   return (
     <>
       {/* Overlay */}
       <div
         className={`${styles.overlay} ${drawerOpen ? styles.visible : ''}`}
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
@@ -42,10 +51,11 @@ export default function NavDrawer({ drawerOpen, onClose }) {
         className={`${styles["nav-drawer"]} ${drawerOpen ? styles.drawerOpen : ''}`}
         aria-label="Side navigation"
         aria-hidden={!drawerOpen}
+        inert={!drawerOpen}
         tabIndex={-1}
       >
         <div className={styles["nav-drawer-header"]}>
-          <button onClick={onClose} aria-label="Close navigation drawer" className={styles.closeButton}>
+          <button onClick={handleClose} aria-label="Close navigation drawer" className={styles.closeButton}>
             ✕
           </button>
         </div>
@@ -53,16 +63,14 @@ export default function NavDrawer({ drawerOpen, onClose }) {
         <ul className={styles["nav-drawer-links"]} role="list">
           {isAuthenticated ? (
             <>
-              <li><Link to="/timer" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Timer</Link></li>
-              <li><Link to="/activities" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Activities</Link></li>
-              <li><Link to="/projects" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Projects</Link></li>
-              {/* <li><Link to="/village" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Village</Link></li> */}
+              <li><Link to="/timer" onClick={handleClose} tabIndex={drawerOpen ? 0 : -1}>Timer</Link></li>
+              <li><Link to="/activities" onClick={handleClose} tabIndex={drawerOpen ? 0 : -1}>Activities</Link></li>
             </>
           ) : (
             <>
-              <li><Link to="/" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Home</Link></li>
-              <li><Link to="/login" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Log in</Link></li>
-              <li><Link to="/register" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Join the waiting list</Link></li>
+              <li><Link to="/" onClick={handleClose} tabIndex={drawerOpen ? 0 : -1}>Home</Link></li>
+              <li><Link to="/login" onClick={handleClose} tabIndex={drawerOpen ? 0 : -1}>Log in</Link></li>
+              <li><Link to="/register" onClick={handleClose} tabIndex={drawerOpen ? 0 : -1}>Join the waiting list</Link></li>
             </>
           )}
         </ul>
