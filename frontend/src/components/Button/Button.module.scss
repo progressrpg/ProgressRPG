@@ -17,7 +17,24 @@
   transition: background 0.2s ease, box-shadow 0.2s ease;
 
   text-align: center;
+  text-decoration: none;
   @include t.apply-text-style(t.$text-button);
+
+  &:hover,
+  &:focus,
+  &:active,
+  &:visited {
+    text-decoration: none;
+  }
+
+  a,
+  a:hover,
+  a:focus,
+  a:active,
+  a:visited {
+    text-decoration: none;
+    color: inherit;
+  }
 
   &:hover {
     box-shadow:
@@ -52,6 +69,24 @@
 
   &:hover {
     border-color: rgba(c.$color-border-primary, 0.55);
+  }
+}
+
+.button.secondaryDanger {
+  border-color: rgba(c.$color-danger, 0.45);
+  background: rgba(c.$color-danger, 0.1);
+  color: c.$color-danger;
+
+  &:hover {
+    background: rgba(c.$color-danger, 0.16);
+    border-color: rgba(c.$color-danger, 0.65);
+    color: c.$color-danger;
+  }
+
+  &:active {
+    background: rgba(c.$color-danger, 0.22);
+    border-color: rgba(c.$color-danger, 0.75);
+    color: c.$color-danger;
   }
 }
 

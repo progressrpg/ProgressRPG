@@ -259,6 +259,9 @@ class TestActivityTimer(TestCase):
         self.assertEqual(self.timer.status, "active")
         self.assertIsNotNone(self.timer.start_time)
 
+        self.timer.activity.refresh_from_db()
+        self.assertIsNotNone(self.timer.activity.started_at)
+
         self.timer.pause()
         self.assertEqual(self.timer.status, "paused")
         self.assertIsNone(self.timer.start_time)

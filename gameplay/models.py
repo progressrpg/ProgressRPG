@@ -8,6 +8,7 @@ Author: Duncan Appleby
 
 # gameplay.models
 from abc import ABC, abstractmethod
+from datetime import timedelta
 
 # from django_stubs_ext.db.models import Related
 from django.db import models, transaction
@@ -461,6 +462,18 @@ class ActivityTimer(Timer):
         self.activity.save(update_fields=["task"])
         return self
 
+    def start(self):
+        """
+        Start the timer and persist the associated activity start timestamp.
+        """
+        super().start()
+
+        if self.activity and self.activity.started_at is None:
+            self.activity.started_at = self.start_time or timezone.now()
+            self.activity.save(update_fields=["started_at"])
+
+        return self
+
     def pause(self):
         """
         Pause the activity timer and update the associated activity's duration.
@@ -510,6 +523,7 @@ class ActivityTimer(Timer):
                 f"[COMPLETE CALLED AGAIN] Timer {self.id} already completed — elapsed_time: {self.elapsed_time}"
             )
 
+        pre_complete_start_time = self.start_time
         super().complete()
 
         if completion_source == "auto":
@@ -528,6 +542,17 @@ class ActivityTimer(Timer):
         if newName:
             self.rename_activity(newName)
         self.update_activity_time()
+
+        if self.activity.started_at is None:
+            if pre_complete_start_time is not None:
+                backfilled_started_at = pre_complete_start_time
+            else:
+                backfilled_started_at = timezone.now() - timedelta(
+                    seconds=max(0, int(self.elapsed_time))
+                )
+
+            self.activity.started_at = backfilled_started_at
+            self.activity.save(update_fields=["started_at"])
 
         reward_summary = self.activity.get_xp_reward_summary()
         xp_gained = self.activity.complete(reward_summary=reward_summary)
