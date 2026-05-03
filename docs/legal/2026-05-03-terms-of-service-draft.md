@@ -10,7 +10,7 @@ Operator details to confirm before publication:
 - Operator: Making Progress CIC
 - Company type: Community interest company registered in England and Wales
 - Company number: [confirm before publication]
-- Registered office: [confirm before publication]
+- Registered office: Making Progress CIC, The Gateway, 85-101 Sankey Street, Warrington, Cheshire, WA1 1SR, UK
 - Contact email: support@progressrpg.com
 
 ## Introduction
@@ -35,9 +35,9 @@ You should not rely on the Services as a substitute for professional advice or e
 
 The Services are operated by Making Progress CIC, a community interest company registered in England and Wales.
 
-Before publication, add the confirmed company number and registered office address here:
+Before publication, add the confirmed company number here:
 
-> Making Progress CIC, company number [confirm], registered office [confirm].
+> Making Progress CIC, company number [confirm], registered office Making Progress CIC, The Gateway, 85-101 Sankey Street, Warrington, Cheshire, WA1 1SR, UK.
 
 ## 3. Intellectual Property
 
@@ -182,6 +182,6 @@ Subject to any mandatory consumer rights, disputes will be resolved in the court
 
 If you have questions about these Terms, contact Making Progress CIC at support@progressrpg.com.
 
-Before publication, add the confirmed registered office address if you want postal contact details shown on the live page.
+Postal address: Making Progress CIC, The Gateway, 85-101 Sankey Street, Warrington, Cheshire, WA1 1SR, UK.
 
 We recommend you save a copy of these Terms for your records.

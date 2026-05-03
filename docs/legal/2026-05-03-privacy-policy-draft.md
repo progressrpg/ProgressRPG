@@ -10,7 +10,7 @@ Controller details to confirm before publication:
 - Data controller: Making Progress CIC
 - Company type: Community interest company registered in England and Wales
 - Company number: [confirm before publication]
-- Registered office: [confirm before publication]
+- Registered office: Making Progress CIC, The Gateway, 85-101 Sankey Street, Warrington, Cheshire, WA1 1SR, UK
 - Contact email: support@progressrpg.com
 - ICO registration/reference: [confirm whether required and add if registered]
 
@@ -163,6 +163,8 @@ If we make significant changes, we will notify you by email, through the Service
 
 If you have questions about this Privacy Policy or your personal information, contact Making Progress CIC at support@progressrpg.com.
 
-Before publication, add confirmed company number, registered office address, and ICO registration/reference if applicable.
+Postal address: Making Progress CIC, The Gateway, 85-101 Sankey Street, Warrington, Cheshire, WA1 1SR, UK.
+
+Before publication, add confirmed company number and ICO registration/reference if applicable.
 
 We recommend you save a copy of this Privacy Policy for your records.
