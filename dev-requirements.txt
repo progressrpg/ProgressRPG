@@ -342,8 +342,6 @@ pycparser==2.23
     # via
     #   -c requirements.txt
     #   cffi
-pygments==2.19.2
-    # via sphinx
 pyjwt==2.10.1
     # via
     #   -c requirements.txt
