@@ -23,6 +23,7 @@ const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenanceP
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage/NotFoundPage"));
 // const SkillsPage = lazy(() => import("../pages/SkillsPage/SkillsPage"));
 const TasksPage = lazy(() => import("../pages/TasksPage/TasksPage"));
+const ProjectsPage = lazy(() => import("../pages/ProjectsPage/ProjectsPage"));
 const ActivitiesPage = lazy(() => import("../pages/ActivitiesPage"));
 // const CategoriesPage = lazy(() => import("../pages/CategoriesPage/CategoriesPage"));
 const ActivityTimelinePage = lazy(() => import("../pages/Game2/ActivityTimelinePage"))
@@ -179,6 +180,18 @@ export const routes = [
             flag="tasksPage"
           >
             <TasksPage />
+          </FeatureToggle>
+        </RequireOnboardingComplete>
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/projects",
+    element: (
+      <PrivateRoute>
+        <RequireOnboardingComplete>
+          <FeatureToggle flag="projectsPage">
+            <ProjectsPage />
           </FeatureToggle>
         </RequireOnboardingComplete>
       </PrivateRoute>

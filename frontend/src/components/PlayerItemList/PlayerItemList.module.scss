@@ -1,0 +1,145 @@
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/typography' as t;
+
+.section {
+  width: 100%;
+}
+
+.list {
+  gap: v.$spacing-sm;
+  overflow: visible;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: v.$spacing-sm;
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.4);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.06);
+    border-color: rgba(c.$color-border-primary, 0.5);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      inset 0 0 0 1px rgba(c.$color-border-primary, 0.2);
+    z-index: 1;
+  }
+}
+
+.itemButton {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemCompleted {
+  background: rgba(c.$color-border-primary, 0.03);
+  border-color: rgba(c.$color-border-primary, 0.3);
+
+  .itemName {
+    text-decoration: line-through;
+    opacity: 0.72;
+  }
+
+  .itemMeta {
+    opacity: 0.68;
+  }
+}
+
+.completeCheckboxLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.completeCheckbox {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.itemDetails {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: v.$spacing-xs;
+}
+
+.itemName {
+  font-weight: 500;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.itemMeta {
+  color: rgba(0, 0, 0, 0.6);
+  @include t.apply-text-style(t.$text-caption);
+}
+
+.editInput {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 2px solid rgba(c.$color-status-success, 0.45);
+  border-radius: v.$border-radius;
+  font-size: 1em;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: c.$color-status-success;
+  }
+}
+
+.editConfirmContent {
+  display: grid;
+  gap: v.$spacing-md;
+
+  p {
+    margin: 0;
+  }
+}
+
+.editConfirmActions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: v.$spacing-sm;
+  flex-wrap: wrap;
+}
+
+.deleteConfirmContent {
+  display: grid;
+  gap: v.$spacing-md;
+
+  p {
+    margin: 0;
+  }
+}
+
+.deleteConfirmActions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: v.$spacing-sm;
+}
+
+.editConfirmMeta {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.65);
+  @include t.apply-text-style(t.$text-caption);
+}

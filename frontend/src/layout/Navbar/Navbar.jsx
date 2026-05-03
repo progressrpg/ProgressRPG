@@ -15,6 +15,7 @@ export default function Navbar({ onMenuClick }) {
   const isHomePage = location.pathname === '/';
   // const isVillagePage = location.pathname === '/village';
   const isActivitiesPage = location.pathname === '/activities';
+  const isProjectsPage = location.pathname === '/projects';
   const isAccountPage = location.pathname === '/account';
 
   useEffect(() => {
@@ -52,6 +53,14 @@ export default function Navbar({ onMenuClick }) {
                   className={styles.navLink}
                 >
                   Activities
+                </Button>
+              </Link>
+              <Link to="/projects" aria-label="Go to projects">
+                <Button
+                  variant={isProjectsPage ? 'primary' : 'secondary'}
+                  className={styles.navLink}
+                >
+                  Projects
                 </Button>
               </Link>
               {/* <Link to="/village" aria-label="Go to village">
