@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useGame } from "../../context/GameContext";
 import Button from "../Button/Button";
+import EntitySearchInput from "../EntitySearchInput/EntitySearchInput";
+import { useEntitySearchCache } from "../../hooks/useEntitySearchCache";
 import styles from "./ActivityInput.module.scss";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
@@ -34,6 +36,7 @@ export default function ActivityInput() {
   } = activityTimer;
 
   const isPremium = Boolean(player?.is_premium);
+  const { addEntityToCache } = useEntitySearchCache("activity");
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
@@ -181,16 +184,8 @@ export default function ActivityInput() {
     }
 
     if (!name.trim()) return;
+    addEntityToCache(name.trim());
     await startActivity({ text: name.trim(), limitSeconds: isPremium ? null : freeTimerLimitSeconds });
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey && !isActive && name.trim()) {
-      e.preventDefault();
-      handleToggle();
-
-      e.currentTarget.blur();
-    }
   }
 
   const minutes = Math.floor(elapsed / 60);
@@ -224,18 +219,34 @@ export default function ActivityInput() {
         >
           <div className={styles.row}>
             <div className={classNames(styles.grow, styles.control)}>
-              <textarea
-                id="activity-name"
+              <EntitySearchInput
+                type="activity"
                 value={inputValue}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onChange={setName}
+                onSelect={async (activity) => {
+                  setName(activity.name);
+                  addEntityToCache(activity.name);
+                  await startActivity({
+                    text: activity.name,
+                    limitSeconds: isPremium ? null : freeTimerLimitSeconds,
+                  });
+                }}
+                onCreate={async (activityName) => {
+                  setName(activityName);
+                  addEntityToCache(activityName);
+                  await startActivity({
+                    text: activityName,
+                    limitSeconds: isPremium ? null : freeTimerLimitSeconds,
+                  });
+                }}
                 placeholder="What are you working on? e.g. washing dishes"
-                className={classNames(styles.inputText, {
+                aria-label="Activity name"
+                className={styles.entitySearch}
+                inputClassName={classNames(styles.inputText, {
                   [styles.inputCTA]: !isActive,
                   [styles.inputMuted]: isActive,
                 })}
-                rows={1}
-                aria-label="Activity name"
+                searchEnabled={!isActive}
               />
             </div>
 

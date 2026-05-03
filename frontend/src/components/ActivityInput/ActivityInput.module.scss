@@ -12,6 +12,7 @@ $row-control-height: 44px;
   align-items: center;
 }
 .containerOuter {
+  position: relative;
   width: min(100%, 720px);
 }
 
@@ -22,6 +23,8 @@ $row-control-height: 44px;
 }
 
 .supportButtonRow {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: center;
   padding-top: v.$spacing-md;
@@ -36,7 +39,7 @@ $row-control-height: 44px;
 
 .container {
   position: relative;
-  isolation: isolate;
+  z-index: 2;
 
   border: 1px solid rgba(c.$color-border-primary, 0.15);
   border-radius: v.$border-radius;

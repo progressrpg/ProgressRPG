@@ -31,18 +31,20 @@ export default function ActivityRewardScreen({
     }
 
     const intervalId = setInterval(() => {
-      setRemainingMs((prev) => {
-        const next = Math.max(0, prev - 100);
-        if (next === 0 && !hasAutoContinuedRef.current) {
-          hasAutoContinuedRef.current = true;
-          onSupport?.();
-        }
-        return next;
-      });
+      setRemainingMs((prev) => Math.max(0, prev - 100));
     }, 100);
 
     return () => clearInterval(intervalId);
   }, [isCountdownPaused, onSupport, shouldEnableCountdown]);
+
+  useEffect(() => {
+    if (!shouldEnableCountdown || hasAutoContinuedRef.current || remainingMs > 0) {
+      return;
+    }
+
+    hasAutoContinuedRef.current = true;
+    onSupport?.();
+  }, [onSupport, remainingMs, shouldEnableCountdown]);
 
   const countdownSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
   const continueButtonLabel = shouldEnableCountdown

@@ -1,0 +1,50 @@
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+
+.root {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + #{v.$spacing-xs});
+  left: 0;
+  right: 0;
+  z-index: v.$z-index-tooltip;
+  margin: 0;
+  padding: v.$spacing-xs 0;
+  list-style: none;
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.98);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.optionItem {
+  margin: 0;
+}
+
+.optionButton {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: v.$spacing-sm v.$spacing-md;
+  text-align: left;
+  color: c.$color-text-body;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.08);
+  }
+}
+
+.optionButtonActive {
+  background: rgba(c.$color-border-primary, 0.14);
+}

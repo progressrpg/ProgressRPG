@@ -124,11 +124,13 @@ class CharacterSkillSerializer(SkillBaseSerializer):
 
 class PlayerActivitySerializer(TimeRecordBaseSerializer):
     player = serializers.PrimaryKeyRelatedField(read_only=True)
+    group_key = serializers.CharField(read_only=True)
 
     class Meta(TimeRecordBaseSerializer.Meta):
         model = PlayerActivity
         fields = TimeRecordBaseSerializer.Meta.fields + [
             "player",
+            "group_key",
             "is_private",
             "skill",
             "project",
