@@ -13,6 +13,7 @@ const fetchActivities = vi.fn();
 const clearAutoStopCompletion = vi.fn();
 const stop = vi.fn();
 const startActivity = vi.fn();
+const addEntityToCache = vi.fn();
 const { playLimitReachedSound } = vi.hoisted(() => ({
   playLimitReachedSound: vi.fn(),
 }));
@@ -25,8 +26,25 @@ vi.mock('../../hooks/useSupportFlow', () => ({
   useSupportFlow: (...args) => mockUseSupportFlow(...args),
 }));
 
+vi.mock('../../hooks/useEntitySearchCache', () => ({
+  useEntitySearchCache: () => ({
+    addEntityToCache,
+  }),
+}));
+
 vi.mock('../SupportFlow/SupportFlowModal', () => ({
   default: () => null,
+}));
+
+vi.mock('../EntitySearchInput/EntitySearchInput', () => ({
+  default: ({ value, onChange, ariaLabel, inputClassName }) => (
+    <input
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      aria-label={ariaLabel}
+      className={inputClassName}
+    />
+  ),
 }));
 
 vi.mock('../../utils/sounds', () => ({
@@ -42,6 +60,7 @@ describe('ActivityInput', () => {
     clearAutoStopCompletion.mockReset();
     stop.mockReset();
     startActivity.mockReset();
+    addEntityToCache.mockReset();
     playLimitReachedSound.mockReset();
 
     fetchPlayerAndCharacter.mockResolvedValue(null);

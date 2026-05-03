@@ -36,7 +36,6 @@ $row-control-height: 44px;
 
 .container {
   position: relative;
-  isolation: isolate;
 
   border: 1px solid rgba(c.$color-border-primary, 0.15);
   border-radius: v.$border-radius;
@@ -58,6 +57,10 @@ $row-control-height: 44px;
   flex: 1 1 auto;
   min-width: 0;
   min-height: $row-control-height;
+}
+
+.entitySearch {
+  width: 100%;
 }
 
 .timerLine {
@@ -101,10 +104,6 @@ $row-control-height: 44px;
   background: transparent;
   box-shadow: none;
   width: 100%;
-  resize: none;
-  overflow: hidden;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
   appearance: none;
 
   &:focus,
