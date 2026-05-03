@@ -1,6 +1,7 @@
 // hooks/useActivityTimer.js
 import { useState, useRef, useEffect, useCallback } from "react";
 import { apiFetch } from "../utils/api.js";
+import { playActivityStartedSound } from "../utils/sounds.js";
 //import { useGame } from "../context/GameContext.jsx";
 
 
@@ -139,6 +140,8 @@ export default function useActivityTimer() {
       const startData = await apiFetch(`/activity_timers/start/`, {
         method: "POST",
       });
+
+      playActivityStartedSound();
 
       // Don't load from server here - keep optimistic state to avoid flicker
       // The timer is already running locally and will sync on next reload
