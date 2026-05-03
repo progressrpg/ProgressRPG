@@ -4,8 +4,7 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.utils.timezone import now, timedelta
-from freezegun import freeze_time
-from unittest import skip
+from unittest.mock import patch
 import logging
 
 from gameplay.models import (
@@ -260,6 +259,9 @@ class TestActivityTimer(TestCase):
         self.assertEqual(self.timer.status, "active")
         self.assertIsNotNone(self.timer.start_time)
 
+        self.timer.activity.refresh_from_db()
+        self.assertIsNotNone(self.timer.activity.started_at)
+
         self.timer.pause()
         self.assertEqual(self.timer.status, "paused")
         self.assertIsNone(self.timer.start_time)
@@ -271,33 +273,31 @@ class TestActivityTimer(TestCase):
         self.assertIsNone(self.timer.activity)
         self.assertEqual(self.timer.status, "empty")
 
-    @skip("'activity'")
     def test_complete(self):
         self.timer.new_activity("Test activity")
-        self.timer.start()
+        self.timer.elapsed_time = 15
+        self.timer.start_time = now()
 
         activity = self.timer.activity
         xp_before = self.player.xp
 
-        result = self.timer.complete()  # returns the timer itself
+        result = self.timer.complete()
 
         # Activity should be marked complete
         activity.refresh_from_db()
         self.assertIsNotNone(activity.completed_at)
         self.assertTrue(activity.is_complete)
+        self.assertEqual(activity.duration, 15)
+        self.assertEqual(activity.xp_gained, 15)
 
         # Player should have XP applied
         self.player.refresh_from_db()
-        self.assertGreaterEqual(self.player.xp, xp_before)
+        self.assertEqual(self.player.xp, xp_before + 15)
 
         self.timer.refresh_from_db()
-        # Timer status remains "completed" or however you define post-completion
         self.assertEqual(self.timer.status, "empty")
-
         self.assertIsNone(self.timer.activity)
-
-        # Ensure the returned object is the timer itself
-        self.assertIs(result, self.timer)
+        self.assertEqual(result, 15)
 
 
 class TestQuestTimer(TestCase):
@@ -334,11 +334,15 @@ class TestQuestTimer(TestCase):
         self.assertEqual(self.timer.status, "empty")
         self.assertEqual(self.timer.elapsed_time, 0)
 
-    @freeze_time("2025-01-01 12:00:00")
     def test_get_remaining_time(self):
         self.timer.change_quest(self.char_quest, duration=300)
-        self.timer.start()
-        with freeze_time("2025-01-01 12:05:00"):
+        start_time = now()
+        with patch("gameplay.models.timezone.now", return_value=start_time):
+            self.timer.start()
+        with patch(
+            "gameplay.models.timezone.now",
+            return_value=start_time + timedelta(minutes=5),
+        ):
             self.assertEqual(self.timer.get_remaining_time(), 0)
             self.assertTrue(self.timer.time_finished())
 

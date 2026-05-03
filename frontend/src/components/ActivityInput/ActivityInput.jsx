@@ -18,6 +18,7 @@ export default function ActivityInput() {
     loginState,
     loginStreak,
     loginEventAt,
+    loginRewardXp,
     player,
     freeTimerLimitSeconds,
   } = useGame();
@@ -36,9 +37,11 @@ export default function ActivityInput() {
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
-  const inputRef = useRef(null);
 
   const isActive = status === "active";
+  const inputValue = isActive
+    ? (name || currentActivity?.name || "")
+    : name;
 
   const {
     openWelcomeMessage,
@@ -50,10 +53,26 @@ export default function ActivityInput() {
   } =
     useSupportFlow({
       onStartActivity: ({ activityText, durationSeconds }) => {
-        const limitSeconds = isPremium
-          ? (durationSeconds ?? null)
-          : durationSeconds ? Math.min(durationSeconds, freeTimerLimitSeconds) : freeTimerLimitSeconds;
-        startActivity({ text: activityText, limitSeconds });
+        const parsedDuration = Number(durationSeconds);
+        const hasCustomDuration = Number.isFinite(parsedDuration) && parsedDuration > 0;
+
+        let resolvedLimitSeconds = null;
+        let limitReason = null;
+
+        if (isPremium) {
+          resolvedLimitSeconds = hasCustomDuration ? parsedDuration : null;
+        } else if (!hasCustomDuration) {
+          resolvedLimitSeconds = freeTimerLimitSeconds;
+          limitReason = "free_limit";
+        } else if (parsedDuration > freeTimerLimitSeconds) {
+          resolvedLimitSeconds = freeTimerLimitSeconds;
+          limitReason = "free_limit";
+        } else {
+          resolvedLimitSeconds = parsedDuration;
+          limitReason = "preset_limit";
+        }
+
+        startActivity({ text: activityText, limitSeconds: resolvedLimitSeconds, limitReason });
       },
     });
 
@@ -69,28 +88,16 @@ export default function ActivityInput() {
 
     if (lastShownEventAt === loginEventAt) return;
 
-    openWelcomeMessage({ loginState, loginStreak });
+    openWelcomeMessage({ loginState, loginStreak, loginRewardXp });
 
     try {
       sessionStorage.setItem(WELCOME_MESSAGE_LAST_EVENT_KEY, loginEventAt);
     } catch {
       // Ignore storage failures and keep app flow functional.
     }
-  }, [loginState, loginStreak, loginEventAt, openWelcomeMessage]);
+  }, [loginState, loginStreak, loginEventAt, loginRewardXp, openWelcomeMessage]);
 
   useEffect(() => () => timeoutRef.current && clearTimeout(timeoutRef.current), []);
-
-  useEffect(() => {
-    if (!inputRef.current) return;
-    inputRef.current.style.height = "auto";
-    inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-  }, [name]);
-
-  useEffect(() => {
-    if (status === "active" && currentActivity?.name) {
-      setName(currentActivity.name);
-    }
-  }, [status, currentActivity]);
 
   useEffect(() => {
     if (!autoStopCompletion) return;
@@ -114,11 +121,15 @@ export default function ActivityInput() {
 
       playLimitReachedSound();
 
+      const isFreeLimitAutoStop = autoStopCompletion?.stopReason === "free_limit";
+
       openActivityReward({
         xpGained: autoStopCompletion.xpGained,
         baseXp: autoStopCompletion.baseXp,
         xpMultiplier: autoStopCompletion.xpMultiplier,
         levelUps: autoStopCompletion.levelUps,
+        isAutoStopped: true,
+        showUpgradePrompt: !isPremium && isFreeLimitAutoStop,
         activityName: autoStopCompletion.activityName,
         elapsedSeconds: autoStopCompletion.elapsedSeconds,
       });
@@ -136,13 +147,14 @@ export default function ActivityInput() {
     fetchPlayerAndCharacter,
     fetchActivities,
     fetchCharacterCurrent,
+    isPremium,
     openActivityReward,
   ]);
 
   async function handleToggle() {
     if (isActive) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
-      const completion = await stop({ activityName: name });
+      const completion = await stop({ activityName: completedActivityName });
       const xpGained = completion?.xp_gained ?? null;
       const baseXp = completion?.base_xp ?? null;
       const xpMultiplier = completion?.xp_multiplier ?? null;
@@ -160,6 +172,8 @@ export default function ActivityInput() {
         baseXp,
         xpMultiplier,
         levelUps,
+        isAutoStopped: false,
+        showUpgradePrompt: !isPremium,
         activityName: completedActivityName || null,
         elapsedSeconds,
       });
@@ -209,11 +223,10 @@ export default function ActivityInput() {
           })}
         >
           <div className={styles.row}>
-            <div className={styles.grow}>
+            <div className={classNames(styles.grow, styles.control)}>
               <textarea
                 id="activity-name"
-                ref={inputRef}
-                value={name}
+                value={inputValue}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="What are you working on? e.g. washing dishes"

@@ -87,31 +87,34 @@ export default function CategoriesPage() {
               <div className={styles.actions}>
                 {editingId === category.id ? (
                   <>
-                    <button
+                    <Button
                       className={styles.saveButton}
                       onClick={() => handleEditSave(category.id)}
                       type="button"
                     >
                       Save
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
                       className={styles.cancelButton}
                       onClick={handleEditCancel}
                       type="button"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   <>
-                    <button
+                    <Button
+                      variant="secondary"
                       className={styles.editButton}
                       onClick={() => handleEditStart(category)}
                       type="button"
                     >
                       Edit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="danger"
                       className={styles.deleteButton}
                       onClick={() => {
                         if (confirm("Delete this category?")) {
@@ -121,7 +124,7 @@ export default function CategoriesPage() {
                       type="button"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

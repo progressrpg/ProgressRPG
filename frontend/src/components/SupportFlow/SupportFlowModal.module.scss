@@ -141,28 +141,135 @@
 
 .rewardBreakdown {
   display: grid;
-  gap: v.$spacing-xs;
+  gap: v.$spacing-sm;
   margin-bottom: v.$spacing-md;
-  width: min(100%, 18rem);
+  width: min(100%, 58ch);
   margin-inline: auto;
-  padding: v.$spacing-sm;
-  border: 1px solid rgba(c.$color-border-primary, 0.25);
+  padding: v.$spacing-md;
+  border: 2px solid rgba(c.$color-border-primary, 0.4);
   border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.9);
+  box-shadow: 0 8px 24px rgba(c.$color-border-primary, 0.14);
+}
+
+.rewardSummary {
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
 }
 
 .rewardBreakdownRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: v.$spacing-md;
-  align-items: baseline;
+  align-items: center;
+  padding: v.$spacing-xs v.$spacing-sm;
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.65);
+}
+
+.rewardBreakdownRowPrimary {
+  @extend .rewardBreakdownRow;
+  background: rgba(c.$color-border-accent, 0.16);
+  border: 1px solid rgba(c.$color-border-accent, 0.45);
 }
 
 .rewardBreakdownLabel {
   color: c.$color-text-muted;
+  font-size: 0.95rem;
 }
 
 .rewardBreakdownValue {
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.upgradePanel {
+  width: 100%;
+  margin-bottom: 0;
+  padding: v.$spacing-sm v.$spacing-md;
+  border: 1px solid rgba(c.$color-border-primary, 0.5);
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.45);
+
+  p {
+    margin-top: 0;
+    margin-bottom: v.$spacing-sm;
+    color: c.$color-text-muted;
+  }
+
+  a {
+    text-decoration: none;
+  }
+}
+
+.supportPanel {
+  width: 100%;
+  margin-bottom: 0;
+  padding: v.$spacing-sm v.$spacing-md;
+  border: none;
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.7);
+
+  p {
+    margin-top: 0;
+  }
+}
+
+.supportPanelActions {
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-sm;
+}
+
+.supportCountdownButton {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.18),
+      rgba(255, 255, 255, 0.28)
+    );
+    pointer-events: none;
+    z-index: 0;
+    animation: supportCountdownFill var(--support-countdown-duration, 3000ms) linear forwards;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.supportPanelPaused {
+  .supportCountdownButton::before {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes supportCountdownFill {
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+.actionRow {
+  width: min(100%, 58ch);
+  margin-inline: auto;
+  display: grid;
+  gap: v.$spacing-md;
 }

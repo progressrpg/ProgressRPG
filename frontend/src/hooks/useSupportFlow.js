@@ -26,8 +26,8 @@ export function useSupportFlow({ onStartActivity } = {}) {
   const flowStateRef = useRef(flowState);
   useEffect(() => { flowStateRef.current = flowState; }, [flowState]);
 
-  const openWelcomeMessage = useCallback(({ loginState = "none", loginStreak = 0 } = {}) => {
-    flowDispatch({ type: "OPEN_WELCOME_MESSAGE", loginState, loginStreak });
+  const openWelcomeMessage = useCallback(({ loginState = "none", loginStreak = 0, loginRewardXp = 0 } = {}) => {
+    flowDispatch({ type: "OPEN_WELCOME_MESSAGE", loginState, loginStreak, loginRewardXp });
   }, []);
 
   const openActivityReward = useCallback(
@@ -38,6 +38,8 @@ export function useSupportFlow({ onStartActivity } = {}) {
       baseXp = null,
       xpMultiplier = null,
       levelUps = [],
+      isAutoStopped = false,
+      showUpgradePrompt = false,
     } = {}) => {
       flowDispatch({
         type: "OPEN_ACTIVITY_REWARD",
@@ -47,6 +49,8 @@ export function useSupportFlow({ onStartActivity } = {}) {
         baseXp,
         xpMultiplier,
         levelUps,
+        isAutoStopped,
+        showUpgradePrompt,
       });
     },
     []

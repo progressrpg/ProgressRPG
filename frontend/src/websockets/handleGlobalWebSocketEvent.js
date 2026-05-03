@@ -49,7 +49,6 @@ export async function handleGlobalWebSocketEvent(data, { showToast, maintenanceR
             console.warn('[WS] maintenanceRefetch not provided, cannot refresh.');
           }
           return;
-          break;
         case 'load-game':
           console.log("[WS] Django consumer 'load-game' message not currently in use.");
           break;

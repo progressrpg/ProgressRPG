@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.timezone import now
-from .models import MaintenanceWindow
+from .models import FeatureFlag, MaintenanceWindow
 import subprocess
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
@@ -112,3 +112,11 @@ class MaintenanceWindowAdmin(admin.ModelAdmin):
             f"/admin/server_management/maintenancewindow/{object_id}/deactivate/"  # Add this line
         )
         return super().change_view(request, object_id, form_url, extra_context)
+
+
+@admin.register(FeatureFlag)
+class FeatureFlagAdmin(admin.ModelAdmin):
+    list_display = ("key", "access_level", "updated_at")
+    list_filter = ("access_level",)
+    search_fields = ("key", "description")
+    list_editable = ("access_level",)

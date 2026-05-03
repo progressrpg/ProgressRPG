@@ -11,6 +11,7 @@ from unittest.mock import patch, MagicMock
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import Quest
 from progression.models import CharacterQuest
+from server_management.models import FeatureFlag
 
 User = get_user_model()
 
@@ -40,6 +41,43 @@ class TestMeViewSet(APITestCase):
         res = self.client.get(self.me_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["email"], self.user.email)
+
+    def test_me_player_patch_updates_name(self):
+        self.authenticate()
+
+        res = self.client.patch(
+            self.me_player_url, {"name": "  Red Fox  "}, format="json"
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.name, "Red Fox")
+        self.assertEqual(res.data["name"], "Red Fox")
+
+    def test_me_player_patch_rejects_invalid_name(self):
+        self.authenticate()
+        original_name = self.user.player.name
+
+        res = self.client.patch(
+            self.me_player_url, {"name": "bad!!name"}, format="json"
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.name, original_name)
+        self.assertIn("name", res.data)
+
+    def test_complete_onboarding_sets_flag(self):
+        self.authenticate()
+        self.user.player.onboarding_completed = False
+        self.user.player.save(update_fields=["onboarding_completed"])
+
+        res = self.client.post(self.me_complete_onboarding_url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.user.player.refresh_from_db()
+        self.assertTrue(self.user.player.onboarding_completed)
+        self.assertEqual(res.data, {"onboarding_completed": True})
 
 
 @override_settings(
@@ -161,3 +199,38 @@ class WaitlistSignupAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("email", response.data)
+
+
+class AppConfigViewTests(APITestCase):
+    def setUp(self):
+        self.url = reverse("app_config")
+
+    def test_returns_empty_feature_flags_when_none_configured(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("stripe_live_mode", response.data)
+        self.assertEqual(response.data["feature_flags"], {})
+
+    def test_returns_feature_flag_access_levels(self):
+        FeatureFlag.objects.create(
+            key="activityList", access_level=FeatureFlag.AccessLevel.ALL
+        )
+        FeatureFlag.objects.create(
+            key="premiumOnlyFeature", access_level=FeatureFlag.AccessLevel.PREMIUM
+        )
+        FeatureFlag.objects.create(
+            key="disabledFeature", access_level=FeatureFlag.AccessLevel.NO
+        )
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["feature_flags"],
+            {
+                "activityList": "all",
+                "disabledFeature": "no",
+                "premiumOnlyFeature": "premium",
+            },
+        )

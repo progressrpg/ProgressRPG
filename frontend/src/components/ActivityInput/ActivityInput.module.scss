@@ -48,7 +48,7 @@ $row-control-height: 44px;
 .row {
   display: flex;
   gap: map.get(sp.$gap, sm);
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: flex-start;
 
   width: min(100%, 720px);
@@ -57,6 +57,7 @@ $row-control-height: 44px;
 .grow {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: $row-control-height;
 }
 
 .timerLine {
@@ -90,9 +91,10 @@ $row-control-height: 44px;
 .inputText {
   font-size: 1.05rem;
   line-height: 1.2;
-  height: auto;
-  min-height: 1.4em;
+  height: 100%;
+  min-height: 100%;
   padding: v.$padding-sm;
+  box-sizing: border-box;
 
   border: none;
   border-radius: v.$border-radius;
@@ -103,6 +105,12 @@ $row-control-height: 44px;
   overflow: hidden;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  appearance: none;
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
 }
 
 .inputText:not(:focus):hover {
@@ -132,7 +140,7 @@ $row-control-height: 44px;
 }
 
 .ctaButton {
-  height: 100%;
+  align-self: center;
   display: flex;
   align-items: center;
 }
@@ -154,10 +162,13 @@ $row-control-height: 44px;
   }
 
   &:focus {
-    box-shadow:
-      0 0 0 3px rgba(255, 255, 255, 0.75),
-      0 0 1.5rem rgba(255, 255, 255, 0.45);
-    border-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 2px rgba(c.$color-border-accent, 0.35);
+    border-color: c.$color-border-accent;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px rgba(c.$color-border-accent, 0.35);
+    border-color: c.$color-border-accent;
   }
 
   &:not(:focus):hover {
@@ -195,8 +206,49 @@ $row-control-height: 44px;
   }
 }
 
-@media (max-width: 768px) {
+@include m.respond-to(md, down) {
+  .control {
+    height: 40px;
+  }
+
+  .grow {
+    min-height: 40px;
+  }
+
+  .inputText {
+    font-size: 1rem;
+    line-height: 1.1;
+    min-height: 1.2em;
+    padding: v.$spacing-xs;
+  }
+
+  .timerPill {
+    padding: v.$spacing-sm;
+    font-size: 1rem;
+  }
+
   .supportButtonRow {
     justify-content: center;
+  }
+}
+
+@include m.respond-to(sm, down) {
+  .control {
+    height: 38px;
+  }
+
+  .grow {
+    min-height: 38px;
+  }
+
+  .inputText {
+    font-size: 0.9rem;
+    line-height: 1.05;
+    min-height: 1.1em;
+  }
+
+  .timerPill {
+    padding: v.$spacing-xs v.$spacing-sm;
+    font-size: 0.95rem;
   }
 }

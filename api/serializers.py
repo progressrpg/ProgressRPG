@@ -118,6 +118,7 @@ class FetchInfoResponseSerializer(serializers.Serializer):
     login_state = serializers.CharField()
     login_streak = serializers.IntegerField()
     login_event_at = serializers.DateTimeField(allow_null=True)
+    login_reward_xp = serializers.IntegerField()
 
 
 class DownloadUserDataPlayerSerializer(serializers.Serializer):

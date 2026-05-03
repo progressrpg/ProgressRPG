@@ -115,4 +115,51 @@ describe("Account", () => {
     expect(saveButton).toBeDisabled();
     expect(shortRule.className).toMatch(/ruleInvalid/);
   });
+
+  it("shows upgrade button in billing for free users", () => {
+    renderAccount();
+
+    expect(
+      screen.getByText("Ready for more focus tools and rewards?")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Upgrade" })).toHaveAttribute(
+      "href",
+      "/upgrade"
+    );
+    expect(
+      screen.queryByText(/Manage your subscription and billing details/i)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Open Billing Portal" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows billing portal controls for premium users", () => {
+    mockUseGame.mockReturnValue({
+      player: {
+        name: "player_01234",
+        level: 3,
+        xp: 25,
+        xp_next_level: 100,
+        total_activities: 4,
+        total_time: 5400,
+        is_premium: true,
+      },
+      loading: false,
+      fetchPlayerAndCharacter: vi.fn(),
+    });
+
+    renderAccount();
+
+    expect(
+      screen.getByText(/Manage your subscription and billing details/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open billing portal" })
+    ).toHaveAttribute(
+      "href",
+      "https://billing.stripe.com/p/login/test_fZucN7dm23whgwNf3N4ow00"
+    );
+    expect(screen.queryByRole("link", { name: "Upgrade" })).not.toBeInTheDocument();
+  });
 });

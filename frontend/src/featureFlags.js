@@ -1,6 +1,13 @@
 // src/featureFlags.js
 const featureFlags = {
-  activityList: true, // toggle this to true to enable new filter UI
+  // Access levels:
+  // - 'no': disabled for everyone
+  // - 'all': enabled for all users
+  // - 'premium': enabled for premium users only
+  activityList: 'all',
+  tasksPage: 'all',
+  categoriesPage: 'all',
+  skillsPage: 'all',
 };
 
 export default featureFlags;

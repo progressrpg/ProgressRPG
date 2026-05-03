@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styles from './NavDrawer.module.scss';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -53,6 +53,7 @@ export default function NavDrawer({ drawerOpen, onClose }) {
         <ul className={styles["nav-drawer-links"]} role="list">
           {isAuthenticated ? (
             <>
+              <li><Link to="/timer" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Timer</Link></li>
               <li><Link to="/activities" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Activities</Link></li>
               {/* <li><Link to="/village" onClick={onClose} tabIndex={drawerOpen ? 0 : -1}>Village</Link></li> */}
             </>

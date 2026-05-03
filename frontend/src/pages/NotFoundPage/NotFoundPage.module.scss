@@ -40,7 +40,7 @@
   }
 }
 
-@media (min-width: 640px) {
+@include m.respond-to(sm) {
   .actions {
     flex-direction: row;
     justify-content: center;

@@ -1,0 +1,32 @@
+@use '../styles/base/variables' as v;
+@use '../styles/semantic/colors' as c;
+
+.fallbackPage {
+  min-height: 60vh;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: v.$spacing-lg;
+}
+
+.fallbackCard {
+  width: min(100%, 28rem);
+  padding: v.$spacing-lg;
+  border: 1px solid rgba(c.$color-border-primary, 0.25);
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-bg, 0.92);
+  box-shadow: 0 8px 24px rgba(c.$color-border-primary, 0.12);
+  text-align: center;
+
+  p {
+    margin: 0 0 v.$spacing-sm;
+  }
+
+  p:last-of-type {
+    margin-bottom: v.$spacing-md;
+  }
+}
+
+.fallbackTitle {
+  font-weight: 700;
+}

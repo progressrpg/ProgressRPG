@@ -51,22 +51,25 @@ export default function UpgradePage() {
         <p className={styles.subscribedNotice}>You are already subscribed!</p>
       ) : (
         <>
-          <p className={styles.subtitle}>Premium is currently available as a monthly subscription.</p>
+          <p className={styles.subtitle}>Premium membership for focused progress.</p>
 
           <div className={styles.planGrid}>
             <div className={`${styles.planCard} ${styles.planCardActive}`}>
-              <h2 className={styles.planHeading}>Monthly</h2>
+              <h2 className={styles.planHeading}>Premium membership</h2>
               <p className={styles.planPrice}>£5 / month</p>
-              <p className={styles.planDescription}>Flexible monthly billing.</p>
+              <p className={styles.planDescription}>Billed monthly. Cancel anytime.</p>
+              <h3 className={styles.benefitsHeading}>Premium benefits</h3>
+              <ul className={styles.benefitsList}>
+                <li>Double XP on all activity rewards.</li>
+                <li>Unlimited timer sessions.</li>
+                <li>Early access to new features as they roll out.</li>
+                <li>Help this project reach those in need quicker.</li>
+              </ul>
             </div>
           </div>
 
-          <p className={styles.selectedPlanSummary}>
-            You selected Monthly: £5 billed every month.
-          </p>
-
           <Button onClick={handleCheckout} disabled={loading}>
-            {loading ? "Redirecting..." : "Go to Monthly Checkout"}
+            {loading ? "Redirecting..." : "Go to checkout"}
           </Button>
         </>
       )}

@@ -5,6 +5,10 @@
 
 .page {
   @include m.page-layout();
+
+  @include m.respond-to(sm, down) {
+    padding-inline: v.$spacing-sm;
+  }
 }
 
 .activitiesLink {

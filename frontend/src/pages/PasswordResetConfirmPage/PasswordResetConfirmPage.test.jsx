@@ -8,7 +8,7 @@ import PasswordResetConfirmPage from './PasswordResetConfirmPage';
 describe('PasswordResetConfirmPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
   });
 
   it('shows an invalid-link message when the key is malformed', () => {
@@ -30,7 +30,7 @@ describe('PasswordResetConfirmPage', () => {
   it('submits the new password using the parsed reset key', async () => {
     const user = userEvent.setup();
 
-    global.fetch.mockResolvedValue({
+    globalThis.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({ detail: 'Password has been reset with the new password.' }),
     });
@@ -53,7 +53,7 @@ describe('PasswordResetConfirmPage', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Update password' }));
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/v1/auth/password/reset/confirm/'),
       expect.objectContaining({
         method: 'POST',

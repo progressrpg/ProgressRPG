@@ -79,6 +79,7 @@ from users.utils import send_email_to_users
 from progress_rpg.settings.utils import get_build_number
 
 from metrics.utils import track_user_session
+from server_management.models import FeatureFlag
 
 import logging
 
@@ -93,6 +94,7 @@ class AppConfigView(APIView):
         return Response(
             {
                 "stripe_live_mode": settings.STRIPE_LIVE_MODE,
+                "feature_flags": FeatureFlag.as_dict(),
             }
         )
 
@@ -516,6 +518,7 @@ class FetchInfoAPIView(APIView):
                 "login_state": login_state_data["login_state"],
                 "login_streak": login_state_data["login_streak"],
                 "login_event_at": login_state_data["login_event_at"],
+                "login_reward_xp": login_state_data["login_reward_xp"],
                 "free_timer_limit_seconds": settings.FREE_TIMER_LIMIT_SECONDS,
             }
             return Response(data)

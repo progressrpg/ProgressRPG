@@ -3,10 +3,8 @@ from django.core import mail
 from django.http import HttpResponse
 from django.test import TestCase, Client, override_settings, tag
 from django.test.client import RequestFactory
-from django.urls import reverse
 from datetime import date, timedelta
 from django.utils import timezone
-from unittest import skip
 from unittest.mock import patch
 import logging
 from types import SimpleNamespace
@@ -62,15 +60,6 @@ class UserCreationTest(TestCase):
         )
         self.assertTrue(superuser.is_superuser)
         self.assertTrue(superuser.is_staff)
-
-    def test_character_assigned_on_player(self):
-        """Test that a character is assigned to the user's player."""
-        user = self.UserModel.objects.create_user(
-            email="testuser1@example.com", password="testpassword123"
-        )
-        link = PlayerCharacterLink.objects.filter(player=user.player).first()
-        character = link.character
-        self.assertEqual(character, self.character)
 
     def test_player_defaults(self):
         """Test default values for a new player."""
@@ -136,10 +125,7 @@ class PlayerNameValidationTest(TestCase):
         )
 
         self.assertFalse(serializer.is_valid())
-        self.assertEqual(
-            serializer.errors["name"][0],
-            "Use letters and numbers with single spaces, hyphens (-), apostrophes ('), underscores (_), or periods (.). No repeated separators, and spaces cannot appear at the start or end.",
-        )
+        self.assertEqual(serializer.errors["name"][0], "Invalid player name.")
 
     def test_player_serializer_rejects_too_short_name(self):
         serializer = PlayerSerializer(
@@ -149,13 +135,7 @@ class PlayerNameValidationTest(TestCase):
         )
 
         self.assertFalse(serializer.is_valid())
-        self.assertEqual(
-            serializer.errors["name"][0],
-            (
-                f"Use between {PLAYER_NAME_MIN_LENGTH} and "
-                f"{PLAYER_NAME_MAX_LENGTH} characters."
-            ),
-        )
+        self.assertEqual(serializer.errors["name"][0], "Invalid player name.")
 
     def test_player_serializer_rejects_repeated_separators(self):
         serializer = PlayerSerializer(
@@ -165,10 +145,7 @@ class PlayerNameValidationTest(TestCase):
         )
 
         self.assertFalse(serializer.is_valid())
-        self.assertEqual(
-            serializer.errors["name"][0],
-            "Use letters and numbers with single spaces, hyphens (-), apostrophes ('), underscores (_), or periods (.). No repeated separators, and spaces cannot appear at the start or end.",
-        )
+        self.assertEqual(serializer.errors["name"][0], "Invalid player name.")
 
 
 class OnboardingTest(TestCase):
@@ -183,55 +160,6 @@ class OnboardingTest(TestCase):
     def test_initial_onboarding(self):
         """Test that onboarding starts at step 0."""
         self.assertEqual(self.user.player.onboarding_step, 0)
-
-    @skip("Need new character onboarding test")
-    def test_onboarding_player(self):
-        """Test the player creation step in onboarding."""
-        url = reverse("create_profile")
-        data = {"name": "Test name"}
-        response = self.client.post(url, data)
-
-        self.assertEqual(response.status_code, 302)
-        expected_url = reverse("create_character")
-        self.assertRedirects(response, expected_url)
-
-        self.player.refresh_from_db()
-        self.assertEqual(self.player.onboarding_step, 2)
-        self.assertEqual(self.player.name, "Test name")
-
-    @skip("Need new character onboarding test")
-    def test_onboarding_character(self):
-        """Test the character creation step in onboarding."""
-        self.player.onboarding_step = 2
-        self.player.save()
-
-        url = reverse("create_character")
-        data = {"character_name": "Test Character"}
-        response = self.client.post(url, data)
-
-        self.assertEqual(response.status_code, 302)
-        expected_url = reverse("subscribe")
-        self.assertRedirects(response, expected_url)
-
-        self.player.refresh_from_db()
-        self.assertEqual(self.player.onboarding_step, 3)
-        self.assertEqual(self.player.character.first_name, "Test Character")
-
-    @skip("Skipping as temporarily broken")
-    def test_onboarding_subscribe(self):
-        """Test the subscription step in onboarding."""
-        self.player.onboarding_step = 3
-        self.player.save()
-
-        url = reverse("subscribe")
-        response = self.client.post(url, {})
-
-        self.assertEqual(response.status_code, 302)
-        expected_url = reverse("game")
-        self.assertRedirects(response, expected_url)
-
-        self.player.refresh_from_db()
-        self.assertEqual(self.player.onboarding_step, 4)
 
 
 @tag("fast")
@@ -319,6 +247,69 @@ class JwtLoginTrackingTest(TestCase):
         self.assertEqual(UserLogin.objects.filter(user=self.user).count(), 1)
 
 
+class DailyLoginRewardTest(TestCase):
+    def setUp(self):
+        Character.objects.create(first_name="Jane", can_link=True)
+        self.user = get_user_model().objects.create_user(
+            email="daily-login@example.com",
+            password="testpassword123",
+        )
+
+    def _login_via_jwt(self):
+        serializer = CustomTokenObtainPairSerializer(
+            data={
+                "email": self.user.email,
+                "password": "testpassword123",
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def _seed_login_days(self, days_ago_values):
+        now = timezone.now()
+        seeded_rows = UserLogin.objects.bulk_create(
+            [UserLogin(user=self.user) for _ in days_ago_values]
+        )
+        for row, days_ago in zip(seeded_rows, days_ago_values):
+            UserLogin.objects.filter(pk=row.pk).update(
+                timestamp=now - timedelta(days=days_ago)
+            )
+
+    def test_first_login_of_day_rewards_10_xp(self):
+        self.assertEqual(self.user.player.xp, 0)
+
+        self._login_via_jwt()
+
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.xp, 10)
+
+    def test_streak_day_two_rewards_12_xp(self):
+        # Seed only yesterday so today's login is streak day 2.
+        self._seed_login_days([1])
+
+        self._login_via_jwt()
+
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.xp, 12)
+
+    def test_streak_reset_rewards_10_xp(self):
+        # Seed two days ago so the streak resets on today's login.
+        self._seed_login_days([2])
+
+        self._login_via_jwt()
+
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.xp, 10)
+
+    def test_streak_reward_is_capped_at_20_xp(self):
+        # Seed a long streak up to yesterday; today's reward should cap at 20.
+        self._seed_login_days(range(1, 10))
+
+        self._login_via_jwt()
+
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.xp, 20)
+
+
 class UserTimezoneApiTest(TestCase):
     def setUp(self):
         Character.objects.create(first_name="Jane", can_link=True)
@@ -336,7 +327,7 @@ class UserTimezoneApiTest(TestCase):
         )
         force_authenticate(request, user=self.user)
 
-        response = MeViewSet.as_view({"patch": "settings"})(request)
+        response = MeViewSet.as_view({"patch": "user_settings"})(request)
 
         self.assertEqual(response.status_code, 200)
         self.user.refresh_from_db()
@@ -484,11 +475,6 @@ class AssignCharacterTest(TestCase):
         )
         self.player = self.user.player
 
-        # Unlink the auto-assigned character to start fresh
-        links = PlayerCharacterLink.objects.filter(player=self.player, is_active=True)
-        for link in links:
-            link.unlink()
-
     def test_assign_character_to_player_success(self):
         """Test successful character assignment"""
         from users.utils import assign_character_to_player
@@ -530,13 +516,12 @@ class AssignCharacterTest(TestCase):
             death_date=date.today(),
         )
 
-        # Create a user - signals will auto-assign npc1 to it
         from users.models import CustomUser
 
         user2 = CustomUser.objects.create_user(
             email="user2@example.com", password="pass"
         )
-        # npc1 should now be linked and unavailable
+        PlayerCharacterLink.assign_character(player=user2.player, character=self.npc1)
 
         # Assign character to our player
         character = assign_character_to_player(self.player)
@@ -552,13 +537,12 @@ class AssignCharacterTest(TestCase):
         """Test assignment when no NPCs are available"""
         from users.utils import assign_character_to_player
 
-        # Create 2 users - signals will auto-assign npc1 and npc2 to them
         from users.models import CustomUser
 
         user1 = CustomUser.objects.create_user(email="user1@test.com", password="pass")
         user2 = CustomUser.objects.create_user(email="user2@test.com", password="pass")
-
-        # All NPCs should now be linked
+        PlayerCharacterLink.assign_character(player=user1.player, character=self.npc1)
+        PlayerCharacterLink.assign_character(player=user2.player, character=self.npc2)
 
         # Try to assign to our player (which already has its auto-assigned character unlinked)
         character = assign_character_to_player(self.player)

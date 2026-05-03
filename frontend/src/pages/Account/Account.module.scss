@@ -49,6 +49,11 @@
   }
 }
 
+.infoGrid > .infoItem:not(.nameItem) {
+  width: min(100%, 17rem);
+  justify-self: center;
+}
+
 .label {
   font-size: 0.85em;
   font-weight: 500;
@@ -117,6 +122,26 @@
   @include t.apply-text-style(t.$text-body);
 }
 
+.billingRow {
+  display: grid;
+  gap: v.$spacing-md;
+  align-items: center;
+
+  @include m.respond-to(md) {
+    grid-template-columns: minmax(220px, 1fr) minmax(240px, auto);
+  }
+}
+
+.billingAction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.billingAction .description {
+  margin-bottom: v.$spacing-sm;
+}
+
 .input {
   padding: v.$spacing-sm;
   border: 2px solid rgba(c.$color-border-primary, 0.3);
@@ -178,13 +203,18 @@
 }
 
 // Responsive adjustments
-@media (max-width: 768px) {
+@include m.respond-to(md, down) {
   .content {
     max-width: 100%;
   }
 
   .infoGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .infoGrid > .infoItem:not(.nameItem) {
+    width: min(100%, 15.5rem);
+    justify-self: start;
   }
 
   .inlineButton {
@@ -193,5 +223,20 @@
 
   .nameRow {
     align-items: stretch;
+  }
+
+  .billingAction {
+    align-items: stretch;
+  }
+}
+
+@include m.respond-to(sm, down) {
+  .infoGrid {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  }
+
+  .infoGrid > .infoItem:not(.nameItem) {
+    width: min(100%, 14.5rem);
+    justify-self: start;
   }
 }

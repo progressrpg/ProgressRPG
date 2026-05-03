@@ -14,21 +14,21 @@ export default function ConfirmationPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (!key) {
-      setStatus("error");
-      setMessage("Invalid confirmation link.");
-      return;
-    }
-
-    // Prevent re-confirmation in the same session
-    const confirmedKey = sessionStorage.getItem("confirmedKey");
-    if (confirmedKey === key) {
-      setStatus("success");
-      setMessage("Email already confirmed! Redirecting...");
-      setTimeout(() => navigate("/onboarding"), 2000);
-      return;
-    }
     async function confirmEmail() {
+      if (!key) {
+        setStatus("error");
+        setMessage("Invalid confirmation link.");
+        return;
+      }
+
+      const confirmedKey = sessionStorage.getItem("confirmedKey");
+      if (confirmedKey === key) {
+        setStatus("success");
+        setMessage("Email already confirmed! Redirecting...");
+        setTimeout(() => navigate("/onboarding"), 2000);
+        return;
+      }
+
       try {
         const res = await fetch(`${API_URL}/auth/confirm_email/${encodeURIComponent(key)}/`);
         const data = await res.json();
@@ -55,7 +55,7 @@ export default function ConfirmationPage() {
           setStatus("error");
           setMessage(data?.message || "Confirmation failed.");
         }
-      } catch (err) {
+      } catch {
         setStatus("error");
         setMessage("Something went wrong.");
       }

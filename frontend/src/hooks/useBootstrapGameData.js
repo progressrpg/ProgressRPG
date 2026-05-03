@@ -13,6 +13,7 @@ export function useBootstrapGameData() {
   const [loginState, setLoginState] = useState("none");
   const [loginStreak, setLoginStreak] = useState(0);
   const [loginEventAt, setLoginEventAt] = useState(null);
+  const [loginRewardXp, setLoginRewardXp] = useState(0);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buildNumber, setBuildNumber] = useState(true);
@@ -25,6 +26,7 @@ export function useBootstrapGameData() {
       setLoginState("none");
       setLoginStreak(0);
       setLoginEventAt(null);
+      setLoginRewardXp(0);
       setLoading(false);
       return;
     }
@@ -43,6 +45,7 @@ export function useBootstrapGameData() {
         setLoginState(typeof info.login_state === 'string' ? info.login_state : 'none');
         setLoginStreak(Number(info.login_streak) || 0);
         setLoginEventAt(info.login_event_at || null);
+        setLoginRewardXp(Number(info.login_reward_xp) || 0);
         setBuildNumber(info.build_number);
         setFreeTimerLimitSeconds(info.free_timer_limit_seconds ?? 1800);
       } catch (err) {
@@ -65,6 +68,7 @@ export function useBootstrapGameData() {
     loginState,
     loginStreak,
     loginEventAt,
+    loginRewardXp,
     buildNumber,
     freeTimerLimitSeconds,
     loading,
