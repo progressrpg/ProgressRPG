@@ -8,6 +8,32 @@ import styles from "./TasksPage.module.scss";
 
 const isTaskComplete = (task) => Boolean(task?.completed_at ?? task?.is_complete);
 
+function formatLastWorkedOn(task) {
+  const timestamp = task?.last_worked_on;
+  if (!timestamp) {
+    return "No time recorded";
+  }
+
+  const workedOn = new Date(timestamp);
+  if (Number.isNaN(workedOn.getTime())) {
+    return "No time recorded";
+  }
+
+  const now = Date.now();
+  const diffMs = Math.max(0, now - workedOn.getTime());
+  const dayMs = 24 * 60 * 60 * 1000;
+  const diffDays = Math.floor(diffMs / dayMs);
+
+  if (diffDays < 7) {
+    const dayLabel = diffDays === 1 ? "day" : "days";
+    return `Last worked on ${diffDays} ${dayLabel} ago`;
+  }
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  const weekLabel = diffWeeks === 1 ? "week" : "weeks";
+  return `Last worked on ${diffWeeks} ${weekLabel} ago`;
+}
+
 export default function TasksPage() {
   const { data: tasks, isLoading } = useTasks();
   const createTask = useCreateTask();
@@ -80,11 +106,7 @@ export default function TasksPage() {
             ariaLabel="Tasks"
             isItemComplete={isTaskComplete}
             onToggleComplete={handleToggleComplete}
-            renderItemMeta={(task) => (
-              <>
-                Total time: {task.total_time} • Records: {task.total_records}
-              </>
-            )}
+            renderItemMeta={(task) => formatLastWorkedOn(task)}
             renderEditSummary={(task) => (
               <>
                 {isTaskComplete(task) ? "Complete" : "Incomplete"} • Total time: {task.total_time}

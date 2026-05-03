@@ -208,6 +208,25 @@ export default function ActivityInput() {
     elapsed >= warningThresholdSeconds &&
     elapsed < limitSeconds;
 
+  const resolveSelectedTaskId = (entity) => {
+    if (entity?.source !== "task") return null;
+
+    if (entity?.taskId !== null && entity?.taskId !== undefined) {
+      return entity.taskId;
+    }
+
+    // Fallback for legacy cached task entities that may only carry id.
+    if (typeof entity?.id === "number") {
+      return entity.id;
+    }
+
+    if (typeof entity?.id === "string" && /^\d+$/.test(entity.id)) {
+      return entity.id;
+    }
+
+    return null;
+  };
+
   return (
     <>
       <div className={styles.containerOuter}>
@@ -225,9 +244,10 @@ export default function ActivityInput() {
                 onChange={setName}
                 onSelect={async (activity) => {
                   setName(activity.name);
-                  addEntityToCache(activity.name);
+                  addEntityToCache(activity);
                   await startActivity({
                     text: activity.name,
+                    taskId: resolveSelectedTaskId(activity),
                     limitSeconds: isPremium ? null : freeTimerLimitSeconds,
                   });
                 }}

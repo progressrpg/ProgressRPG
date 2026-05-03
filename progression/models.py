@@ -672,5 +672,24 @@ class Task(models.Model, PlayerOwnedMixin):
     def total_records(self):
         return self.records.filter(is_complete=True).count()
 
+    @property
+    def last_worked_on(self):
+        """Return the timestamp of the most recently completed linked activity."""
+        latest_record = (
+            self.records.filter(is_complete=True)
+            .order_by("-completed_at", "-last_updated", "-created_at")
+            .only("completed_at", "last_updated", "created_at")
+            .first()
+        )
+
+        if not latest_record:
+            return None
+
+        return (
+            latest_record.completed_at
+            or latest_record.last_updated
+            or latest_record.created_at
+        )
+
     def __str__(self):
         return self.name

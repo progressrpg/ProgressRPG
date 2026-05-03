@@ -171,6 +171,69 @@ describe('ActivityInput', () => {
     });
   });
 
+  it('starts a selected task suggestion with its task id', async () => {
+    const user = userEvent.setup();
+    startActivity.mockResolvedValue(null);
+
+    mockUseGame.mockReturnValue({
+      activityTimer: {
+        currentActivity: null,
+        status: 'empty',
+        stop,
+        startActivity,
+        elapsed: 0,
+        limitSeconds: null,
+        limitReached: false,
+        autoStopCompletion: null,
+        clearAutoStopCompletion,
+      },
+      fetchPlayerAndCharacter,
+      fetchCharacterCurrent,
+      fetchActivities,
+      loginState: 'none',
+      loginStreak: 0,
+      loginEventAt: null,
+      player: { is_premium: false },
+      freeTimerLimitSeconds: 15,
+    });
+
+    mockUseEntitySearchCache.mockReturnValue({
+      entities: [
+        {
+          id: 42,
+          name: 'Write docs',
+          taskId: 42,
+          source: 'task',
+        },
+      ],
+      addEntityToCache,
+    });
+
+    render(<ActivityInput />);
+
+    await user.type(
+      screen.getByPlaceholderText('What are you working on? e.g. washing dishes'),
+      'docs'
+    );
+    await user.click(await screen.findByRole('option', { name: /Write docs \(from Tasks\)/ }));
+
+    await waitFor(() => {
+      expect(addEntityToCache).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 42,
+          name: 'Write docs',
+          taskId: 42,
+          source: 'task',
+        })
+      );
+      expect(startActivity).toHaveBeenCalledWith({
+        text: 'Write docs',
+        taskId: 42,
+        limitSeconds: 15,
+      });
+    });
+  });
+
   it('does not show free-limit upgrade prompt for non-free auto-stop reasons', async () => {
     mockUseGame.mockReturnValue({
       activityTimer: {

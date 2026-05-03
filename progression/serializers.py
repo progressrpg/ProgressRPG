@@ -208,6 +208,7 @@ class TaskSerializer(serializers.ModelSerializer):
     player = serializers.PrimaryKeyRelatedField(read_only=True)
     total_time = serializers.IntegerField(read_only=True)
     total_records = serializers.IntegerField(read_only=True)
+    last_worked_on = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Task
@@ -223,5 +224,6 @@ class TaskSerializer(serializers.ModelSerializer):
             "completed_at",
             "total_time",
             "total_records",
+            "last_worked_on",
         ]
         read_only_fields = ["player"]
