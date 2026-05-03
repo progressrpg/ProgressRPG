@@ -72,7 +72,6 @@ channels==4.1.0
     #   -c requirements.txt
     #   -r requirements.in
     #   channels-redis
-    #   django-channels-jwt
 channels-redis==4.1.0
     # via
     #   -c requirements.txt
@@ -151,7 +150,6 @@ django==5.2.13
     #   django-allauth
     #   django-celery-beat
     #   django-cf-turnstile
-    #   django-channels-jwt
     #   django-cors-headers
     #   django-extensions
     #   django-filter
@@ -172,10 +170,6 @@ django-celery-beat==2.8.1
     #   -c requirements.txt
     #   -r requirements.in
 django-cf-turnstile==0.1.0
-    # via
-    #   -c requirements.txt
-    #   -r requirements.in
-django-channels-jwt==0.0.3
     # via
     #   -c requirements.txt
     #   -r requirements.in
@@ -348,8 +342,6 @@ pycparser==2.23
     # via
     #   -c requirements.txt
     #   cffi
-pygments==2.19.2
-    # via sphinx
 pyjwt==2.10.1
     # via
     #   -c requirements.txt

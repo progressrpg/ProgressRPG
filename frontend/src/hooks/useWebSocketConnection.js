@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { API_BASE_URL } from '../config';
-import { apiFetch } from "../utils/api";
+import { getValidAccessToken } from "../utils/api";
 
 // WebSocket connection constants
 const RECONNECT_DELAY_MS = 3000;
@@ -27,13 +27,13 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
     }
 
     try {
-      // Get UUID for connection using shared auth/refresh logic.
-      const { uuid } = await apiFetch('/ws_auth/', { method: 'GET' });
+      const accessToken = await getValidAccessToken();
 
       // Build WebSocket URL
       const url = new URL(API_BASE_URL);
       const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${url.host}/ws/profile_${playerId}/?uuid=${uuid}`;
+      const wsUrl = new URL(`${protocol}//${url.host}/ws/profile_${playerId}/`);
+      wsUrl.searchParams.set('token', accessToken);
 
       // Close existing socket if any
       if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -41,7 +41,7 @@ export function useWebSocketConnection(playerId, onMessage, onError, onClose, on
         socketRef.current.close();
       }
 
-      const socket = new WebSocket(wsUrl);
+      const socket = new WebSocket(wsUrl.toString());
       socketRef.current = socket;
 
       socket.onopen = () => {

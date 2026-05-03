@@ -8,16 +8,11 @@ https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 """
 
 import os
+
 import django
 
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
-from django.conf import settings
-from django.urls import re_path
-from django.views.static import serve
-
-# from channels.auth import AuthMiddlewareStack
-# from gameplay.mymiddleware import MyAuthMiddleware
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
@@ -26,15 +21,15 @@ os.environ.setdefault(
 
 django.setup()
 
-from django_channels_jwt.middleware import JwtAuthMiddlewareStack
 from gameplay.routing import load_websocket_urlpatterns
+from progress_rpg.middleware.channels_jwt import JWTQueryStringAuthMiddlewareStack
 
 django_asgi_app = get_asgi_application()
 
 application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
-        "websocket": JwtAuthMiddlewareStack(
+        "websocket": JWTQueryStringAuthMiddlewareStack(
             URLRouter(load_websocket_urlpatterns()),
         ),
     }
