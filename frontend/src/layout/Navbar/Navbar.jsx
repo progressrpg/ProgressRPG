@@ -54,14 +54,6 @@ export default function Navbar({ onMenuClick }) {
                   Activities
                 </Button>
               </Link>
-              {/* <Link to="/village" aria-label="Go to village">
-                <Button
-                  variant={isVillagePage ? 'secondary' : 'primary'}
-                  className={styles.navLink}
-                >
-                  Village
-                </Button>
-              </Link> */}
             </>
           )}
         </div>

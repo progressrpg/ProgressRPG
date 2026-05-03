@@ -19,7 +19,6 @@ Django<6
 django-allauth
 django-celery-beat
 django-cf-turnstile
-django-channels-jwt
 django-cors-headers
 django-environ
 django-extensions

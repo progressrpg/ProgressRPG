@@ -95,6 +95,25 @@
   @include lp.list-page-empty-state;
 }
 
+.addButtonIcon {
+  display: none;
+}
+
 @include m.respond-to(md, down) {
   @include lp.list-page-mobile;
+
+  // Keep the add-form in a row — only the item rows should stack
+  .addTaskForm {
+    flex-direction: row;
+  }
+}
+
+@include m.respond-to(sm, down) {
+  .addButtonText {
+    display: none;
+  }
+
+  .addButtonIcon {
+    display: inline;
+  }
 }

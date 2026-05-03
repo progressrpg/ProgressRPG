@@ -6,6 +6,7 @@ import ActivityInput from './ActivityInput';
 
 const mockUseGame = vi.fn();
 const mockUseSupportFlow = vi.fn();
+const mockUseEntitySearchCache = vi.fn();
 const openActivityReward = vi.fn();
 const fetchPlayerAndCharacter = vi.fn();
 const fetchCharacterCurrent = vi.fn();
@@ -13,6 +14,7 @@ const fetchActivities = vi.fn();
 const clearAutoStopCompletion = vi.fn();
 const stop = vi.fn();
 const startActivity = vi.fn();
+const addEntityToCache = vi.fn();
 const { playLimitReachedSound } = vi.hoisted(() => ({
   playLimitReachedSound: vi.fn(),
 }));
@@ -23,6 +25,10 @@ vi.mock('../../context/GameContext', () => ({
 
 vi.mock('../../hooks/useSupportFlow', () => ({
   useSupportFlow: (...args) => mockUseSupportFlow(...args),
+}));
+
+vi.mock('../../hooks/useEntitySearchCache', () => ({
+  useEntitySearchCache: (...args) => mockUseEntitySearchCache(...args),
 }));
 
 vi.mock('../SupportFlow/SupportFlowModal', () => ({
@@ -42,6 +48,7 @@ describe('ActivityInput', () => {
     clearAutoStopCompletion.mockReset();
     stop.mockReset();
     startActivity.mockReset();
+    addEntityToCache.mockReset();
     playLimitReachedSound.mockReset();
 
     fetchPlayerAndCharacter.mockResolvedValue(null);
@@ -55,6 +62,11 @@ describe('ActivityInput', () => {
       flowState: { isOpen: false },
       flowDispatch: vi.fn(),
       handleConfirmActivity: vi.fn(),
+    });
+
+    mockUseEntitySearchCache.mockReturnValue({
+      entities: [],
+      addEntityToCache,
     });
 
     mockUseGame.mockReturnValue({
@@ -156,6 +168,69 @@ describe('ActivityInput', () => {
         elapsedSeconds: 16,
       });
       expect(playLimitReachedSound).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('starts a selected task suggestion with its task id', async () => {
+    const user = userEvent.setup();
+    startActivity.mockResolvedValue(null);
+
+    mockUseGame.mockReturnValue({
+      activityTimer: {
+        currentActivity: null,
+        status: 'empty',
+        stop,
+        startActivity,
+        elapsed: 0,
+        limitSeconds: null,
+        limitReached: false,
+        autoStopCompletion: null,
+        clearAutoStopCompletion,
+      },
+      fetchPlayerAndCharacter,
+      fetchCharacterCurrent,
+      fetchActivities,
+      loginState: 'none',
+      loginStreak: 0,
+      loginEventAt: null,
+      player: { is_premium: false },
+      freeTimerLimitSeconds: 15,
+    });
+
+    mockUseEntitySearchCache.mockReturnValue({
+      entities: [
+        {
+          id: 42,
+          name: 'Write docs',
+          taskId: 42,
+          source: 'task',
+        },
+      ],
+      addEntityToCache,
+    });
+
+    render(<ActivityInput />);
+
+    await user.type(
+      screen.getByPlaceholderText('What are you working on? e.g. washing dishes'),
+      'docs'
+    );
+    await user.click(await screen.findByRole('option', { name: /Write docs \(from Tasks\)/ }));
+
+    await waitFor(() => {
+      expect(addEntityToCache).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 42,
+          name: 'Write docs',
+          taskId: 42,
+          source: 'task',
+        })
+      );
+      expect(startActivity).toHaveBeenCalledWith({
+        text: 'Write docs',
+        taskId: 42,
+        limitSeconds: 15,
+      });
     });
   });
 

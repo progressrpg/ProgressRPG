@@ -4,7 +4,7 @@ import stripe
 from django.contrib import admin, messages
 
 from payments.models import SubscriptionPlan, UserSubscription, StripeEvent
-from payments.services import end_active_subscription_and_activate_free
+from payments.services import end_active_subscription
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +42,10 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
     list_display = ["user", "plan", "active", "start_date", "end_date"]
     list_filter = ["active", "plan__name"]
     search_fields = ["user__email", "plan__name", "stripe_subscription_id"]
-    actions = ["end_subscription_and_activate_free"]
+    actions = ["end_subscription"]
 
-    @admin.action(description="End active subscription and activate free plan")
-    def end_subscription_and_activate_free(self, request, queryset):
+    @admin.action(description="End active subscription")
+    def end_subscription(self, request, queryset):
         success_count = 0
         skip_count = 0
 
@@ -55,7 +55,7 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
                 continue
 
             try:
-                end_active_subscription_and_activate_free(subscription.user)
+                end_active_subscription(subscription.user)
                 success_count += 1
             except stripe.error.StripeError as exc:
                 logger.warning(
@@ -83,7 +83,7 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
         if success_count:
             self.message_user(
                 request,
-                f"Successfully ended subscription and activated free plan for {success_count} user(s).",
+                f"Successfully ended active subscriptions for {success_count} user(s).",
                 level=messages.SUCCESS,
             )
         if skip_count:

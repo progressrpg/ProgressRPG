@@ -4,19 +4,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import useActivityTimer from './useActivityTimer';
 
 const mockApiFetch = vi.fn();
+const mockPlayActivityStartedSound = vi.fn();
 
 vi.mock("../utils/api.js", () => ({
   apiFetch: (...args) => mockApiFetch(...args),
+}));
+
+vi.mock("../utils/sounds.js", () => ({
+  playActivityStartedSound: (...args) => mockPlayActivityStartedSound(...args),
 }));
 
 describe('useActivityTimer', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mockApiFetch.mockReset();
+    mockPlayActivityStartedSound.mockReset();
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
+    act(() => {
+      vi.runOnlyPendingTimers();
+    });
     vi.useRealTimers();
   });
 
@@ -55,6 +63,7 @@ describe('useActivityTimer', () => {
       '/activity_timers/complete/',
       expect.objectContaining({ method: 'POST' })
     );
+    expect(mockPlayActivityStartedSound).toHaveBeenCalledTimes(1);
     expect(result.current.status).toBe('empty');
     expect(result.current.elapsed).toBe(0);
     expect(result.current.autoStopCompletion).toEqual({
@@ -103,5 +112,31 @@ describe('useActivityTimer', () => {
       activityName: 'Restored activity',
       elapsedSeconds: 15,
     });
+  });
+
+  it('plays the start chime when an activity starts successfully', async () => {
+    mockApiFetch.mockImplementation((url) => {
+      if (url === '/activity_timers/set_activity/') {
+        return Promise.resolve({
+          activity_timer: {
+            activity: { id: 1, name: 'Chime activity' },
+          },
+        });
+      }
+
+      if (url === '/activity_timers/start/') {
+        return Promise.resolve({ success: true });
+      }
+
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    const { result } = renderHook(() => useActivityTimer());
+
+    await act(async () => {
+      await result.current.startActivity({ text: 'Chime activity', limitSeconds: 15 });
+    });
+
+    expect(mockPlayActivityStartedSound).toHaveBeenCalledTimes(1);
   });
 });

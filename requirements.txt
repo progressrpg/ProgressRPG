@@ -47,7 +47,6 @@ channels==4.1.0
     # via
     #   -r requirements.in
     #   channels-redis
-    #   django-channels-jwt
 channels-redis==4.1.0
     # via -r requirements.in
 charset-normalizer==3.4.4
@@ -103,7 +102,6 @@ django==5.2.13
     #   django-allauth
     #   django-celery-beat
     #   django-cf-turnstile
-    #   django-channels-jwt
     #   django-cors-headers
     #   django-extensions
     #   django-filter
@@ -118,8 +116,6 @@ django-allauth==65.14.1
 django-celery-beat==2.8.1
     # via -r requirements.in
 django-cf-turnstile==0.1.0
-    # via -r requirements.in
-django-channels-jwt==0.0.3
     # via -r requirements.in
 django-cors-headers==4.9.0
     # via -r requirements.in

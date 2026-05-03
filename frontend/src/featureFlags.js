@@ -8,6 +8,7 @@ const featureFlags = {
   tasksPage: 'all',
   categoriesPage: 'all',
   skillsPage: 'all',
+  projectsPage: 'all',
 };
 
 export default featureFlags;

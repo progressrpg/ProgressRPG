@@ -10,7 +10,7 @@ from unittest.mock import patch, MagicMock
 
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import Quest
-from progression.models import CharacterQuest
+from progression.models import CharacterQuest, PlayerActivity
 from server_management.models import FeatureFlag
 
 User = get_user_model()
@@ -60,6 +60,19 @@ class TestMeViewSet(APITestCase):
 
         res = self.client.patch(
             self.me_player_url, {"name": "bad!!name"}, format="json"
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.player.refresh_from_db()
+        self.assertEqual(self.user.player.name, original_name)
+        self.assertIn("name", res.data)
+
+    def test_me_player_patch_rejects_profane_name(self):
+        self.authenticate()
+        original_name = self.user.player.name
+
+        res = self.client.patch(
+            self.me_player_url, {"name": "b1tch-mage"}, format="json"
         )
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
@@ -233,4 +246,38 @@ class AppConfigViewTests(APITestCase):
                 "disabledFeature": "no",
                 "premiumOnlyFeature": "premium",
             },
+        )
+
+
+class PlayerActivityGroupKeyAPITests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="activity-groups@example.com",
+            password="pass12345",
+        )
+        self.client.force_authenticate(user=self.user)
+        self.url = reverse("playeractivity-list")
+
+    def test_create_reuses_dominant_exact_match_group_key(self):
+        PlayerActivity.objects.create(
+            player=self.user.player,
+            name="Morning planning",
+            group_key="morning-planning",
+        )
+        PlayerActivity.objects.create(
+            player=self.user.player,
+            name="morning planning",
+            group_key="morning-planning",
+        )
+
+        response = self.client.post(
+            self.url,
+            {"name": "MORNING PLANNING", "duration": 300},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            response.data["activity"]["group_key"],
+            "morning-planning",
         )

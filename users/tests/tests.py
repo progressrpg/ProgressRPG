@@ -147,6 +147,26 @@ class PlayerNameValidationTest(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertEqual(serializer.errors["name"][0], "Invalid player name.")
 
+    def test_player_serializer_rejects_profane_name(self):
+        serializer = PlayerSerializer(
+            self.user.player,
+            data={"name": "fuckingwolf"},
+            partial=True,
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors["name"][0], "Invalid player name.")
+
+    def test_player_serializer_rejects_leetspeak_profane_name(self):
+        serializer = PlayerSerializer(
+            self.user.player,
+            data={"name": "sh1t-happens"},
+            partial=True,
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors["name"][0], "Invalid player name.")
+
 
 class OnboardingTest(TestCase):
     def setUp(self):

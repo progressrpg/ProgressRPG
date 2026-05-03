@@ -7,7 +7,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 
 from payments.signals import provision_default_subscription
 from payments.models import StripeEvent, SubscriptionPlan, UserSubscription
-from payments.services import provision_free_subscription
+from payments.services import end_active_subscription
 from payments.views import CreateCheckoutSessionView, StripeWebhookView
 from payments.webhooks import (
     handle_checkout_session_completed,
@@ -18,9 +18,7 @@ from payments.webhooks import (
 
 
 class ProvisionDefaultSubscriptionSignalTests(SimpleTestCase):
-    @override_settings(STRIPE_PRICE_ID_FREE="price_free", STRIPE_SECRET_KEY="sk_test")
-    @patch("payments.signals.provision_free_subscription")
-    def test_provisions_for_new_user_when_configured(self, mock_provision):
+    def test_does_not_provision_default_subscription_for_new_users(self):
         user = SimpleNamespace(id=123)
 
         provision_default_subscription(
@@ -30,41 +28,14 @@ class ProvisionDefaultSubscriptionSignalTests(SimpleTestCase):
             raw=False,
         )
 
-        mock_provision.assert_called_once_with(user)
-
-    @override_settings(STRIPE_PRICE_ID_FREE="", STRIPE_SECRET_KEY="")
-    @patch("payments.signals.provision_free_subscription")
-    def test_skips_when_stripe_not_configured(self, mock_provision):
-        user = SimpleNamespace(id=123)
-
-        provision_default_subscription(
-            sender=object,
-            instance=user,
-            created=True,
-            raw=False,
+        self.assertIsNone(
+            provision_default_subscription(
+                sender=object,
+                instance=user,
+                created=False,
+                raw=True,
+            )
         )
-
-        mock_provision.assert_not_called()
-
-    @override_settings(STRIPE_PRICE_ID_FREE="price_free", STRIPE_SECRET_KEY="sk_test")
-    @patch("payments.signals.provision_free_subscription")
-    def test_skips_for_existing_user_or_raw_save(self, mock_provision):
-        user = SimpleNamespace(id=123)
-
-        provision_default_subscription(
-            sender=object,
-            instance=user,
-            created=False,
-            raw=False,
-        )
-        provision_default_subscription(
-            sender=object,
-            instance=user,
-            created=True,
-            raw=True,
-        )
-
-        mock_provision.assert_not_called()
 
 
 @override_settings(
@@ -228,6 +199,7 @@ class HandleSubscriptionEventTests(TestCase):
         self.assertEqual(subscription.plan.stripe_price_id, "price_premium_annual")
 
     def test_subscription_deleted_deactivates_subscription(self):
+        UserSubscription.deactivate_all_for_user(self.user)
         subscription = UserSubscription.objects.create(
             user=self.user,
             plan=self.premium_monthly_plan,
@@ -252,6 +224,48 @@ class HandleSubscriptionEventTests(TestCase):
         subscription.refresh_from_db()
         self.assertFalse(subscription.active)
         self.assertIsNotNone(subscription.end_date)
+
+
+@override_settings(
+    STRIPE_PRICE_ID_PREMIUM_MONTHLY="price_premium_monthly",
+    STRIPE_PRICE_ID_PREMIUM_ANNUAL="price_premium_annual",
+)
+class UserPremiumPropertyTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="premium-property@example.com",
+            password="testpass123",
+        )
+        self.premium_plan = SubscriptionPlan.objects.create(
+            name="Premium Monthly",
+            description="",
+            price="9.99",
+            interval="monthly",
+            stripe_price_id="price_premium_monthly",
+        )
+
+    def test_returns_false_without_active_subscription(self):
+        self.assertFalse(self.user.is_premium)
+
+    def test_returns_false_for_inactive_premium_subscription(self):
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=self.premium_plan,
+            active=False,
+            stripe_subscription_id="sub_inactive_premium",
+        )
+
+        self.assertFalse(self.user.is_premium)
+
+    def test_returns_true_for_active_premium_subscription(self):
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=self.premium_plan,
+            active=True,
+            stripe_subscription_id="sub_active_premium",
+        )
+
+        self.assertTrue(self.user.is_premium)
 
 
 class ProcessStripeEventRoutingTests(SimpleTestCase):
@@ -473,13 +487,64 @@ class CreateCheckoutSessionViewTests(TestCase):
             create_kwargs["subscription_data"]["metadata"]["billing_plan"],
             "annual",
         )
+        self.assertEqual(create_kwargs["customer_email"], "annual@example.com")
+        self.assertNotIn("customer", create_kwargs)
 
-
-@override_settings(STRIPE_PRICE_ID_FREE="price_free", STRIPE_SECRET_KEY="sk_test")
-class ProvisionFreeSubscriptionTests(TestCase):
-    def test_returns_existing_active_premium_without_calling_stripe(self):
+    @override_settings(
+        STRIPE_SUCCESS_URL="https://example.com/success",
+        STRIPE_CANCEL_URL="https://example.com/cancel",
+    )
+    @patch("payments.views.stripe.checkout.Session.create")
+    def test_reuses_existing_customer_for_checkout(self, mock_create_session):
         user = get_user_model().objects.create_user(
-            email="guarded@example.com",
+            email="existing-customer@example.com",
+            password="testpass123",
+            stripe_customer_id="cus_existing_123",
+        )
+
+        session = SimpleNamespace(url="https://checkout.example/session")
+        session.get = lambda key, default=None: (
+            "cs_test_existing_customer" if key == "id" else default
+        )
+        mock_create_session.return_value = session
+
+        request = APIRequestFactory().post(
+            "/payments/create-checkout-session/",
+            {"plan": "monthly"},
+            format="json",
+        )
+        force_authenticate(request, user=user)
+
+        response = CreateCheckoutSessionView.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        create_kwargs = mock_create_session.call_args.kwargs
+        self.assertEqual(create_kwargs["customer"], "cus_existing_123")
+        self.assertNotIn("customer_email", create_kwargs)
+
+
+class EndActiveSubscriptionTests(TestCase):
+    @override_settings(STRIPE_PRICE_ID_PREMIUM_MONTHLY="price_premium_monthly")
+    def test_returns_none_without_active_subscription(self):
+        user = get_user_model().objects.create_user(
+            email="no-active-subscription@example.com",
+            password="testpass123",
+        )
+
+        with patch("payments.services.stripe.Subscription.cancel") as mock_cancel:
+            result = end_active_subscription(user)
+
+        self.assertIsNone(result)
+        mock_cancel.assert_not_called()
+
+    @override_settings(STRIPE_PRICE_ID_PREMIUM_MONTHLY="price_premium_monthly")
+    @patch("payments.services.stripe.Subscription.cancel")
+    def test_cancels_active_premium_subscription_and_deactivates_it(
+        self,
+        mock_cancel,
+    ):
+        user = get_user_model().objects.create_user(
+            email="premium-downgrade@example.com",
             password="testpass123",
         )
         premium_plan = SubscriptionPlan.objects.create(
@@ -496,97 +561,22 @@ class ProvisionFreeSubscriptionTests(TestCase):
             stripe_subscription_id="sub_existing_premium",
         )
 
-        with patch("payments.services.stripe.Customer.create") as mock_customer_create:
-            result = provision_free_subscription(user)
+        result = end_active_subscription(user)
 
         self.assertEqual(result, existing_subscription)
-        mock_customer_create.assert_not_called()
+        existing_subscription.refresh_from_db()
+        self.assertFalse(existing_subscription.active)
+        self.assertIsNotNone(existing_subscription.end_date)
+        mock_cancel.assert_called_once_with("sub_existing_premium")
 
-    @patch("payments.services.stripe.Subscription.create")
-    @patch("payments.services.stripe.Customer.create")
-    def test_persists_new_customer_id_and_reuses_it_for_subscription(
+    @patch("payments.services.stripe.Subscription.cancel")
+    def test_deactivates_legacy_non_premium_subscription_without_stripe_cancel(
         self,
-        mock_customer_create,
-        mock_subscription_create,
+        mock_cancel,
     ):
         user = get_user_model().objects.create_user(
-            email="new-free@example.com",
+            email="legacy-free@example.com",
             password="testpass123",
-            stripe_customer_id="",
-        )
-        SubscriptionPlan.objects.create(
-            name="Free",
-            description="",
-            price="0.00",
-            interval="monthly",
-            stripe_price_id="price_free",
-        )
-
-        mock_customer_create.return_value = SimpleNamespace(id="cus_new_123")
-        mock_subscription_create.return_value = SimpleNamespace(
-            id="sub_free_123",
-            status="active",
-        )
-
-        result = provision_free_subscription(user)
-
-        user.refresh_from_db()
-        self.assertEqual(user.stripe_customer_id, "cus_new_123")
-        self.assertTrue(result.active)
-        self.assertEqual(result.plan.stripe_price_id, "price_free")
-
-        mock_customer_create.assert_called_once()
-        mock_subscription_create.assert_called_once()
-        self.assertEqual(
-            mock_subscription_create.call_args.kwargs["customer"],
-            "cus_new_123",
-        )
-
-    @patch("payments.services.stripe.Subscription.create")
-    @patch("payments.services.stripe.Customer.create")
-    def test_reuses_existing_customer_id_without_creating_customer(
-        self,
-        mock_customer_create,
-        mock_subscription_create,
-    ):
-        user = get_user_model().objects.create_user(
-            email="existing-customer@example.com",
-            password="testpass123",
-            stripe_customer_id="cus_existing_123",
-        )
-        SubscriptionPlan.objects.create(
-            name="Free",
-            description="",
-            price="0.00",
-            interval="monthly",
-            stripe_price_id="price_free",
-        )
-
-        mock_subscription_create.return_value = SimpleNamespace(
-            id="sub_free_existing_customer",
-            status="active",
-        )
-
-        provision_free_subscription(user)
-
-        mock_customer_create.assert_not_called()
-        mock_subscription_create.assert_called_once()
-        self.assertEqual(
-            mock_subscription_create.call_args.kwargs["customer"],
-            "cus_existing_123",
-        )
-
-    @patch("payments.services.stripe.Subscription.create")
-    @patch("payments.services.stripe.Customer.create")
-    def test_deactivates_previous_active_subscription_with_end_date(
-        self,
-        mock_customer_create,
-        mock_subscription_create,
-    ):
-        user = get_user_model().objects.create_user(
-            email="rollover@example.com",
-            password="testpass123",
-            stripe_customer_id="",
         )
         free_plan = SubscriptionPlan.objects.create(
             name="Free",
@@ -595,37 +585,17 @@ class ProvisionFreeSubscriptionTests(TestCase):
             interval="monthly",
             stripe_price_id="price_free",
         )
-        old_subscription = UserSubscription.objects.create(
+        legacy_subscription = UserSubscription.objects.create(
             user=user,
             plan=free_plan,
             active=True,
-            stripe_subscription_id="sub_old",
+            stripe_subscription_id="sub_legacy_free",
         )
 
-        mock_customer_create.return_value = SimpleNamespace(id="cus_rollover")
-        mock_subscription_create.return_value = SimpleNamespace(
-            id="sub_new_rollover",
-            status="active",
-        )
+        result = end_active_subscription(user)
 
-        with patch(
-            "payments.services.UserSubscription.current_for_user", return_value=None
-        ):
-            new_subscription = provision_free_subscription(user)
-
-        old_subscription.refresh_from_db()
-        new_subscription.refresh_from_db()
-        self.assertFalse(old_subscription.active)
-        self.assertIsNotNone(old_subscription.end_date)
-        self.assertTrue(new_subscription.active)
-        self.assertIsNone(new_subscription.end_date)
-
-    def test_raises_when_free_plan_is_missing(self):
-        user = get_user_model().objects.create_user(
-            email="missing-plan@example.com",
-            password="testpass123",
-            stripe_customer_id="",
-        )
-
-        with self.assertRaisesMessage(ValueError, "No SubscriptionPlan configured"):
-            provision_free_subscription(user)
+        self.assertEqual(result, legacy_subscription)
+        legacy_subscription.refresh_from_db()
+        self.assertFalse(legacy_subscription.active)
+        self.assertIsNotNone(legacy_subscription.end_date)
+        mock_cancel.assert_not_called()
