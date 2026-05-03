@@ -72,6 +72,7 @@ export default function SupportFlowModal({ state, dispatch, onConfirmActivity })
             showUpgradePrompt={ctx.rewardShowUpgradePrompt}
             activityName={ctx.completedActivityName}
             elapsedSeconds={ctx.completedActivityElapsedSeconds}
+            enableAutoSupportCountdown={ctx.supportMenuOrigin !== "reward"}
             onContinue={close}
             onSupport={() => dispatch({ type: "GO_SUPPORT_MENU", origin: "reward" })}
           />

@@ -46,7 +46,7 @@ export const ACTIVITY_PRESETS = {
     defaultActivityText: "Write down first step on phone or paper",
     durationSeconds: 180,
     placeholder: "Write your next tiny step",
-    hint: "One line is enough. Keep it tiny and easy to start.",
+    hint: "This timer will complete after 3 minutes, but you can finish early if you want.",
   },
   priority_three: {
     id: "priority_three",

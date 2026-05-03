@@ -37,7 +37,6 @@ export default function ActivityInput() {
 
   const [name, setName] = useState("");
   const timeoutRef = useRef(null);
-  const inputRef = useRef(null);
 
   const isActive = status === "active";
   const inputValue = isActive
@@ -101,12 +100,6 @@ export default function ActivityInput() {
   useEffect(() => () => timeoutRef.current && clearTimeout(timeoutRef.current), []);
 
   useEffect(() => {
-    if (!inputRef.current) return;
-    inputRef.current.style.height = "auto";
-    inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-  }, [inputValue]);
-
-  useEffect(() => {
     if (!autoStopCompletion) return;
 
     let cancelled = false;
@@ -154,6 +147,7 @@ export default function ActivityInput() {
     fetchPlayerAndCharacter,
     fetchActivities,
     fetchCharacterCurrent,
+    isPremium,
     openActivityReward,
   ]);
 
@@ -229,10 +223,9 @@ export default function ActivityInput() {
           })}
         >
           <div className={styles.row}>
-            <div className={styles.grow}>
+            <div className={classNames(styles.grow, styles.control)}>
               <textarea
                 id="activity-name"
-                ref={inputRef}
                 value={inputValue}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}

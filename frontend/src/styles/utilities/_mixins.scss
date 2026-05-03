@@ -3,12 +3,25 @@
 @use '../semantic/spacing' as sp;
 
 // Media query mixin for responsive breakpoints
-@mixin respond-to($breakpoint) {
+// direction: up (min-width) or down (max-width)
+@mixin respond-to($breakpoint, $direction: up) {
   $value: map.get(v.$breakpoints, $breakpoint);
 
-  @if value {
-    @media (min-width: $value) {
-      @content;
+  @if not $value and type-of($breakpoint) == 'number' and not unitless($breakpoint) {
+    $value: $breakpoint;
+  }
+
+  @if $value {
+    @if $direction == up {
+      @media (min-width: $value) {
+        @content;
+      }
+    } @else if $direction == down {
+      @media (max-width: $value) {
+        @content;
+      }
+    } @else {
+      @warn "Unknown direction `#{$direction}` for respond-to(). Use `up` or `down`.";
     }
   } @else {
     @warn "No value found for breakpoint `#{$breakpoint}`.";

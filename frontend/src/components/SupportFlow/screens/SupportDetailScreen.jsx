@@ -36,13 +36,14 @@ export default function SupportDetailScreen({
 }) {
   const action = SUPPORT_ACTIONS[supportActionId];
   const safeVideoEmbedUrl = getSafeEmbedUrl(action?.videoEmbedUrl);
+  const shouldLoadExternalVideo = import.meta.env.MODE !== "test";
 
   if (!action) return null;
 
   return (
     <div>
       <p className={styles.detailIntro}>Take your time with these steps:</p>
-      {safeVideoEmbedUrl && (
+      {safeVideoEmbedUrl && shouldLoadExternalVideo && (
         <div className={styles.videoWrapper}>
           <iframe
             className={styles.videoEmbed}

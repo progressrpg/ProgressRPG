@@ -91,6 +91,6 @@
   @include lp.list-page-empty-state;
 }
 
-@media (max-width: 768px) {
+@include m.respond-to(md, down) {
   @include lp.list-page-mobile;
 }

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import ActivityRewardScreen from './ActivityRewardScreen';
@@ -28,14 +28,11 @@ describe('ActivityRewardScreen', () => {
     expect(screen.getByText('+27 XP')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Next action' })).not.toBeInTheDocument();
     expect(
-      screen.getByText('Close window to manage the timer yourself, or...')
+      screen.getByRole('button', { name: 'Continue with support in 3..' })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Start supported session' })
+      screen.getByRole('button', { name: 'Back to timer' })
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Return to timer' })
-    ).not.toBeInTheDocument();
     expect(screen.queryByText('XP multipliers:')).not.toBeInTheDocument();
   });
 
@@ -176,5 +173,130 @@ describe('ActivityRewardScreen', () => {
     expect(
       screen.queryByRole('heading', { name: 'Upgrade' })
     ).not.toBeInTheDocument();
+  });
+
+  it('does not show upgrade prompt for premium users', () => {
+    render(
+      <ActivityRewardScreen
+        activityName="Write tests"
+        xpGained={54}
+        baseXp={27}
+        xpMultiplier={2}
+        levelUps={[]}
+        elapsedSeconds={90}
+        isAutoStopped
+        showUpgradePrompt
+        onContinue={vi.fn()}
+        onSupport={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByText(/Need more time\? Upgrade to Premium/)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Upgrade to Premium' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Continue with support in 3..' })
+    ).toBeInTheDocument();
+  });
+
+  it('auto-starts supported session after 3 seconds', () => {
+    vi.useFakeTimers();
+    const onSupport = vi.fn();
+
+    render(
+      <ActivityRewardScreen
+        activityName="Write tests"
+        xpGained={27}
+        baseXp={27}
+        xpMultiplier={1}
+        levelUps={[]}
+        elapsedSeconds={90}
+        onContinue={vi.fn()}
+        onSupport={onSupport}
+      />
+    );
+
+    expect(onSupport).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(onSupport).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it('pauses countdown while hovering support panel and resumes after pointer leaves', () => {
+    vi.useFakeTimers();
+    const onSupport = vi.fn();
+
+    const { container } = render(
+      <ActivityRewardScreen
+        activityName="Write tests"
+        xpGained={27}
+        baseXp={27}
+        xpMultiplier={1}
+        levelUps={[]}
+        elapsedSeconds={90}
+        onContinue={vi.fn()}
+        onSupport={onSupport}
+      />
+    );
+
+    const supportPanel = container.querySelector('[class*="supportPanel"]');
+    expect(supportPanel).not.toBeNull();
+
+    act(() => {
+      fireEvent.pointerEnter(supportPanel);
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(onSupport).not.toHaveBeenCalled();
+
+    act(() => {
+      fireEvent.pointerLeave(supportPanel);
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(onSupport).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it('shows static support button and does not auto-continue when countdown is disabled', () => {
+    vi.useFakeTimers();
+    const onSupport = vi.fn();
+
+    render(
+      <ActivityRewardScreen
+        activityName="Write tests"
+        xpGained={27}
+        baseXp={27}
+        xpMultiplier={1}
+        levelUps={[]}
+        elapsedSeconds={90}
+        enableAutoSupportCountdown={false}
+        onContinue={vi.fn()}
+        onSupport={onSupport}
+      />
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Continue with support' })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Continue with support in/i })
+    ).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(onSupport).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
   });
 });

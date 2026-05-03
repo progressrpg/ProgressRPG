@@ -72,6 +72,11 @@
   @include c.apply-text-tone(map.get(c.$text-tone, default));
   font-size: 1rem;
   line-height: 1.5;
+
+  @include m.respond-to(md, down) {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
 }
 
 .header {
