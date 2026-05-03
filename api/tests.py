@@ -11,6 +11,7 @@ from unittest.mock import patch, MagicMock
 from character.models import Character, PlayerCharacterLink
 from gameplay.models import Quest
 from progression.models import CharacterQuest
+from server_management.models import FeatureFlag
 
 User = get_user_model()
 
@@ -198,3 +199,38 @@ class WaitlistSignupAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("email", response.data)
+
+
+class AppConfigViewTests(APITestCase):
+    def setUp(self):
+        self.url = reverse("app_config")
+
+    def test_returns_empty_feature_flags_when_none_configured(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("stripe_live_mode", response.data)
+        self.assertEqual(response.data["feature_flags"], {})
+
+    def test_returns_feature_flag_access_levels(self):
+        FeatureFlag.objects.create(
+            key="activityList", access_level=FeatureFlag.AccessLevel.ALL
+        )
+        FeatureFlag.objects.create(
+            key="premiumOnlyFeature", access_level=FeatureFlag.AccessLevel.PREMIUM
+        )
+        FeatureFlag.objects.create(
+            key="disabledFeature", access_level=FeatureFlag.AccessLevel.NO
+        )
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["feature_flags"],
+            {
+                "activityList": "all",
+                "disabledFeature": "no",
+                "premiumOnlyFeature": "premium",
+            },
+        )

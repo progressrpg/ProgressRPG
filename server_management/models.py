@@ -110,3 +110,30 @@ class MaintenanceWindow(models.Model):
     #     # Logic to track and revoke tasks (requires storing task IDs)
     #     self.tasks_scheduled = False
     #     self.save()
+
+
+class FeatureFlag(models.Model):
+    class AccessLevel(models.TextChoices):
+        NO = "no", "No users"
+        ALL = "all", "All users"
+        PREMIUM = "premium", "Premium users"
+
+    key = models.CharField(max_length=100, unique=True)
+    access_level = models.CharField(
+        max_length=16,
+        choices=AccessLevel.choices,
+        default=AccessLevel.NO,
+    )
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("key",)
+
+    def __str__(self):
+        return f"{self.key} ({self.access_level})"
+
+    @classmethod
+    def as_dict(cls):
+        return dict(cls.objects.values_list("key", "access_level"))
