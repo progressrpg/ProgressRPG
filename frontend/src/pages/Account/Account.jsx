@@ -187,24 +187,39 @@ export default function Account() {
 
         <section className={styles.section}>
           <h2>Billing</h2>
-          <div className={styles.infoGrid}>
+          <div className={styles.billingRow}>
             <div className={styles.infoItem}>
               <span className={styles.label}>Account Type</span>
               <span className={styles.value}>{accountType}</span>
             </div>
+            <div className={styles.billingAction}>
+              {player?.is_premium ? (
+                <>
+                  <p className={styles.description}>
+                    Manage your subscription and billing details in the Stripe customer portal.
+                  </p>
+                  <Button
+                    as="a"
+                    href="https://billing.stripe.com/p/login/test_fZucN7dm23whgwNf3N4ow00"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="secondary"
+                  >
+                    Open Billing Portal
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className={styles.description}>
+                    Ready for more focus tools and rewards?
+                  </p>
+                  <Button as="a" href="/upgrade">
+                    Upgrade
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-          <p className={styles.description}>
-            Manage your subscription and billing details in the Stripe customer portal.
-          </p>
-          <Button
-            as="a"
-            href="https://billing.stripe.com/p/login/test_fZucN7dm23whgwNf3N4ow00"
-            target="_blank"
-            rel="noopener noreferrer"
-            variant="secondary"
-          >
-            Open Billing Portal
-          </Button>
         </section>
 
         {/* Character Information */}

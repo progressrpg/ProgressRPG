@@ -12,6 +12,7 @@ export default function Navbar({ onMenuClick }) {
   const accountMobileRef = useRef(null);
 
   const isTimerPage = location.pathname === '/timer';
+  const isHomePage = location.pathname === '/';
   // const isVillagePage = location.pathname === '/village';
   const isActivitiesPage = location.pathname === '/activities';
   const isAccountPage = location.pathname === '/account';
@@ -112,13 +113,19 @@ export default function Navbar({ onMenuClick }) {
           </button>
           {isAuthenticated ? (
             <>
-              <Link to="/timer" aria-label="Go to timer">
-                <Button
-                  variant={isTimerPage ? "primary" : "secondary"}
-                  className={styles.navLink}
+              <Link
+                to="/"
+                aria-label="Go to home"
+                className={`${styles.iconNavButton} ${isHomePage ? styles.iconNavButtonActive : ''}`}
+              >
+                <svg
+                  className={styles.homeIcon}
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
                 >
-                  Timer
-                </Button>
+                  <path d="M12 3 3 10h2v10h6v-6h2v6h6V10h2L12 3z" />
+                </svg>
               </Link>
               <div className={styles.accountMenu} ref={accountMobileRef}>
                 <button

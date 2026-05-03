@@ -63,6 +63,7 @@ export default function UpgradePage() {
                 <li>Double XP on all activity rewards.</li>
                 <li>Unlimited timer sessions.</li>
                 <li>Early access to new features as they roll out.</li>
+                <li>Help this project reach those in need quicker.</li>
               </ul>
             </div>
           </div>

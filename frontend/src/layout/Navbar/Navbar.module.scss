@@ -76,6 +76,35 @@
   fill: currentColor;
 }
 
+.iconNavButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: v.$border-radius;
+  border: 1px solid rgba(c.$color-border-primary, 0.35);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+
+  &:hover {
+    border-color: rgba(c.$color-border-primary, 0.6);
+    background: rgba(c.$color-border-primary, 0.08);
+  }
+}
+
+.iconNavButtonActive {
+  border-color: rgba(c.$color-border-primary, 0.7);
+  background: rgba(c.$color-border-primary, 0.16);
+}
+
+.homeIcon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
 .accountDropdown {
   position: absolute;
   top: calc(100% + #{v.$spacing-xs});
