@@ -217,7 +217,7 @@ export default function ActivitiesPage() {
 
                     return (
                   <h3 style={{ margin: "1em 0 0.5em", fontSize: "0.95em", opacity: 0.7 }}>
-                    {headingLabel} ({dayActivities.length} activities, {formatDuration(dayDurationTotalSeconds)}, {dayXpTotal} XP)
+                    {headingLabel} ({dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}, {formatDuration(dayDurationTotalSeconds)}, {dayXpTotal} XP)
                   </h3>
                     );
                   })()}
