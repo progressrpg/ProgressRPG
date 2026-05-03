@@ -146,13 +146,12 @@ class CreateCheckoutSessionView(APIView):
         cancel_url = getattr(settings, "STRIPE_CANCEL_URL", "")
 
         try:
-            session = stripe.checkout.Session.create(
-                mode="subscription",
-                payment_method_types=["card"],
-                customer_email=request.user.email,
-                client_reference_id=str(request.user.id),
-                line_items=[{"price": premium_price_id, "quantity": 1}],
-                subscription_data={
+            session_kwargs = {
+                "mode": "subscription",
+                "payment_method_types": ["card"],
+                "client_reference_id": str(request.user.id),
+                "line_items": [{"price": premium_price_id, "quantity": 1}],
+                "subscription_data": {
                     "metadata": {
                         "user_id": str(request.user.id),
                         "billing_plan": "annual" if plan == "annual" else "monthly",
@@ -164,9 +163,15 @@ class CreateCheckoutSessionView(APIView):
                         },
                     },
                 },
-                success_url=success_url,
-                cancel_url=cancel_url,
-            )
+                "success_url": success_url,
+                "cancel_url": cancel_url,
+            }
+            if request.user.stripe_customer_id:
+                session_kwargs["customer"] = request.user.stripe_customer_id
+            else:
+                session_kwargs["customer_email"] = request.user.email
+
+            session = stripe.checkout.Session.create(**session_kwargs)
             logger.info(
                 "[PAYMENTS.CHECKOUT] Created "
                 f"session_id={session.get('id')} for user_id={request.user.id} "
