@@ -3,14 +3,14 @@ import logging
 import stripe
 from django.core.management.base import BaseCommand, CommandError
 
-from payments.services import end_active_subscription_and_activate_free
+from payments.services import end_active_subscription
 from users.models import CustomUser
 
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "End a user's active subscription and activate a free plan. Pass one or more user emails."
+    help = "End a user's active premium subscription. Pass one or more user emails."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -33,7 +33,7 @@ class Command(BaseCommand):
                 continue
 
             try:
-                result = end_active_subscription_and_activate_free(user)
+                result = end_active_subscription(user)
             except stripe.error.StripeError as exc:
                 self.stderr.write(self.style.ERROR(f"Stripe error for {email}: {exc}"))
                 logger.error("Stripe error when downgrading %s: %s", email, exc)
@@ -54,7 +54,7 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"Downgraded {email} to free plan (subscription: {result.stripe_subscription_id})."
+                        f"Ended active subscription for {email} (subscription: {result.stripe_subscription_id})."
                     )
                 )
                 success_count += 1
@@ -65,6 +65,6 @@ class Command(BaseCommand):
             )
         self.stdout.write(
             self.style.SUCCESS(
-                f"Done. Downgraded {success_count} user(s) to free plan."
+                f"Done. Ended subscriptions for {success_count} user(s)."
             )
         )

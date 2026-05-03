@@ -124,7 +124,7 @@ class CustomUser(AbstractUser):
     def is_premium(self):
         from payments.models import UserSubscription
 
-        subscription = UserSubscription.current_for_user(self)
+        subscription = UserSubscription.active_for_user(self)
         if not subscription:
             return False
         return subscription.is_active_premium

@@ -1,23 +1,11 @@
-from django.core.management.base import BaseCommand
-
-from payments.services import provision_free_subscription
-from users.models import CustomUser
+from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
-    help = "Provision free Stripe subscriptions for users without one."
+    help = "Deprecated: free Stripe subscription provisioning has been removed."
 
     def handle(self, *args, **options):
-        count = 0
-        users = CustomUser.objects.select_related("player").all()
-
-        for user in users:
-            try:
-                provision_free_subscription(user)
-                count += 1
-            except Exception as exc:
-                self.stderr.write(f"Failed for user {user.id}: {exc}")
-
-        self.stdout.write(
-            self.style.SUCCESS(f"Provisioned free subscriptions for {count} users.")
+        raise CommandError(
+            "Free Stripe subscription provisioning has been removed. "
+            "Free users are not created in Stripe until they start a premium checkout session."
         )
