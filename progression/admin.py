@@ -101,13 +101,14 @@ class PlayerActivityAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
+        "group_key",
         "player",
         "duration",
         "created_at",
         "started_at",
         "completed_at",
     )
-    search_fields = ("name", "description", "player__name")
+    search_fields = ("name", "group_key", "description", "player__name")
     list_filter = ("player", "is_private", "is_complete", "skill", "project", "task")
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)

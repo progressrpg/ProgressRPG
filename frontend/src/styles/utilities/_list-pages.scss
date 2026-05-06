@@ -19,10 +19,18 @@
   width: 100%;
   max-width: 900px;
   margin: 0 auto v.$spacing-md;
+  padding-right: v.$spacing-sm;
 }
 
 @mixin list-page-add-input {
   flex: 1;
+
+  // Override Input component's internal max-width so the field fills the available space
+  input {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
 
 @mixin list-page-list {
@@ -34,7 +42,6 @@
   margin: 0 auto;
   max-height: 50vh;
   overflow-y: auto;
-  scrollbar-gutter: stable;
   padding-right: v.$spacing-sm;
 
   &::-webkit-scrollbar {

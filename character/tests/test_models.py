@@ -438,20 +438,18 @@ class CharacterNPCTests(TestCase):
     def test_has_available_all_linked(self):
         """Test has_available returns False when all linkable characters are linked"""
         from users.models import CustomUser
+        from character.models import PlayerCharacterLink
 
-        # We have self.npc1 and self.npc2 already created (can_link=True)
-        # Create 2 users to link them
         user1 = CustomUser.objects.create_user(email="user1@test.com", password="pass")
         user2 = CustomUser.objects.create_user(email="user2@test.com", password="pass")
 
-        # The signals should have auto-assigned npc1 and npc2 to the users
-        # Refresh to get updated can_link values from signals
+        PlayerCharacterLink.assign_character(player=user1.player, character=self.npc1)
+        PlayerCharacterLink.assign_character(player=user2.player, character=self.npc2)
+
         self.npc1.refresh_from_db()
         self.npc2.refresh_from_db()
 
-        # Both NPCs should now be linked (can_link=False)
         self.assertFalse(self.npc1.can_link)
         self.assertFalse(self.npc2.can_link)
 
-        # Should return False now - no available characters left
         self.assertFalse(Character.has_available())

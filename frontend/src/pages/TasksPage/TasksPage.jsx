@@ -1,8 +1,38 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from "../../hooks/useTasks";
 import Input from "../../components/Input/Input";
 import Button from "../../components/Button/Button";
+import PlayerItemList from "../../components/PlayerItemList/PlayerItemList";
 import styles from "./TasksPage.module.scss";
+
+const isTaskComplete = (task) => Boolean(task?.completed_at ?? task?.is_complete);
+
+function formatLastWorkedOn(task) {
+  const timestamp = task?.last_worked_on;
+  if (!timestamp) {
+    return "No time recorded";
+  }
+
+  const workedOn = new Date(timestamp);
+  if (Number.isNaN(workedOn.getTime())) {
+    return "No time recorded";
+  }
+
+  const now = Date.now();
+  const diffMs = Math.max(0, now - workedOn.getTime());
+  const dayMs = 24 * 60 * 60 * 1000;
+  const diffDays = Math.floor(diffMs / dayMs);
+
+  if (diffDays < 7) {
+    const dayLabel = diffDays === 1 ? "day" : "days";
+    return `Last worked on ${diffDays} ${dayLabel} ago`;
+  }
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  const weekLabel = diffWeeks === 1 ? "week" : "weeks";
+  return `Last worked on ${diffWeeks} ${weekLabel} ago`;
+}
 
 export default function TasksPage() {
   const { data: tasks, isLoading } = useTasks();
@@ -11,11 +41,6 @@ export default function TasksPage() {
   const deleteTask = useDeleteTask();
 
   const [newName, setNewName] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [editingName, setEditingName] = useState("");
-
-  if (isLoading) return <p>Loading tasks...</p>;
-
   const safeTasks = Array.isArray(tasks) ? tasks : [];
 
   const handleCreateTask = (e) => {
@@ -25,28 +50,33 @@ export default function TasksPage() {
     setNewName("");
   };
 
-  const handleEditStart = (task) => {
-    setEditingId(task.id);
-    setEditingName(task.name || "");
-  };
+  const handleEdit = useCallback(
+    (task, name) => {
+      updateTask.mutate({ id: task.id, data: { name } });
+    },
+    [updateTask],
+  );
 
-  const handleEditCancel = () => {
-    setEditingId(null);
-    setEditingName("");
-  };
+  const handleDelete = useCallback(
+    (task) => {
+      deleteTask.mutate(task.id);
+    },
+    [deleteTask],
+  );
 
-  const handleEditSave = (taskId) => {
-    if (!editingName.trim()) return;
-    updateTask.mutate({ id: taskId, data: { name: editingName.trim() } });
-    handleEditCancel();
-  };
+  const handleToggleComplete = useCallback(
+    (task) => {
+      updateTask.mutate({
+        id: task.id,
+        data: {
+          completed_at: isTaskComplete(task) ? null : new Date().toISOString(),
+        },
+      });
+    },
+    [updateTask],
+  );
 
-  const handleToggleComplete = (task) => {
-    updateTask.mutate({
-      id: task.id,
-      data: { is_complete: !task.is_complete },
-    });
-  };
+  if (isLoading) return <p>Loading tasks...</p>;
 
   return (
     <div className={styles.page}>
@@ -62,89 +92,29 @@ export default function TasksPage() {
           placeholder="New task name"
           className={styles.addTaskInput}
         />
-        <Button type="submit">Add task</Button>
+        <Button type="submit">
+          <span className={styles.addButtonText}>Add task</span>
+          <span className={styles.addButtonIcon} aria-hidden="true">✓</span>
+        </Button>
       </form>
 
       {safeTasks.length > 0 ? (
         <div className={styles.tasksList}>
-          {safeTasks.map((task) => (
-            <div key={task.id} className={styles.taskItem}>
-              <div className={styles.taskDetails}>
-                {editingId === task.id ? (
-                  <input
-                    type="text"
-                    className={styles.editInput}
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleEditSave(task.id);
-                      if (e.key === "Escape") handleEditCancel();
-                    }}
-                  />
-                ) : (
-                  <div className={styles.name}>{task.name}</div>
-                )}
-
-                <div className={styles.meta}>
-                  {task.is_complete ? "Complete" : "Incomplete"} • Total time: {task.total_time} • Records: {task.total_records}
-                </div>
-              </div>
-
-              <div className={styles.actions}>
-                {editingId === task.id ? (
-                  <>
-                    <Button
-                      className={styles.saveButton}
-                      onClick={() => handleEditSave(task.id)}
-                      type="button"
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className={styles.cancelButton}
-                      onClick={handleEditCancel}
-                      type="button"
-                    >
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="secondary"
-                      className={styles.toggleButton}
-                      onClick={() => handleToggleComplete(task)}
-                      type="button"
-                    >
-                      {task.is_complete ? "Mark incomplete" : "Mark complete"}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className={styles.editButton}
-                      onClick={() => handleEditStart(task)}
-                      type="button"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="danger"
-                      className={styles.deleteButton}
-                      onClick={() => {
-                        if (confirm("Delete this task?")) {
-                          deleteTask.mutate(task.id);
-                        }
-                      }}
-                      type="button"
-                    >
-                      Delete
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+          <PlayerItemList
+            items={safeTasks}
+            itemLabel="task"
+            ariaLabel="Tasks"
+            isItemComplete={isTaskComplete}
+            onToggleComplete={handleToggleComplete}
+            renderItemMeta={(task) => formatLastWorkedOn(task)}
+            renderEditSummary={(task) => (
+              <>
+                {isTaskComplete(task) ? "Complete" : "Incomplete"} • Total time: {task.total_time}
+              </>
+            )}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         </div>
       ) : (
         <div className={styles.emptyState}>

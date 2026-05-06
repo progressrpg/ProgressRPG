@@ -297,7 +297,7 @@ class TestActivityTimer(TestCase):
         self.timer.refresh_from_db()
         self.assertEqual(self.timer.status, "empty")
         self.assertIsNone(self.timer.activity)
-        self.assertEqual(result, 15)
+        self.assertEqual(result["base_xp"], 15)
 
 
 class TestQuestTimer(TestCase):

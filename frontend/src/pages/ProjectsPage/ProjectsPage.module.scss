@@ -1,0 +1,48 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/utilities/list-pages' as lp;
+
+.page {
+  @include m.page-layout();
+}
+
+.header {
+  @include lp.list-page-header;
+}
+
+.addProjectForm {
+  @include lp.list-page-add-form;
+}
+
+.addProjectInput {
+  @include lp.list-page-add-input;
+}
+
+.projectsList {
+  @include lp.list-page-list;
+}
+
+.emptyState {
+  @include lp.list-page-empty-state;
+}
+
+.addButtonIcon {
+  display: none;
+}
+
+@include m.respond-to(md, down) {
+  @include lp.list-page-mobile;
+
+  .addProjectForm {
+    flex-direction: row;
+  }
+}
+
+@include m.respond-to(sm, down) {
+  .addButtonText {
+    display: none;
+  }
+
+  .addButtonIcon {
+    display: inline;
+  }
+}

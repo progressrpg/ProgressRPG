@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import styles from "./Modal.module.scss";
 import Button from "../Button/Button"
 
@@ -73,7 +74,7 @@ export default function Modal({
 
   const titleId = `${id}-title`;
 
-  return (
+  return createPortal(
     <div className={styles.modalBackdrop} onClick={handleBackdropClick} role="presentation">
       <div
         ref={modalRef}
@@ -84,7 +85,7 @@ export default function Modal({
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className={styles.modalHeader}>
+        <div className={styles.modalHeader}>
           {onBack ? (
             <Button
               onClick={onBack}
@@ -106,11 +107,12 @@ export default function Modal({
           >
             &times;
           </Button>
-        </header>
+        </div>
         <div className={styles.modalContent}>
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,10 +1,4 @@
-# progression/tests.py
-from django.contrib.auth import get_user_model
-from django.test import TestCase
-from django.utils import timezone
-from unittest import skip
-
-from .models import (
+from progression.models import (
     Category,
     Role,
     PlayerSkill,
@@ -14,29 +8,7 @@ from .models import (
     Project,
     Task,
 )
-from .utils import copy_quest
-
-from character.models import Character
-from gameplay.models import Quest
-from users.models import Player
-
-import logging
-
-User = get_user_model()
-
-logger = logging.getLogger("general")
-
-
-class BaseTestCase(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(email="test@test.com", password="pass")
-        self.character = Character.objects.create(
-            name="Test Character",
-        )
-        self.player, _ = Player.objects.get_or_create(
-            user=self.user,
-        )
-        self.player.name = "Test Player"
+from .base import BaseTestCase
 
 
 class GroupModelTests(BaseTestCase):
@@ -88,48 +60,6 @@ class SkillModelTests(BaseTestCase):
         self.assertEqual(skill.roles.count(), 2)
         self.assertIn(role1, skill.roles.all())
         self.assertIn(role2, skill.roles.all())
-
-
-class ActivityModelTests(BaseTestCase):
-    def setUp(self):
-        super().setUp()
-        self.category = Category.objects.create(
-            player=self.player,
-            name="Work",
-        )
-        self.skill = PlayerSkill.objects.create(
-            player=self.player,
-            name="Coding",
-            category=self.category,
-        )
-
-    def test_activity_start(self):
-        activity = PlayerActivity.objects.create(
-            player=self.player,
-            name="Write tests",
-        )
-
-        started_at = activity.start()
-
-        self.assertIsNotNone(started_at)
-        self.assertIsNotNone(activity.started_at)
-
-    def test_activity_complete_updates_skill(self):
-        activity = PlayerActivity.objects.create(
-            player=self.player,
-            name="Write tests",
-            skill=self.skill,
-            duration=30,
-        )
-
-        completed_at = activity.complete()
-
-        self.assertIsNotNone(completed_at)
-        self.assertTrue(activity.is_complete)
-
-        # skill totals are dynamic via records
-        self.assertEqual(self.skill.total_time, 30)
-        self.assertEqual(self.skill.records.count(), 1)
 
 
 class CharacterQuestTests(BaseTestCase):
@@ -204,14 +134,3 @@ class ProjectTaskTests(BaseTestCase):
 
         self.assertEqual(self.project.total_time, 50)
         self.assertEqual(self.project.total_records, 1)
-
-
-class UtilityCopyQuest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.character = Character.objects.create(name="Bob", sex="Male")
-        cls.quest = Quest.objects.create(name="Test quest")
-
-    def test_copy_quest(self):
-        cq = copy_quest(self.character, self.quest)
-        self.assertIsInstance(cq, CharacterQuest)

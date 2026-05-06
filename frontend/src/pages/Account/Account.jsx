@@ -100,6 +100,7 @@ export default function Account() {
   return (
     <div className={styles.page}>
       <div className={styles.content}>
+        <h1 className="sr-only">Account</h1>
         {/* Player Information */}
         <section className={styles.section}>
           <h2>Player</h2>
