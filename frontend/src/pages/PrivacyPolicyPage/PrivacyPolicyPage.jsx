@@ -97,7 +97,7 @@ const sections = [
 
 export default function PrivacyPolicyPage() {
   return (
-    <main id="legal-page-top" className={styles.page}>
+    <div id="legal-page-top" className={styles.page}>
       <article className={styles.card}>
         <header className={styles.header}>
           <h1 className={styles.title}>Privacy Policy</h1>
@@ -153,6 +153,6 @@ export default function PrivacyPolicyPage() {
         </div>
       </article>
       <BackToTopButton />
-    </main>
+    </div>
   );
 }

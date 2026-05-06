@@ -4,7 +4,7 @@ import styles from "./NotFoundPage.module.scss";
 
 export default function NotFoundPage() {
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <p className={styles.code}>404</p>
       <h1>Page not found</h1>
       <p className={styles.copy}>
@@ -13,6 +13,6 @@ export default function NotFoundPage() {
       <div className={styles.actions}>
         <Button as="a" href="/timer" variant="primary">Go to timer</Button>
       </div>
-    </main>
+    </div>
   );
 }

@@ -204,6 +204,7 @@ export default function EntitySearchInput({
     <div ref={rootRef} className={classNames(styles.root, className)}>
       <input
         type="text"
+        role="combobox"
         value={value}
         onChange={(event) => onChange?.(event.target.value)}
         onFocus={() => setIsFocused(true)}

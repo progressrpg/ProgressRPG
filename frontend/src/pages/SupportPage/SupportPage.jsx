@@ -4,7 +4,7 @@ const supportEmail = "support@progressrpg.com";
 
 export default function SupportPage() {
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <article className={styles.card}>
         <header className={styles.header}>
           <h1 className={styles.title}>Support</h1>
@@ -33,6 +33,6 @@ export default function SupportPage() {
           </section>
         </div>
       </article>
-    </main>
+    </div>
   );
 }
