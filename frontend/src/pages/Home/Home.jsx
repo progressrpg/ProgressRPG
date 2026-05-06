@@ -199,7 +199,7 @@ export default function Home() {
   }
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <Seo
         title={HOME_TITLE}
         description={HOME_DESCRIPTION}
@@ -319,6 +319,6 @@ export default function Home() {
         </div>
       </section>
       <BackToTopButton />
-    </main>
+    </div>
   );
 }

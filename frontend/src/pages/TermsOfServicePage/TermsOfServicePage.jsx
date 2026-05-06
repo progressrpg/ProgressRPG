@@ -173,7 +173,7 @@ const sections = [
 
 export default function TermsOfServicePage() {
   return (
-    <main id="legal-page-top" className={styles.page}>
+    <div id="legal-page-top" className={styles.page}>
       <article className={styles.card}>
         <header className={styles.header}>
           <h1 className={styles.title}>Terms of Service</h1>
@@ -237,6 +237,6 @@ export default function TermsOfServicePage() {
         </div>
       </article>
       <BackToTopButton />
-    </main>
+    </div>
   );
 }
