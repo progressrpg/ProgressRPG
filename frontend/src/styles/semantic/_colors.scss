@@ -200,7 +200,7 @@ $list-variants: (
 @mixin apply-list-variant($variant-key, $is-selected: false) {
   $variant: map.get($list-variants, $variant-key);
 
-  $tone-key: if($is-selected, map.get($variant, selected-tone), map.get($variant, tone));
+  $tone-key: if(sass($is-selected): map.get($variant, selected-tone); else: map.get($variant, tone));
   $tone-map: map.get($text-tone, $tone-key);
 
   @include apply-text-tone($tone-map);
