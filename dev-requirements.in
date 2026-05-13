@@ -4,7 +4,7 @@ build<2
 django-stubs<6
 django-stubs-ext<6
 freezegun<2
-mypy<2
+mypy<3
 pip-review
 pip-tools
 pipdeptree
