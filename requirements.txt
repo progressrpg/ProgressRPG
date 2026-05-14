@@ -185,7 +185,7 @@ packaging==26.2
     # via
     #   incremental
     #   kombu
-pillow==11.2.1
+pillow==12.2.0
     # via -r requirements.in
 prompt-toolkit==3.0.52
     # via click-repl
