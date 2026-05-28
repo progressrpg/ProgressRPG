@@ -116,6 +116,7 @@ django==5.2.14
     #   channels
     #   dj-database-url
     #   dj-rest-auth
+    #   django-admin-sortable2
     #   django-allauth
     #   django-celery-beat
     #   django-cf-turnstile
@@ -130,6 +131,8 @@ django==5.2.14
     #   djangorestframework
     #   djangorestframework-simplejwt
     #   drf-spectacular
+django-admin-sortable2==2.3.1
+    # via -r requirements.in
 django-allauth==65.16.1
     # via -r requirements.in
 django-celery-beat==2.9.0
@@ -237,6 +240,8 @@ packaging==26.2
     #   wheel
 pathspec==1.1.1
     # via mypy
+pillow==12.2.0
+    # via -r requirements.in
 pip-review==1.3.0
     # via -r dev-requirements.in
 pip-tools==7.5.3
