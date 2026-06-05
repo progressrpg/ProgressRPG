@@ -328,7 +328,7 @@ rpds-py==0.30.0
     #   referencing
 sendgrid==6.12.5
     # via -r requirements.in
-sentry-sdk==2.60.0
+sentry-sdk==2.61.1
     # via -r requirements.in
 service-identity==24.2.0
     # via twisted
