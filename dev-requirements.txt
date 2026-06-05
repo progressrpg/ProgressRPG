@@ -155,7 +155,7 @@ django-redis==6.0.0
     # via -r requirements.in
 django-stubs==5.2.9
     # via -r dev-requirements.in
-django-stubs-ext==6.0.4
+django-stubs-ext==6.0.5
     # via
     #   -r dev-requirements.in
     #   django-stubs
