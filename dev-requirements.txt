@@ -10,7 +10,7 @@ amqp==5.3.1
     # via
     #   -r requirements.in
     #   kombu
-asgiref==3.8.1
+asgiref==3.11.1
     # via
     #   -r requirements.in
     #   channels
@@ -59,7 +59,7 @@ cffi==2.0.0
     #   cryptography
 cfgv==3.5.0
     # via pre-commit
-channels==4.2.2
+channels==4.3.2
     # via
     #   -r requirements.in
     #   channels-redis
