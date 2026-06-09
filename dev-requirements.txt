@@ -10,7 +10,7 @@ amqp==5.3.1
     # via
     #   -r requirements.in
     #   kombu
-asgiref==3.8.1
+asgiref==3.11.1
     # via
     #   -r requirements.in
     #   channels
@@ -63,7 +63,7 @@ channels==4.2.2
     # via
     #   -r requirements.in
     #   channels-redis
-channels-redis==4.2.1
+channels-redis==4.3.0
     # via -r requirements.in
 charset-normalizer==3.4.7
     # via requests
