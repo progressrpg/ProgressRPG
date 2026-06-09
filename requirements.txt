@@ -87,7 +87,7 @@ cryptography==48.0.0
     #   pyopenssl
     #   sendgrid
     #   service-identity
-daphne==4.2.1
+daphne==4.2.2
     # via -r requirements.in
 defusedxml==0.7.1
     # via
