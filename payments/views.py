@@ -154,6 +154,9 @@ class CreateCheckoutSessionView(APIView):
         cancel_url = getattr(settings, "STRIPE_CANCEL_URL", "")
 
         trial_period_days = GameSettings.current().trial_period_days
+        offer_trial = (
+            trial_period_days > 0 and not request.user.has_previous_subscription
+        )
 
         try:
             subscription_data = {
@@ -167,7 +170,7 @@ class CreateCheckoutSessionView(APIView):
                     },
                 },
             }
-            if trial_period_days > 0:
+            if offer_trial:
                 subscription_data["trial_period_days"] = trial_period_days
 
             session_kwargs = {

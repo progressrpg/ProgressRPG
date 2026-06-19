@@ -37,6 +37,9 @@ class PlayerSerializer(serializers.ModelSerializer):
     total_activities = serializers.IntegerField(read_only=True)
     achievements = serializers.SerializerMethodField()
     is_premium = serializers.BooleanField(source="user.is_premium", read_only=True)
+    has_previous_subscription = serializers.BooleanField(
+        source="user.has_previous_subscription", read_only=True
+    )
     login_streak = serializers.IntegerField(
         source="user.current_login_streak", read_only=True
     )
@@ -69,6 +72,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             "total_activities",
             "achievements",
             "is_premium",
+            "has_previous_subscription",
             "onboarding_step",
             "onboarding_completed",
             "login_streak",
@@ -83,6 +87,8 @@ class PlayerSerializer(serializers.ModelSerializer):
             "total_time",
             "total_activities",
             "achievements",
+            "is_premium",
+            "has_previous_subscription",
             "login_streak",
             "unseen_tutorial_step_ids",
         ]

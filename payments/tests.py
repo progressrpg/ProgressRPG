@@ -495,6 +495,79 @@ class CreateCheckoutSessionViewTests(TestCase):
         STRIPE_CANCEL_URL="https://example.com/cancel",
     )
     @patch("payments.views.stripe.checkout.Session.create")
+    @patch("payments.views.GameSettings.current")
+    def test_includes_trial_for_new_user_with_trial_configured(
+        self, mock_game_settings, mock_create_session
+    ):
+        mock_game_settings.return_value.trial_period_days = 7
+        user = get_user_model().objects.create_user(
+            email="new-trial@example.com",
+            password="testpass123",
+        )
+
+        mock_create_session.return_value = SimpleNamespace(
+            url="https://checkout.example/session",
+            id="cs_test_trial_new",
+        )
+
+        request = APIRequestFactory().post(
+            "/payments/create-checkout-session/",
+            {"plan": "monthly"},
+            format="json",
+        )
+        force_authenticate(request, user=user)
+
+        response = CreateCheckoutSessionView.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        create_kwargs = mock_create_session.call_args.kwargs
+        self.assertEqual(create_kwargs["subscription_data"]["trial_period_days"], 7)
+
+    @override_settings(
+        STRIPE_SUCCESS_URL="https://example.com/success",
+        STRIPE_CANCEL_URL="https://example.com/cancel",
+    )
+    @patch("payments.views.stripe.checkout.Session.create")
+    @patch("payments.views.GameSettings.current")
+    def test_suppresses_trial_for_returning_subscriber(
+        self, mock_game_settings, mock_create_session
+    ):
+        mock_game_settings.return_value.trial_period_days = 7
+        user = get_user_model().objects.create_user(
+            email="returning@example.com",
+            password="testpass123",
+        )
+        # Returning user: has a past (inactive) subscription
+        UserSubscription.objects.create(
+            user=user,
+            plan=self.monthly_plan,
+            active=False,
+            stripe_subscription_id="sub_old_cancelled",
+        )
+
+        mock_create_session.return_value = SimpleNamespace(
+            url="https://checkout.example/session",
+            id="cs_test_no_trial",
+        )
+
+        request = APIRequestFactory().post(
+            "/payments/create-checkout-session/",
+            {"plan": "monthly"},
+            format="json",
+        )
+        force_authenticate(request, user=user)
+
+        response = CreateCheckoutSessionView.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        create_kwargs = mock_create_session.call_args.kwargs
+        self.assertNotIn("trial_period_days", create_kwargs["subscription_data"])
+
+    @override_settings(
+        STRIPE_SUCCESS_URL="https://example.com/success",
+        STRIPE_CANCEL_URL="https://example.com/cancel",
+    )
+    @patch("payments.views.stripe.checkout.Session.create")
     def test_reuses_existing_customer_for_checkout(self, mock_create_session):
         user = get_user_model().objects.create_user(
             email="existing-customer@example.com",
@@ -520,6 +593,42 @@ class CreateCheckoutSessionViewTests(TestCase):
         create_kwargs = mock_create_session.call_args.kwargs
         self.assertEqual(create_kwargs["customer"], "cus_existing_123")
         self.assertNotIn("customer_email", create_kwargs)
+
+
+class HasPreviousSubscriptionTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="prev-sub@example.com",
+            password="testpass123",
+        )
+        self.plan = SubscriptionPlan.objects.create(
+            name="Premium Monthly",
+            description="",
+            price="9.99",
+            interval="monthly",
+            stripe_price_id="price_monthly_prev",
+        )
+
+    def test_false_when_no_subscriptions(self):
+        self.assertFalse(self.user.has_previous_subscription)
+
+    def test_true_when_inactive_subscription_exists(self):
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=self.plan,
+            active=False,
+            stripe_subscription_id="sub_cancelled",
+        )
+        self.assertTrue(self.user.has_previous_subscription)
+
+    def test_true_when_active_subscription_exists(self):
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=self.plan,
+            active=True,
+            stripe_subscription_id="sub_active",
+        )
+        self.assertTrue(self.user.has_previous_subscription)
 
 
 class EndActiveSubscriptionTests(TestCase):

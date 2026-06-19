@@ -129,6 +129,12 @@ class CustomUser(AbstractUser):
             return False
         return subscription.is_active_premium
 
+    @property
+    def has_previous_subscription(self):
+        from payments.models import UserSubscription
+
+        return UserSubscription.objects.filter(user=self).exists()
+
     def __str__(self):
         return self.email
 

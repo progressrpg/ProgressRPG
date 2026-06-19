@@ -38,7 +38,8 @@ export default function UpgradePage() {
   };
 
   const trialDays = appConfig?.trial_period_days ?? 0;
-  const hasTrial = trialDays > 0;
+  const hasPreviousSubscription = Boolean(player?.has_previous_subscription);
+  const hasTrial = trialDays > 0 && !hasPreviousSubscription;
   const isAlreadyPremium = Boolean(player?.is_premium);
 
   return (
