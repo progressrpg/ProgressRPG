@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import useLogin from '../../hooks/useLogin';
 import { useAuth } from '../../context/AuthContext';
 import Form from '../../components/Form/Form';
+import Input from '../../components/Input/Input';
 import styles from './LoginPage.module.scss';
 
 export default function LoginPage() {
@@ -50,22 +51,22 @@ export default function LoginPage() {
         className={styles.form}
       >
         {error && <p className={styles.error} role="alert">{error}</p>}
-        <input
+        <Input
+          id="email"
           type="email"
-          name="email"
           placeholder="Email"
           autoComplete='email'
           value={email}
-          onChange={e => setEmail(e.target.value)}
+          onChange={setEmail}
           required
         />
-        <input
+        <Input
+          id="password"
           type="password"
-          name="password"
           placeholder="Password"
           autoComplete='current-password'
           value={password}
-          onChange={e => setPassword(e.target.value)}
+          onChange={setPassword}
           required
         />
         <p className={styles.footer}>

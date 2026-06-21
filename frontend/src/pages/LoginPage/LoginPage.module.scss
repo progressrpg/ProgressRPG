@@ -21,15 +21,6 @@
 .form {
   gap: v.$spacing-gap;
   width: 100%;
-
-  input {
-    width: 100%;
-    max-width: 28rem;
-    padding: v.$spacing-sm;
-    border-radius: v.$border-radius;
-    @include m.border(c.$color-border-default);
-    @include t.apply-text-style(t.$text-body);
-  }
 }
 
 .error {
