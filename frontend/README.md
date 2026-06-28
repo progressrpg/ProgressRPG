@@ -7,6 +7,20 @@ Currently, two official plugins are available:
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
+## Component documentation (Storybook)
+
+From the `frontend/` directory:
+
+```bash
+# Start Storybook locally
+npm run storybook
+
+# Build static Storybook docs
+npm run build-storybook
+```
+
+Storybook documents shared components and their props under `src/components/**/*.stories.tsx`.
+
 ## Testing
 
 This project uses [Vitest](https://vitest.dev/) for unit testing React components.
