@@ -12,9 +12,6 @@ const preview = {
     docs: {
       toc: true,
     },
-    a11y: {
-      test: 'todo',
-    },
   },
 };
 
