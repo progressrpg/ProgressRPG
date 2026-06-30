@@ -136,7 +136,7 @@ django-ratelimit==4.1.0
     # via -r requirements.in
 django-redis==6.0.0
     # via -r requirements.in
-django-timezone-field==7.2.1
+django-timezone-field==7.2.2
     # via
     #   -r requirements.in
     #   django-celery-beat
