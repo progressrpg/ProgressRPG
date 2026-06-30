@@ -134,7 +134,7 @@ django-filter==25.2
     # via -r requirements.in
 django-ratelimit==4.1.0
     # via -r requirements.in
-django-redis==6.0.0
+django-redis==7.0.0
     # via -r requirements.in
 django-timezone-field==7.2.1
     # via
@@ -270,6 +270,7 @@ txaio==25.12.2
 typing-extensions==4.15.0
     # via
     #   -r requirements.in
+    #   django-redis
     #   pyopenssl
     #   referencing
     #   stripe

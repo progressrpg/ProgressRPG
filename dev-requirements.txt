@@ -151,7 +151,7 @@ django-filter==25.2
     # via -r requirements.in
 django-ratelimit==4.1.0
     # via -r requirements.in
-django-redis==6.0.0
+django-redis==7.0.0
     # via -r requirements.in
 django-stubs==5.2.9
     # via -r dev-requirements.in
@@ -369,6 +369,7 @@ types-pyyaml==6.0.12.20260408
 typing-extensions==4.15.0
     # via
     #   -r requirements.in
+    #   django-redis
     #   django-stubs
     #   django-stubs-ext
     #   mypy
