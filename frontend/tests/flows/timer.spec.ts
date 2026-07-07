@@ -16,7 +16,7 @@ test.describe('Timer flow', () => {
       const timerSection = page.locator('section').filter({
         has: page.getByRole('heading', { name: 'Activity timer' }),
       });
-      const activityInput = timerSection.getByPlaceholder(/what are you working on/i);
+      const activityInput = timerSection.getByPlaceholder(/start typing/i);
       await activityInput.fill('Flow test activity');
 
       await timerSection.getByRole('button', { name: 'Start' }).click();
