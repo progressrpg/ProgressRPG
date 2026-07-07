@@ -103,7 +103,7 @@ export default function useActivityTimer(): ActivityTimerReturn {
         ? { text: newActivity, taskId: null, limitSeconds: null, limitReason: null }
         : newActivity || {};
 
-    if (!text?.trim()) return null;
+    if (text == null) return null;
 
     primeAudio(); // unlock AudioContext while still in user-gesture context
 
