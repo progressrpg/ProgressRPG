@@ -34,18 +34,6 @@ interface ProviderProps {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const getActivityWindow = (): { start: string } => {
-  const now = new Date();
-  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  return {
-    start: since.toISOString(),
-  };
-};
-
-// ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
@@ -93,13 +81,12 @@ export const GameProvider = ({ children }: ProviderProps): ReactElement => {
   }, []);
 
   const fetchActivities = useCallback(async (): Promise<void> => {
-    const activityWindow = getActivityWindow();
     const [playerData, charData] = await Promise.all([
       apiFetch<{ results: PlayerActivity[] }>(
-        `/player-activities/?is_complete=true&completed_at_after=${activityWindow.start}`
+        `/player-activities/?is_complete=true&ordering=-completed_at`
       ),
       apiFetch<{ results: CharacterActivity[] }>(
-        `/character-activities/?is_complete=true&completed_at_after=${activityWindow.start}`
+        `/character-activities/?is_complete=true&ordering=-completed_at`
       ),
     ]);
     setPlayerActivities(playerData?.results ?? []);
