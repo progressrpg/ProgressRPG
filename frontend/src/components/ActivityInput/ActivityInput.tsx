@@ -8,6 +8,22 @@ import styles from "./ActivityInput.module.scss";
 import { useActivityInput } from "./useActivityInput";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
 
+function PlayIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false" width="1em" height="1em">
+      <path d="M8 5.5v13a1 1 0 0 0 1.53.85l10.4-6.5a1 1 0 0 0 0-1.7l-10.4-6.5A1 1 0 0 0 8 5.5Z" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false" width="1em" height="1em">
+      <rect x="6" y="6" width="12" height="12" rx="1.5" />
+    </svg>
+  );
+}
+
 export default function ActivityInput() {
   const {
     name,
@@ -52,7 +68,7 @@ export default function ActivityInput() {
                 onCreate={async (activityName) => {
                   await handleCreateActivity(activityName);
                 }}
-                placeholder="What are you working on? e.g. washing dishes"
+                placeholder="Start typing, or choose from the list below"
                 ariaLabel="Activity name"
                 className={styles.entitySearch}
                 inputClassName={classNames(styles.inputText, {
@@ -73,8 +89,8 @@ export default function ActivityInput() {
             <Button
               onClick={handleToggle}
               variant="primary"
-              disabled={!isActive && !name.trim()}
               className={classNames(styles.ctaButton, styles.control)}
+              icon={isActive ? <StopIcon /> : <PlayIcon />}
             >
               {isActive ? "Stop" : "Start"}
             </Button>
