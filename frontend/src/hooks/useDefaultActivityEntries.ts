@@ -16,11 +16,14 @@ function toNameKey(name: string): string {
 
 type RankedEntity = SearchEntity & { recency: number };
 
+/** How many rows the default (empty-query) view shows, most recent first. */
+const MAX_DEFAULT_ENTRIES = 3;
+
 /**
  * Builds the default (empty-query) view for the unified activity list:
  * incomplete tasks (collapsing any activities linked to them), plus
  * standalone activities that aren't linked to an incomplete task, sorted
- * by recency.
+ * by recency and capped to the most recent MAX_DEFAULT_ENTRIES rows.
  */
 export function useDefaultActivityEntries(): SearchEntity[] {
   const { playerActivities, characterActivities } = useGame();
@@ -82,6 +85,7 @@ export function useDefaultActivityEntries(): SearchEntity[] {
 
     return [...rowsByTaskId.values(), ...standalone]
       .sort((a, b) => b.recency - a.recency)
+      .slice(0, MAX_DEFAULT_ENTRIES)
       .map((entity): SearchEntity => ({
         id: entity.id,
         name: entity.name,

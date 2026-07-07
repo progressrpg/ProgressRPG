@@ -93,4 +93,26 @@ describe("useDefaultActivityEntries", () => {
 
     expect(result.current.map((entry) => entry.name)).toEqual(["Newer activity", "Older activity"]);
   });
+
+  it("caps the default view to the 3 most recent entries", () => {
+    mockUseGame.mockReturnValue({
+      playerActivities: [
+        { id: 1, name: "Activity 1", task: null, completed_at: "2026-01-01T00:00:00Z" },
+        { id: 2, name: "Activity 2", task: null, completed_at: "2026-01-02T00:00:00Z" },
+        { id: 3, name: "Activity 3", task: null, completed_at: "2026-01-03T00:00:00Z" },
+        { id: 4, name: "Activity 4", task: null, completed_at: "2026-01-04T00:00:00Z" },
+        { id: 5, name: "Activity 5", task: null, completed_at: "2026-01-05T00:00:00Z" },
+      ],
+      characterActivities: [],
+    });
+    mockUseTasks.mockReturnValue({ data: [] });
+
+    const { result } = renderHook(() => useDefaultActivityEntries());
+
+    expect(result.current.map((entry) => entry.name)).toEqual([
+      "Activity 5",
+      "Activity 4",
+      "Activity 3",
+    ]);
+  });
 });

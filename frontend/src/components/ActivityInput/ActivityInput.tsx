@@ -41,7 +41,7 @@ export default function ActivityInput() {
           })}
         >
           <div className={styles.row}>
-            <div className={classNames(styles.grow, styles.control)}>
+            <div className={styles.grow}>
               <EntitySearchInput
                 type="activity"
                 value={inputValue}
