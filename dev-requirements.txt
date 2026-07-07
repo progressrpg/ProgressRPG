@@ -155,7 +155,7 @@ django-redis==7.0.0
     # via -r requirements.in
 django-stubs==5.2.9
     # via -r dev-requirements.in
-django-stubs-ext==6.0.5
+django-stubs-ext==6.0.6
     # via
     #   -r dev-requirements.in
     #   django-stubs
@@ -369,6 +369,7 @@ types-pyyaml==6.0.12.20260408
 typing-extensions==4.15.0
     # via
     #   -r requirements.in
+    #   django-redis
     #   django-stubs
     #   django-stubs-ext
     #   mypy
