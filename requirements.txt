@@ -55,7 +55,7 @@ channels-redis==4.3.0
     # via -r requirements.in
 charset-normalizer==3.4.7
     # via requests
-click==8.3.3
+click==8.4.2
     # via
     #   -r requirements.in
     #   celery
@@ -270,6 +270,7 @@ txaio==25.12.2
 typing-extensions==4.15.0
     # via
     #   -r requirements.in
+    #   django-redis
     #   pyopenssl
     #   referencing
     #   stripe

@@ -67,7 +67,7 @@ channels-redis==4.3.0
     # via -r requirements.in
 charset-normalizer==3.4.7
     # via requests
-click==8.3.3
+click==8.4.2
     # via
     #   -r requirements.in
     #   celery
@@ -369,6 +369,7 @@ types-pyyaml==6.0.12.20260408
 typing-extensions==4.15.0
     # via
     #   -r requirements.in
+    #   django-redis
     #   django-stubs
     #   django-stubs-ext
     #   mypy
