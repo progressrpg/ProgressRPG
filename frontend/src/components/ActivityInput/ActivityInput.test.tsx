@@ -33,6 +33,10 @@ vi.mock('../../hooks/useEntitySearchCache', () => ({
   useEntitySearchCache: (...args) => mockUseEntitySearchCache(...args),
 }));
 
+vi.mock('../../hooks/useDefaultActivityEntries', () => ({
+  useDefaultActivityEntries: () => [],
+}));
+
 vi.mock('../SupportFlow/SupportFlowModal', () => ({
   default: () => null,
 }));

@@ -26,6 +26,7 @@ export default function ActivityInput() {
     handleCreateActivity,
     submitAndOpenSupport,
     openSupportMode,
+    defaultEntries,
   } = useActivityInput();
 
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
@@ -59,6 +60,9 @@ export default function ActivityInput() {
                   [styles.inputMuted]: isActive,
                 })}
                 searchEnabled={!isActive}
+                alwaysOpen={!isActive}
+                defaultResults={defaultEntries}
+                emptyMessage="No recent activities or tasks yet — type above to start something new."
               />
             </div>
 

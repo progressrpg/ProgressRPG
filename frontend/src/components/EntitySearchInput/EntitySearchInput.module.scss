@@ -46,6 +46,22 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
+.dropdownPersistent {
+  position: static;
+  box-shadow: none;
+  border: 1px solid rgba(c.$color-border-primary, 0.15);
+  background: transparent;
+  max-height: 45vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.emptyState {
+  padding: v.$spacing-sm v.$spacing-md;
+  color: rgba(c.$color-text-body, 0.6);
+  font-style: italic;
+}
+
 .optionItem {
   margin: 0;
 }

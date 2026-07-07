@@ -24,6 +24,10 @@ interface UseEntitySearchInputProps {
   onCreate?: (name: string) => void | Promise<void>;
   disabled?: boolean;
   searchEnabled?: boolean;
+  /** Keep the results panel visible even without focus, e.g. for a persistent always-open list. */
+  alwaysOpen?: boolean;
+  /** Results to show when the query is empty (only used when alwaysOpen is set). */
+  defaultResults?: SearchEntity[];
 }
 
 function normalizeQuery(value: string | undefined): string {
@@ -38,10 +42,12 @@ function useEntitySearchResults({
   entities,
   value,
   canSearch,
+  defaultResults = [],
 }: {
   entities: SearchEntity[];
   value: string;
   canSearch: boolean;
+  defaultResults?: SearchEntity[];
 }) {
   const [debouncedQuery, setDebouncedQuery] = useState(value);
 
@@ -75,6 +81,7 @@ function useEntitySearchResults({
     if (!canSearch) return [];
 
     const query = normalizeQuery(debouncedQuery);
+    if (!query) return defaultResults;
     if (query.length < MIN_QUERY_LENGTH) return [];
 
     const queryKey = getEntityNameKey(query);
@@ -120,7 +127,7 @@ function useEntitySearchResults({
       });
 
     return uniqueResults.slice(0, MAX_RESULTS);
-  }, [canSearch, debouncedQuery, fuse, normalizedValue, searchableEntities]);
+  }, [canSearch, debouncedQuery, defaultResults, fuse, normalizedValue, searchableEntities]);
 
   const results = useMemo(() => {
     const taskResults = rawResults.filter((result) => result.source === "task");
@@ -177,6 +184,8 @@ export function useEntitySearchInput({
   onCreate,
   disabled = false,
   searchEnabled = true,
+  alwaysOpen = false,
+  defaultResults,
 }: UseEntitySearchInputProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const { entities, addEntityToCache } = useEntitySearchCache(type);
@@ -190,9 +199,10 @@ export function useEntitySearchInput({
     entities,
     value,
     canSearch,
+    defaultResults,
   });
 
-  const isDropdownOpen = isFocused && results.length > 0;
+  const isDropdownOpen = alwaysOpen ? canSearch : isFocused && results.length > 0;
 
   const activeHighlightedIndex =
     highlightedIndex >= 0 && highlightedIndex < results.length ? highlightedIndex : -1;

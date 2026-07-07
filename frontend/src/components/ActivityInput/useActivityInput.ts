@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { useGame } from "../../hooks/useGame";
 import { useEntitySearchCache } from "../../hooks/useEntitySearchCache";
+import { useDefaultActivityEntries } from "../../hooks/useDefaultActivityEntries";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import type { PlayerActivity } from "../../types";
 import { playLimitReachedSound, primeAudio } from "../../utils/sounds";
@@ -179,6 +180,7 @@ export function useActivityInput() {
   const isPremium = Boolean(player?.is_premium);
   const queryClient = useQueryClient();
   const { addEntityToCache } = useEntitySearchCache("activity");
+  const defaultEntries = useDefaultActivityEntries();
 
   const [name, setName] = useState("");
 
@@ -417,5 +419,6 @@ export function useActivityInput() {
     submitAndOpenSupport,
     openSupportMode,
     isPremium,
+    defaultEntries,
   };
 }
