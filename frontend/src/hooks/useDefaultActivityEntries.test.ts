@@ -45,7 +45,7 @@ describe("useDefaultActivityEntries", () => {
     expect(result.current[0]).toMatchObject({ name: "Write report", source: "task", taskId: 10 });
   });
 
-  it("shows unlinked activities and activities linked to a completed task as themselves", () => {
+  it("shows unlinked activities as themselves and drops activities linked to a completed task", () => {
     mockUseGame.mockReturnValue({
       playerActivities: [
         { id: 1, name: "Washing dishes", task: null, completed_at: "2026-01-01T00:00:00Z" },
@@ -59,10 +59,7 @@ describe("useDefaultActivityEntries", () => {
 
     const { result } = renderHook(() => useDefaultActivityEntries());
 
-    expect(result.current.map((entry) => entry.name)).toEqual([
-      "Old finished task work",
-      "Washing dishes",
-    ]);
+    expect(result.current.map((entry) => entry.name)).toEqual(["Washing dishes"]);
     expect(result.current.every((entry) => entry.source === "activity")).toBe(true);
   });
 

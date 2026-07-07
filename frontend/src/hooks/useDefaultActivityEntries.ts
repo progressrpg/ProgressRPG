@@ -17,7 +17,7 @@ function toNameKey(name: string): string {
 type RankedEntity = SearchEntity & { recency: number };
 
 /** How many rows the default (empty-query) view shows, most recent first. */
-const MAX_DEFAULT_ENTRIES = 3;
+const MAX_DEFAULT_ENTRIES = 4;
 
 /**
  * Builds the default (empty-query) view for the unified activity list:
@@ -32,9 +32,13 @@ export function useDefaultActivityEntries(): SearchEntity[] {
 
   return useMemo(() => {
     const rowsByTaskId = new Map<number, RankedEntity>();
+    const completedTaskIds = new Set<number>();
 
     (tasks ?? []).forEach((task: Task) => {
-      if (task.is_complete || task.completed_at) return;
+      if (task.is_complete || task.completed_at) {
+        completedTaskIds.add(task.id);
+        return;
+      }
       rowsByTaskId.set(task.id, {
         id: `task-${task.id}`,
         name: task.name,
@@ -50,6 +54,7 @@ export function useDefaultActivityEntries(): SearchEntity[] {
     (playerActivities ?? []).forEach((activity: PlayerActivity) => {
       const name = (activity.name || "").trim();
       if (!name) return;
+      if (activity.task != null && completedTaskIds.has(activity.task)) return;
 
       const recency = toEpoch(activity.completed_at ?? activity.last_updated ?? activity.created_at);
       const linkedRow = activity.task != null ? rowsByTaskId.get(activity.task) : undefined;
