@@ -1,8 +1,10 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.admin import SimpleListFilter
 from django.db.models import Max, Prefetch
+from django.db.utils import ProgrammingError
 from django.forms.models import BaseInlineFormSet
+from django.shortcuts import redirect
 from adminsortable2.admin import SortableAdminMixin
 
 from .models import (
@@ -418,6 +420,18 @@ class InviteCodeAdmin(admin.ModelAdmin):
 class TutorialStepAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ["order", "title", "image", "youtube_url"]
     ordering = ["order"]
+
+    def changelist_view(self, request, extra_context=None):
+        try:
+            return super().changelist_view(request, extra_context=extra_context)
+        except ProgrammingError:
+            messages.error(
+                request,
+                "TutorialStep's database table is out of sync with the code "
+                "(a column is missing). Run 'python manage.py migrate' to apply "
+                "pending migrations, then reload this page.",
+            )
+            return redirect("admin:app_list", app_label="users")
 
 
 @admin.register(PlayerCurrency)
