@@ -297,10 +297,8 @@ export function useActivityInput() {
       return;
     }
 
-    if (!name.trim()) return;
-
     const nextName = name.trim();
-    addEntityToCache(nextName);
+    if (nextName) addEntityToCache(nextName);
     await startActivity({ text: nextName, limitSeconds: isPremium ? null : freeTimerLimitSeconds });
   }, [
     addEntityToCache,
