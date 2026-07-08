@@ -149,7 +149,7 @@ django-ratelimit==4.1.0
     # via -r requirements.in
 django-redis==7.0.0
     # via -r requirements.in
-django-stubs==5.2.9
+django-stubs==6.0.6
     # via -r dev-requirements.in
 django-stubs-ext==6.0.6
     # via
