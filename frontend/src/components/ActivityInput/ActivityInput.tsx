@@ -30,8 +30,6 @@ export default function ActivityInput() {
     setName,
     isActive,
     inputValue,
-    minutes,
-    seconds,
     formattedLimit,
     showAutoStopWarning,
     flowState,
@@ -80,10 +78,6 @@ export default function ActivityInput() {
                 defaultResults={defaultEntries}
                 emptyMessage="No recent activities or tasks yet — type above to start something new."
               />
-            </div>
-
-            <div className={classNames(styles.timerPill, styles.control)}>
-              {minutes}:{seconds.toString().padStart(2, "0")}
             </div>
 
             <Button

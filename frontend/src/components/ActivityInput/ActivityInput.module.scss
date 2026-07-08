@@ -73,22 +73,6 @@ $row-control-height: 44px;
   margin: 0;
 }
 
-.timerPill {
-  display: flex;
-  align-items: center;
-  @include m.border(rgba(c.$color-border-primary, 0.3));
-  border-radius: v.$border-radius;
-  padding: v.$padding-base;
-  line-height: 1;
-  white-space: nowrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 1.1rem;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-
-  //@include t.apply-text-style(t.$text-body);
-}
-
-
 .inputText {
   font-size: 1.05rem;
   line-height: 1.2;
@@ -131,12 +115,6 @@ $row-control-height: 44px;
   //   inset 0 0 0.8rem rgba(c.$color-glowing-outline, 0.55);
 
   //@include m.pulse(2.5s);
-}
-
-.isRunning .timerPill {
-  border-color: rgba(c.$color-border-primary, 0.8);
-  box-shadow: 0 0 0 2px rgba(c.$color-border-primary, 0.25);
-  animation: timerPulse 1.6s ease-in-out infinite;
 }
 
 .ctaButton {
@@ -202,16 +180,6 @@ $row-control-height: 44px;
   background: rgba(c.$color-player, 0.12);
 }
 
-@keyframes timerPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 2px rgba(c.$color-border-primary, 0.25);
-  }
-  50% {
-    box-shadow: 0 0 0 3px rgba(c.$color-border-primary, 0.4);
-  }
-}
-
 @include m.respond-to(md, down) {
   .control {
     height: 40px;
@@ -226,11 +194,6 @@ $row-control-height: 44px;
     line-height: 1.1;
     height: 40px;
     padding: 0 v.$spacing-xs;
-  }
-
-  .timerPill {
-    padding: v.$spacing-sm;
-    font-size: 1rem;
   }
 
   .supportButtonRow {
@@ -251,10 +214,5 @@ $row-control-height: 44px;
     font-size: 0.9rem;
     line-height: 1.05;
     height: 38px;
-  }
-
-  .timerPill {
-    padding: v.$spacing-xs v.$spacing-sm;
-    font-size: 0.95rem;
   }
 }

@@ -374,9 +374,6 @@ export function useActivityInput() {
     stop,
   ]);
 
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = elapsed % 60;
-
   const formattedLimit = useMemo(() => {
     if (typeof limitSeconds !== "number" || limitSeconds <= 0) {
       return null;
@@ -404,8 +401,6 @@ export function useActivityInput() {
     setName,
     isActive,
     inputValue,
-    minutes,
-    seconds,
     formattedLimit,
     showAutoStopWarning,
     flowState,
