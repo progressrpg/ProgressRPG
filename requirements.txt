@@ -182,7 +182,7 @@ msgpack==1.2.1
     #   -r requirements.in
     #   autobahn
     #   channels-redis
-numpy==2.5.0
+numpy==2.5.1
     # via -r requirements.in
 packaging==26.2
     # via
