@@ -112,6 +112,8 @@ defusedxml==0.7.1
     # via
     #   -r requirements.in
     #   python3-openid
+disposable-email-domains==0.0.217
+    # via -r requirements.in
 distlib==0.4.3
     # via virtualenv
 dj-database-url==3.1.2
@@ -426,7 +428,9 @@ virtualenv==21.5.1
 wcwidth==0.8.2
     # via prompt-toolkit
 websocket-client==1.9.0
-    # via python-socketio
+    # via
+    #   -r dev-requirements.in
+    #   python-socketio
 werkzeug==3.1.8
     # via
     #   flask

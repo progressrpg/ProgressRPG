@@ -16,6 +16,7 @@ from .models import (
 )
 from .services import waitlist_service
 from character.models import PlayerCharacterLink, Character
+from core.models import GameSettings
 from payments.models import UserSubscription
 
 # Register your models here.
@@ -237,7 +238,11 @@ class CustomUserAdmin(UserAdmin):
         return queryset
 
     def save_model(self, request, obj, form, change):
-        if not change:
+        if not change and not GameSettings.current().self_serve_registration:
+            # Concierge-mode convenience: staff vouches for the account, so
+            # skip the email-confirmation loop. Once self-serve is live,
+            # admin-created users go through the same is_confirmed=False
+            # path as everyone else, keeping the registration cap accurate.
             obj.is_confirmed = True
         super().save_model(request, obj, form, change)
 

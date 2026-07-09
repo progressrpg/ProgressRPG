@@ -1,5 +1,15 @@
 import re
 
+from disposable_email_domains import blocklist
+
+DISPOSABLE_EMAIL_ERROR_MESSAGE = "Please use a permanent email address."
+
+
+def reject_disposable_email(value: str) -> None:
+    domain = value.rsplit("@", 1)[-1].lower()
+    if domain in blocklist:
+        raise ValueError(DISPOSABLE_EMAIL_ERROR_MESSAGE)
+
 
 PLAYER_NAME_MIN_LENGTH = 3
 PLAYER_NAME_MAX_LENGTH = 20

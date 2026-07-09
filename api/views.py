@@ -1,7 +1,7 @@
 # api/views.py
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.contrib.auth import login, logout, get_user_model
+from django.contrib.auth import login, logout
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.db import transaction, IntegrityError
@@ -76,6 +76,7 @@ from progression.serializers import PlayerActivitySerializer
 
 from users.models import Player, TutorialStep, Waitlist
 from users.serializers import PlayerSerializer, TutorialStepSerializer
+from users.services.registration_services import verified_user_count
 from users.utils import send_email_to_users
 
 from progress_rpg.settings.utils import get_build_number
@@ -150,9 +151,7 @@ class RegistrationStatusAPIView(APIView):
 
     def get(self, request):
         game_settings = GameSettings.current()
-        registration_open = (
-            get_user_model().objects.count() < game_settings.registration_cap
-        )
+        registration_open = verified_user_count() < game_settings.registration_cap
         return Response(
             {
                 "registration_open": registration_open,
@@ -371,6 +370,7 @@ class TutorialStepViewSet(viewsets.ReadOnlyModelViewSet):
 class CustomRegisterView(RegisterView):
     serializer_class = CustomRegisterSerializer
 
+    @method_decorator(ratelimit(key="ip", rate="5/h", method="POST", block=True))
     def create(self, request, *args, **kwargs):
         if not GameSettings.current().registration_enabled:
             return Response(

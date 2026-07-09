@@ -14,6 +14,7 @@ cron-descriptor
 cryptography
 daphne
 defusedxml
+disposable-email-domains
 dj-database-url
 dj-rest-auth
 Django>=5.2.14,<6

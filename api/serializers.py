@@ -14,8 +14,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.models import GameSettings
 from users.models import Player, InviteCode, UserLogin, Waitlist
-from users.services.registration_services import ensure_player_setup_for_user
-from users.validators import clean_player_name
+from users.services.registration_services import (
+    ensure_player_setup_for_user,
+    verified_user_count,
+)
+from users.validators import clean_player_name, reject_disposable_email
 
 from django.contrib.auth import get_user_model
 
@@ -186,6 +189,13 @@ class DeleteAccountResponseSerializer(serializers.Serializer):
 class WaitlistSignupRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
+    def validate_email(self, value):
+        try:
+            reject_disposable_email(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        return value
+
 
 class WaitlistSignupResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
@@ -200,6 +210,13 @@ class RegistrationStatusResponseSerializer(serializers.Serializer):
 
 class WaitlistJoinRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        try:
+            reject_disposable_email(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        return value
 
 
 class WaitlistJoinResponseSerializer(serializers.Serializer):
@@ -302,6 +319,10 @@ class CustomRegisterSerializer(RegisterSerializer):
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with that email already exists.")
+        try:
+            reject_disposable_email(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
         return value
 
     def validate_timezone(self, value):
@@ -323,7 +344,9 @@ class CustomRegisterSerializer(RegisterSerializer):
                 )
             # Self-serve signups must respect the cap; invite holders bypass
             # it because their invite is proof of a slot at invite time.
-            if User.objects.count() >= game_settings.registration_cap:
+            # Only confirmed users count, so unconfirmed/abandoned signups
+            # can't exhaust the cap and block real users.
+            if verified_user_count() >= game_settings.registration_cap:
                 raise serializers.ValidationError(
                     "Registration is currently full. Please join the waitlist."
                 )

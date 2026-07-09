@@ -30,12 +30,24 @@ class RegistrationStatusAPITest(APITestCase):
         self.assertTrue(res.json()["registration_open"])
 
     def test_registration_closed_at_cap(self):
-        User.objects.create_user(email="a@example.com", password="testpassword123")
+        user = User.objects.create_user(
+            email="a@example.com", password="testpassword123"
+        )
+        user.is_confirmed = True
+        user.save(update_fields=["is_confirmed"])
         self.settings.registration_cap = User.objects.count()
         self.settings.save()
         res = self.client.get("/api/v1/registration_status/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertFalse(res.json()["registration_open"])
+
+    def test_registration_open_ignores_unconfirmed_users_at_cap(self):
+        User.objects.create_user(email="a@example.com", password="testpassword123")
+        self.settings.registration_cap = User.objects.count()
+        self.settings.save()
+        res = self.client.get("/api/v1/registration_status/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(res.json()["registration_open"])
 
     def test_endpoint_requires_no_auth(self):
         res = self.client.get("/api/v1/registration_status/")
@@ -68,10 +80,14 @@ class RegistrationStatusAPITest(APITestCase):
 
 class RegistrationKillSwitchTest(APITestCase):
     def setUp(self):
+        cache.clear()
         GameSettings.objects.all().delete()
         self.settings = GameSettings.current()
         InviteCode.objects.create(code="TESTCODE")
         mail.outbox.clear()
+
+    def tearDown(self):
+        cache.clear()
 
     def _post_registration(self):
         with patch("api.serializers._verify_turnstile", return_value=True):
@@ -177,6 +193,12 @@ class WaitlistJoinAPITest(APITestCase):
 
 
 class SignupIgnoresCapTest(APITestCase):
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
     def test_signup_succeeds_even_when_cap_already_exceeded(self):
         from users.models import InviteCode
 
@@ -419,8 +441,12 @@ class WaitlistInviteTaskTest(TestCase):
 
 class WaitlistRegistrationRedemptionTest(APITestCase):
     def setUp(self):
+        cache.clear()
         GameSettings.objects.all().delete()
         GameSettings.current()
+
+    def tearDown(self):
+        cache.clear()
 
     def _register_payload(self, email, invite_token):
         return {
@@ -766,8 +792,12 @@ class WaitlistRemovalAcceptanceCriteriaTest(TestCase):
 
 class SelfServeRegistrationTest(APITestCase):
     def setUp(self):
+        cache.clear()
         GameSettings.objects.all().delete()
         self.settings = GameSettings.current()
+
+    def tearDown(self):
+        cache.clear()
 
     def _register_payload(self, email, **extra):
         return {
@@ -808,12 +838,25 @@ class SelfServeRegistrationTest(APITestCase):
 
     def test_self_serve_respects_registration_cap(self):
         self._enable_self_serve()
-        User.objects.create_user(email="a@example.com", password="testpassword123")
+        existing = User.objects.create_user(
+            email="a@example.com", password="testpassword123"
+        )
+        existing.is_confirmed = True
+        existing.save(update_fields=["is_confirmed"])
         self.settings.registration_cap = User.objects.count()
         self.settings.save()
         res = self._post_register(self._register_payload("solo@example.com"))
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(User.objects.filter(email="solo@example.com").exists())
+
+    def test_self_serve_ignores_unconfirmed_users_for_cap(self):
+        self._enable_self_serve()
+        User.objects.create_user(email="a@example.com", password="testpassword123")
+        self.settings.registration_cap = User.objects.count()
+        self.settings.save()
+        res = self._post_register(self._register_payload("solo@example.com"))
+        self.assertIn(res.status_code, [status.HTTP_200_OK, status.HTTP_201_CREATED])
+        self.assertTrue(User.objects.filter(email="solo@example.com").exists())
 
     def test_invite_token_still_bypasses_cap_when_self_serve_enabled(self):
         self._enable_self_serve()
@@ -867,3 +910,136 @@ class SelfServeRegistrationTest(APITestCase):
         res = self._post_register(self._register_payload("solo@example.com"))
         self.assertEqual(res.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
         self.assertFalse(User.objects.filter(email="solo@example.com").exists())
+
+
+class RegistrationRateLimitTest(APITestCase):
+    def setUp(self):
+        cache.clear()
+        GameSettings.objects.all().delete()
+        GameSettings.current()
+        InviteCode.objects.create(code="RATELIMITCODE")
+
+    def tearDown(self):
+        cache.clear()
+
+    def _register_payload(self, email):
+        return {
+            "email": email,
+            "password1": "SuperSecret123!",
+            "password2": "SuperSecret123!",
+            "invite_code": "RATELIMITCODE",
+            "agree_to_terms": True,
+            "turnstile_token": "test-token",
+        }
+
+    def test_sixth_registration_from_same_ip_is_rate_limited(self):
+        with patch("api.serializers._verify_turnstile", return_value=True):
+            for i in range(5):
+                res = self.client.post(
+                    "/api/v1/auth/registration/",
+                    self._register_payload(f"rl{i}@example.com"),
+                )
+                self.assertIn(
+                    res.status_code,
+                    [status.HTTP_200_OK, status.HTTP_201_CREATED],
+                )
+
+            res = self.client.post(
+                "/api/v1/auth/registration/",
+                self._register_payload("rl5@example.com"),
+            )
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(User.objects.filter(email="rl5@example.com").exists())
+
+
+class DisposableEmailBlocklistTest(APITestCase):
+    DISPOSABLE_EMAIL = "someone@mailinator.com"
+
+    def setUp(self):
+        cache.clear()
+        GameSettings.objects.all().delete()
+        self.settings = GameSettings.current()
+        self.settings.self_serve_registration = True
+        self.settings.save()
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_registration_rejects_disposable_domain(self):
+        with patch("api.serializers._verify_turnstile", return_value=True):
+            res = self.client.post(
+                "/api/v1/auth/registration/",
+                {
+                    "email": self.DISPOSABLE_EMAIL,
+                    "password1": "SuperSecret123!",
+                    "password2": "SuperSecret123!",
+                    "agree_to_terms": True,
+                    "turnstile_token": "test-token",
+                },
+            )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(User.objects.filter(email=self.DISPOSABLE_EMAIL).exists())
+
+    def test_registration_accepts_normal_domain(self):
+        with patch("api.serializers._verify_turnstile", return_value=True):
+            res = self.client.post(
+                "/api/v1/auth/registration/",
+                {
+                    "email": "someone@example.com",
+                    "password1": "SuperSecret123!",
+                    "password2": "SuperSecret123!",
+                    "agree_to_terms": True,
+                    "turnstile_token": "test-token",
+                },
+            )
+        self.assertIn(res.status_code, [status.HTTP_200_OK, status.HTTP_201_CREATED])
+
+    def test_waitlist_signup_rejects_disposable_domain(self):
+        with patch("api.views.subscribe_email_to_waitlist") as mock_subscribe:
+            res = self.client.post(
+                "/api/v1/waitlist_signup/", {"email": self.DISPOSABLE_EMAIL}
+            )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_subscribe.assert_not_called()
+
+    def test_waitlist_join_rejects_disposable_domain(self):
+        res = self.client.post(
+            "/api/v1/waitlist_join/", {"email": self.DISPOSABLE_EMAIL}
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Waitlist.objects.filter(email=self.DISPOSABLE_EMAIL).exists())
+
+
+class AdminAutoConfirmGatingTest(TestCase):
+    def setUp(self):
+        from django.contrib.admin.sites import AdminSite
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.test import RequestFactory
+        from users.admin import CustomUserAdmin
+
+        GameSettings.objects.all().delete()
+        self.settings = GameSettings.current()
+        self.admin = CustomUserAdmin(User, AdminSite())
+        request = RequestFactory().post("/admin/")
+        request.session = {}
+        request._messages = FallbackStorage(request)
+        self.request = request
+
+    def _save_new_user(self, email):
+        user = User(email=email)
+        user.set_password("testpassword123")
+        form = MagicMock()
+        self.admin.save_model(self.request, user, form, change=False)
+        return user
+
+    def test_concierge_mode_auto_confirms_new_admin_user(self):
+        self.settings.self_serve_registration = False
+        self.settings.save()
+        user = self._save_new_user("concierge@example.com")
+        self.assertTrue(user.is_confirmed)
+
+    def test_self_serve_mode_does_not_auto_confirm_new_admin_user(self):
+        self.settings.self_serve_registration = True
+        self.settings.save()
+        user = self._save_new_user("selfserve@example.com")
+        self.assertFalse(user.is_confirmed)

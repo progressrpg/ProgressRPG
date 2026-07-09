@@ -1,11 +1,11 @@
 import secrets
 from datetime import timedelta
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
 from users.models import Waitlist
+from users.services.registration_services import verified_user_count
 from users.utils import send_email_to_users
 
 NUDGE_SCHEDULE = [
@@ -70,7 +70,7 @@ def invite_up_to_headroom() -> int:
 
     with transaction.atomic():
         registration_cap = GameSettings.current().registration_cap
-        registered = get_user_model().objects.count()
+        registered = verified_user_count()
         headroom = registration_cap - registered
         if headroom <= 0:
             return 0
