@@ -154,9 +154,25 @@ class CreateCheckoutSessionView(APIView):
         cancel_url = getattr(settings, "STRIPE_CANCEL_URL", "")
 
         trial_period_days = GameSettings.current().trial_period_days
-        offer_trial = (
-            trial_period_days > 0 and not request.user.has_previous_subscription
-        )
+        offer_trial = trial_period_days > 0
+
+        # Local UserSubscription rows are normally created by the
+        # checkout.session.completed webhook. If that webhook never landed
+        # (delivery failure, outage, etc.), has_previous_subscription would
+        # wrongly report no prior trial. Reconcile directly against Stripe
+        # before trusting the local-only result, but fail open on Stripe
+        # errors so an outage doesn't block checkout entirely.
+        if offer_trial and not request.user.has_previous_subscription:
+            try:
+                sync_subscription_from_stripe(request.user)
+                request.user.refresh_from_db()
+            except stripe.error.StripeError:
+                logger.exception(
+                    "[PAYMENTS.CHECKOUT] Stripe error verifying prior-subscription "
+                    f"history for user_id={request.user.id} — falling back to local record"
+                )
+
+        offer_trial = offer_trial and not request.user.has_previous_subscription
 
         try:
             subscription_data = {

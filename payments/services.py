@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone as dt_timezone
 
 import stripe
 from django.conf import settings
@@ -158,6 +159,48 @@ def _fetch_stripe_subscriptions(user):
     return list(getattr(result, "data", []))
 
 
+def _backfill_historical_subscriptions(user, subscriptions_data):
+    """
+    Ensure every Stripe subscription Stripe knows about (active or not) has a
+    matching local UserSubscription row, so trial-history checks
+    (has_previous_subscription) don't depend entirely on webhook delivery.
+    Rows are always created inactive; the active/dead branches below then
+    activate the candidate's row if its Stripe status warrants it.
+    """
+    for stripe_sub in subscriptions_data:
+        if UserSubscription.objects.filter(
+            stripe_subscription_id=stripe_sub.id
+        ).exists():
+            continue
+
+        price_id = extract_price_id(stripe_sub)
+        plan = (
+            SubscriptionPlan.objects.filter(stripe_price_id=price_id).first()
+            if price_id
+            else None
+        )
+        ended_at = getattr(stripe_sub, "ended_at", None) or getattr(
+            stripe_sub, "canceled_at", None
+        )
+        local_sub = UserSubscription.objects.create(
+            user=user,
+            plan=plan,
+            stripe_subscription_id=stripe_sub.id,
+            active=False,
+        )
+        if ended_at:
+            local_sub.end_date = datetime.fromtimestamp(ended_at, tz=dt_timezone.utc)
+            local_sub.save(update_fields=["end_date"])
+        logger.info(
+            "[PAYMENTS.SYNC] Backfilled missing local subscription id=%s for "
+            "user_id=%s stripe_subscription_id=%s status=%s",
+            local_sub.id,
+            user.id,
+            stripe_sub.id,
+            stripe_sub.status,
+        )
+
+
 def _reconcile_subscriptions(user, subscriptions_data):
     """Apply a list of Stripe subscription objects to local state."""
     live = [s for s in subscriptions_data if s.status in ACTIVE_STATUSES]
@@ -172,6 +215,8 @@ def _reconcile_subscriptions(user, subscriptions_data):
         getattr(candidate, "id", None),
         getattr(candidate, "status", None),
     )
+    _backfill_historical_subscriptions(user, subscriptions_data)
+
     if not candidate:
         UserSubscription.deactivate_all_for_user(user)
         logger.info(
