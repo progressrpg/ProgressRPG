@@ -18,8 +18,25 @@ const startActivity = vi.fn();
 const labelActivity = vi.fn();
 const addEntityToCache = vi.fn();
 
+const mockUseTasks = vi.fn();
+const mockUseCreateTask = vi.fn();
+const mockUseUpdateTask = vi.fn();
+const mockUseDeleteTask = vi.fn();
+const navigate = vi.fn();
+
 vi.mock('../../hooks/useGame', () => ({
   useGame: () => mockUseGame(),
+}));
+
+vi.mock('../../hooks/useTasks', () => ({
+  useTasks: () => mockUseTasks(),
+  useCreateTask: () => mockUseCreateTask(),
+  useUpdateTask: () => mockUseUpdateTask(),
+  useDeleteTask: () => mockUseDeleteTask(),
+}));
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => navigate,
 }));
 
 vi.mock('../../hooks/useSupportFlow', () => ({
@@ -125,6 +142,12 @@ describe('UnifiedTimerHome', () => {
     startActivity.mockReset();
     labelActivity.mockReset();
     addEntityToCache.mockReset();
+    navigate.mockReset();
+
+    mockUseTasks.mockReset().mockReturnValue({ isLoading: false, data: [] });
+    mockUseCreateTask.mockReset().mockReturnValue({ mutate: vi.fn() });
+    mockUseUpdateTask.mockReset().mockReturnValue({ mutate: vi.fn() });
+    mockUseDeleteTask.mockReset().mockReturnValue({ mutate: vi.fn() });
 
     mockUseSupportFlow.mockReturnValue({
       openWelcomeMessage: vi.fn(),
@@ -266,5 +289,108 @@ describe('UnifiedTimerHome', () => {
     expect(
       screen.getByText('This timer will stop automatically when it reaches 0:30.')
     ).toBeInTheDocument();
+  });
+
+  describe('mode switching', () => {
+    it('hides the mode switcher and tasks panel while the timer is idle', () => {
+      render(<UnifiedTimerHome />);
+
+      expect(screen.queryByRole('radiogroup', { name: 'Timer view' })).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('New task name')).not.toBeInTheDocument();
+    });
+
+    it('shows the mode switcher, defaulted to Doing, once the timer is running', () => {
+      mockGame({ status: 'active', currentActivity: { name: '' } });
+      render(<UnifiedTimerHome />);
+
+      expect(screen.getByRole('radio', { name: 'Doing' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.queryByPlaceholderText('New task name')).not.toBeInTheDocument();
+    });
+
+    it('auto-selects Planning when the activity name contains "plan"', async () => {
+      const user = userEvent.setup();
+      mockGame({ status: 'active', currentActivity: { name: '' } });
+      render(<UnifiedTimerHome />);
+
+      await user.type(screen.getByRole('combobox', { name: 'Activity name' }), 'Plan my week');
+
+      expect(screen.getByRole('radio', { name: 'Planning' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByPlaceholderText('New task name')).toBeInTheDocument();
+    });
+
+    it('matches "plan" case-insensitively and as a substring (e.g. "Planning")', async () => {
+      const user = userEvent.setup();
+      mockGame({ status: 'active', currentActivity: { name: '' } });
+      render(<UnifiedTimerHome />);
+
+      await user.type(screen.getByRole('combobox', { name: 'Activity name' }), 'PLANNING session');
+
+      expect(screen.getByRole('radio', { name: 'Planning' })).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('does not auto-select Planning for names without "plan"', async () => {
+      const user = userEvent.setup();
+      mockGame({ status: 'active', currentActivity: { name: '' } });
+      render(<UnifiedTimerHome />);
+
+      await user.type(screen.getByRole('combobox', { name: 'Activity name' }), 'Deep work');
+
+      expect(screen.getByRole('radio', { name: 'Doing' })).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('clicking the Planning chip renders TasksPanel and keeps timer controls visible', async () => {
+      const user = userEvent.setup();
+      mockGame({ status: 'active', currentActivity: { name: '' } });
+      render(<UnifiedTimerHome />);
+
+      await user.click(screen.getByRole('radio', { name: 'Planning' }));
+
+      expect(screen.getByRole('radio', { name: 'Planning' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByPlaceholderText('New task name')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument();
+    });
+
+    it('switching back to Doing unmounts TasksPanel', async () => {
+      const user = userEvent.setup();
+      mockGame({ status: 'active', currentActivity: { name: '' } });
+      render(<UnifiedTimerHome />);
+
+      await user.click(screen.getByRole('radio', { name: 'Planning' }));
+      expect(screen.getByPlaceholderText('New task name')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('radio', { name: 'Doing' }));
+      expect(screen.queryByPlaceholderText('New task name')).not.toBeInTheDocument();
+    });
+
+    it('timer controls stay functional while in Planning mode', async () => {
+      const user = userEvent.setup();
+      mockGame({ status: 'active', currentActivity: { name: '' } });
+      render(<UnifiedTimerHome />);
+
+      await user.click(screen.getByRole('radio', { name: 'Planning' }));
+      expect(screen.getByPlaceholderText('New task name')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Stop' }));
+      expect(stop).toHaveBeenCalled();
+    });
+
+    it('switching mode does not itself reset an in-progress label edit beyond the blur it naturally causes', async () => {
+      // Clicking the Planning chip blurs the focused edit input, which
+      // `handleWrapperBlur` already commits (same as clicking anywhere else
+      // outside the card) — the mode switch itself doesn't add any extra
+      // reset logic on top of that pre-existing behaviour.
+      const user = userEvent.setup();
+      mockGame({ status: 'active', currentActivity: { name: 'Deep work' } });
+      render(<UnifiedTimerHome />);
+
+      await user.click(screen.getByRole('button', { name: /Deep work/ }));
+      expect(screen.getByRole('combobox', { name: 'Activity name' })).toHaveValue('Deep work');
+
+      await user.click(screen.getByRole('radio', { name: 'Planning' }));
+      await user.click(screen.getByRole('radio', { name: 'Doing' }));
+
+      expect(screen.getByRole('button', { name: /Deep work/ })).toBeInTheDocument();
+      expect(labelActivity).toHaveBeenCalledWith('Deep work', null);
+    });
   });
 });

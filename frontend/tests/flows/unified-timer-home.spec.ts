@@ -66,6 +66,67 @@ test.describe('Unified timer homepage (flag on)', () => {
     }
   });
 
+  test('switching to Planning mode manages tasks without interfering with a running timer', async ({ page }) => {
+    await stabilizeTimerPage(page, { unifiedHomepage: true });
+    const taskName = `Planning mode task ${Date.now()}`;
+
+    try {
+      await page.goto('/timer');
+      const section = page.locator('section').filter({
+        has: page.getByRole('heading', { name: 'Activity timer' }),
+      });
+
+      await section.getByRole('button', { name: 'Start' }).click();
+      await expect(section.getByRole('button', { name: 'Stop' })).toBeVisible();
+
+      await page.getByRole('radio', { name: 'Planning' }).click();
+
+      // The timer stays visible/controllable while planning.
+      await expect(section.getByRole('button', { name: 'Stop' })).toBeVisible();
+
+      await page.getByPlaceholder('New task name').fill(taskName);
+      const [postResponse] = await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/tasks/') && r.request().method() === 'POST',
+        ),
+        page.getByRole('button', { name: /add task/i }).click(),
+      ]);
+      expect(postResponse.status()).toBeLessThan(300);
+      await page.waitForResponse(
+        (r) => r.url().includes('/tasks/') && r.request().method() === 'GET',
+      );
+
+      const checkbox = page.getByRole('checkbox', { name: `Mark ${taskName} as complete` });
+      await expect(checkbox).toBeVisible({ timeout: 10000 });
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/tasks/') && r.request().method() === 'PATCH',
+        ),
+        checkbox.click(),
+      ]);
+      await expect(
+        page.getByRole('checkbox', { name: `Mark ${taskName} as complete` }),
+      ).toHaveCount(0);
+
+      // Clean up so repeated runs stay deterministic.
+      await page.getByRole('button', { name: 'Show complete' }).click();
+      await page.getByRole('button', { name: `Edit task ${taskName}` }).first().click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('button', { name: 'Delete' }).click();
+      await dialog.getByRole('button', { name: 'Delete' }).click();
+      await expect(page.getByText(taskName)).not.toBeVisible();
+
+      await page.getByRole('radio', { name: 'Doing' }).click();
+      await expect(page.getByPlaceholder('New task name')).not.toBeVisible();
+
+      await section.getByRole('button', { name: 'Stop' }).click();
+      await page.getByRole('button', { name: 'Back to timer' }).click();
+      await expect(section.getByRole('button', { name: 'Start' })).toBeVisible();
+    } finally {
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
+    }
+  });
+
   test('the reward dialog opened from Stop is never covered by the persistent list', async ({ page }) => {
     await stabilizeTimerPage(page, { unifiedHomepage: true });
 

@@ -122,6 +122,15 @@ $row-control-height: 44px;
   align-items: center;
 }
 
+.modeSwitcher {
+  margin-top: v.$spacing-md;
+  justify-content: center;
+}
+
+.planningPanel {
+  margin-top: v.$spacing-sm;
+}
+
 .limitWarning {
   margin: v.$spacing-sm 0 0;
   text-align: left;

@@ -1,0 +1,28 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/spacing' as sp;
+@use 'sass:map';
+
+.radiogroup {
+  display: flex;
+  gap: map.get(sp.$gap, xs);
+  flex-wrap: wrap;
+}
+
+.chip {
+  border: 1px solid rgba(c.$color-border-primary, 0.35);
+  border-radius: v.$button-radius;
+  padding: v.$spacing-xs v.$spacing-sm;
+  cursor: pointer;
+  @include c.apply-button-variant(secondary);
+  @include t.apply-text-style(t.$text-button);
+
+  &.active {
+    @include c.apply-button-variant(primary);
+    border-color: transparent;
+  }
+
+  @include m.focus-outline(c.$color-border-accent);
+}
