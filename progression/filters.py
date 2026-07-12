@@ -96,6 +96,11 @@ class TaskFilter(django_filters.FilterSet):
     project = django_filters.NumberFilter(field_name="project_id")
     created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
     last_updated = django_filters.DateFromToRangeFilter(field_name="last_updated")
+    due_at = django_filters.DateFromToRangeFilter(field_name="due_at")
+    parent = django_filters.NumberFilter(field_name="parent_id")
+    parent__isnull = django_filters.BooleanFilter(
+        field_name="parent", lookup_expr="isnull"
+    )
 
     class Meta:
         model = Task
@@ -107,4 +112,6 @@ class TaskFilter(django_filters.FilterSet):
             "last_updated",
             "is_complete",
             "completed_at",
+            "due_at",
+            "parent",
         ]

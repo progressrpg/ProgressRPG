@@ -148,4 +148,34 @@ describe("PlayerItemList", () => {
       expect(screen.queryByText("Apple")).not.toBeInTheDocument();
     });
   });
+
+  describe("getChildren nested rendering", () => {
+    const parent = { id: 10, name: "Parent task" };
+    const child = { id: 11, name: "Child task" };
+    const flatItems = [parent, child];
+
+    it("renders children nested under their parent without a top-level row", () => {
+      render(
+        <PlayerItemList
+          items={flatItems}
+          itemLabel="task"
+          getChildren={(item) => (item.id === 10 ? [child] : undefined)}
+        />,
+      );
+
+      expect(screen.getByRole("button", { name: "Open task Parent task" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Open task Child task" })).toBeInTheDocument();
+      // The child is not rendered as its own top-level list item.
+      expect(screen.getAllByRole("button", { name: /^Open task / })).toHaveLength(2);
+    });
+
+    it("is unaffected when getChildren is not passed (ProjectsPanel-style usage)", () => {
+      render(<PlayerItemList items={flatItems} itemLabel="task" />);
+
+      // Without getChildren both items render as independent top-level rows.
+      expect(screen.getAllByRole("button", { name: /^Open task / })).toHaveLength(2);
+      expect(screen.getByRole("button", { name: "Open task Parent task" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Open task Child task" })).toBeInTheDocument();
+    });
+  });
 });

@@ -5,7 +5,7 @@ import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from "../../hoo
 import { useGame } from "../../hooks/useGame";
 import type { Task } from "../../types";
 import type { SortOption } from "../PlayerItemList/PlayerItemList";
-import { formatRewardDuration } from "../../utils/formatUtils";
+import { formatRewardDuration, formatDueAt, isOverdue } from "../../utils/formatUtils";
 import { TASKS_HIDE_COMPLETED_KEY } from "../../utils/userPreferences";
 
 export type ItemRecord = Task & { [key: string]: unknown };
@@ -15,6 +15,11 @@ export interface TaskEditSummary {
   modified: string;
   completed: string;
   totalTime: string;
+}
+
+export interface ParentGroup {
+  parent: ItemRecord;
+  children: ItemRecord[];
 }
 
 export function isTaskComplete(task: Task): boolean {
@@ -40,6 +45,15 @@ export const taskSortOptions: SortOption<ItemRecord>[] = [
     key: "created",
     label: "Created",
     compareFn: (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  },
+  {
+    key: "due-date",
+    label: "Due date",
+    compareFn: (a, b) => {
+      const da = a.due_at ? new Date(a.due_at).getTime() : Infinity;
+      const db = b.due_at ? new Date(b.due_at).getTime() : Infinity;
+      return da - db;
+    },
   },
 ];
 
@@ -106,11 +120,67 @@ export function useTasksPanel() {
     return () => clearTimeout(timer);
   }, [completionReward]);
 
-  const safeTasks = useMemo(() => (Array.isArray(tasks) ? tasks : []), [tasks]);
+  const [addSubtaskParent, setAddSubtaskParent] = useState<ItemRecord | null>(null);
+
+  const safeTasks = useMemo(
+    () => (Array.isArray(tasks) ? tasks : []) as ItemRecord[],
+    [tasks]
+  );
+
+  const topLevelTasks = useMemo(
+    () => safeTasks.filter((task) => task.parent == null),
+    [safeTasks]
+  );
+
+  const groupedTasks = useMemo<ParentGroup[]>(() => {
+    const byId = new Map<number, ItemRecord>();
+    safeTasks.forEach((task) => byId.set(task.id, task));
+
+    const childrenByParentId = new Map<number, ItemRecord[]>();
+    const topLevel: ItemRecord[] = [];
+
+    safeTasks.forEach((task) => {
+      const parentId = task.parent;
+      const parentTask = parentId != null ? byId.get(parentId) : undefined;
+      // Defensive: a task whose parent is missing or itself a subtask
+      // (grandparent nesting) renders as top-level rather than vanishing.
+      if (parentId == null || !parentTask || parentTask.parent != null) {
+        topLevel.push(task);
+      } else {
+        const siblings = childrenByParentId.get(parentId) ?? [];
+        siblings.push(task);
+        childrenByParentId.set(parentId, siblings);
+      }
+    });
+
+    const visibleTopLevel = hideCompleted
+      ? topLevel.filter((task) => !isTaskComplete(task))
+      : topLevel;
+
+    const groups: ParentGroup[] = visibleTopLevel.map((parent) => {
+      const children = childrenByParentId.get(parent.id) ?? [];
+      return {
+        parent,
+        children: hideCompleted ? children.filter((child) => !isTaskComplete(child)) : children,
+      };
+    });
+
+    return groups;
+  }, [safeTasks, hideCompleted]);
 
   const visibleTasks = useMemo(
-    () => (hideCompleted ? safeTasks.filter((task) => !isTaskComplete(task)) : safeTasks),
-    [hideCompleted, safeTasks]
+    () => groupedTasks.flatMap((group) => [group.parent, ...group.children]),
+    [groupedTasks]
+  );
+
+  const childrenByGroupParentId = useMemo(
+    () => new Map(groupedTasks.map((group) => [group.parent.id, group.children])),
+    [groupedTasks]
+  );
+
+  const getChildren = useCallback(
+    (task: ItemRecord): ItemRecord[] => childrenByGroupParentId.get(task.id) ?? [],
+    [childrenByGroupParentId]
   );
 
   const toggleHideCompleted = useCallback(() => {
@@ -126,11 +196,16 @@ export function useTasksPanel() {
   }, []);
 
   const handleCreateTask = useCallback(
-    (name: string) => {
+    (name: string, options?: { parent?: number | null; due_at?: string | null }) => {
       const trimmed = name.trim();
       if (!trimmed) return;
-      createTask.mutate({ name: trimmed });
+      createTask.mutate({
+        name: trimmed,
+        ...(options?.parent !== undefined ? { parent: options.parent } : {}),
+        ...(options?.due_at !== undefined ? { due_at: options.due_at } : {}),
+      });
       setNewName("");
+      setAddSubtaskParent(null);
     },
     [createTask]
   );
@@ -138,14 +213,29 @@ export function useTasksPanel() {
   const handleSubmitForm = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      handleCreateTask(newName);
+      handleCreateTask(newName, { parent: addSubtaskParent?.id ?? undefined });
     },
-    [handleCreateTask, newName]
+    [handleCreateTask, newName, addSubtaskParent]
   );
 
+  const startAddSubtask = useCallback((task: ItemRecord) => {
+    setAddSubtaskParent(task);
+  }, []);
+
+  const clearAddSubtaskParent = useCallback(() => {
+    setAddSubtaskParent(null);
+  }, []);
+
   const handleEdit = useCallback(
-    (task: ItemRecord, name: string) => {
-      updateTask.mutate({ id: task.id, data: { name } });
+    (task: ItemRecord, name: string, options?: { parent?: number | null; due_at?: string | null }) => {
+      updateTask.mutate({
+        id: task.id,
+        data: {
+          name,
+          ...(options?.parent !== undefined ? { parent: options.parent } : {}),
+          ...(options?.due_at !== undefined ? { due_at: options.due_at } : {}),
+        },
+      });
     },
     [updateTask]
   );
@@ -200,6 +290,8 @@ export function useTasksPanel() {
     (task: Task) => ({
       lastWorkedOn: formatLastWorkedOn(task),
       completionXp: completionReward?.taskId === task.id ? completionReward.xp : null,
+      dueAt: formatDueAt(task.due_at),
+      isOverdue: isOverdue(task.due_at, isTaskComplete(task)),
     }),
     [completionReward]
   );
@@ -227,6 +319,12 @@ export function useTasksPanel() {
     setNewName,
     hideCompleted,
     visibleTasks,
+    groupedTasks,
+    getChildren,
+    topLevelTasks,
+    addSubtaskParent,
+    startAddSubtask,
+    clearAddSubtaskParent,
     handleCreateTask,
     handleSubmitForm,
     handleEdit,
@@ -236,5 +334,6 @@ export function useTasksPanel() {
     toggleHideCompleted,
     getTaskMeta,
     getTaskEditSummary,
+    updateTask,
   };
 }

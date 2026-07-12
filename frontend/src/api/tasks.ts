@@ -2,8 +2,17 @@
 import type { Task, PaginatedResponse } from "../types";
 import { apiFetch } from "../utils/api";
 
-export function fetchTasks(): Promise<Task[]> {
-  return apiFetch<PaginatedResponse<Task>>(`/tasks/`).then((data) => data.results);
+export async function fetchTasks(): Promise<Task[]> {
+  const results: Task[] = [];
+  let path: string | null = `/tasks/`;
+
+  while (path) {
+    const data: PaginatedResponse<Task> = await apiFetch<PaginatedResponse<Task>>(path);
+    results.push(...data.results);
+    path = data.next ? `/tasks/?${new URL(data.next).searchParams.toString()}` : null;
+  }
+
+  return results;
 }
 
 export function fetchTask(id: number): Promise<Task> {

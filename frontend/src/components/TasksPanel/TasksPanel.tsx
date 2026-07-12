@@ -1,10 +1,12 @@
 import React from "react";
+import classNames from "classnames";
 
 import EntitySearchInput from "../EntitySearchInput/EntitySearchInput";
 import Button from "../Button/Button";
 import PlayerItemList from "../PlayerItemList/PlayerItemList";
 import Tooltip from "../Tooltip/Tooltip";
 import { isTaskComplete, taskSortOptions, useTasksPanel, type ItemRecord } from "./useTasksPanel";
+import { toDatetimeLocalValue, fromDatetimeLocalValue } from "../../utils/formatUtils";
 import styles from "./TasksPanel.module.scss";
 
 export default function TasksPanel(): React.ReactElement | null {
@@ -14,6 +16,11 @@ export default function TasksPanel(): React.ReactElement | null {
     setNewName,
     hideCompleted,
     visibleTasks,
+    getChildren,
+    topLevelTasks,
+    addSubtaskParent,
+    startAddSubtask,
+    clearAddSubtaskParent,
     handleCreateTask,
     handleSubmitForm,
     handleEdit,
@@ -23,6 +30,7 @@ export default function TasksPanel(): React.ReactElement | null {
     toggleHideCompleted,
     getTaskMeta,
     getTaskEditSummary,
+    updateTask,
   } = useTasksPanel();
 
   if (isLoading) return <p>Loading tasks...</p>;
@@ -31,16 +39,29 @@ export default function TasksPanel(): React.ReactElement | null {
     <div className={styles.page}>
       <div className={styles.content}>
       <form className={styles.addTaskForm} onSubmit={handleSubmitForm}>
+        {addSubtaskParent && (
+          <span className={styles.parentChip}>
+            Subtask of {addSubtaskParent.name}
+            <button
+              type="button"
+              className={styles.parentChipClear}
+              aria-label="Clear subtask parent"
+              onClick={clearAddSubtaskParent}
+            >
+              ×
+            </button>
+          </span>
+        )}
         <EntitySearchInput
           type="task"
           value={newName}
           onChange={(v) => setNewName(v)}
-          onCreate={handleCreateTask}
-          placeholder="New task name"
+          onCreate={(name) => handleCreateTask(name, { parent: addSubtaskParent?.id ?? undefined })}
+          placeholder={addSubtaskParent ? "New subtask name" : "New task name"}
           className={styles.addTaskInput}
         />
         <Button type="submit">
-          <span className={styles.addButtonText}>Add task</span>
+          <span className={styles.addButtonText}>{addSubtaskParent ? "Add subtask" : "Add task"}</span>
           <span className={styles.addButtonIcon} aria-hidden="true">✓</span>
         </Button>
       </form>
@@ -48,6 +69,7 @@ export default function TasksPanel(): React.ReactElement | null {
       <div className={styles.tasksList}>
         <PlayerItemList<ItemRecord>
           items={visibleTasks as ItemRecord[]}
+          getChildren={getChildren}
           itemLabel="task"
           ariaLabel="Tasks"
           isItemComplete={isTaskComplete as (item: ItemRecord) => boolean}
@@ -58,11 +80,23 @@ export default function TasksPanel(): React.ReactElement | null {
               <>
                 {meta.lastWorkedOn}
                 {meta.completionXp ? <> • +{meta.completionXp} XP</> : null}
+                {task.due_at ? (
+                  <>
+                    {" "}
+                    •{" "}
+                    <span className={classNames({ [styles.overdue]: meta.isOverdue })}>
+                      Due {meta.dueAt}
+                    </span>
+                  </>
+                ) : null}
               </>
             );
           }}
           renderEditSummary={(taskItem) => {
             const summary = getTaskEditSummary(taskItem);
+            const hasSubtasks = (taskItem.subtask_count ?? 0) > 0;
+            const parentOptions = topLevelTasks.filter((t) => t.id !== taskItem.id);
+
             return (
               <>
                 <div className={styles.taskTimestamps}>
@@ -83,24 +117,102 @@ export default function TasksPanel(): React.ReactElement | null {
                 <div>
                   Total time: {summary.totalTime}
                 </div>
+                <div className={styles.dueDateRow}>
+                  <label className={styles.timestampLabel} htmlFor="task-due-at">
+                    Due date
+                  </label>
+                  <input
+                    id="task-due-at"
+                    type="datetime-local"
+                    className={styles.dueDateInput}
+                    defaultValue={toDatetimeLocalValue(taskItem.due_at)}
+                    onBlur={(event) =>
+                      updateTask.mutate({
+                        id: taskItem.id,
+                        data: { due_at: fromDatetimeLocalValue(event.target.value) },
+                      })
+                    }
+                  />
+                  {taskItem.due_at && (
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        updateTask.mutate({ id: taskItem.id, data: { due_at: null } })
+                      }
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                {taskItem.parent == null && (
+                  <div className={styles.parentRow}>
+                    <label className={styles.timestampLabel} htmlFor="task-parent">
+                      Parent task
+                    </label>
+                    <Tooltip
+                      content={
+                        hasSubtasks
+                          ? "This task already has subtasks and can't be nested under another task."
+                          : undefined
+                      }
+                    >
+                      <select
+                        id="task-parent"
+                        className={styles.parentSelect}
+                        disabled={hasSubtasks}
+                        defaultValue={taskItem.parent ?? ""}
+                        onChange={(event) =>
+                          updateTask.mutate({
+                            id: taskItem.id,
+                            data: { parent: event.target.value ? Number(event.target.value) : null },
+                          })
+                        }
+                      >
+                        <option value="">No parent</option>
+                        {parentOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Tooltip>
+                  </div>
+                )}
               </>
             );
           }}
           hoverEdit
           renderRowActions={(task) => (
-            <Tooltip content="Start working on this task">
-              <button
-                type="button"
-                className={styles.taskPlayButton}
-                aria-label={`Start working on ${task.name}`}
-                onClick={async (event) => {
-                  event.currentTarget.blur();
-                  await handleStartTask(task);
-                }}
-              >
-                ▷
-              </button>
-            </Tooltip>
+            <>
+              {task.parent == null && (
+                <Tooltip content="Add a subtask">
+                  <button
+                    type="button"
+                    className={styles.taskSubtaskButton}
+                    aria-label={`Add subtask to ${task.name}`}
+                    onClick={(event) => {
+                      event.currentTarget.blur();
+                      startAddSubtask(task);
+                    }}
+                  >
+                    +
+                  </button>
+                </Tooltip>
+              )}
+              <Tooltip content="Start working on this task">
+                <button
+                  type="button"
+                  className={styles.taskPlayButton}
+                  aria-label={`Start working on ${task.name}`}
+                  onClick={async (event) => {
+                    event.currentTarget.blur();
+                    await handleStartTask(task);
+                  }}
+                >
+                  ▷
+                </button>
+              </Tooltip>
+            </>
           )}
           onEdit={handleEdit}
           onDelete={handleDelete}

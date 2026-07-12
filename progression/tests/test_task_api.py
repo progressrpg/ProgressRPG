@@ -6,8 +6,11 @@ Covers:
 - The first-completion bonus awarded by ``TaskViewSet.partial_update``
 """
 
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -108,6 +111,117 @@ class TaskViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         names = [t["name"] for t in response.data["results"]]
         self.assertEqual(names, ["Done"])
+
+    def test_create_with_due_at(self):
+        due_at = timezone.now() + timedelta(days=2)
+        response = self.client.post(
+            reverse("tasks-list"), {"name": "Due task", "due_at": due_at.isoformat()}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        task = Task.objects.get(pk=response.data["id"])
+        self.assertIsNotNone(task.due_at)
+
+    def test_create_subtask_via_parent(self):
+        parent = Task.objects.create(player=self.player, name="Parent")
+
+        response = self.client.post(
+            reverse("tasks-list"), {"name": "Child", "parent": parent.id}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        task = Task.objects.get(pk=response.data["id"])
+        self.assertEqual(task.parent_id, parent.id)
+        self.assertEqual(response.data["subtask_count"], 0)
+
+    def test_reject_subtask_of_subtask(self):
+        parent = Task.objects.create(player=self.player, name="Parent")
+        child = Task.objects.create(player=self.player, name="Child", parent=parent)
+
+        response = self.client.post(
+            reverse("tasks-list"), {"name": "Grandchild", "parent": child.id}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reject_giving_parent_to_task_with_existing_subtasks(self):
+        parent = Task.objects.create(player=self.player, name="Parent")
+        Task.objects.create(player=self.player, name="Child", parent=parent)
+        other = Task.objects.create(player=self.player, name="Other")
+
+        response = self.client.patch(
+            reverse("tasks-detail", args=[parent.id]), {"parent": other.id}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_filter_by_parent(self):
+        parent = Task.objects.create(player=self.player, name="Parent")
+        child = Task.objects.create(player=self.player, name="Child", parent=parent)
+        Task.objects.create(player=self.player, name="Unrelated")
+
+        response = self.client.get(reverse("tasks-list"), {"parent": parent.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [t["id"] for t in response.data["results"]]
+        self.assertEqual(ids, [child.id])
+
+    def test_filter_by_parent_isnull(self):
+        parent = Task.objects.create(player=self.player, name="Parent")
+        Task.objects.create(player=self.player, name="Child", parent=parent)
+
+        response = self.client.get(reverse("tasks-list"), {"parent__isnull": "true"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        names = [t["name"] for t in response.data["results"]]
+        self.assertEqual(names, ["Parent"])
+
+    def test_filter_by_due_at_range(self):
+        in_range = Task.objects.create(
+            player=self.player,
+            name="In range",
+            due_at=timezone.now() + timedelta(days=1),
+        )
+        Task.objects.create(
+            player=self.player,
+            name="Out of range",
+            due_at=timezone.now() + timedelta(days=10),
+        )
+
+        response = self.client.get(
+            reverse("tasks-list"),
+            {
+                "due_at_after": timezone.now().isoformat(),
+                "due_at_before": (timezone.now() + timedelta(days=3)).isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [t["id"] for t in response.data["results"]]
+        self.assertEqual(ids, [in_range.id])
+
+    def test_delete_parent_cascades_via_api(self):
+        parent = Task.objects.create(player=self.player, name="Parent")
+        child = Task.objects.create(player=self.player, name="Child", parent=parent)
+
+        response = self.client.delete(reverse("tasks-detail", args=[parent.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Task.objects.filter(pk=child.id).exists())
+
+    def test_subtask_count_accuracy(self):
+        parent = Task.objects.create(player=self.player, name="Parent")
+        Task.objects.create(player=self.player, name="Child 1", parent=parent)
+        Task.objects.create(player=self.player, name="Child 2", parent=parent)
+
+        list_response = self.client.get(reverse("tasks-list"))
+        detail_response = self.client.get(reverse("tasks-detail", args=[parent.id]))
+
+        parent_in_list = next(
+            t for t in list_response.data["results"] if t["id"] == parent.id
+        )
+        self.assertEqual(parent_in_list["subtask_count"], 2)
+        self.assertEqual(detail_response.data["subtask_count"], 2)
 
 
 class TaskCompletionBonusTests(APITestCase):

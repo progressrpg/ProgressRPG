@@ -156,6 +156,21 @@
   }
 }
 
+.childList {
+  list-style: none;
+  margin: v.$spacing-xs 0 0;
+  padding: 0 0 0 v.$spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: v.$spacing-xs;
+}
+
+.childItem {
+  background: transparent;
+  border-color: rgba(c.$color-border-primary, 0.12);
+  opacity: 0.9;
+}
+
 .itemCompleted {
   background: rgba(c.$color-border-primary, 0.03);
   border-color: rgba(c.$color-border-primary, 0.3);

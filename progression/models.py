@@ -2,6 +2,7 @@
 from decimal import Decimal
 from datetime import timedelta
 from django.apps import apps
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import CheckConstraint, Q, Sum
 from django.utils import timezone
@@ -663,15 +664,42 @@ class Task(models.Model, PlayerOwnedMixin):
     is_complete = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
     first_completed_at = models.DateTimeField(null=True, blank=True)
+    due_at = models.DateTimeField(null=True, blank=True)
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        related_name="subtasks",
+        null=True,
+        blank=True,
+    )
+
+    def clean(self):
+        super().clean()
+        if self.parent_id is None:
+            return
+        if self.parent_id == self.id:
+            raise ValidationError({"parent": "A task cannot be its own parent."})
+        if self.parent.parent_id is not None:
+            raise ValidationError({"parent": "Cannot nest more than one level deep."})
+        if self.parent.player_id != self.player_id:
+            raise ValidationError(
+                {"parent": "Parent task must belong to the same player."}
+            )
+        if self.pk and self.subtasks.exists():
+            raise ValidationError(
+                {"parent": "A task with subtasks cannot itself have a parent."}
+            )
 
     @property
     def total_time(self):
-        return (
+        own_total = (
             self.records.filter(is_complete=True).aggregate(total=Sum("duration"))[
                 "total"
             ]
             or 0
         )
+        children_total = sum(child.total_time for child in self.subtasks.all())
+        return own_total + children_total
 
     @property
     def total_records(self):

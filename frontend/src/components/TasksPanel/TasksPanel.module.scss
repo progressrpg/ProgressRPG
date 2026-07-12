@@ -134,6 +134,69 @@
   }
 }
 
+.taskSubtaskButton {
+  border: none;
+  background: transparent;
+  color: c.$color-border-primary;
+  border-radius: v.$border-radius;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.1);
+  }
+}
+
+.overdue {
+  color: c.$color-error;
+  font-weight: 600;
+}
+
+.parentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: v.$spacing-xs;
+  padding: v.$spacing-xs v.$spacing-sm;
+  border-radius: v.$border-radius;
+  background: rgba(c.$color-border-primary, 0.12);
+  font-size: 0.85em;
+}
+
+.parentChipClear {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  font-size: 1em;
+  line-height: 1;
+  padding: 0;
+}
+
+.dueDateRow,
+.parentRow {
+  display: flex;
+  align-items: center;
+  gap: v.$spacing-sm;
+  flex-wrap: wrap;
+}
+
+.dueDateInput,
+.parentSelect {
+  padding: v.$spacing-xs v.$spacing-sm;
+  border: 1px solid rgba(c.$color-border-primary, 0.35);
+  border-radius: v.$border-radius;
+  background: transparent;
+  font-size: 0.875em;
+  font-family: inherit;
+  color: inherit;
+}
+
 .addButtonIcon {
   display: none;
 }

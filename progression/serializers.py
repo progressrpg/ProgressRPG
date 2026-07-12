@@ -1,5 +1,6 @@
 # progression/serializers.py
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -209,6 +210,7 @@ class TaskSerializer(serializers.ModelSerializer):
     total_time = serializers.IntegerField(read_only=True)
     total_records = serializers.IntegerField(read_only=True)
     last_worked_on = serializers.DateTimeField(read_only=True)
+    subtask_count = serializers.IntegerField(source="subtasks.count", read_only=True)
 
     class Meta:
         model = Task
@@ -223,8 +225,36 @@ class TaskSerializer(serializers.ModelSerializer):
             "is_complete",
             "completed_at",
             "first_completed_at",
+            "due_at",
+            "parent",
+            "subtask_count",
             "total_time",
             "total_records",
             "last_worked_on",
         ]
         read_only_fields = ["player", "first_completed_at"]
+
+    def validate(self, attrs):
+        instance = self.instance
+        parent = attrs.get("parent", instance.parent if instance else None)
+
+        if instance:
+            player_id = instance.player_id
+        else:
+            request = self.context.get("request")
+            player_id = (
+                request.user.player.id
+                if request and getattr(request.user, "is_authenticated", False)
+                else None
+            )
+
+        candidate = Task(
+            id=instance.id if instance else None,
+            player_id=player_id,
+            parent=parent,
+        )
+        try:
+            candidate.clean()
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict)
+        return attrs

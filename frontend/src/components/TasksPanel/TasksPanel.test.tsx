@@ -71,6 +71,9 @@ const incompleteTask = {
   created_at: "2026-05-01T08:00:00.000Z",
   last_updated: "2026-05-01T08:00:00.000Z",
   last_worked_on: null,
+  due_at: null,
+  parent: null,
+  subtask_count: 0,
   total_time: 1800,
   total_records: 3,
 };
@@ -83,6 +86,9 @@ const completeTask = {
   created_at: "2026-04-01T08:00:00.000Z",
   last_updated: "2026-05-03T12:00:00.000Z",
   last_worked_on: "2026-05-03T12:00:00.000Z",
+  due_at: null,
+  parent: null,
+  subtask_count: 0,
   total_time: 600,
   total_records: 1,
 };
@@ -201,6 +207,125 @@ describe("TasksPanel", () => {
       expect(updateMutate).toHaveBeenCalledWith({
         id: 1,
         data: { name: "Evening routine" },
+      });
+    });
+  });
+
+  describe("subtasks", () => {
+    const parentTask = {
+      id: 3,
+      name: "Parent project task",
+      is_complete: false,
+      completed_at: null,
+      created_at: "2026-05-01T08:00:00.000Z",
+      last_updated: "2026-05-01T08:00:00.000Z",
+      last_worked_on: null,
+      due_at: null,
+      parent: null,
+      subtask_count: 1,
+      total_time: 0,
+      total_records: 0,
+    };
+
+    const childTask = {
+      id: 4,
+      name: "Child subtask",
+      is_complete: false,
+      completed_at: null,
+      created_at: "2026-05-01T08:05:00.000Z",
+      last_updated: "2026-05-01T08:05:00.000Z",
+      last_worked_on: null,
+      due_at: null,
+      parent: 3,
+      subtask_count: 0,
+      total_time: 0,
+      total_records: 0,
+    };
+
+    it("renders a subtask nested under its parent", () => {
+      mockUseTasks.mockReturnValue({
+        isLoading: false,
+        data: [parentTask, childTask],
+      });
+      renderTasksPanel();
+
+      const parentButton = screen.getAllByRole("button", { name: "Edit task Parent project task" })[0];
+      const childButton = screen.getAllByRole("button", { name: "Edit task Child subtask" })[0];
+      expect(parentButton).toBeInTheDocument();
+      expect(childButton).toBeInTheDocument();
+      // The subtask is nested inside the parent's <li>, not a sibling top-level row.
+      const parentListItem = parentButton.closest("li");
+      expect(parentListItem).toContainElement(childButton);
+    });
+
+    it("hides a completed parent and its subtasks together", () => {
+      const completedParent = { ...parentTask, id: 5, is_complete: true, completed_at: "2026-05-02T00:00:00.000Z" };
+      const childOfCompletedParent = { ...childTask, id: 6, parent: 5 };
+      mockUseTasks.mockReturnValue({
+        isLoading: false,
+        data: [completedParent, childOfCompletedParent],
+      });
+      renderTasksPanel();
+
+      expect(screen.queryByText("Parent project task")).not.toBeInTheDocument();
+      expect(screen.queryByText("Child subtask")).not.toBeInTheDocument();
+    });
+
+    it("pre-fills the add-task form with a parent chip via the add-subtask row action", async () => {
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      mockUseTasks.mockReturnValue({
+        isLoading: false,
+        data: [parentTask],
+      });
+      renderTasksPanel();
+
+      await user.click(screen.getByRole("button", { name: "Add subtask to Parent project task" }));
+
+      expect(screen.getByText(/Subtask of Parent project task/)).toBeInTheDocument();
+
+      const input = screen.getByLabelText("new task");
+      await user.type(input, "Buy groceries");
+      await user.click(screen.getByRole("button", { name: "Add subtask" }));
+
+      await waitFor(() => {
+        expect(createMutate).toHaveBeenCalledWith({ name: "Buy groceries", parent: 3 });
+      });
+    });
+
+    it("disables the parent picker for a task that already has subtasks", async () => {
+      const user = userEvent.setup();
+      mockUseTasks.mockReturnValue({
+        isLoading: false,
+        data: [parentTask, childTask],
+      });
+      renderTasksPanel();
+
+      await user.click(
+        screen.getAllByRole("button", { name: "Edit task Parent project task" })[0],
+      );
+
+      expect(screen.getByLabelText("Parent task")).toBeDisabled();
+    });
+  });
+
+  describe("due date", () => {
+    it("commits a due date edit immediately on blur", async () => {
+      const user = userEvent.setup();
+      renderTasksPanel();
+
+      await user.click(
+        screen.getAllByRole("button", { name: "Edit task Morning routine" })[0],
+      );
+
+      const dueDateInput = screen.getByLabelText("Due date");
+      await user.type(dueDateInput, "2026-06-01T09:00");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(updateMutate).toHaveBeenCalledWith({
+          id: 1,
+          data: { due_at: expect.any(String) },
+        });
       });
     });
   });
