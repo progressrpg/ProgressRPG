@@ -54,13 +54,28 @@ export default function Tooltip({
   className,
   disabled = false,
 }: TooltipProps): React.ReactElement {
+  const [open, setOpen] = React.useState(false);
+
   if (disabled || content === null || content === undefined || content === false) {
     return <>{children}</>;
   }
 
+  // Radix's hover logic explicitly ignores touch pointers, and a tap's own
+  // pointerdown/click still reach the trigger's built-in "close" handlers -
+  // so on mobile the tooltip flashes open and is immediately closed by the
+  // same tap that opened it. Toggling our own controlled state on touch
+  // pointerdown (and preventDefault-ing, which per the Pointer Events spec
+  // suppresses the compatibility click that would otherwise re-close it)
+  // makes a tap behave like a real toggle instead.
+  const handlePointerDown = (event: React.PointerEvent) => {
+    if (event.pointerType !== 'touch') return;
+    event.preventDefault();
+    setOpen((prev) => !prev);
+  };
+
   return (
-    <TooltipPrimitive.Root>
-      <TooltipPrimitive.Trigger asChild>
+    <TooltipPrimitive.Root open={open} onOpenChange={setOpen}>
+      <TooltipPrimitive.Trigger asChild onPointerDown={handlePointerDown}>
         {children}
       </TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
