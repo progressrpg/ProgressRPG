@@ -46,6 +46,8 @@ export interface RegistrationStatus {
   registration_open: boolean;
   registration_enabled: boolean;
   self_serve_registration: boolean;
+  /** Which waitlist signup flow the "join the waitlist" forms should use. */
+  waitlist_signup_provider: 'mailchimp' | 'internal';
   /** Public Cloudflare Turnstile site key; empty when Turnstile is unconfigured. */
   turnstile_site_key?: string;
 }

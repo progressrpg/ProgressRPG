@@ -97,6 +97,16 @@ class GameSettings(models.Model):
     self_serve_registration = models.BooleanField(default=False)
     waitlist_nudges_enabled_from = models.DateTimeField(null=True, blank=True)
 
+    class WaitlistSignupProvider(models.TextChoices):
+        MAILCHIMP = "mailchimp", "Mailchimp"
+        INTERNAL = "internal", "Internal"
+
+    waitlist_signup_provider = models.CharField(
+        max_length=20,
+        choices=WaitlistSignupProvider.choices,
+        default=WaitlistSignupProvider.MAILCHIMP,
+    )
+
     class Meta:
         verbose_name = "Game settings"
         verbose_name_plural = "Game settings"

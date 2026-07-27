@@ -89,6 +89,18 @@ class RegistrationStatusAPITest(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.json()["turnstile_site_key"], "")
 
+    def test_waitlist_signup_provider_defaults_to_mailchimp(self):
+        res = self.client.get("/api/v1/registration_status/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.json()["waitlist_signup_provider"], "mailchimp")
+
+    def test_waitlist_signup_provider_reports_internal_when_set(self):
+        self.settings.waitlist_signup_provider = GameSettings.WaitlistSignupProvider.INTERNAL
+        self.settings.save()
+        res = self.client.get("/api/v1/registration_status/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.json()["waitlist_signup_provider"], "internal")
+
 
 class RegistrationKillSwitchTest(APITestCase):
     def setUp(self):
@@ -162,9 +174,14 @@ class RegistrationKillSwitchTest(APITestCase):
         self.assertTrue(User.objects.filter(email="newuser@example.com").exists())
 
 
+@override_settings(
+    CELERY_TASK_ALWAYS_EAGER=True,
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+)
 class WaitlistJoinAPITest(APITestCase):
     def setUp(self):
         cache.clear()
+        mail.outbox.clear()
 
     def tearDown(self):
         cache.clear()
@@ -177,6 +194,16 @@ class WaitlistJoinAPITest(APITestCase):
         entry = Waitlist.objects.get(email="waiter@example.com")
         self.assertEqual(entry.status, Waitlist.Status.WAITING)
 
+    def test_valid_email_sends_confirmation_email(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            res = self.client.post(
+                "/api/v1/waitlist_join/", {"email": "waiter@example.com"}
+            )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["waiter@example.com"])
+        self.assertIn("waitlist", mail.outbox[0].subject.lower())
+
     def test_duplicate_email_while_waiting_does_not_create_second_row(self):
         Waitlist.objects.create(email="waiter@example.com")
         res = self.client.post(
@@ -184,6 +211,15 @@ class WaitlistJoinAPITest(APITestCase):
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(Waitlist.objects.filter(email="waiter@example.com").count(), 1)
+
+    def test_duplicate_email_while_waiting_does_not_resend_confirmation(self):
+        Waitlist.objects.create(email="waiter@example.com")
+        with self.captureOnCommitCallbacks(execute=True):
+            res = self.client.post(
+                "/api/v1/waitlist_join/", {"email": "waiter@example.com"}
+            )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_email_normalized_to_lowercase(self):
         res = self.client.post(
@@ -246,6 +282,13 @@ class SignupIgnoresCapTest(APITestCase):
 class WaitlistServiceEmailTest(TestCase):
     def setUp(self):
         self.entry = Waitlist.objects.create(email="waiter@example.com")
+
+    def test_send_signup_confirmation_email_sends_to_entry_email(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            waitlist_service.send_signup_confirmation_email(self.entry)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["waiter@example.com"])
 
     def test_invite_entry_sends_email_and_sets_fields(self):
         with self.captureOnCommitCallbacks(execute=True):

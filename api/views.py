@@ -85,6 +85,7 @@ from progression.serializers import PlayerActivitySerializer
 
 from users.models import Player, TutorialStep, Waitlist
 from users.serializers import PlayerSerializer, TutorialStepSerializer
+from users.services import waitlist_service
 from users.services.registration_services import verified_user_count
 from users.utils import send_email_to_users
 
@@ -177,6 +178,7 @@ class RegistrationStatusAPIView(APIView):
                 "registration_open": registration_open,
                 "registration_enabled": game_settings.registration_enabled,
                 "self_serve_registration": game_settings.self_serve_registration,
+                "waitlist_signup_provider": game_settings.waitlist_signup_provider,
                 # The site key is public, and serving it here keeps it out of
                 # the frontend build: rotating the key or enabling Turnstile
                 # needs only a backend env change, no rebuild.
@@ -201,9 +203,11 @@ class WaitlistJoinAPIView(APIView):
         ).exists()
         if not already_waiting:
             try:
-                Waitlist.objects.create(email=email, status=Waitlist.Status.WAITING)
+                entry = Waitlist.objects.create(email=email, status=Waitlist.Status.WAITING)
             except IntegrityError:
                 pass  # race with a concurrent signup — treat as already-waiting
+            else:
+                waitlist_service.send_signup_confirmation_email(entry)
 
         return Response(
             {"detail": "You're on the waitlist."}, status=status.HTTP_200_OK

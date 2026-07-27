@@ -40,6 +40,20 @@ def build_invite_url(token: str) -> str:
     return f"{frontend_url}/waitlist/redeem/{token}"
 
 
+def send_signup_confirmation_email(entry: Waitlist) -> None:
+    """Sends the "you're on the waitlist" confirmation for a new signup."""
+    context: dict[str, Any] = {"current_year": timezone.now().year}
+    transaction.on_commit(
+        lambda: send_email_to_users(
+            users=[entry.email],
+            subject="You're on the Progress RPG waitlist",
+            template_base="emails/waitlist_signup_confirmation",
+            context=context,
+            cc_admin=False,
+        )
+    )
+
+
 def send_invite_email(entry: Waitlist) -> None:
     """Queues (or re-queues) the invitation email for an already-invited entry."""
     assert entry.invite_token, "send_invite_email requires an already-invited entry"

@@ -1,0 +1,48 @@
+<!-- templates/emails/waitlist_signup_confirmation.html -->
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            padding: 20px;
+        }
+        .email-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .email-header {
+            text-align: center;
+            font-size: 24px;
+            color: #333;
+        }
+        .email-content {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .email-footer {
+            margin-top: 40px;
+            font-size: 14px;
+            text-align: center;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            You're on the Progress RPG waitlist!
+        </div>
+        <div class="email-content">
+            <p>Hello,</p>
+            <p>Thanks for signing up! You're on the Progress RPG waitlist, and we'll email you as soon as a spot opens up for you to register.</p>
+            <p>Best wishes, <br/> Duncan (Founder, Progress RPG)</p>
+        </div>
+        <div class="email-footer">
+            <p>&copy; {{ current_year }} Progress RPG. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

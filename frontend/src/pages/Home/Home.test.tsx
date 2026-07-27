@@ -10,6 +10,8 @@ const mockNavigate = vi.fn();
 const mockUseAuth = vi.fn();
 const mockTrackEvent = vi.fn();
 const mockRequestWaitlistSignup = vi.fn();
+const mockJoinWaitlist = vi.fn();
+const mockUseRegistrationStatus = vi.fn();
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
@@ -23,6 +25,16 @@ vi.mock('../../hooks/useWaitlistSignup', () => ({
   default: () => ({
     requestWaitlistSignup: (...args) => mockRequestWaitlistSignup(...args),
   }),
+}));
+
+vi.mock('../../hooks/useWaitlistJoin', () => ({
+  default: () => ({
+    joinWaitlist: (...args) => mockJoinWaitlist(...args),
+  }),
+}));
+
+vi.mock('../../hooks/useRegistrationStatus', () => ({
+  useRegistrationStatus: () => mockUseRegistrationStatus(),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -56,6 +68,12 @@ describe('Home', () => {
     mockUseAuth.mockReset();
     mockTrackEvent.mockReset();
     mockRequestWaitlistSignup.mockReset();
+    mockJoinWaitlist.mockReset();
+    mockUseRegistrationStatus.mockReset();
+    mockUseRegistrationStatus.mockReturnValue({
+      data: { waitlist_signup_provider: 'mailchimp' },
+      isLoading: false,
+    });
   });
 
   it('renders the logged-out landing page', () => {
@@ -166,6 +184,25 @@ describe('Home', () => {
       form_name: 'mailchimp_waitlist',
       page: 'home',
     });
+  });
+
+  it('renders the internal waitlist form instead of the Mailchimp form when configured', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
+    mockUseRegistrationStatus.mockReturnValue({
+      data: { waitlist_signup_provider: 'internal' },
+      isLoading: false,
+    });
+    const user = userEvent.setup();
+    mockJoinWaitlist.mockResolvedValue({ success: true, message: "You're on the waitlist." });
+
+    renderHome();
+
+    expect(screen.queryByLabelText('Email address')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText(/^email:/i), 'newperson@example.com');
+    await user.click(screen.getByRole('button', { name: 'Join Waitlist' }));
+
+    expect(mockJoinWaitlist).toHaveBeenCalledWith('newperson@example.com');
+    expect(await screen.findByText("You're on the waitlist.")).toBeInTheDocument();
   });
 
   it('redirects authenticated users to the timer', async () => {

@@ -22,6 +22,7 @@ class GameSettingsAdmin(admin.ModelAdmin):
         "registration_cap",
         "registration_enabled",
         "self_serve_registration",
+        "waitlist_signup_provider",
     )
     fieldsets = (
         ("Timer", {"fields": ("free_timer_limit_seconds",)}),
@@ -54,6 +55,7 @@ class GameSettingsAdmin(admin.ModelAdmin):
                     "registration_cap",
                     "registration_enabled",
                     "self_serve_registration",
+                    "waitlist_signup_provider",
                 )
             },
         ),

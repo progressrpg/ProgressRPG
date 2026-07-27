@@ -1,0 +1,10 @@
+You're on the Progress RPG waitlist
+
+Hello,
+
+Thanks for signing up! You're on the Progress RPG waitlist, and we'll email you as soon as a spot opens up for you to register.
+
+Best wishes,
+Duncan (Founder, Progress RPG)
+
+© {{ current_year }} Progress RPG. All rights reserved.

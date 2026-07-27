@@ -3,7 +3,7 @@ import Form from '../Form/Form';
 import useWaitlistJoin from '../../hooks/useWaitlistJoin';
 import styles from './WaitlistForm.module.scss';
 
-export default function WaitlistForm() {
+export default function WaitlistForm({ title = 'Join the Waitlist' }: { title?: string }) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,7 +34,7 @@ export default function WaitlistForm() {
   return (
     <>
       <Form
-        title="Join the Waitlist"
+        title={title}
         fields={[
           {
             name: 'email',

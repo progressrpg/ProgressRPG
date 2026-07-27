@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import BackToTopButton from '../../components/BackToTopButton/BackToTopButton';
 import Button from '../../components/Button/Button';
 import Seo from '../../components/Seo/Seo';
+import WaitlistForm from '../../components/WaitlistForm/WaitlistForm';
+import { useRegistrationStatus } from '../../hooks/useRegistrationStatus';
 import styles from './Home.module.scss';
 import { useHomePage, useMailchimpSignupForm } from './useHomePage';
 const HOME_URL = 'https://progressrpg.com/';
@@ -131,6 +133,8 @@ const features = [
 
 export default function Home(): React.ReactElement | null {
   const { shouldRender } = useHomePage();
+  const { data: registrationStatus } = useRegistrationStatus();
+  const useInternalWaitlist = registrationStatus?.waitlist_signup_provider === 'internal';
 
   if (!shouldRender) {
     return null;
@@ -180,7 +184,7 @@ export default function Home(): React.ReactElement | null {
               Sign up for the waiting list and newsletter for updates on early
               access, new features, and the next steps for Progress RPG.
             </p>
-            <MailchimpSignupForm />
+            {useInternalWaitlist ? <WaitlistForm title="" /> : <MailchimpSignupForm />}
             <p className={styles.heroSignupNote}>
               Already have access? <Link to="/login">Log in</Link>
             </p>
