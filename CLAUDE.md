@@ -163,3 +163,5 @@ React SPA served separately (port 5173 in dev, built via Vite for prod).
 - `development` → `staging` via periodic PR (base `staging`, head `development`); deploys to staging via `render-staging.yaml` (services `web-staging`/`celery-staging`/`celery-beat-staging`, env group "Staging env")
 - `staging` → `main` via periodic PR (base `main`, head `staging`); `main` is the repo's default branch and deploys to production via `render.yaml` (services `web`/`celery`/`celery-beat`, env group "Prod env")
 - Repo: `progressrpg/ProgressRPG` (org `progressrpg`), region `frankfurt` for all Render services
+
+**Current exception (temporary):** for now, PR feature branches directly into `staging` instead of `development`, so changes can be tested on staging without waiting on a `development` → `staging` sync PR first. Revert to basing on `development` once told to.
