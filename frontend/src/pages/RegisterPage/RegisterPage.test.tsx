@@ -112,12 +112,12 @@ describe("RegisterPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the registration form when registration is enabled and cap not reached", () => {
+  it("renders the registration form when registration is enabled, self-serve is on, and cap not reached", () => {
     mockUseRegistrationStatus.mockReturnValue({
       data: {
         registration_open: true,
         registration_enabled: true,
-        self_serve_registration: false,
+        self_serve_registration: true,
       },
       isLoading: false,
     });
@@ -127,7 +127,7 @@ describe("RegisterPage", () => {
     expect(screen.getByRole("button", { name: "Create Account" })).toBeInTheDocument();
   });
 
-  it("requires an invite code when self-serve registration is off", () => {
+  it("renders the waitlist form (not the register form) when self-serve registration is off", () => {
     mockUseRegistrationStatus.mockReturnValue({
       data: {
         registration_open: true,
@@ -139,7 +139,32 @@ describe("RegisterPage", () => {
 
     renderRegisterPage();
 
-    expect(screen.getByLabelText(/invite code/i)).toBeRequired();
+    expect(
+      screen.getByRole("heading", { name: "Registration is by invite only" })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create Account" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Waitlist" })).toBeInTheDocument();
+  });
+
+  it("still renders the registration form for an invited user even when self-serve registration is off", () => {
+    mockUseRegistrationStatus.mockReturnValue({
+      data: {
+        registration_open: true,
+        registration_enabled: true,
+        self_serve_registration: false,
+      },
+      isLoading: false,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/waitlist/redeem/some-invite-token"]}>
+        <Routes>
+          <Route path="/waitlist/redeem/:token" element={<RegisterPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("button", { name: "Create Account" })).toBeInTheDocument();
   });
 
   it("makes the invite code optional when self-serve registration is on", () => {

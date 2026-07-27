@@ -230,17 +230,21 @@ export default function RegisterPage(): React.ReactElement {
   }
 
   // Invited users always get the registration form, even if the cap has
-  // since been reached again — their invite is proof of a slot at invite time.
-  if (!inviteToken && data && !data.registration_open) {
+  // since been reached again, or self-serve is off — their invite is proof
+  // of a slot at invite time.
+  if (!inviteToken && data && (!data.registration_open || !data.self_serve_registration)) {
+    const title = !data.registration_open
+      ? 'Registration is temporarily full'
+      : 'Registration is by invite only';
+    const body = !data.registration_open
+      ? "We've reached our current capacity for new players. Join the waitlist and we'll be in touch."
+      : "We're inviting new players from the waitlist. Join the waitlist and we'll be in touch.";
     return (
       <div className={styles.page}>
         <div className={styles.formFrame}>
-          <h1 className={styles.title}>Registration is temporarily full</h1>
+          <h1 className={styles.title}>{title}</h1>
           <div className={styles.content}>
-            <p>
-              We&apos;ve reached our current capacity for new players. Join the waitlist and
-              we&apos;ll be in touch.
-            </p>
+            <p>{body}</p>
             <WaitlistForm />
             <p className={styles.footer}>
               Already have an account? <a href="/login">Log in here</a>.
