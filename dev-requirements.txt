@@ -162,7 +162,9 @@ django-ratelimit==4.1.0
 django-redis==7.0.0
     # via -r requirements.in
 django-stubs==5.2.9
-    # via -r dev-requirements.in
+    # via
+    #   -r dev-requirements.in
+    #   djangorestframework-stubs
 django-stubs-ext==5.2.9
     # via
     #   -r dev-requirements.in
@@ -179,10 +181,10 @@ djangorestframework==3.17.1
     #   dj-rest-auth
     #   djangorestframework-simplejwt
     #   drf-spectacular
-djangorestframework-stubs==3.16.9
-    # via -r dev-requirements.in
 djangorestframework-simplejwt==5.5.1
     # via -r requirements.in
+djangorestframework-stubs==3.16.9
+    # via -r dev-requirements.in
 drf-spectacular==0.29.0
     # via -r requirements.in
 filelock==3.29.5
@@ -243,7 +245,7 @@ kombu==5.6.2
     #   celery
 librt==0.12.0
     # via mypy
-locust==2.44.4
+locust==2.46.2
     # via -r dev-requirements.in
 markupsafe==3.0.3
     # via
@@ -390,12 +392,14 @@ types-pyyaml==6.0.12.20260518
     # via
     #   -r dev-requirements.in
     #   django-stubs
+    #   djangorestframework-stubs
 typing-extensions==4.16.0
     # via
     #   -r requirements.in
     #   django-redis
     #   django-stubs
     #   django-stubs-ext
+    #   djangorestframework-stubs
     #   mypy
     #   pyopenssl
     #   referencing
