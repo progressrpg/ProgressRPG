@@ -164,8 +164,4 @@ React SPA served separately (port 5173 in dev, built via Vite for prod).
 - `staging` → `main` via periodic PR (base `main`, head `staging`); `main` is the repo's default branch and deploys to production via `render.yaml` (services `web`/`celery`/`celery-beat`, env group "Prod env")
 - Repo: `progressrpg/ProgressRPG` (org `progressrpg`), region `frankfurt` for all Render services
 
-**Exception:** base a feature-branch PR on `staging` instead of `development` when either:
-- local dev tooling isn't available in the working environment (e.g. no Docker/Postgres/Redis access, so the change can't be run or tested locally), or
-- the change only manifests in a live/staging-like environment (e.g. deploy config, webhook integrations, anything that can't be meaningfully verified against `development` alone).
-
-Otherwise, base feature-branch PRs on `development` as usual.
+**Exception:** base a feature-branch PR on `staging` instead of `development` when the user says to — typically because their local dev tools are blocked (e.g. by Freedom) or the change can only be verified in a live/staging-like environment. Acknowledge the stated reason and use `staging` for that PR. This is a user call, not something to infer from the working environment (e.g. a Claude Code cloud/remote session lacking Docker is not by itself a reason to target `staging`). Otherwise, base feature-branch PRs on `development` as usual.
