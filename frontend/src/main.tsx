@@ -4,9 +4,11 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { TamaguiProvider } from 'tamagui';
 
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import tamaguiConfig from '../tamagui.config';
 import './styles/main.scss';
 
 function canRenderReactQueryDevtools(): boolean {
@@ -40,12 +42,14 @@ const queryClient = new QueryClient({
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const root = createRoot(document.getElementById('root')!);
 root.render(
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-    {canRenderReactQueryDevtools() && (
-      <ReactQueryDevtools initialIsOpen={false} />
-    )}
-  </QueryClientProvider>
+  <TamaguiProvider config={tamaguiConfig}>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+      {canRenderReactQueryDevtools() && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
+    </QueryClientProvider>
+  </TamaguiProvider>
 );

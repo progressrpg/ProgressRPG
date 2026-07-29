@@ -5,13 +5,25 @@ import { fileURLToPath } from 'url'
 import path from 'node:path'
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import { playwright } from '@vitest/browser-playwright'
+import { tamaguiPlugin } from '@tamagui/vite-plugin'
 
 const dirname = fileURLToPath(new URL('.', import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(() => {
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      // PoC (issue #629): activates Tamagui's compiler (extracts static
+      // styles at build time instead of shipping a runtime style engine).
+      // Without this plugin, `tamagui`/`@tamagui/core` still work but every
+      // style is computed at runtime - a materially different bundle/perf
+      // profile from what's being measured below.
+      tamaguiPlugin({
+        config: './tamagui.config.ts',
+        components: ['tamagui'],
+      }),
+    ],
     base: '/',
     server: {
       open: true,

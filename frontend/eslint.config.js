@@ -9,7 +9,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-  globalIgnores(['dist', 'storybook-static', 'tests/', 'src/pages/RegisterPage/RegisterPage.backup.jsx']),
+  globalIgnores(['dist', 'storybook-static', 'tests/', 'src/pages/RegisterPage/RegisterPage.backup.jsx', '.tamagui']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
