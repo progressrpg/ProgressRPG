@@ -1,6 +1,10 @@
 import React from 'react';
 import classNames from 'classnames';
-import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+// PoC (issue #579): swapped @radix-ui/react-tooltip for @rn-primitives/tooltip
+// to validate the "adopt an RN-compatible primitives library" option end to
+// end. See .claude/plans/issue-579-rn-primitives-library-exploration.md for
+// findings.
+import * as TooltipPrimitive from '@rn-primitives/tooltip';
 import styles from './Tooltip.module.scss';
 
 type TooltipPlacement = 'top' | 'bottom' | 'left' | 'right';
@@ -23,6 +27,17 @@ interface TooltipProps {
   disabled?: boolean;
 }
 
+// PoC note: unlike Radix, @rn-primitives/tooltip has no top-level `Provider`
+// part - `delayDuration`/`skipDelayDuration`/`disableHoverableContent` are
+// props on each `Root` instead (its web build then constructs its own nested
+// `Tooltip.Provider` per tooltip). A context is the smallest way to keep our
+// existing single-Provider-at-the-app-root public API working unchanged.
+const TooltipProviderContext = React.createContext<Required<Omit<TooltipProviderProps, 'children'>>>({
+  delayDuration: 250,
+  skipDelayDuration: 100,
+  disableHoverableContent: true,
+});
+
 export function TooltipProvider({
   children,
   delayDuration = 250,
@@ -30,13 +45,11 @@ export function TooltipProvider({
   disableHoverableContent = true,
 }: TooltipProviderProps): React.ReactElement {
   return (
-    <TooltipPrimitive.Provider
-      delayDuration={delayDuration}
-      skipDelayDuration={skipDelayDuration}
-      disableHoverableContent={disableHoverableContent}
+    <TooltipProviderContext.Provider
+      value={{ delayDuration, skipDelayDuration, disableHoverableContent }}
     >
       {children}
-    </TooltipPrimitive.Provider>
+    </TooltipProviderContext.Provider>
   );
 }
 
@@ -58,7 +71,15 @@ export default function Tooltip({
   className,
   disabled = false,
 }: TooltipProps): React.ReactElement {
+  const providerConfig = React.useContext(TooltipProviderContext);
   const [open, setOpen] = React.useState(false);
+  // PoC note: @rn-primitives/tooltip's `Root` has no controlled `open` prop
+  // (unlike Radix) - it owns its open state internally and only exposes it
+  // via `onOpenChange` plus an imperative `open()`/`close()` pair on the
+  // Trigger's ref. `open` here is our own mirror of that state (updated from
+  // `onOpenChange`), used only for the "already open" checks below; actually
+  // opening/closing goes through `triggerRef`.
+  const triggerRef = React.useRef<{ open: () => void; close: () => void } | null>(null);
   // Tracks whether the trigger's current focus came from our own
   // pointerdown handler below, so that handler and handleFocus don't both
   // try to decide the open state for the same interaction.
@@ -88,7 +109,7 @@ export default function Tooltip({
       },
       { once: true }
     );
-    if (!open) setOpen(true);
+    if (!open) triggerRef.current?.open();
   };
 
   // preventDefault() on pointerdown doesn't stop the resulting click event
@@ -108,12 +129,18 @@ export default function Tooltip({
 
   const handleFocus = (event: React.FocusEvent) => {
     event.preventDefault();
-    if (!pointerDownRef.current) setOpen(true);
+    if (!pointerDownRef.current) triggerRef.current?.open();
   };
 
   return (
-    <TooltipPrimitive.Root open={open} onOpenChange={setOpen}>
+    <TooltipPrimitive.Root
+      onOpenChange={setOpen}
+      delayDuration={providerConfig.delayDuration}
+      skipDelayDuration={providerConfig.skipDelayDuration}
+      disableHoverableContent={providerConfig.disableHoverableContent}
+    >
       <TooltipPrimitive.Trigger
+        ref={triggerRef}
         asChild
         className={styles.trigger}
         onPointerDown={handlePointerDown}
@@ -126,14 +153,15 @@ export default function Tooltip({
       </TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content
-          className={classNames(styles.content, className)}
+          className={classNames(styles.content, styles[`side-${placement}`], className)}
           side={placement}
           align={align}
           sideOffset={sideOffset}
-          collisionPadding={8}
         >
           {content}
-          <TooltipPrimitive.Arrow className={styles.arrow} width={10} height={6} />
+          {/* PoC note: no Arrow part is exported - hand-rolled replacement,
+              see Tooltip.module.scss */}
+          <span className={styles.arrow} data-placement={placement} />
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>
     </TooltipPrimitive.Root>

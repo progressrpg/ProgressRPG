@@ -1,9 +1,9 @@
 # Issue #579 — RN-compatible primitives library exploration
 
-Scope: Question 1 of the spike only ("adopt a library, or hand-roll?"). This
-is a research note, not the full spike decision — it doesn't cover the
-`ds-entry.js` question (Q2) or produce the required PoC. Both are called out
-as next steps.
+Scope: Question 1 of the spike ("adopt a library, or hand-roll?"), now
+including the required PoC. `ds-entry.js` (Q2) has been separately decided:
+it's WIP/aspirational, not a published contract — see corroborating evidence
+at the end of this doc. No prop-compatibility obligation follows from it.
 
 ## What we currently use Radix for
 
@@ -38,9 +38,9 @@ matches the nine primitives enumerated in #578 exactly — no hidden usage.
   the same behaviours against platform accessibility APIs (VoiceOver/TalkBack)
   rather than DOM `aria-*`, since RN has no ARIA; that's an inherent
   constraint of any RN primitive, not specific to this library.
-- **Bundle cost**: web bundle is unaffected for the parts we already ship
-  (still Radix under the hood); native platforms only pay for what RN needs,
-  since it's tree-shakeable per-primitive packages rather than a monolith.
+- **Bundle cost**: revised after the PoC below — web is *not* unaffected in
+  practice, because `react-native-web` itself is a real runtime, not a
+  no-op shim.
 - **Styling**: fully unstyled/style-agnostic — doesn't force a styling
   decision, so it doesn't collide with the separate styling-layer rework.
 - **Caveat**: some packages have shipped un-transpiled JSX in the published
@@ -77,22 +77,90 @@ backstop. `@rn-primitives` removes essentially all of this work for the web
 side (it's unmodified Radix) and reduces it to "verify their native a11y
 implementation" for the RN side.
 
+## PoC: swapping `Tooltip` to `@rn-primitives/tooltip`
+
+Chose `Tooltip` over the suggested `ProgressBar`/`Toast` because neither of
+those has an in-app consumer right now — a PoC needs a component under real
+usage and real test coverage to mean anything. `Tooltip` has both: 6+
+consumers app-wide and a 5-case test file covering exactly the interaction
+model at risk (click/tap-to-toggle per #568, hover suppression, focus,
+escape-to-close, `aria-describedby`).
+
+Branch: `claude/rn-primitives-library-4ny4sa`. Changed: `Tooltip.tsx`,
+`Tooltip.module.scss`, `vite.config.ts`, `package.json`.
+
+**Result: all 5 existing tests pass, full unit suite unaffected (363
+pass/12 pre-existing unrelated failures, identical with or without the
+swap), production build succeeds.** Getting there required real work,
+correcting three assumptions from the research above:
+
+1. **Toolchain integration, not just an install.** `@rn-primitives` packages
+   import from `react-native` and ship platform-specific files
+   (`tooltip.web.mjs` vs `tooltip.mjs`) the way Metro/webpack resolve for
+   react-native-web — Vite has no built-in notion of either. Needed:
+   `resolve.alias` (`react-native` → `react-native-web`), a `resolve.extensions`
+   list with `.web.mjs`/`.web.js` first, and a Vitest `deps.inline` override
+   (Vitest externalizes `node_modules` to plain Node resolution by default,
+   which can't do platform-extension resolution at all).
+2. **Confirmed packaging bug.** The published `@radix-ui`-style `.mjs`/`.js`
+   output contains raw, un-transpiled JSX (matches
+   `founded-labs/react-native-reusables#275`, found during the earlier
+   research). Needed a scoped esbuild-transform workaround in `vite.config.ts`
+   to parse it at all — a real, currently-necessary patch, not a
+   config nicety.
+3. **`Root` has no controlled `open` prop.** Radix's `Tooltip.Root` (and our
+   wrapper) is externally controlled — that's how #568's click/tap-to-toggle
+   model works. `@rn-primitives/tooltip`'s `Root` manages open state
+   internally and only exposes it via `onOpenChange` plus an imperative
+   `open()`/`close()` pair on the **Trigger's ref**. The fix (switch our
+   `setOpen` calls to `triggerRef.current?.open()`/`.close()`) is small, but
+   it's a different control pattern per call site, not a drop-in prop
+   rename — every consumer of a controlled Radix primitive in the app would
+   need this same adjustment, not just Tooltip.
+
+Smaller, non-blocking gaps also confirmed by writing the code (not just
+reading types): no `Provider` part (fixed with a small context shim so the
+app-level `<TooltipProvider>` call site didn't need to change) and no `Arrow`
+part (hand-rolled a CSS-triangle replacement).
+
+**Bundle cost, corrected.** Production build, `index` chunk, before vs. after
+this one-primitive swap: 467.83 kB → 551.93 kB raw (145.02 kB → 173.94 kB
+gzip) — **+84 kB raw / +29 kB gzip** to swap a single tooltip. That's mostly
+the one-time cost of pulling in `react-native-web`'s runtime (View/Pressable/
+StyleSheet shims) plus `zustand` (a `@rn-primitives/portal` dependency), not
+a per-primitive cost — later primitives should add much less. But it means
+"web bundle unaffected" (the research assumption above) was wrong; it's Radix
+*wrapped in* react-native-web, not literally bare Radix.
+
+## `ds-entry.js` (Q2) — corroborating evidence
+
+Confirmed separately: `ds-entry.js` is WIP, not a real contract. Supporting
+evidence found while running `npm run lint` for this PoC: `vite.ds.config.js`
+already exists at the frontend root (a prior attempt at the missing lib
+build CLAUDE.md/#579 asks about) and is currently broken —
+`__dirname is not defined` (a CJS global used in an ESM config file). Nobody
+has run this successfully recently; treating `ds-entry.js`'s four exports as
+a preserved public API isn't warranted, and this is left as/for a separate
+decision on deleting or properly wiring up the DS build (out of scope here).
+
 ## Recommendation
 
-`@rn-primitives` is the strongest fit for Question 1: it covers all nine
-primitives with a compatible, unstyled API; it doesn't force a styling
-decision; web accessibility is Radix itself (zero regression risk there); and
-it's actively maintained with real downstream adoption. It converts most of
-epic #578 from nine rewrites into a dependency swap + restyling, which is the
-outcome the issue says is worth checking hardest for.
+`@rn-primitives` is still the strongest fit for Question 1 — it covers all
+nine primitives, doesn't force a styling decision, is actively maintained,
+and the PoC came out passing. But it is not the "dependency swap +
+restyling, nothing else" outcome the initial research suggested. Any
+adoption plan for #578 should budget for: pinning around (or patching) the
+JSX packaging bug, the one-time react-native-web bundle cost, and — the
+biggest one — auditing every primitive we use for controlled-prop patterns
+like Tooltip's, since `@rn-primitives`' imperative ref-based alternative
+isn't a mechanical rename at each call site.
 
-## Next steps (not done here — larger than this exploration)
+## Remaining next steps
 
-1. **PoC** (per acceptance criteria): replace `ProgressBar` or `Toast` end to
-   end with `@rn-primitives`, including a11y tests, before committing to this
-   choice for the whole epic. This is the fastest way to catch the JSX/build
-   issue above or any other integration surprise.
-2. Answer Q2 (`ds-entry.js` contract) — independent of this decision, but
-   both need answering before #578's sub-issues can be sized.
-3. If the PoC passes, update per-primitive sizing estimates on the #578
-   sub-issues to reflect "swap + restyle" rather than "rewrite."
+1. Update per-primitive sizing estimates on the #578 sub-issues to reflect
+   "swap + adapt controlled-state usages + restyle," not "mechanical swap."
+2. Decide `ds-entry.js`'s fate (delete vs. properly wire up the build) as a
+   separate, small piece of work — not blocking on this exploration.
+3. Decide whether to keep this PoC's `Tooltip` swap or revert it before any
+   further #578 work — it's left in place on this branch as the working
+   evidence for the above, not as something ready to merge as-is.

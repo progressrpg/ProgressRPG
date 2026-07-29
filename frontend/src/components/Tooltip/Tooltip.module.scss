@@ -12,6 +12,7 @@
 }
 
 .content {
+  position: relative;
   z-index: v.$z-index-tooltip;
   // Read-only content, never something to click/hover on its own - but on
   // small trigger shapes (map markers/subzones at low zoom) the portaled
@@ -30,30 +31,66 @@
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
   font-size: 0.875rem;
   line-height: 1.4;
-  transform-origin: var(--radix-tooltip-content-transform-origin);
+  // PoC (issue #579): @rn-primitives/tooltip's web Content renders our
+  // styled node *inside* Radix's own (unstyled) Content element, so
+  // `[data-side]` set by Radix lands on the wrapper, not this node - picking
+  // the animation via the `placement` prop in JS (see .side-* below) instead
+  // of a `[data-side]` attribute selector avoids depending on those two
+  // nodes being the same one.
+  transform-origin: center;
   animation-duration: v.$duration-fast;
   animation-timing-function: v.$easing-standard;
   animation-fill-mode: both;
 
-  &[data-side='top'] {
+  &.side-top {
     animation-name: tooltip-slide-up;
   }
 
-  &[data-side='bottom'] {
+  &.side-bottom {
     animation-name: tooltip-slide-down;
   }
 
-  &[data-side='left'] {
+  &.side-left {
     animation-name: tooltip-slide-left;
   }
 
-  &[data-side='right'] {
+  &.side-right {
     animation-name: tooltip-slide-right;
   }
 }
 
+// PoC (issue #579): @rn-primitives/tooltip doesn't export an Arrow part
+// (Radix's SVG arrow is internal to its own Content wrapper here), so this
+// is a hand-rolled CSS-triangle replacement rather than a like-for-like port.
 .arrow {
-  fill: rgba(c.$color-bg-invert, 0.96);
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: rgba(c.$color-bg-invert, 0.96);
+
+  &[data-placement='top'] {
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  &[data-placement='bottom'] {
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  &[data-placement='left'] {
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  &[data-placement='right'] {
+    left: -5px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
 }
 
 @keyframes tooltip-slide-up {
