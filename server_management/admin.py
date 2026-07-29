@@ -24,17 +24,16 @@ _ACCESS_GROUP_CHOICES = [
 ]
 
 
-def _load_flag_key_choices():
+def _load_flag_key_choices(exclude=()):
     try:
         text = _FEATURE_FLAGS_TS.read_text()
         keys = _FLAG_KEY_RE.findall(text)
-        return [(k, k) for k in keys]
     except FileNotFoundError:
         return []
+    return [(k, k) for k in keys if k not in exclude]
 
 
 class FeatureFlagForm(forms.ModelForm):
-    key = forms.ChoiceField(choices=_load_flag_key_choices)
     access_groups = forms.MultipleChoiceField(
         choices=_ACCESS_GROUP_CHOICES,
         widget=forms.CheckboxSelectMultiple,
@@ -44,6 +43,20 @@ class FeatureFlagForm(forms.ModelForm):
     class Meta:
         model = FeatureFlag
         fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Exclude keys already assigned to another FeatureFlag row, so the
+        # dropdown only offers keys that don't have one yet. When editing an
+        # existing row, its own key stays selectable.
+        already_used = set(
+            FeatureFlag.objects.exclude(pk=self.instance.pk).values_list(
+                "key", flat=True
+            )
+        )
+        self.fields["key"] = forms.ChoiceField(
+            choices=_load_flag_key_choices(exclude=already_used)
+        )
 
 
 logger = logging.getLogger("general")
