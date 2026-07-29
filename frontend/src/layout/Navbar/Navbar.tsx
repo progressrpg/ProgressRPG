@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import * as Popover from "@radix-ui/react-popover";
+// PoC (issue #579): swapped @radix-ui/react-popover for @rn-primitives/popover
+// to extend the primitives-library exploration beyond Tooltip. See
+// .claude/plans/issue-579-rn-primitives-library-exploration.md for findings.
+// Accordion (used inside this same Popover's content, below) stays Radix -
+// only Popover itself is swapped for this PoC.
+import * as Popover from "@rn-primitives/popover";
 import * as Accordion from "@radix-ui/react-accordion";
 import styles from "./Navbar.module.scss";
 import Button from "../../components/Button/Button";

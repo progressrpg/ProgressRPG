@@ -132,6 +132,50 @@ a per-primitive cost — later primitives should add much less. But it means
 "web bundle unaffected" (the research assumption above) was wrong; it's Radix
 *wrapped in* react-native-web, not literally bare Radix.
 
+## PoC: swapping a second primitive - `Popover` (`Navbar`'s announcements)
+
+Extended the PoC to check whether Tooltip's two real frictions (bundle
+one-time cost, controlled-`open` API mismatch) generalize across primitives,
+or were specific to Tooltip. Chose `Popover` because it's a real in-app
+consumer with existing test coverage: `Navbar`'s announcements popover
+(`Navbar.tsx`), covered by `Navbar.test.tsx`'s click-to-open,
+mark-all-read, and mark-one-read assertions. `Accordion` is used inside this
+same popover's content but was left as Radix - only `Popover` itself was
+swapped, to keep this a single-variable change.
+
+**Result: this one was a clean, mechanical swap - a materially better
+experience than Tooltip's.** Changed exactly one thing: the import
+(`@radix-ui/react-popover` → `@rn-primitives/popover`). No component logic,
+no styling, no test changes needed.
+
+- **All 11 existing `Navbar.test.tsx` cases passed unmodified**, including
+  the three real interaction tests (open on click, mark all read, mark one
+  read) - not just render-only assertions.
+- **Full unit suite: 363 pass / 12 fail, identical to the Tooltip-only
+  baseline** - the 12 failures are the same pre-existing, unrelated
+  `NavDrawer`/`LibraryPage` cases documented above, not anything from this
+  change.
+- **`@rn-primitives/popover`'s `Content` props (`side`, `align`,
+  `sideOffset`) match Radix's one-for-one** - no adaptation needed, unlike
+  Tooltip's `Arrow`/`Provider` gaps.
+- **The controlled-`open` API mismatch (no `open` prop on `Root`, same as
+  Tooltip) turned out not to matter here**, because `Navbar`'s existing
+  Popover usage was already uncontrolled (`<Popover.Root>` with no
+  `open`/`onOpenChange` props) - it only bit Tooltip because #568's
+  click/tap-to-toggle rework specifically needed external control. This is
+  the practical shape of the "audit every primitive for controlled-prop
+  patterns" caveat in the original recommendation below: it's a real
+  per-call-site risk, not a universal one - some call sites (like this one)
+  simply don't hit it.
+- **Bundle cost: +2.1 kB raw / +0.6 kB gzip** on top of the Tooltip-swap
+  baseline (554.08 kB / 172.72 kB gzip, up from 551.94 kB / 172.09 kB gzip) -
+  confirms the "later primitives should add much less" prediction above.
+  Tooltip's +84 kB/+29 kB was genuinely a one-time `react-native-web`/
+  `zustand` cost, not a per-primitive tax.
+- Ran `npm run lint` after the change: same 4 pre-existing, unrelated
+  issues as baseline (`ActivityRewardScreen.tsx`, `main.tsx`,
+  `SuccessPage.tsx`, `vite.ds.config.js`) - nothing new.
+
 ## `ds-entry.js` (Q2) — corroborating evidence
 
 Confirmed separately: `ds-entry.js` is WIP, not a real contract. Supporting
@@ -147,20 +191,41 @@ decision on deleting or properly wiring up the DS build (out of scope here).
 
 `@rn-primitives` is still the strongest fit for Question 1 — it covers all
 nine primitives, doesn't force a styling decision, is actively maintained,
-and the PoC came out passing. But it is not the "dependency swap +
-restyling, nothing else" outcome the initial research suggested. Any
-adoption plan for #578 should budget for: pinning around (or patching) the
-JSX packaging bug, the one-time react-native-web bundle cost, and — the
-biggest one — auditing every primitive we use for controlled-prop patterns
-like Tooltip's, since `@rn-primitives`' imperative ref-based alternative
-isn't a mechanical rename at each call site.
+and both PoCs (Tooltip, Popover) came out passing with zero new test
+failures. But it is not uniformly the "dependency swap + restyling, nothing
+else" outcome the initial research suggested — the two PoCs show that
+outcome varies per primitive rather than applying evenly:
+
+- **Popover was a clean, mechanical swap** — one import line changed, all
+  11 existing tests passed unmodified, `+2.1 kB raw / +0.6 kB gzip`.
+- **Tooltip needed real adaptation work** — the controlled-`open` mismatch,
+  missing `Provider`/`Arrow` parts, and the one-time `+84 kB raw / +29 kB
+  gzip` `react-native-web`/`zustand` cost (a cost paid once, not per
+  primitive - confirmed by Popover's near-zero marginal cost).
+
+The deciding factor for Tooltip's extra cost wasn't the library, it was
+that `Navbar`'s existing Popover usage happened to be uncontrolled, while
+Tooltip's usage needed external control for #568's click/tap-to-toggle
+model. Any adoption plan for #578 should budget for: pinning around (or
+patching) the JSX packaging bug (confirmed present in both `@rn-primitives/
+tooltip` and `@rn-primitives/popover`'s published output), the one-time
+`react-native-web` bundle cost (paid once, not per primitive), and — the
+one that actually varies per call site — auditing each of the remaining
+seven primitives (`Dialog`, `AlertDialog`, `DropdownMenu`, `Accordion`,
+`Tabs`, `Toast`, `Progress`) for whether its current usage relies on
+controlled state the way Tooltip's does, since that's the one part of this
+migration that isn't mechanical.
 
 ## Remaining next steps
 
 1. Update per-primitive sizing estimates on the #578 sub-issues to reflect
-   "swap + adapt controlled-state usages + restyle," not "mechanical swap."
+   the corrected picture: most primitives look like Popover (near-mechanical
+   swap), but any call site relying on controlled `open` state (confirmed:
+   Tooltip; unconfirmed either way for the other seven) needs the
+   Tooltip-style adaptation work budgeted instead.
 2. Decide `ds-entry.js`'s fate (delete vs. properly wire up the build) as a
    separate, small piece of work — not blocking on this exploration.
-3. Decide whether to keep this PoC's `Tooltip` swap or revert it before any
-   further #578 work — it's left in place on this branch as the working
-   evidence for the above, not as something ready to merge as-is.
+3. Decide whether to keep this PoC's `Tooltip`/`Popover` swaps or revert
+   them before any further #578 work — both are left in place on this
+   branch as the working evidence for the above, not as something ready to
+   merge as-is.
