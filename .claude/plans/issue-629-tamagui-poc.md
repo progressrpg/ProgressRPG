@@ -203,12 +203,13 @@ in this version of Tamagui's Tooltip - it's accepted, plumbed partway
 through, and then silently thrown away before reaching the DOM. Not
 something an app-level workaround can easily patch (the break is inside
 `@tamagui/popper`'s `Popper` component, not anything the app or the
-Tooltip wrapper controls), and not something this PoC's timebox covers
-fixing upstream. A real adoption would need to either file/track this
-against Tamagui upstream, hand-roll the trigger's `onFocus`/`onBlur` to
-call the Tooltip's own controlled `open` setter directly (bypassing the
-broken interaction-props path entirely - untested here), or accept the
-accessibility gap.
+Tooltip wrapper controls). Filed upstream as
+[tamagui/tamagui#4152](https://github.com/tamagui/tamagui/issues/4152),
+with the source-level root cause above included in the report. Until
+that's resolved, a real adoption would need to either track that issue,
+hand-roll the trigger's `onFocus`/`onBlur` to call the Tooltip's own
+controlled `open` setter directly (bypassing the broken interaction-props
+path entirely - untested here), or accept the accessibility gap.
 
 ## Visual parity
 
@@ -257,9 +258,10 @@ fixable at the app level within this PoC's scope - `focus={{ enabled: true
 anything. Adopting Tamagui's Tooltip today means either shipping without
 keyboard-accessible tooltips, hand-rolling the trigger's focus/blur
 handlers to bypass the broken path (untested, real engineering effort, not
-a config flag), or waiting on an upstream fix. That's the one item that
-would need to be resolved - by Tamagui, not by us - before this kit could
-be trusted with the app's Tooltip primitive.
+a config flag), or waiting on an upstream fix - tracked at
+[tamagui/tamagui#4152](https://github.com/tamagui/tamagui/issues/4152).
+That's the one item that would need to be resolved - by Tamagui, not by
+us - before this kit could be trusted with the app's Tooltip primitive.
 
 ## Companion Gluestack PoC
 
