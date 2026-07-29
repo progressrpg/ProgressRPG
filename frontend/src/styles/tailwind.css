@@ -1,0 +1,4 @@
+/* PoC (issue #631): Tailwind/NativeWind entry point. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

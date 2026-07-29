@@ -7,6 +7,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import './styles/tailwind.css';
 import './styles/main.scss';
 
 function canRenderReactQueryDevtools(): boolean {
