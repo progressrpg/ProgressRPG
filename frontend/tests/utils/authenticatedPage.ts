@@ -97,9 +97,9 @@ function withStableAppConfig(payload: unknown, opts: { unifiedHomepage?: boolean
     feature_flags: {
       ...rawFeatureFlags,
       tasksFeature: ['all'],
-      projectsPage: ['all'],
-      categoriesPage: ['all'],
-      skillsPage: ['all'],
+      projectsFeature: ['all'],
+      categoriesFeature: ['all'],
+      skillsFeature: ['all'],
       activityList: ['all'],
       unified_homepage: opts.unifiedHomepage ? ['all'] : [],
     },

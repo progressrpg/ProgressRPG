@@ -7,9 +7,9 @@ const featureFlags: Record<FeatureFlagKey, FeatureFlagValue> = {
   // Empty array = disabled for everyone.
   activityList: ['all'],
   tasksFeature: ['testers'],
-  categoriesPage: [],
-  skillsPage: [],
-  projectsPage: [],
+  categoriesFeature: [],
+  skillsFeature: [],
+  projectsFeature: [],
   toastsFeature: [],
   announcements: ['testers'],
   onlinePlayerCount: ['testers'],

@@ -16,9 +16,9 @@ export type FeatureFlagValue = AccessGroup[];
 export type FeatureFlagKey =
   | "activityList"
   | "tasksFeature"
-  | "categoriesPage"
-  | "skillsPage"
-  | "projectsPage"
+  | "categoriesFeature"
+  | "skillsFeature"
+  | "projectsFeature"
   | "toastsFeature"
   | "announcements"
   | "onlinePlayerCount"

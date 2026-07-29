@@ -10,7 +10,7 @@ import styles from "./LibraryPage.module.scss";
 
 export default function LibraryPage(): React.ReactElement {
   const hasTasksFeature = useFeatureFlag("tasksFeature");
-  const hasSkillsFeature = useFeatureFlag("skillsPage");
+  const hasSkillsFeature = useFeatureFlag("skillsFeature");
 
   return (
     <div className={styles.page}>
