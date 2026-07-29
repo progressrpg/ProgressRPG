@@ -97,28 +97,32 @@ SCSS token pipeline, so a real adoption needs its own token source of truth
   had to be renamed to `appVariant` to avoid silently colliding with that.
   Real friction for any component that already has a `variant` prop and
   adopts Tamagui's `Button` as a base.
-- **The `$text-button` `md` breakpoint layer does not carry over as
-  written, and this needed real debugging to even find, not assume.**
-  `@tamagui/config`'s stock media breakpoints (`sm: 800`, `md: 1020`, ...)
-  don't match this app's own scale (`sm: 576`, `md: 768` in
-  `_variables.scss`), so `tamagui.config.ts` overrides `sm`/`md` to match.
-  But SCSS's `respond-to($bp)` defaults to `min-width` ("up"), while
-  `respond-to($bp, down)` (used by `OnlineCountBadge`) reuses the *same*
-  breakpoint name for a `max-width` query - one Tamagui media key can only
-  ever mean one direction, so a second key (`mdUp: {minWidth: 768}`) had to
-  be added for `Button`'s up-direction case. That key **is** present in the
-  bundled config (verified in the built JS: `media:{...,mdUp:{minWidth:768}}`),
-  but applying it as `$mdUp: {fontSize: '1.125rem'}` inside the `styled()`
-  base definition produced **no responsive behavior at all** - a real
-  Playwright check against the production build showed identical
-  `getComputedStyle(...).fontSize` at 500px and 900px viewports. This is an
-  open, unresolved integration gap, not a "should work in theory" claim:
-  the config accepts the custom key, but the component never actually
-  applies it. Any real adoption would need to resolve this (likely: media
-  variants need to be passed as JSX props like `<Button $mdUp={{...}} />`
-  rather than baked into `styled()`'s base style object - untested here,
-  out of time budget for this spike) before `apply-text-style`'s breakpoint
-  behavior could be trusted to carry over.
+- **The `$text-button` `md` breakpoint layer does carry over correctly -
+  the original PoC pass here was wrong, and the fix was in my own
+  verification method, not Tamagui.** `@tamagui/config`'s stock media
+  breakpoints (`sm: 800`, `md: 1020`, ...) don't match this app's own scale
+  (`sm: 576`, `md: 768` in `_variables.scss`), so `tamagui.config.ts`
+  overrides `sm`/`md` to match. SCSS's `respond-to($bp)` defaults to
+  `min-width` ("up"), while `respond-to($bp, down)` (used by
+  `OnlineCountBadge`) reuses the *same* breakpoint name for a `max-width`
+  query - one Tamagui media key can only ever mean one direction, so a
+  second key (`mdUp: {minWidth: 768}`) was added for `Button`'s up-direction
+  case.
+
+  The first PoC pass measured `getComputedStyle()` on the outer `<button>`
+  DOM node and saw an identical font size at 500px and 900px, and concluded
+  the breakpoint wasn't applying. That was measuring the wrong element:
+  Tamagui's `Button` is a compound component that forwards text-styling
+  props (`fontSize`, `fontFamily`, `lineHeight`, `letterSpacing`,
+  `textAlign`) to an inner `SizableText` **span child**, not the frame - the
+  outer button never gets a `fontSize` class at all, static or responsive,
+  by design. Re-checking the actual rendered span via a real Playwright
+  build shows the breakpoint working exactly as authored: `_fos-1rem`
+  (16px) at 500px width, `_fos-1--125rem` (18px) at 900px width, swapping
+  cleanly on the `@media (min-width: 768px)` rule emitted into the compiled
+  CSS. **Not a bug** - `apply-text-style`'s breakpoint layer is trustworthy
+  here, provided any verification checks the element Tamagui actually
+  applies text props to, not the frame.
 - **A11y gap, verified via a failing test kept in the suite
   (`it.fails`, not silently passing or hidden):** Tamagui's `Button` sets
   `aria-disabled="true"` on `disabled` but does **not** set the native HTML
@@ -188,26 +192,29 @@ Reasons, all verified above rather than assumed:
    gets "for free" by adopting Tamagui.
 2. **The one advertised win over `@rn-primitives` (controlled `open`) held
    up** - Tamagui's Tooltip doesn't need the ref/imperative workaround
-   #579 had to build. But this is outweighed by:
-3. **The breakpoint story is worse, not better, than assumed.** #591 flags
-   Tamagui's token system as "a strong match on paper" for this app's
-   `apply-text-style`/`apply-button-variant` mixins - the variant-mixin part
-   held up in this PoC, but the breakpoint part (`$mdUp`) demonstrably did
-   not apply at runtime despite being correctly present in the compiled
-   config, and needs further investigation neither this PoC's timebox nor
-   #579's covered.
-4. **A11y parity has two verified gaps**, not zero: `Button`'s
-   `disabled` state and `Tooltip`'s focus-to-open, both against the same
-   real DOM assertions the existing test suites already used - this is the
-   accessibility-parity risk #629 was opened specifically to check, and it
-   materialized on both components tested, not just Tooltip.
+   #579 had to build.
+3. **The breakpoint story holds up, once corrected.** #591 flags Tamagui's
+   token system as "a strong match on paper" for this app's
+   `apply-text-style`/`apply-button-variant` mixins - both the variant-mixin
+   part and the breakpoint part (`$mdUp`) hold up in this PoC. (An earlier
+   pass of this doc incorrectly reported the breakpoint as broken; that was
+   a measurement bug in the verification script - see the corrected note
+   above - not a Tamagui limitation.)
+4. **A11y parity has one verified gap**, not zero: `Button`'s `disabled`
+   state doesn't set the native HTML attribute, against the same real DOM
+   assertions the existing test suite already used. Tooltip's
+   focus-to-open gap (2 of 3 `it.fails` cases) remains unresolved and is a
+   separate, real finding - see the Tooltip section above.
 
-**For #578/#591:** stay with #579's `@rn-primitives` recommendation for
-primitives, and keep the styling-layer decision (#591) unblocked by this
-kit's token/variant system rather than adopting it - the breakpoint gap
-alone would need to be resolved before trusting Tamagui with
-`apply-text-style`'s responsive layers, and the bundle floor is
-substantially worse for no corresponding a11y win.
+**For #578/#591:** the bundle-floor gap (~4.5x heavier than `@rn-primitives`)
+and the unresolved Tooltip focus-to-open gap are the two real blockers left
+against Tamagui, not the breakpoint (which works) or bundle size in
+isolation (a secondary concern per discussion on the issue). `@rn-primitives`
+remains the safer default recommendation on bundle size and Tooltip
+behavior, but Tamagui's variant/breakpoint system is more capable than this
+doc previously credited - if the team weighs the compiled-styling ergonomics
+highly enough to accept the bundle cost, resolving Tooltip's keyboard-focus
+gap is the remaining item to de-risk before adopting it.
 
 ## Companion Gluestack PoC
 
