@@ -13,6 +13,16 @@ export default defineConfig(() => {
   return {
     plugins: [react()],
     base: '/',
+    resolve: {
+      alias: {
+        // PoC (Restyle vs Tamagui/Gluestack/@rn-primitives): @shopify/restyle
+        // imports from 'react-native' internally (StyleSheet, View, Text,
+        // Pressable); this project is web-only, so alias it to
+        // react-native-web the same way Metro/webpack would for RN Web -
+        // same pattern the other three PoCs needed.
+        'react-native': 'react-native-web',
+      },
+    },
     server: {
       open: true,
       host: true,
@@ -52,7 +62,29 @@ export default defineConfig(() => {
             },
             setupFiles: './src/test/setup.js',
             css: true,
-            exclude: ['node_modules', 'dist', 'tests/**', '**/*.spec.{js,jsx,ts,tsx}'],
+            // PoC (Restyle) finding: OnlineCountBadge.restyle.test.tsx and
+            // Button.restyle.test.tsx are excluded here, not just left to
+            // fail - same wall the Gluestack PoC hit, confirmed by actually
+            // trying all three documented fixes, not assumed. @shopify/
+            // restyle's compiled dist/index.js does a raw CJS
+            // require('react-native') at module-init time; Vitest
+            // externalizes node_modules to plain Node resolution by
+            // default, and none of `server.deps.inline`, `ssr.noExternal`,
+            // nor `vi.mock('react-native', ...)` reach it - confirmed via a
+            // stack trace showing Node's own `Module.require`/
+            // `loadESMFromCJS`, not Vite's transform pipeline (same
+            // boundary, same class of dependency as the Gluestack PoC's
+            // react-native-css-interop). Verification for the Restyle-ported
+            // components was done via a real Playwright browser build
+            // instead - see findings doc.
+            exclude: [
+              'node_modules',
+              'dist',
+              'tests/**',
+              '**/*.spec.{js,jsx,ts,tsx}',
+              'src/components/OnlineCountBadge/OnlineCountBadge.restyle.test.tsx',
+              'src/components/Button/Button.restyle.test.tsx',
+            ],
           },
         },
         {

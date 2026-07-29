@@ -4,9 +4,11 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { ThemeProvider } from '@shopify/restyle';
 
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import restyleTheme from './restyle-theme';
 import './styles/main.scss';
 
 function canRenderReactQueryDevtools(): boolean {
@@ -41,11 +43,13 @@ const queryClient = new QueryClient({
 const root = createRoot(document.getElementById('root')!);
 root.render(
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-    {canRenderReactQueryDevtools() && (
-      <ReactQueryDevtools initialIsOpen={false} />
-    )}
+    <ThemeProvider theme={restyleTheme}>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+      {canRenderReactQueryDevtools() && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
+    </ThemeProvider>
   </QueryClientProvider>
 );
