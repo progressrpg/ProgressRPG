@@ -165,11 +165,50 @@ diagnosis rather than assumed:
    a subtle failure mode (looks like "won't open," not "renders twice").
 3. With that fixed, hover opens/closes correctly. Focus does not, even
    with the documented opt-in (`focus={{ enabled: true }}`) set - the
-   tooltip never opens on `user.tab()` in this environment. This is
-   recorded as a real, verified gap (via `it.fails`, so it's visible in
-   the suite rather than silently green or deleted), not a hypothetical
-   one: Radix opens on focus with zero configuration; Tamagui's
-   documented focus opt-in did not produce that behavior here.
+   tooltip never opens on `user.tab()`.
+
+**Follow-up dig (per discussion on the issue): confirmed this is a real
+Tamagui bug, not a test-environment artifact like the breakpoint finding
+above.** Re-verified against a real Chromium browser via Playwright (ruling
+out happy-dom's `:focus-visible`/keyboard-modality simulation as the
+cause, since that was the root cause of the breakpoint false-negative):
+`Tab`-focusing the trigger in real Chromium does move focus (`document.
+activeElement` is the trigger, and it does `matches(':focus-visible')` ===
+`true`), but the tooltip's `data-state` stays `"closed"` and
+`aria-expanded` stays `"false"` - the component genuinely never reacts to
+focus, in a real browser, not just in tests.
+
+Traced to source (`@tamagui/floating`, `@tamagui/popper` v2.6.0):
+Tamagui's `Tooltip` builds an interaction-aware floating context via
+`useFloatingContext()` - including a `useFocus()` hook wired to the
+`focus={{ enabled: true }}` prop - and provides it down via
+`FloatingOverrideContext`. But the underlying `Popper` primitive
+(`@tamagui/popper/dist/esm/Popper.mjs`) builds its **own**, separate,
+purely-positional `useFloating()` instance internally, and explicitly
+resets `<FloatingOverrideContext.Provider value={null}>` around its own
+children - discarding the focus-aware context Tooltip just built. `Popper
+Anchor`'s `getReferenceProps()` (which is what would attach `onFocus`/
+`onBlur` handlers to the real trigger DOM node) therefore always comes
+from the interaction-less instance. Confirmed directly by instrumenting
+`useFocus`'s `onFocus` callback with a `console.log`: it never fires at
+all on `Tab`, in a real browser - not gated by a condition inside the
+handler, never reached. (Hover still works because it's driven by
+separate, hand-wired `onMouseEnter`/`onOpenChange` plumbing at the
+Popover/Trigger level, unrelated to this broken interaction-props path -
+which is exactly why hover passes while focus and Escape-driven dismiss,
+which both depend on the same broken path, fail.)
+
+This means `focus={{ enabled: true }}` is effectively **dead configuration**
+in this version of Tamagui's Tooltip - it's accepted, plumbed partway
+through, and then silently thrown away before reaching the DOM. Not
+something an app-level workaround can easily patch (the break is inside
+`@tamagui/popper`'s `Popper` component, not anything the app or the
+Tooltip wrapper controls), and not something this PoC's timebox covers
+fixing upstream. A real adoption would need to either file/track this
+against Tamagui upstream, hand-roll the trigger's `onFocus`/`onBlur` to
+call the Tooltip's own controlled `open` setter directly (bypassing the
+broken interaction-props path entirely - untested here), or accept the
+accessibility gap.
 
 ## Visual parity
 
@@ -200,21 +239,27 @@ Reasons, all verified above rather than assumed:
    pass of this doc incorrectly reported the breakpoint as broken; that was
    a measurement bug in the verification script - see the corrected note
    above - not a Tamagui limitation.)
-4. **A11y parity has one verified gap**, not zero: `Button`'s `disabled`
-   state doesn't set the native HTML attribute, against the same real DOM
-   assertions the existing test suite already used. Tooltip's
-   focus-to-open gap (2 of 3 `it.fails` cases) remains unresolved and is a
-   separate, real finding - see the Tooltip section above.
+4. **A11y parity has two verified gaps**, not zero: `Button`'s `disabled`
+   state doesn't set the native HTML attribute, and `Tooltip`'s
+   focus-to-open is a confirmed upstream bug, not a config miss or a test
+   artifact - traced to source: `@tamagui/popper`'s `Popper` primitive
+   discards the focus-aware interaction context Tooltip builds, before it
+   ever reaches the trigger's DOM node. Re-verified in a real Chromium
+   browser specifically to rule out the kind of test-environment
+   false-negative the breakpoint finding turned out to be - this one holds.
 
-**For #578/#591:** the bundle-floor gap (~4.5x heavier than `@rn-primitives`)
-and the unresolved Tooltip focus-to-open gap are the two real blockers left
-against Tamagui, not the breakpoint (which works) or bundle size in
-isolation (a secondary concern per discussion on the issue). `@rn-primitives`
-remains the safer default recommendation on bundle size and Tooltip
-behavior, but Tamagui's variant/breakpoint system is more capable than this
-doc previously credited - if the team weighs the compiled-styling ergonomics
-highly enough to accept the bundle cost, resolving Tooltip's keyboard-focus
-gap is the remaining item to de-risk before adopting it.
+**For #578/#591:** stay with #579's `@rn-primitives` recommendation.
+Bundle size is a secondary concern on its own, and the breakpoint/variant
+system is genuinely solid (corrected above), but Tooltip's focus-to-open
+break is a confirmed defect inside `@tamagui/popper` itself, not something
+fixable at the app level within this PoC's scope - `focus={{ enabled: true
+}}` is accepted by the API and then silently discarded before it can do
+anything. Adopting Tamagui's Tooltip today means either shipping without
+keyboard-accessible tooltips, hand-rolling the trigger's focus/blur
+handlers to bypass the broken path (untested, real engineering effort, not
+a config flag), or waiting on an upstream fix. That's the one item that
+would need to be resolved - by Tamagui, not by us - before this kit could
+be trusted with the app's Tooltip primitive.
 
 ## Companion Gluestack PoC
 
