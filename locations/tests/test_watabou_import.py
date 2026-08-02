@@ -5,9 +5,7 @@ from locations.models import LandArea, Node, PopulationCentre, Road, Subzone
 from locations.services.watabou_import import import_watabou_village
 
 # Two adjacent square districts (sharing the edge x=10) so their union is a
-# single Polygon, plus a residential-shaped one further out to exercise
-# both district-based building_type inference and the "no matching
-# district" fallback.
+# single Polygon.
 TRADE_DISTRICT = {
     "type": "Polygon",
     "name": "Trade District",
@@ -20,10 +18,7 @@ MILL_WARD = {
 }
 # Building coordinates are a list of rings (one ring each here), same shape
 # as watabou's own "buildings" feature - not a bare list of points.
-# A building whose centroid sits outside both districts above.
-STRAY_BUILDING = [[[100, 100], [110, 100], [110, 110], [100, 110]]]
 TRADE_BUILDING = [[[2, 2], [8, 2], [8, 8], [2, 8]]]
-MILL_BUILDING = [[[12, 2], [18, 2], [18, 8], [12, 8]]]
 
 EARTH = {"coordinates": [[[-500, -500], [500, -500], [500, 500], [-500, 500]]]}
 
@@ -83,38 +78,44 @@ class WatabouImportBoundaryTest(TestCase):
 
 
 class WatabouImportBuildingTypeTest(TestCase):
-    def test_building_type_inferred_from_containing_district_name(self):
-        data = _make_export(
-            districts=[TRADE_DISTRICT, MILL_WARD],
-            buildings=[TRADE_BUILDING, MILL_BUILDING],
-        )
-        origin = Point(0, 0, srid=3857)
-
-        centre = import_watabou_village(data, name="Typed Wards", origin=origin)
-
-        buildings = {b.name: b.building_type for b in centre.buildings.all()}
-        self.assertEqual(buildings["Building 1 of (Typed Wards)"], "communal")
-        self.assertEqual(buildings["Building 2 of (Typed Wards)"], "mill")
-
-    def test_building_outside_every_district_defaults_to_residential(self):
-        data = _make_export(
-            districts=[TRADE_DISTRICT, MILL_WARD], buildings=[STRAY_BUILDING]
-        )
-        origin = Point(0, 0, srid=3857)
-
-        centre = import_watabou_village(data, name="Stray", origin=origin)
-
-        building = centre.buildings.get()
-        self.assertEqual(building.building_type, "residential")
-
-    def test_building_type_defaults_to_residential_with_no_districts(self):
+    def test_single_building_defaults_to_residential(self):
         data = _make_export(districts=None, buildings=[TRADE_BUILDING])
         origin = Point(0, 0, srid=3857)
 
-        centre = import_watabou_village(data, name="No Wards", origin=origin)
+        centre = import_watabou_village(data, name="Solo", origin=origin)
 
         building = centre.buildings.get()
         self.assertEqual(building.building_type, "residential")
+
+    def test_roughly_three_quarters_residential_with_one_of_each_special(self):
+        # 8 buildings: 75% -> 6 residential, remaining 2 -> one each of the
+        # first two special types (granary, inn), in fixed order.
+        data = _make_export(districts=None, buildings=[TRADE_BUILDING] * 8)
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="Eight Buildings", origin=origin)
+
+        types = [b.building_type for b in centre.buildings.order_by("id")]
+        self.assertEqual(types.count("residential"), 6)
+        self.assertEqual(types.count("granary"), 1)
+        self.assertEqual(types.count("inn"), 1)
+        for untouched_type in ["mill", "bakery", "market", "hall", "communal"]:
+            self.assertEqual(types.count(untouched_type), 0)
+
+    def test_leftover_after_every_special_type_falls_back_to_residential(self):
+        # 30 buildings: 75% -> 22 residential (Python's round-half-to-even),
+        # remaining 8 -> one each of all six special types, and the 2 slots
+        # left over after that fold back into residential (no catch-all).
+        data = _make_export(districts=None, buildings=[TRADE_BUILDING] * 30)
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="Thirty Buildings", origin=origin)
+
+        types = [b.building_type for b in centre.buildings.order_by("id")]
+        self.assertEqual(types.count("residential"), 24)
+        for special_type in ["granary", "inn", "mill", "bakery", "market", "hall"]:
+            self.assertEqual(types.count(special_type), 1)
+        self.assertEqual(types.count("communal"), 0)
 
 
 class WatabouImportGraphTest(TestCase):

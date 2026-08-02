@@ -41,35 +41,29 @@ SQUARE_METRES_PER_HECTARE = 10_000
 # that happens, matching how the generator itself would render them.
 DEFAULT_ROAD_WIDTH = 6.0
 
-# watabou names each district after its ward/street (e.g. "Trade District",
-# "Chicken Stair") rather than tagging a structured type, so building_type
-# is inferred by keyword-matching the district name a building's footprint
-# centroid falls inside. Order matters where keywords could overlap; first
-# match wins. Anything not matched (including buildings outside every
-# district) stays "residential", the model's own default.
-DISTRICT_BUILDING_TYPE_KEYWORDS = [
-    ("mill", "mill"),
-    ("inn", "inn"),
-    ("tavern", "inn"),
-    ("granary", "granary"),
-    ("grain", "granary"),
-    ("barn", "granary"),
-    ("bake", "bakery"),
-    ("bread", "bakery"),
-    ("market", "communal"),
-    ("trade", "communal"),
-    ("square", "communal"),
-    ("temple", "communal"),
-    ("hall", "communal"),
-]
+# watabou doesn't tag buildings with a structured type, so one is assigned
+# per import: ~75% of buildings become "residential", then one each of the
+# "special" (work) types below is assigned from the remainder, in this
+# fixed order. There's no catch-all type for anything left over once every
+# special type has its one instance - those buildings become "residential"
+# too.
+RESIDENTIAL_BUILDING_RATIO = 0.75
+SPECIAL_BUILDING_TYPES = ["granary", "inn", "mill", "bakery", "market", "hall"]
 
 
-def _building_type_for_district(district_name: str) -> str:
-    lowered = district_name.lower()
-    for keyword, building_type in DISTRICT_BUILDING_TYPE_KEYWORDS:
-        if keyword in lowered:
-            return building_type
-    return "residential"
+def _assign_building_types(count: int) -> list[str]:
+    residential_count = round(count * RESIDENTIAL_BUILDING_RATIO)
+
+    remaining = count - residential_count
+    types = []
+    for building_type in SPECIAL_BUILDING_TYPES:
+        if remaining <= 0:
+            break
+        types.append(building_type)
+        remaining -= 1
+    types.extend(["residential"] * (residential_count + remaining))
+
+    return types
 
 
 def _feature_by_id(data: dict, feature_id: str) -> dict | None:
@@ -182,14 +176,6 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
 
     boundary = _translate_polygon(raw_boundary.coords, offset)
 
-    district_building_types = [
-        (
-            _translate_polygon(geometry["coordinates"], offset),
-            _building_type_for_district(geometry.get("name", "")),
-        )
-        for geometry in (districts_feature or {}).get("geometries", [])
-    ]
-
     population_centre = PopulationCentre.objects.create(
         name=name,
         location=origin,
@@ -202,14 +188,13 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
         defaults={"location": population_centre.location, "kind": Node.Kind.CENTRE},
     )
 
-    for i, polygon_coords in enumerate(buildings_feature.get("coordinates", [])):
-        footprint = _translate_polygon(polygon_coords, offset)
+    building_coordinates = buildings_feature.get("coordinates", [])
+    building_types = _assign_building_types(len(building_coordinates))
 
-        building_type = "residential"
-        for polygon, district_type in district_building_types:
-            if polygon.contains(footprint.centroid):
-                building_type = district_type
-                break
+    for i, (polygon_coords, building_type) in enumerate(
+        zip(building_coordinates, building_types)
+    ):
+        footprint = _translate_polygon(polygon_coords, offset)
 
         building = Building.objects.create(
             name=f"Building {i + 1} of ({name})",

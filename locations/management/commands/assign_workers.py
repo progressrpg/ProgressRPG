@@ -5,7 +5,16 @@ from django.core.management.base import BaseCommand
 from character.models import Character
 from locations.models import Building
 
-WORK_BUILDING_TYPES = ["granary", "inn", "mill", "bakery", "communal", "field_shelter"]
+WORK_BUILDING_TYPES = [
+    "granary",
+    "inn",
+    "mill",
+    "bakery",
+    "hall",
+    "market",
+    "communal",
+    "field_shelter",
+]
 MIN_WORKING_AGE = 16
 MAX_WORKING_AGE = 65
 MIN_WORKERS_PER_BUILDING = 2
@@ -15,7 +24,8 @@ MAX_WORKERS_PER_BUILDING = 3
 class Command(BaseCommand):
     help = (
         "Assign a handful of working-age characters to work in the village's "
-        "non-residential buildings (granary, inn, mill, bakery, communal, field_shelter). "
+        "non-residential buildings (granary, inn, mill, bakery, hall, market, "
+        "communal, field_shelter). "
         "Not every character gets a job - children and elders are excluded, "
         "and each building only takes on 2-3 workers, scoped to its own "
         "population centre."

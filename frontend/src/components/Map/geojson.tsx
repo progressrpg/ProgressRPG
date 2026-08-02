@@ -21,6 +21,8 @@ export const BUILDING_TYPE_LABELS: Record<string, string> = {
   inn: "Inn",
   mill: "Mill",
   bakery: "Bakery",
+  hall: "Hall",
+  market: "Market",
   communal: "Communal",
   field_shelter: "Field Shelter",
 };

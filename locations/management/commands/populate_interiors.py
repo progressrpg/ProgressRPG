@@ -44,7 +44,15 @@ BUILDING_INTERIORS_PROPORTIONS = {
     },
 }
 
-VILLAGE_SPECIAL_BUILDINGS = ["granary", "inn", "mill", "bakery", "communal"]
+VILLAGE_SPECIAL_BUILDINGS = [
+    "granary",
+    "inn",
+    "mill",
+    "bakery",
+    "hall",
+    "market",
+    "communal",
+]
 RESIDENTIAL_PER_VILLAGE = 5
 
 

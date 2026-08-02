@@ -408,6 +408,8 @@ class Building(models.Model):
         ("inn", "Inn"),
         ("mill", "Mill"),
         ("bakery", "Bakery"),
+        ("hall", "Hall"),
+        ("market", "Market"),
         ("communal", "Communal"),
         ("field_shelter", "Field Shelter"),
     ]
