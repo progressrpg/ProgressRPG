@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from character.models import Character
-from .models import Building, Node, Path, PopulationCentre
+from ..models import Building, Node, Path, PopulationCentre
 
 
 def square(cx, cy, half=5):

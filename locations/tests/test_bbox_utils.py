@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from .utils import InvalidBBoxError, MAX_BBOX_AREA_SQ_M, parse_bbox_param
+from ..utils import InvalidBBoxError, MAX_BBOX_AREA_SQ_M, parse_bbox_param
 
 
 class ParseBBoxParamTest(SimpleTestCase):

@@ -4,8 +4,8 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from .models import PopulationCentre
-from .utils import WORLD_BOUNDS_PADDING_M
+from ..models import PopulationCentre
+from ..utils import WORLD_BOUNDS_PADDING_M
 
 
 def square(cx, cy, half=5):

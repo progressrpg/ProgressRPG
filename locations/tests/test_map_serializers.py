@@ -5,8 +5,8 @@ from django.utils import timezone
 from character.models import Character, CharacterLocation
 from economy.models import FieldCrop, GoodsStock
 
-from .models import Building, LandArea, PopulationCentre, Subzone
-from .serializers import (
+from ..models import Building, LandArea, PopulationCentre, Subzone
+from ..serializers import (
     BuildingFeatureSerializer,
     CharacterPointFeatureSerializer,
     SubzoneFeatureSerializer,
