@@ -63,6 +63,16 @@ class PointFeatureSerializer(GeoJSONFeatureSerializer):
         }
 
 
+class PopulationCentreLabelFeatureSerializer(PointFeatureSerializer):
+    feature_type = "population_centre_label"
+
+    def get_properties(self, obj):
+        return {
+            "name": obj.name,
+            "population_centre_id": obj.id,
+        }
+
+
 # Cap on how many upcoming path nodes a moving character's map feature
 # carries per poll, rather than its full remaining route. Keeps response
 # size bounded independent of how many villages a future multi-village map
@@ -232,7 +242,7 @@ class BoundaryFeatureSerializer(PolygonFeatureSerializer):
     polygon_attr = "boundary"
 
     def get_properties(self, obj):
-        return {"feature_type": "boundary"}
+        return {"feature_type": "boundary", "name": obj.name}
 
 
 class SubzoneFeatureSerializer(PolygonFeatureSerializer):
