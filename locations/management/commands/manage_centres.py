@@ -30,7 +30,14 @@ class Command(BaseCommand):
         elif options["list"]:
             self._list()
         else:
-            self.print_help("manage.py", "manage_centres")
+            # print_help() writes straight to the real sys.stdout via
+            # argparse, bypassing self.stdout - so a test capturing output
+            # via call_command(stdout=...) would see nothing. Writing the
+            # formatted help text through self.stdout instead keeps it
+            # testable the same way every other branch here is.
+            self.stdout.write(
+                self.create_parser("manage.py", "manage_centres").format_help()
+            )
 
     def _list(self):
         centres = PopulationCentre.objects.order_by("name")
