@@ -97,3 +97,16 @@ export function styledLineFeatures(features: GeoJSONFeature[]) {
       properties: f.properties,
     }));
 }
+
+export function styledPointFeatures(features: GeoJSONFeature[]) {
+  return features
+    .filter((f) => f.geometry.type === "Point")
+    .map((f) => ({
+      type: "Feature" as const,
+      geometry: {
+        type: "Point",
+        coordinates: coordsToLngLat(f.geometry.coordinates as never),
+      },
+      properties: f.properties,
+    }));
+}
