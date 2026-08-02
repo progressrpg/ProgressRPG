@@ -19,7 +19,7 @@ class Command(BaseCommand):
                 # village_names.VILLAGE_NAMES, same as spawn_villages does.
                 call_command(
                     "import_village",
-                    file=str(village_file),
+                    str(village_file),
                     overwrite=True,
                     interactive=False,
                 )
