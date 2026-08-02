@@ -12,11 +12,12 @@ translated onto a chosen point in the game world's SRID 3857 plane, the
 same "just metres, no real georeferencing" convention the rest of
 locations/ already uses (see MAX_BBOX_AREA_SQ_M in locations/utils.py).
 
-This only creates static geometry - PopulationCentre, Building, Road, and
-the Node graph's CENTRE/BUILDING/BUILDING_ENTRANCE points. It deliberately
-does not generate Path edges: Path is the movement/pathfinding graph and
-Road is just the drawn street, so wiring the graph is left to the existing
-`generate_paths` command (see the `--generate-paths` flag on
+This only creates static geometry - PopulationCentre, Building, Road, the
+Node graph's CENTRE/BUILDING/BUILDING_ENTRANCE points, and (if the export
+has a "fields" feature) a LandArea/Subzone pair per field polygon. It
+deliberately does not generate Path edges: Path is the movement/pathfinding
+graph and Road is just the drawn street, so wiring the graph is left to the
+existing `generate_paths` command (see the `--generate-paths` flag on
 import_watabou_village's management command) rather than trying to derive
 walkable edges from arbitrary imported road geometry.
 """
@@ -27,7 +28,13 @@ from django.db import transaction
 from locations.management.commands.spawn_villages import (
     compute_building_entrance_point,
 )
-from locations.models import Building, Node, PopulationCentre, Road
+from locations.models import Building, LandArea, Node, PopulationCentre, Road, Subzone
+
+# GEOS areas in this module are in SRID 3857 coordinates, which - per the
+# "just metres, no real georeferencing" convention described above - are
+# treated as flat square metres; LandArea/Subzone size is hectares (10,000
+# square metres).
+SQUARE_METRES_PER_HECTARE = 10_000
 
 # watabou's roads sometimes omit a per-geometry "width" - fall back to the
 # export's own top-level default (the "values" feature's roadWidth) when
@@ -93,6 +100,47 @@ def _translate_linestring(coordinates, offset, srid=3857) -> LineString:
     return LineString(points, srid=srid)
 
 
+def _import_fields(
+    fields_feature: dict, population_centre: PopulationCentre, offset
+) -> None:
+    """
+    Create one LandArea (wrapping the whole imported field area) and one
+    "crops" Subzone per polygon in the "fields" MultiPolygon - unlike
+    generate_landarea's procedurally-synthesized Subzone geometry, these
+    polygons are real imported shapes, so they're used directly rather than
+    derived from a size fraction.
+    """
+    polygons = [
+        _translate_polygon(polygon_coords, offset)
+        for polygon_coords in fields_feature.get("coordinates", [])
+    ]
+    if not polygons:
+        return
+
+    combined = polygons[0]
+    for polygon in polygons[1:]:
+        combined = combined.union(polygon)
+    boundary = combined if combined.geom_type == "Polygon" else combined.convex_hull
+
+    land_area = LandArea.objects.create(
+        name=f"Fields of ({population_centre.name})",
+        population_centre=population_centre,
+        location=boundary.centroid,
+        boundary=boundary,
+        size=sum(polygon.area for polygon in polygons) / SQUARE_METRES_PER_HECTARE,
+    )
+
+    for i, polygon in enumerate(polygons):
+        Subzone.objects.create(
+            land_area=land_area,
+            name=f"Field {i + 1} of ({population_centre.name})",
+            location=polygon.centroid,
+            boundary=polygon,
+            size=polygon.area / SQUARE_METRES_PER_HECTARE,
+            usage="crops",
+        )
+
+
 @transaction.atomic
 def import_watabou_village(data: dict, *, name: str, origin: Point) -> PopulationCentre:
     """
@@ -107,6 +155,7 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
     roads_feature = _feature_by_id(data, "roads") or {"geometries": []}
     districts_feature = _feature_by_id(data, "districts")
     earth_feature = _feature_by_id(data, "earth")
+    fields_feature = _feature_by_id(data, "fields")
 
     # Districts are the actual town/village extent, each a named ward -
     # prefer their union over the "earth" feature, which is just the
@@ -197,5 +246,8 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
             geom=_translate_linestring(geometry["coordinates"], offset),
             width=geometry.get("width", default_road_width),
         )
+
+    if fields_feature and fields_feature.get("type") == "MultiPolygon":
+        _import_fields(fields_feature, population_centre, offset)
 
     return population_centre

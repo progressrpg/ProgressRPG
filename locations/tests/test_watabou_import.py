@@ -1,7 +1,7 @@
 from django.contrib.gis.geos import Point, Polygon
 from django.test import TestCase
 
-from locations.models import Node, PopulationCentre, Road
+from locations.models import LandArea, Node, PopulationCentre, Road, Subzone
 from locations.services.watabou_import import import_watabou_village
 
 # Two adjacent square districts (sharing the edge x=10) so their union is a
@@ -28,7 +28,9 @@ MILL_BUILDING = [[[12, 2], [18, 2], [18, 8], [12, 8]]]
 EARTH = {"coordinates": [[[-500, -500], [500, -500], [500, 500], [-500, 500]]]}
 
 
-def _make_export(*, districts=None, buildings=None, roads=None, road_width=None):
+def _make_export(
+    *, districts=None, buildings=None, roads=None, road_width=None, fields=None
+):
     features = [
         {"type": "Feature", "id": "earth", **EARTH},
         {
@@ -46,6 +48,8 @@ def _make_export(*, districts=None, buildings=None, roads=None, road_width=None)
         features.append({"type": "Feature", "id": "values", "roadWidth": road_width})
     if districts is not None:
         features.append({"type": "Feature", "id": "districts", "geometries": districts})
+    if fields is not None:
+        features.append({"type": "MultiPolygon", "id": "fields", "coordinates": fields})
     return {"features": features}
 
 
@@ -168,3 +172,64 @@ class WatabouImportGraphTest(TestCase):
 
         with self.assertRaises(ValueError):
             import_watabou_village(data, name="No Boundary", origin=origin)
+
+
+# Two separate 10x10 squares, same shape convention as watabou's own
+# "fields" MultiPolygon: a list of polygons, each a list of rings, each ring
+# a list of [x, y] points.
+FIELD_ONE = [[[200, 200], [210, 200], [210, 210], [200, 210]]]
+FIELD_TWO = [[[300, 300], [310, 300], [310, 310], [300, 310]]]
+
+
+class WatabouImportFieldsTest(TestCase):
+    def test_creates_one_crops_subzone_per_field_polygon(self):
+        data = _make_export(
+            districts=[TRADE_DISTRICT, MILL_WARD], fields=[FIELD_ONE, FIELD_TWO]
+        )
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="Fielded Wards", origin=origin)
+
+        land_area = LandArea.objects.get(population_centre=centre)
+        subzones = list(land_area.subzones.all())
+        self.assertEqual(len(subzones), 2)
+        self.assertTrue(all(s.usage == "crops" for s in subzones))
+
+    def test_subzone_size_matches_polygon_area_in_hectares(self):
+        data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD], fields=[FIELD_ONE])
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="One Field", origin=origin)
+
+        subzone = LandArea.objects.get(population_centre=centre).subzones.get()
+        # A 10x10 square is 100 sq metres = 0.01 hectares.
+        self.assertAlmostEqual(subzone.size, 0.01, places=6)
+
+    def test_land_area_boundary_covers_every_field(self):
+        data = _make_export(
+            districts=[TRADE_DISTRICT, MILL_WARD], fields=[FIELD_ONE, FIELD_TWO]
+        )
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="Two Fields", origin=origin)
+
+        land_area = LandArea.objects.get(population_centre=centre)
+        for subzone in land_area.subzones.all():
+            self.assertTrue(land_area.boundary.intersects(subzone.boundary))
+
+    def test_no_fields_feature_creates_no_land_area(self):
+        data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD])
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="No Fields", origin=origin)
+
+        self.assertFalse(LandArea.objects.filter(population_centre=centre).exists())
+        self.assertFalse(Subzone.objects.exists())
+
+    def test_empty_fields_coordinates_creates_no_land_area(self):
+        data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD], fields=[])
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="Empty Fields", origin=origin)
+
+        self.assertFalse(LandArea.objects.filter(population_centre=centre).exists())
