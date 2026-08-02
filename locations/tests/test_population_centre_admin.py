@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
 
-from locations.models import Building, Node, PopulationCentre, Road
+from locations.models import Building, LandArea, Node, PopulationCentre, Road, Subzone
 from locations.services.population_centre_admin import delete_population_centre
 
 FOOTPRINT = Polygon(((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=3857)
@@ -37,6 +37,21 @@ def _make_populated_centre(name: str) -> PopulationCentre:
             ((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=3857
         ).boundary,
     )
+    land_area = LandArea.objects.create(
+        name=f"Fields of {name}",
+        population_centre=centre,
+        location=Point(20, 20, srid=3857),
+        boundary=Polygon(((15, 15), (15, 25), (25, 25), (25, 15), (15, 15)), srid=3857),
+        size=1.0,
+    )
+    Subzone.objects.create(
+        land_area=land_area,
+        name=f"Crops of {name}",
+        location=land_area.location,
+        boundary=land_area.boundary,
+        size=1.0,
+        usage="crops",
+    )
     return centre
 
 
@@ -44,6 +59,8 @@ class DeletePopulationCentreTest(TestCase):
     def test_deletes_centre_and_everything_inside_it(self):
         centre = _make_populated_centre("Doomed")
         building_id = centre.buildings.get().id
+        land_area_id = centre.land_areas.get().id
+        subzone_id = Subzone.objects.get(land_area_id=land_area_id).id
 
         old_location = delete_population_centre("Doomed")
 
@@ -52,6 +69,8 @@ class DeletePopulationCentreTest(TestCase):
         self.assertFalse(Building.objects.filter(id=building_id).exists())
         self.assertFalse(Node.objects.filter(building_id=building_id).exists())
         self.assertFalse(Road.objects.filter(population_centre_id=centre.id).exists())
+        self.assertFalse(LandArea.objects.filter(id=land_area_id).exists())
+        self.assertFalse(Subzone.objects.filter(id=subzone_id).exists())
 
     def test_returns_none_when_no_such_centre(self):
         self.assertIsNone(delete_population_centre("Nonexistent"))
