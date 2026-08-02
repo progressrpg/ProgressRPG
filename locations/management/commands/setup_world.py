@@ -2,6 +2,9 @@ from pathlib import Path
 
 from django.core.management import BaseCommand, call_command
 
+from locations.models import PopulationCentre
+from locations.services.population_centre_admin import delete_population_centre
+
 # Watabou village exports committed for production use - see import_village.
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 
@@ -11,6 +14,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         village_files = sorted(DATA_DIR.glob("village*.json"))
+
+        # Rebuild the world from scratch each run rather than piling new
+        # villages on top of old ones - characters aren't tied to a specific
+        # centre until place_characters (below) reassigns them, so this is
+        # safe even with existing characters in play.
+        existing_names = list(PopulationCentre.objects.values_list("name", flat=True))
+        if existing_names:
+            self.stdout.write("=== Clearing existing population centres ===")
+            for name in existing_names:
+                delete_population_centre(name)
 
         if village_files:
             self.stdout.write("=== Importing villages ===")
