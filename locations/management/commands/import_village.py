@@ -39,6 +39,21 @@ class Command(BaseCommand):
             default=10000,
             help="Half-width (metres) of the square region to search for a free spot",
         )
+        parser.add_argument(
+            "--overwrite",
+            action="store_true",
+            help="If a PopulationCentre with this name already exists, delete it "
+            "(and its buildings/roads/nodes) and re-import at its old location "
+            "instead of erroring. Prompts for confirmation unless --noinput is "
+            "also passed.",
+        )
+        parser.add_argument(
+            "--noinput",
+            "--no-input",
+            action="store_false",
+            dest="interactive",
+            help="Skip the --overwrite confirmation prompt (for scripting).",
+        )
 
     def handle(self, *args, **options):
         with open(options["file"]) as fh:
@@ -46,10 +61,16 @@ class Command(BaseCommand):
 
         name = options["name"] or self._pick_village_name()
 
+        reimport_origin = None
+        if options["overwrite"]:
+            reimport_origin = self._delete_existing(name, options["interactive"])
+
         existing_locations = list(
-            PopulationCentre.objects.values_list("location", flat=True)
+            PopulationCentre.objects.exclude(name=name).values_list(
+                "location", flat=True
+            )
         )
-        origin = self._pick_origin(
+        origin = reimport_origin or self._pick_origin(
             existing_locations, options["min_distance"], options["grid_size"]
         )
 

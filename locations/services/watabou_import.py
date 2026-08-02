@@ -34,6 +34,36 @@ from locations.models import Building, Node, PopulationCentre, Road
 # that happens, matching how the generator itself would render them.
 DEFAULT_ROAD_WIDTH = 6.0
 
+# watabou names each district after its ward/street (e.g. "Trade District",
+# "Chicken Stair") rather than tagging a structured type, so building_type
+# is inferred by keyword-matching the district name a building's footprint
+# centroid falls inside. Order matters where keywords could overlap; first
+# match wins. Anything not matched (including buildings outside every
+# district) stays "residential", the model's own default.
+DISTRICT_BUILDING_TYPE_KEYWORDS = [
+    ("mill", "mill"),
+    ("inn", "inn"),
+    ("tavern", "inn"),
+    ("granary", "granary"),
+    ("grain", "granary"),
+    ("barn", "granary"),
+    ("bake", "bakery"),
+    ("bread", "bakery"),
+    ("market", "communal"),
+    ("trade", "communal"),
+    ("square", "communal"),
+    ("temple", "communal"),
+    ("hall", "communal"),
+]
+
+
+def _building_type_for_district(district_name: str) -> str:
+    lowered = district_name.lower()
+    for keyword, building_type in DISTRICT_BUILDING_TYPE_KEYWORDS:
+        if keyword in lowered:
+            return building_type
+    return "residential"
+
 
 def _feature_by_id(data: dict, feature_id: str) -> dict | None:
     for feature in data.get("features", []):
@@ -53,9 +83,7 @@ def _close_ring(ring):
 
 def _translate_polygon(coordinates, offset, srid=3857) -> Polygon:
     dx, dy = offset
-    rings = [
-        [(x + dx, y + dy) for x, y in _close_ring(ring)] for ring in coordinates
-    ]
+    rings = [[(x + dx, y + dy) for x, y in _close_ring(ring)] for ring in coordinates]
     return Polygon(*rings, srid=srid)
 
 
@@ -80,20 +108,38 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
     districts_feature = _feature_by_id(data, "districts")
     earth_feature = _feature_by_id(data, "earth")
 
-    # Prefer the named district (the actual town/village extent) over the
-    # "earth" feature, which is just the generator's outer terrain-tile clip
-    # boundary - much larger than the settlement itself.
-    if districts_feature and districts_feature.get("geometries"):
-        district_geom = districts_feature["geometries"][0]
+    # Districts are the actual town/village extent, each a named ward -
+    # prefer their union over the "earth" feature, which is just the
+    # generator's outer terrain-tile clip boundary, much larger than the
+    # settlement itself.
+    district_polygons = [
+        Polygon(_close_ring(geometry["coordinates"][0]))
+        for geometry in (districts_feature or {}).get("geometries", [])
+    ]
+    if district_polygons:
+        raw_boundary = district_polygons[0]
+        for polygon in district_polygons[1:]:
+            raw_boundary = raw_boundary.union(polygon)
+        if raw_boundary.geom_type != "Polygon":
+            # Districts aren't guaranteed to touch - fall back to their
+            # convex hull so the boundary stays a single Polygon.
+            raw_boundary = raw_boundary.convex_hull
     elif earth_feature:
-        district_geom = earth_feature
+        raw_boundary = Polygon(_close_ring(earth_feature["coordinates"][0]))
     else:
         raise ValueError("watabou export has neither a district nor an earth boundary")
 
-    raw_centroid = Polygon(_close_ring(district_geom["coordinates"][0])).centroid
-    offset = (origin.x - raw_centroid.x, origin.y - raw_centroid.y)
+    offset = (origin.x - raw_boundary.centroid.x, origin.y - raw_boundary.centroid.y)
 
-    boundary = _translate_polygon(district_geom["coordinates"], offset)
+    boundary = _translate_polygon(raw_boundary.coords, offset)
+
+    district_building_types = [
+        (
+            _translate_polygon(geometry["coordinates"], offset),
+            _building_type_for_district(geometry.get("name", "")),
+        )
+        for geometry in (districts_feature or {}).get("geometries", [])
+    ]
 
     population_centre = PopulationCentre.objects.create(
         name=name,
@@ -109,9 +155,16 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
 
     for i, polygon_coords in enumerate(buildings_feature.get("coordinates", [])):
         footprint = _translate_polygon(polygon_coords, offset)
+
+        building_type = "residential"
+        for polygon, district_type in district_building_types:
+            if polygon.contains(footprint.centroid):
+                building_type = district_type
+                break
+
         building = Building.objects.create(
             name=f"Building {i + 1} of ({name})",
-            building_type="residential",
+            building_type=building_type,
             location=footprint.centroid,
             footprint=footprint,
             population_centre=population_centre,
