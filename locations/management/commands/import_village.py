@@ -10,6 +10,7 @@ from django.db import IntegrityError
 from locations.management.commands.spawn_villages import VILLAGE_NAMES
 from locations.models import PopulationCentre
 from locations.services.population_centre_admin import delete_population_centre
+from locations.services.road_connections import connect_nearest_village_roads
 from locations.services.watabou_import import import_watabou_village
 
 
@@ -116,6 +117,14 @@ class Command(BaseCommand):
 
         call_command("generate_paths", centre=population_centre.id)
         self.stdout.write(self.style.SUCCESS("Generated paths for the new centre"))
+
+        connector = connect_nearest_village_roads(population_centre)
+        if connector:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Connected roads to the nearest neighbouring village"
+                )
+            )
 
     def _delete_existing(self, name: str, interactive: bool) -> Point | None:
         """If a PopulationCentre called `name` exists, confirm, delete it, and

@@ -104,6 +104,10 @@ export function addVillageLayers(map: MapLibreMap): void {
 		// model / RoadFeatureSerializer) - visible, unlike the pathfinding
 		// "path" layer above. Width comes from the source data (metres);
 		// scaled down here so it reads as a road rather than a highway.
+		layout: {
+			"line-cap": "round",
+			"line-join": "round",
+		},
 		paint: {
 			"line-color": "#8b5a2b",
 			"line-width": ["*", ["coalesce", ["get", "width"], 6], 0.5],
