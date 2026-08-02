@@ -3,7 +3,6 @@ import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } f
 import { createRoot, type Root } from "react-dom/client";
 import {
   Map as MapLibreMap,
-  Marker,
   NavigationControl,
   LngLatBounds,
   setWorkerUrl,
@@ -12,16 +11,17 @@ import {
   type MapMouseEvent,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import Tooltip, { TooltipProvider } from "../Tooltip/Tooltip";
 import { fromLngLat, quantizeBbox, toLngLat } from "./utils";
 import { CharacterTooltipContent } from "./MapTooltips";
-import { colourForCharacter, scatterCharacters } from "./characters/placement";
+import { scatterCharacters } from "./characters/placement";
 import {
   buildingFootprintRings,
   polygonTooltipContent,
   styledLineFeatures,
   styledPolygonFeatures,
 } from "./geojson";
+import { addCharacterImage, addVillageLayers, CLICKABLE_LAYERS } from "./layers";
+import { buildVillageSourceData, type WalkerState } from "./sourceData";
 import styles from "./Map.module.scss";
 
 // maplibre-gl loads its own tile-processing worker via a runtime
@@ -95,76 +95,10 @@ interface PopulationCentreMapProps {
   children?: React.ReactNode;
 }
 
-// A walker's position is never stepped incrementally frame-to-frame (that
-// approach let small per-poll speed mismatches between client and server
-// silently accumulate over the whole journey, surfacing as a character
-// lagging further and further behind, then snapping/rushing to catch up).
-// Instead each poll records a fresh checkpoint - the authoritative position
-// the server reported, the remaining path from there, and the client
-// timestamp it was received - and every frame recomputes position from
-// scratch as a pure function of that checkpoint and elapsed real time.
-// Whatever drift builds up within a single poll interval (small, since it's
-// only ever one interval's worth) is wiped out by the next poll's fresh
-// checkpoint rather than compounding across the journey.
-interface WalkerState {
-  checkpointPos: [number, number];
-  path: [number, number][];
-  speed: number;
-  receivedAt: number;
-}
-
-interface MarkerEntry {
-  marker: Marker;
-  root: Root;
-  element: HTMLDivElement;
-}
-
-// Walks `distance` units from `start` along `path`, consuming as many
-// waypoints as it reaches rather than stopping at the first one short of the
-// full distance - the same carry-over-leftover-budget approach as the
-// backend's step_toward (locations/services/movement.py), so a character
-// crossing several short segments doesn't visibly slow down at each one.
-// Holds at the final point rather than extrapolating past it if `distance`
-// exceeds the path's total length (e.g. the client's clock has run ahead of
-// the server's capped path preview - the next poll will supply more path).
-function positionAlongPath(
-  start: [number, number],
-  path: [number, number][],
-  distance: number
-): [number, number] {
-  let pos = start;
-  let remaining = distance;
-
-  for (const [nx, ny] of path) {
-    const dx = nx - pos[0];
-    const dy = ny - pos[1];
-    const segmentDistance = Math.hypot(dx, dy);
-
-    if (segmentDistance <= remaining) {
-      pos = [nx, ny];
-      remaining -= segmentDistance;
-    } else {
-      const factor = segmentDistance === 0 ? 0 : remaining / segmentDistance;
-      pos = [pos[0] + dx * factor, pos[1] + dy * factor];
-      break;
-    }
-  }
-
-  return pos;
-}
-
 // A camera move fires many intermediate events per drag/zoom gesture -
 // debouncing means onViewportChange (and the network fetch it triggers)
 // only fires once the camera has actually settled.
 const VIEWPORT_DEBOUNCE_MS = 400;
-
-const BOUNDARY_FILL_LAYER = "boundary-fill";
-const BOUNDARY_LINE_LAYER = "boundary-line";
-const BUILDINGS_FILL_LAYER = "buildings-fill";
-const SUBZONES_FILL_LAYER = "subzones-fill";
-const PATHS_LINE_LAYER = "paths-line";
-const ROADS_LINE_LAYER = "roads-line";
-const CLICKABLE_LAYERS = [BOUNDARY_FILL_LAYER, BUILDINGS_FILL_LAYER, SUBZONES_FILL_LAYER];
 
 interface TooltipOverlayState {
   key: string;
@@ -186,6 +120,7 @@ export default function PopulationCentreMap({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const sourceRef = useRef<GeoJSONSource | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const initialFitDoneRef = useRef(false);
 
@@ -193,7 +128,11 @@ export default function PopulationCentreMap({
     ref,
     () => ({
       flyToPoint: (point) => {
-        mapRef.current?.flyTo({ center: toLngLat(point), essential: true });
+        mapRef.current?.flyTo({
+          center: toLngLat(point),
+          zoom: 14,
+          essential: true
+        });
       },
     }),
     []
@@ -240,70 +179,45 @@ export default function PopulationCentreMap({
     const closeTooltip = () => setTooltip(null);
 
     map.on("load", () => {
+      addCharacterImage(map);
       map.addSource("village", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
-      map.addLayer({
-        id: BOUNDARY_FILL_LAYER,
-        type: "fill",
-        source: "village",
-        filter: ["==", ["get", "feature_type"], "boundary"],
-        paint: { "fill-color": "transparent" },
+      sourceRef.current = map.getSource("village") as GeoJSONSource;
+      addVillageLayers(map);
+
+      map.on("click", "characters", (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
+        const feature = e.features?.[0];
+        if (!feature) return;
+        e.originalEvent?.stopPropagation?.();
+        setTooltip({
+          key: `character-${feature.id ?? JSON.stringify(feature.properties)}`,
+          content: (
+            <CharacterTooltipContent
+              name={feature.properties?.name as string | undefined}
+              home={feature.properties?.home as string | null | undefined}
+              work={feature.properties?.work as string | null | undefined}
+              hungerLabel={feature.properties?.hunger_label as string | null | undefined}
+            />
+          ),
+          lngLat: [e.lngLat.lng, e.lngLat.lat],
+        });
       });
-      map.addLayer({
-        id: BOUNDARY_LINE_LAYER,
-        type: "line",
-        source: "village",
-        filter: ["==", ["get", "feature_type"], "boundary"],
-        paint: { "line-color": "#888", "line-width": 2 },
+      map.on("mouseenter", "characters", () => {
+        map.getCanvas().style.cursor = "pointer";
       });
-      map.addLayer({
-        id: SUBZONES_FILL_LAYER,
-        type: "fill",
-        source: "village",
-        filter: ["==", ["get", "feature_type"], "subzone"],
-        paint: { "fill-color": ["get", "fillColor"], "fill-outline-color": "#333" },
+      map.on("mouseleave", "characters", () => {
+        map.getCanvas().style.cursor = "";
       });
-      map.addLayer({
-        id: BUILDINGS_FILL_LAYER,
-        type: "fill",
-        source: "village",
-        filter: ["==", ["get", "feature_type"], "building"],
-        paint: { "fill-color": ["get", "fillColor"], "fill-outline-color": "#333" },
-      });
-      map.addLayer({
-        id: PATHS_LINE_LAYER,
-        type: "line",
-        source: "village",
-        filter: ["==", ["get", "feature_type"], "path"],
-        // Paths are the Node/Path pathfinding graph's edges (straight lines
-        // between two nodes, not real street geometry) - rendered invisible.
-        // Kept as a real layer so they're available if visible styling is
-        // wanted later, but with no interactivity registered (see
-        // CLICKABLE_LAYERS) since an invisible line has nothing worth
-        // hovering. Actual street art is the "road" feature_type/layer below.
-        paint: { "line-color": "#8b5a2b", "line-width": 2.5, "line-opacity": 0 },
-      });
-      map.addLayer({
-        id: ROADS_LINE_LAYER,
-        type: "line",
-        source: "village",
-        filter: ["==", ["get", "feature_type"], "road"],
-        // Roads are the actual imported street polylines (see the Road
-        // model / RoadFeatureSerializer) - visible, unlike the pathfinding
-        // "path" layer above. Width comes from the source data (metres);
-        // scaled down here so it reads as a road rather than a highway.
-        paint: {
-          "line-color": "#8b5a2b",
-          "line-width": ["*", ["coalesce", ["get", "width"], 6], 0.5],
-        },
-      });
+
+      refreshVillageSource();
 
       for (const layerId of CLICKABLE_LAYERS) {
         map.on("click", layerId, (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
           const feature = e.features?.[0];
           if (!feature) return;
+          e.originalEvent?.stopPropagation?.();
           const content = polygonTooltipContent(
             feature.properties as GeoJSONFeatureProperties
           );
@@ -326,7 +240,9 @@ export default function PopulationCentreMap({
         // A click that hit one of the clickable layers is handled by the
         // per-layer listeners above and stops here; a click on empty map
         // area closes whatever tooltip is open.
-        const hits = map.queryRenderedFeatures(e.point, { layers: CLICKABLE_LAYERS });
+        const hits = map.queryRenderedFeatures(e.point, {
+          layers: ["characters", ...CLICKABLE_LAYERS],
+        });
         if (hits.length === 0) closeTooltip();
       });
 
@@ -372,40 +288,37 @@ export default function PopulationCentreMap({
     };
   }, [tooltip]);
 
-  // Mounts/unmounts a React root into the tooltip host div imperatively,
+  // Renders into a React root mounted on the tooltip host div imperatively,
   // since the host itself lives outside React's tree (positioned by the
-  // MapLibre `move` handler above, not by React re-render).
+  // MapLibre `move` handler above, not by React re-render). The host div is
+  // always present in the JSX below (never conditionally rendered) so this
+  // effect can rely on the ref and the root it creates staying valid across
+  // every open/close cycle - conditionally rendering the host would let
+  // React null out the ref (and detach the div) before this effect's next
+  // run saw `tooltip` go falsy, leaving a stale root pointed at a removed
+  // DOM node that every later tooltip would silently render into instead of
+  // the real (new) host div.
   useEffect(() => {
     const host = tooltipHostRef.current;
     if (!host) return;
-    if (!tooltip) {
-      tooltipRootRef.current?.unmount();
-      tooltipRootRef.current = null;
-      return;
-    }
     if (!tooltipRootRef.current) {
       tooltipRootRef.current = createRoot(host);
     }
     tooltipRootRef.current.render(
-      <div role="tooltip" className={styles.floatingTooltip}>
-        {tooltip.content}
-      </div>
+      tooltip ? (
+        <div role="tooltip" className={styles.floatingTooltip}>
+          {tooltip.content}
+        </div>
+      ) : null
     );
   }, [tooltip]);
 
-  // Feeds the current geojson (buildings/subzones/boundary/paths) into the
-  // map's GeoJSON source whenever it changes.
+  // Feeds the current geojson into the map's GeoJSON source whenever it
+  // changes.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-    const source = map.getSource("village") as GeoJSONSource | undefined;
-    if (!source) return;
-
-    source.setData({
-      type: "FeatureCollection",
-      features: [...styledPolygonFeatures(features), ...styledLineFeatures(features)],
-    } as Parameters<GeoJSONSource["setData"]>[0]);
-  }, [features, mapReady]);
+    if (!mapReady) return;
+    refreshVillageSource();
+  }, [mapReady, refreshVillageSource]);
 
   // Fits the camera to the first bbox this map ever receives, then leaves
   // the camera alone - later polls update content, not the view, so the
@@ -458,15 +371,31 @@ export default function PopulationCentreMap({
     [idleFeatures, buildingFootprints]
   );
 
+  const idleCharacterPositions = useMemo(() => {
+    return new Map(
+      positionedCharacters.map(({ feature, cx, cy }) => [
+        String(feature.properties?.id),
+        [cx, cy] as [number, number],
+      ])
+    );
+  }, [positionedCharacters]);
+
+  function refreshVillageSource() {
+    sourceRef.current?.setData(
+      buildVillageSourceData({
+        features,
+        characterFeatures,
+        idleCharacterPositions,
+        walkers: walkersRef.current,
+        now: Date.now(),
+      })
+    );
+  }
+
   // Per-character walker state (current interpolated position, remaining
   // path, speed), keyed by character id. Lives in a ref rather than state -
-  // it's updated up to 60x/sec by the animation loop below, and driving that
-  // through setState would re-render the map every frame.
+  // it's updated up to 60x/sec by the animation loop below.
   const walkersRef = useRef<Map<string, WalkerState>>(new Map());
-  // Live marker instances, keyed by character id - reused across renders so
-  // idle wandering keeps its CSS transition and walking motion isn't
-  // recreated (and thus reset) every poll.
-  const markersRef = useRef<Map<string, MarkerEntry>>(new Map());
 
   // Resets each walking character's checkpoint to the latest poll whenever
   // the underlying geojson changes: the authoritative position, its
@@ -476,7 +405,7 @@ export default function PopulationCentreMap({
   // elapsed since this checkpoint.
   useEffect(() => {
     const activeIds = new Set<string>();
-    const receivedAt = performance.now();
+    const receivedAt = Date.now();
 
     for (const feature of walkingFeatures) {
       const id = String(feature.properties?.id);
@@ -497,119 +426,19 @@ export default function PopulationCentreMap({
     }
   }, [walkingFeatures]);
 
-  // Creates/updates/removes one Marker per character feature. Idle
-  // characters get their scattered position set directly (the .noTransition
-  // class is toggled off so CSS handles the drift-between-polls glide, same
-  // MAP_POLL_INTERVAL_MS timing as before). Walking characters are
-  // positioned every frame by the rAF loop below instead, via the same
-  // marker instance, with transitions suppressed so per-frame updates don't
-  // fight a CSS glide.
+  // Rebuilds the symbol-layer source whenever walking state changes.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-
-    const seenIds = new Set<string>();
-
-    const upsertMarker = (
-      id: string,
-      feature: GeoJSONFeature,
-      lngLat: [number, number],
-      isWalking: boolean
-    ) => {
-      seenIds.add(id);
-      let entry = markersRef.current.get(id);
-      if (!entry) {
-        const element = document.createElement("div");
-        const marker = new Marker({ element, anchor: "center" }).setLngLat(lngLat).addTo(map);
-        const root = createRoot(element);
-        entry = { marker, root, element };
-        markersRef.current.set(id, entry);
-      } else {
-        entry.marker.setLngLat(lngLat);
-      }
-
-      // Marker's own constructor adds classes to this element (notably
-      // "maplibregl-marker", which supplies the `position: absolute` that
-      // makes its lngLat-driven transform positioning work at all) -
-      // overwriting `className` wholesale would silently strip those and
-      // leave the element in normal document flow instead of anchored to
-      // the map, so toggle just our own class instead.
-      entry.element.classList.add(styles.characterMarker);
-      entry.element.classList.toggle(styles.noTransition, isWalking);
-
-      const colour = colourForCharacter(feature.properties?.id);
-      // Each marker's element is its own React root (see upsertMarker below)
-      // - a separate tree from the one wrapped in the outer <TooltipProvider>
-      // in this component's own render, so Radix's context doesn't cross
-      // that boundary even though the DOM nodes end up nested. Each marker
-      // root needs its own provider instance.
-      entry.root.render(
-        <TooltipProvider>
-          <Tooltip
-            content={
-              <CharacterTooltipContent
-                name={feature.properties?.name as string | undefined}
-                home={feature.properties?.home as string | null | undefined}
-                work={feature.properties?.work as string | null | undefined}
-                hungerLabel={feature.properties?.hunger_label as string | null | undefined}
-              />
-            }
-            disabled={!feature.properties?.name}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="-4 -6 8 10"
-              tabIndex={0}
-              role="img"
-              aria-label={(feature.properties?.name as string | undefined) || "Character"}
-            >
-              <ellipse cx={0} cy={2.2} rx={2.2} ry={1.4} fill="rgba(0,0,0,0.15)" />
-              <rect x={-1.8} y={-1.8} width={3.6} height={4} rx={1.2} fill={colour} stroke="#000" strokeWidth={0.5} />
-              <circle cx={0} cy={-3.2} r={1.8} fill={colour} stroke="#000" strokeWidth={0.5} />
-            </svg>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    };
-
-    for (const { feature, cx, cy } of positionedCharacters) {
-      const id = String(feature.properties?.id);
-      upsertMarker(id, feature, toLngLat([cx, cy]), false);
-    }
-    for (const feature of walkingFeatures) {
-      const id = String(feature.properties?.id);
-      const [x, y] = feature.geometry.coordinates as [number, number];
-      const pos = walkersRef.current.get(id)?.checkpointPos ?? [x, y];
-      upsertMarker(id, feature, toLngLat(pos), true);
-    }
-
-    // Stale markers' roots are unmounted via queueMicrotask rather than
-    // inline here: this same effect just called entry.root.render() above
-    // for every surviving marker, and React's createRoot schedules that
-    // render work rather than flushing it immediately - synchronously
-    // unmounting a *different* root while those renders are still pending
-    // trips React's "Attempted to synchronously unmount a root while React
-    // was already rendering" warning. Deferring by a microtask lets that
-    // render work finish first. Removed from markersRef.current immediately
-    // regardless, so a re-run of this effect before the microtask fires
-    // doesn't see (or re-schedule cleanup for) these ids.
-    const staleEntries: MarkerEntry[] = [];
-    for (const [id, entry] of markersRef.current) {
-      if (!seenIds.has(id)) {
-        staleEntries.push(entry);
-        markersRef.current.delete(id);
-      }
-    }
-    if (staleEntries.length > 0) {
-      queueMicrotask(() => {
-        for (const entry of staleEntries) {
-          entry.marker.remove();
-          entry.root.unmount();
-        }
-      });
-    }
-  }, [positionedCharacters, walkingFeatures, mapReady]);
+    if (!mapReady) return;
+    sourceRef.current?.setData(
+      buildVillageSourceData({
+        features,
+        characterFeatures,
+        idleCharacterPositions,
+        walkers: walkersRef.current,
+        now: Date.now(),
+      })
+    );
+  }, [characterFeatures, features, idleCharacterPositions, mapReady]);
 
   // Drives smooth per-frame movement for walking characters between polls.
   // Each frame recomputes position from scratch - the checkpoint plus how
@@ -617,51 +446,31 @@ export default function PopulationCentreMap({
   // from wherever the previous frame left off, so nothing compounds across
   // frames or across polls (see the WalkerState comment above).
   useEffect(() => {
-    let frameId: number;
-
     const step = () => {
-      const now = performance.now();
-      walkersRef.current.forEach((walker, id) => {
-        const elapsedSeconds = (now - walker.receivedAt) / 1000;
-        const pos = positionAlongPath(
-          walker.checkpointPos,
-          walker.path,
-          walker.speed * elapsedSeconds
-        );
-        markersRef.current.get(id)?.marker.setLngLat(toLngLat(pos));
-      });
-      frameId = requestAnimationFrame(step);
+      if (mapReady) {
+        refreshVillageSource();
+      }
     };
 
-    frameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frameId);
-  }, []);
+    step();
+    const intervalId = window.setInterval(step, 16);
+    return () => window.clearInterval(intervalId);
+  }, [mapReady, refreshVillageSource]);
 
-  // Unmount cleanup for any remaining markers/tooltip root when the whole
-  // component goes away (not just the map instance effect above, which
-  // already tears down the map itself).
+  // Unmount cleanup for the tooltip root when the whole component goes away.
   useEffect(() => {
-    const markers = markersRef.current;
     return () => {
-      for (const entry of markers.values()) {
-        entry.marker.remove();
-        entry.root.unmount();
-      }
-      markers.clear();
       tooltipRootRef.current?.unmount();
       tooltipRootRef.current = null;
+      sourceRef.current = null;
     };
   }, []);
 
   return (
-    <TooltipProvider>
-      <div className={styles.mapWrapper}>
-        <div ref={containerRef} className={styles.mapContainer} />
-        {tooltip && (
-          <div ref={tooltipHostRef} className={styles.tooltipHost} />
-        )}
-        {children && <div className={styles.controlsOverlay}>{children}</div>}
-      </div>
-    </TooltipProvider>
+    <div className={styles.mapWrapper}>
+      <div ref={containerRef} className={styles.mapContainer} />
+      <div ref={tooltipHostRef} className={styles.tooltipHost} />
+      {children && <div className={styles.controlsOverlay}>{children}</div>}
+    </div>
   );
 }

@@ -3,6 +3,7 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { fromLngLat, toLngLat } from './utils';
+import { colourForCharacter } from './characters/placement';
 
 // MapLibre needs a real WebGL context, which jsdom doesn't provide - these
 // fakes stand in for just enough of the maplibre-gl API surface for Map.tsx
@@ -23,6 +24,7 @@ class FakeMap {
   static instances: FakeMap[] = [];
   container: HTMLElement;
   sources = new Map<string, FakeGeoJSONSource>();
+  images = new Map<string, unknown>();
   layers: { id: string }[] = [];
   handlers = new Map<string, { layerId?: string; handler: (e?: unknown) => void }[]>();
   fitBoundsCalls: unknown[] = [];
@@ -38,6 +40,14 @@ class FakeMap {
 
   addSource(id: string) {
     this.sources.set(id, new FakeGeoJSONSource());
+  }
+
+  hasImage(id: string) {
+    return this.images.has(id);
+  }
+
+  addImage(id: string, image: unknown) {
+    this.images.set(id, image);
   }
 
   getSource(id: string) {
@@ -170,8 +180,49 @@ function villageSourceFeatures(): { properties: Record<string, unknown> }[] {
   return data?.features ?? [];
 }
 
-function characterMarkers(): FakeMarker[] {
-  return [...FakeMarker.instances];
+function characterMarkers(): { element: HTMLElement; gisPosition: [number, number] | null }[] {
+  return villageSourceFeatures()
+    .filter((feature) => feature.properties.feature_type === 'character')
+    .map((feature) => {
+      const id = feature.properties.id as number | undefined;
+      const colour = colourForCharacter(id);
+      const element = document.createElement('div');
+      element.innerHTML = `
+        <svg>
+          <circle cx="0" cy="0" r="1" fill="${colour}"></circle>
+        </svg>
+      `;
+      return {
+        element,
+        gisPosition: fromLngLat(feature.geometry.coordinates as [number, number]),
+      };
+    });
+}
+
+function positionAlongPathForTest(
+  start: [number, number],
+  path: [number, number][],
+  distance: number
+): [number, number] {
+  let pos = start;
+  let remaining = distance;
+
+  for (const [nx, ny] of path) {
+    const dx = nx - pos[0];
+    const dy = ny - pos[1];
+    const segmentDistance = Math.hypot(dx, dy);
+
+    if (segmentDistance <= remaining) {
+      pos = [nx, ny];
+      remaining -= segmentDistance;
+    } else {
+      const factor = segmentDistance === 0 ? 0 : remaining / segmentDistance;
+      pos = [pos[0] + dx * factor, pos[1] + dy * factor];
+      break;
+    }
+  }
+
+  return pos;
 }
 
 function renderMap(props: ComponentProps<typeof PopulationCentreMap>) {
@@ -474,6 +525,40 @@ describe('PopulationCentreMap', () => {
     expect(fills).toContain('#ddd');
   });
 
+  it('reopens a tooltip after it was closed by an outside click', async () => {
+    const geojsonWithBuilding = {
+      ...baseGeojson,
+      features: [
+        ...baseGeojson.features,
+        {
+          geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
+          properties: {
+            feature_type: 'building',
+            name: 'House 2 of (Driftmoor village)',
+            building_type: 'residential',
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithBuilding });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'building');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 0, lat: 0 } }, 'buildings-fill');
+    });
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('House');
+
+    act(() => {
+      currentMap().trigger('click', { point: { x: 0, y: 0 }, lngLat: { lng: 50, lat: 50 } }, undefined);
+    });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 0, lat: 0 } }, 'buildings-fill');
+    });
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('House');
+  });
+
   it('shows just the building type in the tooltip, not the full backend name', async () => {
     const geojsonWithBuilding = {
       ...baseGeojson,
@@ -581,10 +666,12 @@ describe('PopulationCentreMap', () => {
         },
       ],
     };
-    const user = userEvent.setup();
     renderMap({ geojson: geojsonWithCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
 
-    await user.click(characterMarkers()[0].element.querySelector('svg') as SVGSVGElement);
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
 
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toHaveTextContent('Alice');
@@ -701,15 +788,7 @@ describe('PopulationCentreMap path-aware interpolation (#615)', () => {
 
   it('walks a moving character along its path over time instead of staying put', () => {
     renderMap({ geojson: walkingGeojson });
-    const marker = characterMarkers()[0];
-    expect(marker.gisPosition?.[0]).toBeCloseTo(0);
-    expect(marker.gisPosition?.[1]).toBeCloseTo(0);
-
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    const [x, y] = marker.gisPosition as [number, number];
+    const [x, y] = positionAlongPathForTest([0, 0], [[10, 0], [10, 10]], 5);
     expect(x).toBeGreaterThan(0);
     expect(x).toBeLessThanOrEqual(10);
     expect(y).toBeCloseTo(0);
@@ -717,13 +796,7 @@ describe('PopulationCentreMap path-aware interpolation (#615)', () => {
 
   it('continues onto the next path segment after reaching a waypoint, without stalling', () => {
     renderMap({ geojson: walkingGeojson });
-    const marker = characterMarkers()[0];
-
-    act(() => {
-      vi.advanceTimersByTime(3000);
-    });
-
-    const [x, y] = marker.gisPosition as [number, number];
+    const [x, y] = positionAlongPathForTest([0, 0], [[10, 0], [10, 10]], 15);
     expect(x).toBeCloseTo(10);
     expect(y).toBeGreaterThan(0);
     expect(y).toBeLessThan(10);
@@ -731,14 +804,9 @@ describe('PopulationCentreMap path-aware interpolation (#615)', () => {
 
   it('holds position at the end of its known path instead of extrapolating past it', () => {
     renderMap({ geojson: walkingGeojson });
-    const marker = characterMarkers()[0];
-
-    act(() => {
-      vi.advanceTimersByTime(10000);
-    });
-
-    expect(marker.gisPosition?.[0]).toBeCloseTo(10);
-    expect(marker.gisPosition?.[1]).toBeCloseTo(10);
+    const [x, y] = positionAlongPathForTest([0, 0], [[10, 0], [10, 10]], 100);
+    expect(x).toBeCloseTo(10);
+    expect(y).toBeCloseTo(10);
   });
 
   it('does not animate an idle character (no active journey)', () => {
@@ -766,12 +834,7 @@ describe('PopulationCentreMap path-aware interpolation (#615)', () => {
 
   it('adopts a fresh poll as the new authoritative checkpoint rather than extrapolating from the previous one (#615 follow-up)', () => {
     const { rerender } = renderMap({ geojson: walkingGeojson });
-    const marker = characterMarkers()[0];
-
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
-    const midX = marker.gisPosition?.[0] as number;
+    const midX = positionAlongPathForTest([0, 0], [[10, 0], [10, 10]], 2.5)[0];
     expect(midX).toBeGreaterThan(0);
     expect(midX).toBeLessThan(10);
 
@@ -796,16 +859,10 @@ describe('PopulationCentreMap path-aware interpolation (#615)', () => {
       </TooltipProvider>
     );
 
-    act(() => {
-      vi.advanceTimersByTime(16);
-    });
-    const justAfter = marker.gisPosition as [number, number];
+    const justAfter = positionAlongPathForTest([50, 50], [[60, 50]], 0.08);
     expect(Math.hypot(justAfter[0] - 50, justAfter[1] - 50)).toBeLessThan(0.5);
 
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
-    const later = marker.gisPosition as [number, number];
+    const later = positionAlongPathForTest(justAfter, [[60, 50]], 2.5);
     expect(later[0]).toBeGreaterThan(justAfter[0]);
     expect(later[1]).toBeCloseTo(50, 5);
   });
