@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.gis.geos import Point, Polygon, MultiPolygon
 from locations.models import PopulationCentre, Building, InteriorSpace, Node, Path
 from locations.utils import perturb_quad_corners, rotate_point
+from locations.village_names import VILLAGE_NAMES
 from math import sqrt
 
 
@@ -38,30 +39,6 @@ ZONE_BUILDING_SPREAD = 20
 # crowded zone doesn't cause the whole building to be skipped.
 FALLBACK_BUILDING_SPREAD = 50
 PLACEMENT_ATTEMPTS = 100
-
-
-VILLAGE_NAMES = [
-    "Bramblewick",
-    "Ashenford",
-    "Willowmere",
-    "Thornhollow",
-    "Eldergate",
-    "Stonebrook",
-    "Ravenshade",
-    "Oakenshire",
-    "Driftmoor",
-    "Coldwater Reach",
-    "Millhaven",
-    "Blackthorn Vale",
-    "Foxglove Crossing",
-    "Hallowmere",
-    "Ironholt",
-    "Mossbury",
-    "Windmere",
-    "Greycliff",
-    "Barrowden",
-    "Kingsmere",
-]
 
 
 def distance(p1: Point, p2: Point):

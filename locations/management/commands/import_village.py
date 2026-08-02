@@ -7,11 +7,11 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
 
-from locations.management.commands.spawn_villages import VILLAGE_NAMES
 from locations.models import PopulationCentre
 from locations.services.population_centre_admin import delete_population_centre
 from locations.services.road_connections import connect_nearest_village_roads
 from locations.services.watabou_import import import_watabou_village
+from locations.village_names import VILLAGE_NAMES
 
 
 def _distance(p1: Point, p2: Point) -> float:
@@ -26,7 +26,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--name",
             help="Name to give the new PopulationCentre (defaults to a random "
-            "unused name from spawn_villages.VILLAGE_NAMES, e.g. 'Driftmoor "
+            "unused name from village_names.VILLAGE_NAMES, e.g. 'Driftmoor "
             "village')",
         )
         parser.add_argument(
@@ -157,7 +157,7 @@ class Command(BaseCommand):
         ]
         if not available:
             raise CommandError(
-                "Every name in spawn_villages.VILLAGE_NAMES is already taken - "
+                "Every name in village_names.VILLAGE_NAMES is already taken - "
                 "pass --name explicitly."
             )
         return random.choice(available)
