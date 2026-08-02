@@ -63,7 +63,7 @@ class ManagePopulationCentresCommandTest(TestCase):
         _make_populated_centre("Beta")
 
         out = StringIO()
-        call_command("manage_population_centres", "list", stdout=out)
+        call_command("manage_centres", "--list", stdout=out)
 
         output = out.getvalue()
         self.assertIn("Alpha", output)
@@ -71,20 +71,27 @@ class ManagePopulationCentresCommandTest(TestCase):
 
     def test_list_reports_when_empty(self):
         out = StringIO()
-        call_command("manage_population_centres", "list", stdout=out)
+        call_command("manage_centres", "--list", stdout=out)
 
         self.assertIn("No PopulationCentres found.", out.getvalue())
 
-    def test_delete_requires_name(self):
+    def test_shows_help_when_no_flag_given(self):
+        out = StringIO()
+        call_command("manage_centres", stdout=out)
+
+        self.assertIn("usage:", out.getvalue())
+
+    def test_rejects_both_list_and_delete(self):
         with self.assertRaises(CommandError):
-            call_command("manage_population_centres", "delete", stdout=StringIO())
+            call_command(
+                "manage_centres", "--list", "--delete", "Alpha", stdout=StringIO()
+            )
 
     def test_delete_errors_on_unknown_name(self):
         with self.assertRaises(CommandError):
             call_command(
-                "manage_population_centres",
-                "delete",
-                "--name",
+                "manage_centres",
+                "--delete",
                 "Nonexistent",
                 "--noinput",
                 stdout=StringIO(),
@@ -95,9 +102,8 @@ class ManagePopulationCentresCommandTest(TestCase):
 
         out = StringIO()
         call_command(
-            "manage_population_centres",
-            "delete",
-            "--name",
+            "manage_centres",
+            "--delete",
             "Gone",
             "--noinput",
             stdout=out,

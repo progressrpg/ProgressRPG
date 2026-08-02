@@ -8,39 +8,44 @@ class Command(BaseCommand):
     help = "List or delete existing PopulationCentres."
 
     def add_arguments(self, parser):
-        parser.add_argument("action", choices=["list", "delete"])
         parser.add_argument(
-            "--name", help="PopulationCentre name to delete (required for 'delete')"
+            "--list", action="store_true", help="List existing PopulationCentres."
+        )
+        parser.add_argument(
+            "--delete", metavar="NAME", help="Delete the PopulationCentre named NAME."
         )
         parser.add_argument(
             "--noinput",
             "--no-input",
             action="store_false",
             dest="interactive",
-            help="Skip the delete confirmation prompt (for scripting).",
+            help="Skip the --delete confirmation prompt (for scripting).",
         )
 
     def handle(self, *args, **options):
-        if options["action"] == "list":
+        if options["list"] and options["delete"]:
+            raise CommandError("Pass only one of --list or --delete.")
+        if options["delete"]:
+            self._delete(options["delete"], options["interactive"])
+        elif options["list"]:
             self._list()
         else:
-            self._delete(options["name"], options["interactive"])
+            self.print_help("manage.py", "manage_centres")
 
     def _list(self):
         centres = PopulationCentre.objects.order_by("name")
+        count = centres.count()
         if not centres.exists():
             self.stdout.write("No PopulationCentres found.")
             return
+        self.stdout.write(f"Found {count} PopulationCentres:")
         for centre in centres:
             self.stdout.write(
                 f"{centre.name} - {centre.buildings.count()} buildings, "
                 f"{centre.roads.count()} roads, at {centre.location}"
             )
 
-    def _delete(self, name: str | None, interactive: bool):
-        if not name:
-            raise CommandError("--name is required for 'delete'")
-
+    def _delete(self, name: str, interactive: bool):
         try:
             existing = PopulationCentre.objects.get(name=name)
         except PopulationCentre.DoesNotExist:
