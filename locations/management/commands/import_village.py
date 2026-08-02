@@ -5,6 +5,7 @@ from math import sqrt
 from django.contrib.gis.geos import Point
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
+from django.db import IntegrityError
 
 from locations.management.commands.spawn_villages import VILLAGE_NAMES
 from locations.models import PopulationCentre
@@ -60,9 +61,16 @@ class Command(BaseCommand):
             data = json.load(fh)
 
         name = options["name"] or self._pick_village_name()
+        overwrite = options["overwrite"]
+
+        if not overwrite and PopulationCentre.objects.filter(name=name).exists():
+            raise CommandError(
+                f"A PopulationCentre named '{name}' already exists. "
+                "Pass --overwrite to replace it."
+            )
 
         reimport_origin = None
-        if options["overwrite"]:
+        if overwrite:
             reimport_origin = self._delete_existing(name, options["interactive"])
 
         existing_locations = list(
@@ -74,7 +82,29 @@ class Command(BaseCommand):
             existing_locations, options["min_distance"], options["grid_size"]
         )
 
-        population_centre = import_watabou_village(data, name=name, origin=origin)
+        try:
+            population_centre = import_watabou_village(data, name=name, origin=origin)
+        except IntegrityError as exc:
+            if overwrite and PopulationCentre.objects.filter(name=name).exists():
+                # Another process (or an unexpected race) recreated the same-name
+                # centre between delete and import; remove it and retry once.
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Name collision detected while importing '{name}'. "
+                        "Retrying overwrite once..."
+                    )
+                )
+                retry_origin = self._delete_existing(name, interactive=False) or origin
+                population_centre = import_watabou_village(
+                    data,
+                    name=name,
+                    origin=retry_origin,
+                )
+            else:
+                raise CommandError(
+                    f"Could not import '{name}' due to a duplicate name. "
+                    "If replacing an existing centre, pass --overwrite."
+                ) from exc
 
         self.stdout.write(
             self.style.SUCCESS(
