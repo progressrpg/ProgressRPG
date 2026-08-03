@@ -324,6 +324,36 @@ class PlayerCharacterLink(models.Model):
 
         return total_days_points + login_points + time_points
 
+    @property
+    def player_time_today(self):
+        """
+        Completed activity time for this link so far today (in minutes) -
+        a date-filtered variant of player_time, bounded to the current UTC
+        day instead of the whole link lifetime.
+        """
+        start_of_day = timezone.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        start = max(start_of_day, self.linked_at)
+
+        qs = self.player.activities.filter(is_complete=True, completed_at__gte=start)
+        if self.unlinked_at:
+            qs = qs.filter(completed_at__lte=self.unlinked_at)
+
+        total_seconds = qs.aggregate(total=Sum("duration"))["total"] or 0
+        return int(total_seconds // 60)
+
+    @property
+    def points_today(self):
+        """
+        Points earned today (issue #673's map-view "today" badge) - only the
+        activity-time component of link_points, date-filtered to today.
+        link_points' other terms (days_linked * 20, login_points) aren't
+        "earned today" in the same sense, so they're deliberately left out
+        here rather than prorated.
+        """
+        return self.player_time_today // 10
+
     @classmethod
     def get_character(cls, player: Player) -> Character:
         return link_services.player_link_get_character(cls, player)

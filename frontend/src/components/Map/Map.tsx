@@ -12,7 +12,7 @@ import {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { fromLngLat, quantizeBbox, toLngLat } from "./utils";
-import { CharacterTooltipContent } from "./MapTooltips";
+import { CharacterTooltipContent, PopulationCentreTooltipContent } from "./MapTooltips";
 import { scatterCharacters } from "./characters/placement";
 import {
   buildingFootprintRings,
@@ -20,7 +20,12 @@ import {
   styledLineFeatures,
   styledPolygonFeatures,
 } from "./geojson";
-import { addCharacterImage, addVillageLayers, CLICKABLE_LAYERS } from "./layers";
+import {
+  addCharacterImage,
+  addVillageLayers,
+  CLICKABLE_LAYERS,
+  VILLAGE_MARKER_LAYER,
+} from "./layers";
 import { buildVillageSourceData, type WalkerState } from "./sourceData";
 import styles from "./Map.module.scss";
 
@@ -211,6 +216,36 @@ export default function PopulationCentreMap({
         map.getCanvas().style.cursor = "";
       });
 
+      // Tapping/selecting a village marker expands it into its progress bar
+      // + state label (issue #673) - the marker itself only shows a
+      // state-coded dot at rest (see VILLAGE_MARKER_LAYER in layers.ts).
+      map.on(
+        "click",
+        VILLAGE_MARKER_LAYER,
+        (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
+          const feature = e.features?.[0];
+          if (!feature) return;
+          e.originalEvent?.stopPropagation?.();
+          setTooltip({
+            key: `population-centre-${feature.properties?.population_centre_id ?? JSON.stringify(feature.properties)}`,
+            content: (
+              <PopulationCentreTooltipContent
+                name={feature.properties?.name as string | undefined}
+                state={feature.properties?.state as string | null | undefined}
+                progress={feature.properties?.progress as number | null | undefined}
+              />
+            ),
+            lngLat: [e.lngLat.lng, e.lngLat.lat],
+          });
+        }
+      );
+      map.on("mouseenter", VILLAGE_MARKER_LAYER, () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", VILLAGE_MARKER_LAYER, () => {
+        map.getCanvas().style.cursor = "";
+      });
+
       refreshVillageSource();
 
       for (const layerId of CLICKABLE_LAYERS) {
@@ -241,7 +276,7 @@ export default function PopulationCentreMap({
         // per-layer listeners above and stops here; a click on empty map
         // area closes whatever tooltip is open.
         const hits = map.queryRenderedFeatures(e.point, {
-          layers: ["characters", ...CLICKABLE_LAYERS],
+          layers: ["characters", VILLAGE_MARKER_LAYER, ...CLICKABLE_LAYERS],
         });
         if (hits.length === 0) closeTooltip();
       });

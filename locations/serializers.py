@@ -70,6 +70,8 @@ class PopulationCentreLabelFeatureSerializer(PointFeatureSerializer):
         return {
             "name": obj.name,
             "population_centre_id": obj.id,
+            "progress": obj.progress,
+            "state": obj.state,
         }
 
 

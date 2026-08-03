@@ -736,6 +736,77 @@ describe('PopulationCentreMap', () => {
     expect(uniquePoints.size).toBe(3);
   });
 
+  it('colours each village marker by its state, not by a shared default', () => {
+    const geojsonWithVillageMarker = {
+      ...baseGeojson,
+      features: [
+        ...baseGeojson.features,
+        {
+          geometry: { type: 'Point', coordinates: [30, 30] },
+          properties: {
+            feature_type: 'population_centre_label',
+            name: 'Driftmoor village',
+            population_centre_id: 7,
+            state: 'Thriving',
+            progress: 42,
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithVillageMarker });
+
+    const markerLayer = currentMap().layers.find((l) => l.id === 'village-marker') as
+      | { paint?: { 'circle-color'?: unknown } }
+      | undefined;
+    // A ["match", ["get", "state"], ...] expression, not a single flat colour
+    // - every state needs its own colour, not one shared default.
+    expect(markerLayer?.paint?.['circle-color']).toEqual(
+      expect.arrayContaining(['match', ['get', 'state']])
+    );
+
+    const feature = villageSourceFeatures().find(
+      (f) => f.properties.feature_type === 'population_centre_label'
+    );
+    expect(feature?.properties.state).toBe('Thriving');
+  });
+
+  it('expands a tapped village marker into its progress bar and state label', async () => {
+    const geojsonWithVillageMarker = {
+      ...baseGeojson,
+      features: [
+        ...baseGeojson.features,
+        {
+          geometry: { type: 'Point', coordinates: [30, 30] },
+          properties: {
+            feature_type: 'population_centre_label',
+            name: 'Driftmoor village',
+            population_centre_id: 7,
+            state: 'Recovering',
+            progress: 65,
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithVillageMarker });
+    const feature = villageSourceFeatures().find(
+      (f) => f.properties.feature_type === 'population_centre_label'
+    );
+
+    act(() => {
+      currentMap().trigger(
+        'click',
+        { features: [feature], lngLat: { lng: 30, lat: 30 } },
+        'village-marker'
+      );
+    });
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Driftmoor village');
+    expect(tooltip).toHaveTextContent('Recovering');
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '65');
+  });
+
   it('renders path lines invisibly (line-opacity 0)', () => {
     const geojsonWithPath = {
       ...baseGeojson,

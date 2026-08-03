@@ -454,3 +454,65 @@ class CharacterNPCTests(TestCase):
         self.assertFalse(self.npc2.can_link)
 
         self.assertFalse(Character.has_available())
+
+
+class PlayerCharacterLinkPointsTodayTests(TestCase):
+    """Tests for PlayerCharacterLink.player_time_today/points_today (issue #673)."""
+
+    def setUp(self):
+        from users.models import CustomUser
+        from progression.models import PlayerActivity
+
+        self.PlayerActivity = PlayerActivity
+        self.user = CustomUser.objects.create_user(
+            email="today-points@example.com", password="pass12345"
+        )
+        self.player = self.user.player
+        character = Character.objects.create(first_name="Hero", last_name="Link")
+        self.link = PlayerCharacterLink.objects.create(
+            player=self.player, character=character
+        )
+        # Backdated well before "today" so player_time_today's max(start_of_day,
+        # linked_at) resolves to start_of_day in these tests, rather than to
+        # whatever moment setUp happened to run at.
+        self.link.linked_at = now() - timedelta(days=30)
+        self.link.save(update_fields=["linked_at"])
+
+    def _complete_activity(self, *, duration_seconds, completed_at):
+        return self.PlayerActivity.objects.create(
+            player=self.player,
+            is_complete=True,
+            duration=duration_seconds,
+            completed_at=completed_at,
+        )
+
+    def test_points_today_counts_only_activities_completed_today(self):
+        today_start = now().replace(hour=0, minute=0, second=0, microsecond=0)
+        self._complete_activity(
+            duration_seconds=1800, completed_at=today_start + timedelta(hours=2)
+        )  # 30 min today
+        self._complete_activity(
+            duration_seconds=3600, completed_at=today_start - timedelta(hours=1)
+        )  # 60 min yesterday - excluded
+
+        self.assertEqual(self.link.player_time_today, 30)
+        self.assertEqual(self.link.points_today, 3)
+
+    def test_points_today_excludes_activity_before_link_started(self):
+        today_start = now().replace(hour=0, minute=0, second=0, microsecond=0)
+        self.link.linked_at = today_start + timedelta(hours=5)
+        self.link.save(update_fields=["linked_at"])
+
+        self._complete_activity(
+            duration_seconds=1800, completed_at=today_start + timedelta(hours=1)
+        )  # today, but before the link started - excluded
+        self._complete_activity(
+            duration_seconds=600, completed_at=today_start + timedelta(hours=6)
+        )  # 10 min, after linked_at
+
+        self.assertEqual(self.link.player_time_today, 10)
+        self.assertEqual(self.link.points_today, 1)
+
+    def test_points_today_zero_with_no_activities(self):
+        self.assertEqual(self.link.player_time_today, 0)
+        self.assertEqual(self.link.points_today, 0)
