@@ -1,6 +1,6 @@
 // components/MaintenanceWatcher.tsx
 import React, { useEffect, useRef } from "react";
-import { useNavigate, Navigate, useLocation } from "react-router-dom";
+import { useNavigate, Navigate, useLocation } from "react-router";
 import { useMaintenanceContext } from "../context/MaintenanceContext";
 import { setMaintenanceHandler, setNetworkErrorHandler } from "../utils/api";
 

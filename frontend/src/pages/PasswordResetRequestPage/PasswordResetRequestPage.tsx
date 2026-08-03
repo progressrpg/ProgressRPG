@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import Form from '../../components/Form/Form';
 import usePasswordReset from '../../hooks/usePasswordReset';
 import styles from '../PasswordResetPage.module.scss';

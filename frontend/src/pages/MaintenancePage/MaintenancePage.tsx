@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import styles from './MaintenancePage.module.scss';
 import { useMaintenanceStatus } from '../../hooks/useMaintenanceStatus';
 import { useMaintenanceContext } from '../../context/MaintenanceContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import Button from '../../components/Button/Button';
 import ButtonFrame from '../../components/Button/ButtonFrame';
 

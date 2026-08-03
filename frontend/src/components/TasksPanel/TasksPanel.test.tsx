@@ -35,7 +35,7 @@ vi.mock("../../hooks/useTasks", () => ({
   useDeleteTask: () => mockUseDeleteTask(),
 }));
 
-vi.mock("react-router-dom", () => ({
+vi.mock("react-router", () => ({
   useNavigate: () => navigate,
 }));
 

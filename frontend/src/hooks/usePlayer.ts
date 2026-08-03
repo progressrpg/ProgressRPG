@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { updatePlayer, downloadUserData, deleteAccount, fetchTodayPoints } from "../api/player";
 import { useAuth } from "../context/AuthContext";
 
