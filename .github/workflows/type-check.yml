@@ -5,9 +5,9 @@ permissions:
 
 on:
   push:
-    branches: [ main, staging, develop ]
+    branches: [ main, staging, development ]
   pull_request:
-    branches: [ main, staging, develop ]
+    branches: [ main, staging, development ]
 
 jobs:
   mypy:
