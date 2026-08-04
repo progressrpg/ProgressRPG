@@ -180,6 +180,9 @@ class Character(Person, LifeCycleMixin, Movable):
     )
     reputation = models.IntegerField(default=0)
     can_link = models.BooleanField(default=False)
+    link_points_multiplier = models.DecimalField(
+        max_digits=5, decimal_places=2, default="1.00"
+    )
     # quest_timer = Optional["QuestTimer"]
 
     @property
@@ -321,7 +324,11 @@ class PlayerCharacterLink(models.Model):
             self.player_time // 10
         )  # 1 point for every 10 minutes of completed activities during the link period
 
-        return total_days_points + login_points + time_points
+        base_points = total_days_points + login_points + time_points
+        multiplier = (
+            self.player.link_points_multiplier * self.character.link_points_multiplier
+        )
+        return int(base_points * multiplier)
 
     @property
     def player_time_today(self):

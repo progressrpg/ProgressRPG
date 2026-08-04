@@ -57,12 +57,15 @@ class Group(models.Model):
 
     @property
     def total_xp(self):
-        return (
+        from .points import xp_for_duration
+
+        total_duration = (
             self.skills.filter(records__is_complete=True).aggregate(
-                total=Sum("records__xp_gained")
+                total=Sum("records__duration")
             )["total"]
             or 0
         )
+        return xp_for_duration(total_duration)
 
     class Meta:
         abstract = True
@@ -82,12 +85,11 @@ class Category(Group, PlayerOwnedMixin):
 #########################################
 
 
-def _character_skill_proficiency(character, **skill_definition_filter):
+def _character_skill_duration(character, **skill_definition_filter):
     """
-    Sum XP earned by a character across CharacterActivity records whose
-    ActivityDefinition.skill matches the given SkillDefinition filter (e.g.
-    role=<Role> or gate_group=<SkillGroup>). Shared by `Role.proficiency_for`
-    and `SkillGroup.proficiency_for` so both scopes use the same aggregation.
+    Sum completed duration for a character across CharacterActivity records
+    whose ActivityDefinition.skill matches the given SkillDefinition filter
+    (e.g. role=<Role> or gate_group=<SkillGroup>; no filter = every skill).
     """
     filter_kwargs = {
         f"activity_definition__skill__{lookup}": value
@@ -95,10 +97,33 @@ def _character_skill_proficiency(character, **skill_definition_filter):
     }
     return (
         CharacterActivity.objects.filter(
-            character=character, **filter_kwargs
-        ).aggregate(total=Sum("xp_gained"))["total"]
+            character=character, is_complete=True, **filter_kwargs
+        ).aggregate(total=Sum("duration"))["total"]
         or 0
     )
+
+
+def _character_skill_proficiency(character, **skill_definition_filter):
+    """
+    XP earned by a character within the given SkillDefinition scope (see
+    `_character_skill_duration`). Shared by `Role.proficiency_for` and
+    `SkillGroup.proficiency_for` so both scopes use the same aggregation.
+    """
+    from .points import xp_for_duration
+
+    return xp_for_duration(
+        _character_skill_duration(character, **skill_definition_filter)
+    )
+
+
+def character_total_skill_xp(character) -> int:
+    """
+    A character's total skill XP across every skill - the "total XP" input
+    to the AP mastery multiplier (see progression.points.xp_mastery_multiplier).
+    """
+    from .points import xp_for_duration
+
+    return xp_for_duration(_character_skill_duration(character))
 
 
 class Role(models.Model):
@@ -238,12 +263,9 @@ class Skill(models.Model):
 
     @property
     def total_xp(self):
-        return (
-            self.records.filter(is_complete=True).aggregate(total=Sum("xp_gained"))[
-                "total"
-            ]
-            or 0
-        )
+        from .points import xp_for_duration
+
+        return xp_for_duration(self.total_time)
 
     class Meta:
         abstract = True
@@ -319,9 +341,9 @@ class CharacterSkill(models.Model):
 
     @property
     def total_xp(self):
-        return (
-            self._matching_activities().aggregate(total=Sum("xp_gained"))["total"] or 0
-        )
+        from .points import xp_for_duration
+
+        return xp_for_duration(self.total_time)
 
 
 #########################################
@@ -333,19 +355,34 @@ class TimeRecord(models.Model):
     """
     Abstract base model for tracking time-based records, such as activities.
 
-    Stores metadata about start, completion, duration, and XP rewards. Does
-    not carry name/description - subclasses that need an editable label own
-    that themselves (e.g. PlayerActivity); CharacterActivity instead points
-    at an ActivityDefinition for its name.
+    Stores metadata about start, completion, and duration. Does not carry
+    name/description - subclasses that need an editable label own that
+    themselves (e.g. PlayerActivity); CharacterActivity instead points at an
+    ActivityDefinition for its name.
+
+    `duration` is the sole source of truth for Activity Points (AP) / skill
+    Experience Points (XP) - see progression.points. `reward_breakdown` is a
+    snapshot of the multiplier breakdown computed at completion time, kept
+    for historical display only; it is never summed/read back to derive
+    balances, so AP/XP stay recalculable if the formula changes later.
     """
 
     duration = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField(null=True, blank=True)
     is_complete = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
-    xp_gained = models.IntegerField(null=True, blank=True)
+    reward_breakdown = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
+
+    @property
+    def xp_gained(self):
+        """
+        Kept for API/frontend compatibility with the old frozen column - the
+        AP amount from this record's `reward_breakdown` snapshot, or None
+        for a record that hasn't been completed yet.
+        """
+        return self.reward_breakdown.get("xp_gained")
 
     def add_time(self, num: int):
         """
@@ -578,12 +615,19 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         self.save(update_fields=["name"])
 
     def calculate_base_xp(self, duration: int) -> int:
-        from core.models import GameSettings
+        from .points import base_rate
 
-        xp_per_second = GameSettings.current().default_activity_xp_per_second
-        return int(Decimal(duration) * xp_per_second)
+        return int(Decimal(duration) * base_rate())
 
     def get_xp_reward_summary(self) -> Dict[str, Any]:
+        """
+        Compute this activity's Activity Points (AP, still keyed "xp_gained"
+        for API/frontend compatibility) and skill XP (if `skill` is set)
+        breakdown for the current `duration` - live-derived from duration +
+        the current formula/settings (see TimeRecord docs).
+        """
+        from .points import xp_for_duration, xp_mastery_multiplier
+
         base_xp = self.calculate_base_xp(self.duration)
         player = self.player
         multiplier = player.get_activity_xp_multiplier()
@@ -593,6 +637,11 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
 
             task_xp_multiplier = GameSettings.current().task_activity_xp_multiplier
             multiplier *= task_xp_multiplier
+        # Players have no skill XP source yet (see progression.points), so
+        # this always evaluates to 1.0 - kept explicit here rather than
+        # hardcoded so it picks up a real total once player skills exist.
+        mastery_multiplier = xp_mastery_multiplier(0)
+        multiplier *= mastery_multiplier
 
         def _fmt(d: Decimal) -> int | float:
             return int(d) if d == d.to_integral_value() else float(d)
@@ -602,7 +651,9 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
             "base_xp": base_xp,
             "xp_multiplier": _fmt(multiplier),
             "task_xp_multiplier": _fmt(task_xp_multiplier),
+            "mastery_multiplier": _fmt(mastery_multiplier),
             "xp_gained": int(Decimal(base_xp) * multiplier),
+            "skill_xp_gained": (xp_for_duration(self.duration) if self.skill_id else 0),
         }
 
     def complete(self, reward_summary: Dict[str, Any] | None = None):
@@ -615,10 +666,10 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         self.completed_at = timezone.now()
         self.is_complete = True
         reward_summary = reward_summary or self.get_xp_reward_summary()
-        self.xp_gained = cast(int, reward_summary["xp_gained"])
-        self.save(update_fields=["completed_at", "is_complete", "xp_gained"])
+        self.reward_breakdown = reward_summary
+        self.save(update_fields=["completed_at", "is_complete", "reward_breakdown"])
 
-        return self.xp_gained
+        return cast(int, reward_summary["xp_gained"])
 
 
 class ActivityDefinition(models.Model):
@@ -690,13 +741,61 @@ class CharacterActivity(TimeRecord):
     def kind(self) -> str:
         return self.activity_definition.kind
 
-    def calculate_base_xp(self, duration: int) -> int:
+    def get_xp_reward_summary(self) -> Dict[str, Any]:
         """
-        Calculate and store the XP gained based on duration.
+        Compute this activity's Activity Points (AP, still keyed "xp_gained"
+        for API/frontend compatibility) and skill XP (if activity_definition.skill
+        is set) breakdown for the current `duration` - live-derived from
+        duration + the current formula/settings, never read back to derive
+        balances (see TimeRecord docs).
         """
-        base_xp = duration // 60
-        multiplier = 0.25 if self.kind == ActivityDefinition.Kind.REST else 1
-        return int(base_xp * multiplier)
+        from .points import base_rate, xp_for_duration, xp_mastery_multiplier
+
+        rate = base_rate()
+        kind_multiplier = (
+            Decimal("0.25")
+            if self.kind == ActivityDefinition.Kind.REST
+            else Decimal("1")
+        )
+        boost_multiplier = self.character.get_xp_multiplier()
+        mastery_multiplier = xp_mastery_multiplier(
+            character_total_skill_xp(self.character)
+        )
+        base_xp = Decimal(self.duration) * rate
+        multiplier = kind_multiplier * boost_multiplier * mastery_multiplier
+
+        def _fmt(d: Decimal) -> int | float:
+            return int(d) if d == d.to_integral_value() else float(d)
+
+        return {
+            "duration_seconds": self.duration,
+            "base_xp": _fmt(base_xp),
+            "xp_multiplier": _fmt(multiplier),
+            "kind_multiplier": _fmt(kind_multiplier),
+            "boost_multiplier": _fmt(boost_multiplier),
+            "mastery_multiplier": _fmt(mastery_multiplier),
+            "xp_gained": int(base_xp * multiplier),
+            "skill_xp_gained": (
+                xp_for_duration(self.duration)
+                if self.activity_definition.skill_id is not None
+                else 0
+            ),
+        }
+
+    def _finish(self, reward_summary: Dict[str, Any]) -> int:
+        self.reward_breakdown = reward_summary
+        self.save(
+            update_fields=[
+                "completed_at",
+                "is_complete",
+                "duration",
+                "started_at",
+                "reward_breakdown",
+            ]
+        )
+        ap_gained = cast(int, reward_summary["xp_gained"])
+        self.character.add_xp(ap_gained)
+        return ap_gained
 
     def complete_now(self):
         """
@@ -708,22 +807,9 @@ class CharacterActivity(TimeRecord):
 
         self.completed_at = now
         self.is_complete = True
+        self.duration = int((now - self.started_at).total_seconds())
 
-        duration = int((now - self.started_at).total_seconds())
-        base_xp = self.calculate_base_xp(duration)
-        multiplier = self.character.get_xp_multiplier()
-        self.xp_gained = int(Decimal(base_xp) * multiplier)
-
-        self.duration = duration
-        self.save(
-            update_fields=[
-                "completed_at",
-                "is_complete",
-                "duration",
-                "started_at",
-                "xp_gained",
-            ]
-        )
+        ap_gained = self._finish(self.get_xp_reward_summary())
 
         try:
             player = self.character.current_player
@@ -746,7 +832,7 @@ class CharacterActivity(TimeRecord):
                 is_draft=False,
             )
 
-        return self.xp_gained
+        return ap_gained
 
     def complete_past(self):
         """
@@ -758,18 +844,11 @@ class CharacterActivity(TimeRecord):
 
         self.completed_at = self.scheduled_end or now
         self.is_complete = True
-        duration = max(0, int((self.completed_at - self.started_at).total_seconds()))
-        self.duration = duration
-        self.xp_gained = self.calculate_base_xp(duration)
-        self.save(
-            update_fields=[
-                "completed_at",
-                "is_complete",
-                "duration",
-                "started_at",
-                "xp_gained",
-            ]
+        self.duration = max(
+            0, int((self.completed_at - self.started_at).total_seconds())
         )
+
+        self._finish(self.get_xp_reward_summary())
         return self.completed_at
 
 

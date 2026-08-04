@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from django.contrib.gis.db import models as gis_models
@@ -569,24 +568,11 @@ class PopulationCentre(models.Model):
         # cached_property: progress and state below each read this too, so
         # without caching every serialization of a population centre
         # recomputes it 3x over.
-        from character.models import PlayerCharacterLink
-
         residents = list(self.residents.all())
 
-        # Batch-fetch every resident's links in one query instead of
-        # issuing one query per resident (this used to be an N+1).
-        links_by_character = defaultdict(list)
-        for link in PlayerCharacterLink.objects.filter(
-            character__in=residents
-        ).select_related("player__user"):
-            links_by_character[link.character_id].append(link)
-
-        points = sum(
-            PlayerCharacterLink.total_link_points(
-                links_by_character.get(resident.id, [])
-            )
-            for resident in residents
-        )
+        # Activity Points, not link points - a resident's long-term
+        # activity progress rather than how they came to be linked.
+        points = sum(resident.total_ap_earned for resident in residents)
 
         village_multiplier = 2 / (1 + len(residents))
         scaled_points = points * village_multiplier

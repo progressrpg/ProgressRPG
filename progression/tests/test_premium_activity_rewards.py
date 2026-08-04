@@ -45,7 +45,9 @@ class PlayerActivityPremiumRewardTests(TestCase):
                 "base_xp": 60,
                 "xp_multiplier": 1,
                 "task_xp_multiplier": 1,
+                "mastery_multiplier": 1,
                 "xp_gained": 60,
+                "skill_xp_gained": 0,
             },
         )
         self.assertEqual(activity.complete(), 60)
@@ -67,7 +69,9 @@ class PlayerActivityPremiumRewardTests(TestCase):
                 "base_xp": 60,
                 "xp_multiplier": 2,
                 "task_xp_multiplier": 1,
+                "mastery_multiplier": 1,
                 "xp_gained": 120,
+                "skill_xp_gained": 0,
             },
         )
         self.assertEqual(activity.complete(), 120)

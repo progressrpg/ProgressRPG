@@ -521,7 +521,9 @@ class ActivityTimer(Timer):
                 "duration_seconds": 0,
                 "base_xp": 0,
                 "xp_multiplier": 1,
+                "mastery_multiplier": 1,
                 "xp_gained": 0,
+                "skill_xp_gained": 0,
                 "level_ups": [],
             }
 

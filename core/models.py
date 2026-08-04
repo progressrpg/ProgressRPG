@@ -90,6 +90,18 @@ class GameSettings(models.Model):
         max_digits=5, decimal_places=2, default="1.25"
     )
     task_completion_xp = models.IntegerField(default=100)
+    xp_mastery_scale = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default="1000.00",
+        help_text=(
+            "Skill XP needed for the Activity Points mastery multiplier to "
+            "grow by +1.0x (see progression.points.xp_mastery_multiplier)."
+        ),
+    )
+    xp_mastery_multiplier_cap = models.DecimalField(
+        max_digits=5, decimal_places=2, default="3.00"
+    )
     activity_search_includes_tasks = models.BooleanField(default=False)
     trial_period_days = models.IntegerField(default=14)
     registration_cap = models.IntegerField(default=1_000_000_000)
@@ -142,6 +154,10 @@ class GameSettings(models.Model):
             errors["task_activity_xp_multiplier"] = "Must be > 0."
         if self.task_completion_xp < 0:
             errors["task_completion_xp"] = "Must be non-negative."
+        if self.xp_mastery_scale <= 0:
+            errors["xp_mastery_scale"] = "Must be > 0."
+        if self.xp_mastery_multiplier_cap < 1:
+            errors["xp_mastery_multiplier_cap"] = "Must be >= 1."
         if self.trial_period_days < 0:
             errors["trial_period_days"] = "Must be non-negative."
         if self.registration_cap < 0:

@@ -209,23 +209,10 @@ def advance(behaviour, now=None):
         return sync_to_now(behaviour, now=now)
 
     if not current.is_complete:
-        if current.started_at is None:
-            current.started_at = current.scheduled_start
-
-        duration = max(0, int((now - current.started_at).total_seconds()))
-        behaviour.duration = duration
-        current.xp_gained = current.calculate_base_xp(duration)
-        current.completed_at = now
-        current.is_complete = True
-        current.save(
-            update_fields=[
-                "started_at",
-                "duration",
-                "xp_gained",
-                "completed_at",
-                "is_complete",
-            ]
-        )
+        # Same "complete right now, from wherever started_at is" semantics
+        # as complete_now() - force-advancing early is just an early
+        # completion, so reuse it rather than duplicating the AP/XP logic.
+        current.complete_now()
 
     nxt = qs.filter(scheduled_start__gte=current.scheduled_end).first()
     if nxt and nxt.started_at is None and nxt.scheduled_start <= now:

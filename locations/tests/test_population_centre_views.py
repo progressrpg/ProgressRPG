@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from locations.models import Node, Path, Journey, PopulationCentre
-from character.models import Character, PlayerCharacterLink
+from character.models import Character
 from users.tests import user_factory
 
 
@@ -79,10 +79,13 @@ class PopulationCentreMapViewJourneyTest(TestCase):
 
 
 class PopulationCentreVillagePointsTest(TestCase):
-    """Guards against the N+1 pattern in PopulationCentre.village_points
-    (Sentry issue 129622699), where every resident triggered its own
-    unfiltered PlayerCharacterLink query, and progress/state each
-    recomputed village_points from scratch on top of that."""
+    """Guards against reintroducing per-resident queries in
+    PopulationCentre.village_points (Sentry issue 129622699). It's now
+    sourced from each resident's already-loaded level/xp
+    (Person.total_ap_earned) instead of a separate PlayerCharacterLink
+    lookup, so it should need only the one residents() query - and
+    progress/state should reuse that cached result rather than recomputing
+    it."""
 
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
@@ -98,41 +101,28 @@ class PopulationCentreVillagePointsTest(TestCase):
             for i in range(4)
         ]
 
-        user = user_factory(with_player=True)
-        PlayerCharacterLink.objects.create(
-            player=user.player, character=self.residents[0], is_active=True
-        )
-
-    def _link_queries(self, ctx):
-        return [
-            q["sql"]
-            for q in ctx.captured_queries
-            if "character_playercharacterlink" in q["sql"].lower()
-        ]
-
-    def test_village_points_batches_link_queries_per_resident(self):
+    def test_village_points_does_not_issue_per_resident_queries(self):
         with CaptureQueriesContext(connection) as ctx:
             points = self.centre.village_points
 
         self.assertIsInstance(points, int)
-        link_queries = self._link_queries(ctx)
         self.assertEqual(
-            len(link_queries),
+            len(ctx.captured_queries),
             1,
-            "village_points should fetch all residents' links in one "
-            f"query instead of one per resident: {link_queries}",
+            "village_points should need only the residents query, not one "
+            f"per resident: {[q['sql'] for q in ctx.captured_queries]}",
         )
 
     def test_village_points_is_cached_across_progress_and_state(self):
         with CaptureQueriesContext(connection) as ctx:
-            points = self.centre.village_points
+            self.centre.village_points
             self.centre.progress
             self.centre.state
 
-        link_queries = self._link_queries(ctx)
         self.assertEqual(
-            len(link_queries),
+            len(ctx.captured_queries),
             1,
             "village_points should be computed once and reused by "
-            f"progress/state, not recomputed per property: {link_queries}",
+            "progress/state, not recomputed per property: "
+            f"{[q['sql'] for q in ctx.captured_queries]}",
         )
