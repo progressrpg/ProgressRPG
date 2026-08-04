@@ -347,7 +347,7 @@ pyyaml==6.0.3
     #   pre-commit
 pyzmq==27.1.0
     # via locust
-redis==8.0.1
+redis==8.1.0
     # via
     #   -r requirements.in
     #   channels-redis

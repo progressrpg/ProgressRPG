@@ -224,7 +224,7 @@ pyyaml==6.0.3
     # via
     #   -r requirements.in
     #   drf-spectacular
-redis==8.0.1
+redis==8.1.0
     # via
     #   -r requirements.in
     #   channels-redis
