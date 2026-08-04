@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 
 from character.models import PlayerCharacterLink
-from progression.views import CharacterActivityViewSet, CharacterQuestViewSet
+from progression.views import CharacterActivityViewSet
 
 
 class CharacterScopedViewSetNoCharacterTests(APITestCase):
@@ -21,17 +21,6 @@ class CharacterScopedViewSetNoCharacterTests(APITestCase):
     def test_character_activity_list_returns_empty_when_unlinked(self):
         view = CharacterActivityViewSet.as_view({"get": "list"})
         request = self.factory.get("/api/v1/character-activities/")
-        force_authenticate(request, user=self.user)
-
-        response = view(request)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["count"], 0)
-        self.assertEqual(response.data["results"], [])
-
-    def test_character_quest_list_returns_empty_when_unlinked(self):
-        view = CharacterQuestViewSet.as_view({"get": "list"})
-        request = self.factory.get("/api/v1/character-quests/")
         force_authenticate(request, user=self.user)
 
         response = view(request)

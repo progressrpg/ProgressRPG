@@ -36,100 +36,30 @@ def ensure_day_activities(character, date, create_if_missing=True):
     return None
 
 
-WORK_ACTIVITIES_BY_BUILDING_TYPE = {
-    "field_shelter": [
-        "watering crops",
-        "weeding the fields",
-        "planting seedlings",
-        "harvesting wheat",
-        "threshing grain",
-        "tending the garden",
-        "scaring off crows",
-        "digging drainage ditches",
-        "checking traps",
-        "clearing debris",
-    ],
-    "granary": [
-        "carrying supplies to storage",
-        "organising the storeroom",
-        "counting provisions",
-        "sorting harvested goods",
-        "maintaining toolshed",
-        "writing inventory records",
-    ],
-    "mill": [
-        "grinding grain into flour",
-        "hauling water from the well",
-        "repairing carts",
-        "maintaining toolshed",
-        "sharpening blades",
-    ],
-    "bakery": [
-        "baking bread",
-        "cooking a meal",
-        "preserving food",
-        "smoking meat",
-        "cleaning the hearth",
-    ],
-    "inn": [
-        "cooking a meal",
-        "cleaning the hearth",
-        "sweeping the yard",
-        "mending clothes",
-        "delivering goods to neighbours",
-    ],
-    "communal": [
-        "feeding the chickens",
-        "collecting eggs",
-        "milking the goats",
-        "cleaning the animal pens",
-        "repairing a fence",
-        "mending tools",
-        "chopping firewood",
-        "stacking firewood",
-        "patching a roof",
-        "oiling leather gear",
-        "spinning wool",
-        "weaving cloth",
-        "tanning hides",
-        "maintaining pathways",
-        "repairing nets",
-    ],
-    "default": [
-        "feeding the chickens",
-        "collecting eggs",
-        "chopping firewood",
-        "stacking firewood",
-        "hauling water from the well",
-        "mending tools",
-        "sweeping the yard",
-        "mending clothes",
-        "clearing debris",
-        "delivering goods to neighbours",
-    ],
-}
-
-
 def work_activities_for(character):
     """
-    Flavor-text pool for a character's "work" CharacterActivity blocks,
-    keyed by their actual job (via CharacterLocation role=WORK) rather than
-    a single generic list - falls back to "default" if unemployed or their
-    workplace's building_type has no dedicated list.
+    "work" ActivityDefinitions available to a character for their
+    CharacterActivity work blocks - filtered by the roles the character
+    holds and their current proficiency (see SkillDefinition.is_unlocked_for).
+    Skill-less definitions have no role requirement and are always included,
+    forming a general-work fallback pool for characters without a role yet.
     """
-    from character.models import CharacterLocation
+    from progression.models import ActivityDefinition, Role
 
-    work_location = (
-        CharacterLocation.objects.filter(
-            character=character,
-            role=CharacterLocation.Role.WORK,
-            is_primary=True,
+    held_role_ids = set(
+        Role.objects.filter(character_roles__character=character).values_list(
+            "id", flat=True
         )
-        .select_related("location")
-        .first()
     )
 
-    building_type = work_location.location.building_type if work_location else "default"
-    return WORK_ACTIVITIES_BY_BUILDING_TYPE.get(
-        building_type, WORK_ACTIVITIES_BY_BUILDING_TYPE["default"]
-    )
+    return [
+        activity
+        for activity in ActivityDefinition.objects.filter(
+            kind=ActivityDefinition.Kind.WORK
+        ).select_related("skill", "skill__role")
+        if activity.skill_id is None
+        or (
+            (activity.skill.role_id is None or activity.skill.role_id in held_role_ids)
+            and activity.skill.is_unlocked_for(character)
+        )
+    ]

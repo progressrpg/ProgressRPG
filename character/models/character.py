@@ -14,7 +14,6 @@ from users.models import Person, Player
 
 from gameplay.models import Currency, CurrencyAccountBase, QuestCompletion, Quest
 from gameplay.serializers import QuestResultSerializer
-from progression.models import CharacterQuest
 from progress_rpg.exceptions import QuestError
 
 from character.services import character_services, lifecycle_services, link_services

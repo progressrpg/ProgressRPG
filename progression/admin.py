@@ -11,8 +11,8 @@ from .models import (
     PlayerSkill,
     CharacterSkill,
     PlayerActivity,
+    ActivityDefinition,
     CharacterActivity,
-    CharacterQuest,
     Project,
     Task,
 )
@@ -127,6 +127,13 @@ class PlayerActivityAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at",)
 
 
+# @admin.register(ActivityDefinition)
+class ActivityDefinitionAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "kind", "skill", "created_at")
+    search_fields = ("name", "description")
+    list_filter = ("kind", "skill")
+
+
 @admin.register(CharacterActivity)
 class CharacterActivityAdmin(admin.ModelAdmin):
     list_display = (
@@ -139,13 +146,13 @@ class CharacterActivityAdmin(admin.ModelAdmin):
         "scheduled_start",
         "scheduled_end",
     )
-    search_fields = ("name", "description", "character__name")
-    list_filter = ("created_at", "is_complete", "kind")
+    search_fields = ("activity_definition__name", "character__name")
+    list_filter = ("created_at", "is_complete", "activity_definition__kind")
     date_hierarchy = "completed_at"
     readonly_fields = ("created_at",)
     fields = (
         "character",
-        ("name", "kind"),
+        "activity_definition",
         "duration",
         ("scheduled_start", "scheduled_end"),
         ("started_at", "completed_at"),
@@ -161,23 +168,6 @@ class CharacterActivityAdmin(admin.ModelAdmin):
         for activity in queryset:
             activity.complete_past()
         self.message_user(request, "Activities have been completed.")
-
-
-# @admin.register(CharacterQuest)
-class CharacterQuestAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "name",
-        "character",
-        "skill",
-        "duration",
-        "target_duration",
-        "is_complete",
-        "created_at",
-    )
-    search_fields = ("name", "description", "character__name")
-    list_filter = ("character", "is_complete", "stages_fixed")
-    date_hierarchy = "created_at"
 
 
 #########################################

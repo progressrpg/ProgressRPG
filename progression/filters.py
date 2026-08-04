@@ -4,12 +4,9 @@ import django_filters
 
 from .models import (
     Category,
-    Role,
     PlayerSkill,
-    CharacterSkill,
     PlayerActivity,
     CharacterActivity,
-    CharacterQuest,
     Project,
     Task,
 )

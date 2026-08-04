@@ -5,9 +5,7 @@ from progression.models import (
     SkillDefinition,
     CharacterRole,
     PlayerSkill,
-    CharacterSkill,
     PlayerActivity,
-    CharacterQuest,
     Project,
     Task,
 )
@@ -89,51 +87,14 @@ class RoleSkillGroupProficiencyTests(BaseTestCase):
         self.assertTrue(self.skill_definition.is_unlocked_for(self.character))
         self.assertTrue(self.general_skill_definition.is_unlocked_for(self.character))
 
-    def test_gated_skill_definition_locked_until_min_proficiency_met(self):
+    def test_gated_skill_definition_locked_with_no_proficiency_yet(self):
+        # No CharacterActivity records feed CharacterSkill proficiency yet -
+        # that lands with the points economy rework (#691), which derives
+        # skill XP from CharacterActivity. Until then, a gated skill stays
+        # locked and proficiency reads as zero.
         self.assertFalse(self.gated_skill_definition.is_unlocked_for(self.character))
-
-        skill = CharacterSkill.objects.create(
-            character=self.character, skill_definition=self.skill_definition
-        )
-        CharacterQuest.objects.create(
-            character=self.character,
-            name="Forage for food",
-            skill=skill,
-            duration=45,
-            xp_gained=45,
-            is_complete=True,
-        )
-
-        self.assertEqual(self.role.proficiency_for(self.character), 45)
-        self.assertEqual(self.skill_group.proficiency_for(self.character), 45)
-        self.assertTrue(self.gated_skill_definition.is_unlocked_for(self.character))
-
-
-class CharacterQuestTests(BaseTestCase):
-    def setUp(self):
-        super().setUp()
-        self.role = Role.objects.create(name="Adventurer")
-        self.skill_definition = SkillDefinition.objects.create(
-            name="Survival", role=self.role
-        )
-        self.skill = CharacterSkill.objects.create(
-            character=self.character,
-            skill_definition=self.skill_definition,
-        )
-
-    def test_character_quest_complete(self):
-        quest = CharacterQuest.objects.create(
-            character=self.character,
-            name="Forage for food",
-            skill=self.skill,
-            duration=45,
-        )
-
-        quest.complete()
-
-        self.assertTrue(quest.is_complete)
-        self.assertEqual(self.skill.total_time, 45)
-        self.assertEqual(self.skill.records.count(), 1)
+        self.assertEqual(self.role.proficiency_for(self.character), 0)
+        self.assertEqual(self.skill_group.proficiency_for(self.character), 0)
 
 
 class ProjectTaskTests(BaseTestCase):

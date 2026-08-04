@@ -84,15 +84,19 @@ class Category(Group, PlayerOwnedMixin):
 
 def _character_skill_proficiency(character, **skill_definition_filter):
     """
-    Sum XP earned by a character across CharacterSkills whose SkillDefinition
-    matches the given filter. Shared by `Role.proficiency_for` (filters on
-    `role`) and `SkillGroup.proficiency_for` (filters on `gate_group`) so both
-    scopes use the same aggregation.
+    Sum XP earned by a character across CharacterActivity records whose
+    ActivityDefinition.skill matches the given SkillDefinition filter (e.g.
+    role=<Role> or gate_group=<SkillGroup>). Shared by `Role.proficiency_for`
+    and `SkillGroup.proficiency_for` so both scopes use the same aggregation.
     """
+    filter_kwargs = {
+        f"activity_definition__skill__{lookup}": value
+        for lookup, value in skill_definition_filter.items()
+    }
     return (
-        CharacterSkill.objects.filter(
-            character=character, **skill_definition_filter
-        ).aggregate(total=Sum("records__xp_gained"))["total"]
+        CharacterActivity.objects.filter(
+            character=character, **filter_kwargs
+        ).aggregate(total=Sum("xp_gained"))["total"]
         or 0
     )
 
@@ -113,7 +117,7 @@ class Role(models.Model):
         return self.name
 
     def proficiency_for(self, character) -> int:
-        return _character_skill_proficiency(character, skill_definition__role=self)
+        return _character_skill_proficiency(character, role=self)
 
 
 class SkillGroup(models.Model):
@@ -134,9 +138,7 @@ class SkillGroup(models.Model):
         return f"{self.name} ({self.role.name})"
 
     def proficiency_for(self, character) -> int:
-        return _character_skill_proficiency(
-            character, skill_definition__gate_group=self
-        )
+        return _character_skill_proficiency(character, gate_group=self)
 
 
 class SkillDefinition(models.Model):
@@ -205,17 +207,20 @@ class CharacterRole(models.Model):
 #########################################
 
 
-class SkillRecordStatsMixin(models.Model):
+class Skill(models.Model):
     """
-    Shared total_time/total_records/total_xp aggregation over a skill's
-    linked TimeRecord (`records`) instances - split out from `Skill` so
-    `CharacterSkill` (which no longer owns name/description/level) can reuse
-    just the aggregation.
+    Abstract base model for tracking skills.
     """
 
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    level = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
     if TYPE_CHECKING:
-        # Reverse FK added by concrete subclasses (PlayerSkill, CharacterSkill)
-        # via each TimeRecord subclass's `related_name="records"`.
+        # Reverse FK added by concrete subclasses (PlayerSkill) via each
+        # TimeRecord subclass's `related_name="records"`.
         records: "Manager[Any]"
 
     @property
@@ -244,21 +249,6 @@ class SkillRecordStatsMixin(models.Model):
         abstract = True
 
 
-class Skill(SkillRecordStatsMixin):
-    """
-    Abstract base model for tracking skills.
-    """
-
-    name = models.CharField(max_length=255)
-    description = models.TextField(max_length=2000, blank=True)
-    level = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_updated = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
-
-
 class PlayerSkill(Skill, PlayerOwnedMixin):
     player = models.ForeignKey(
         "users.Player", on_delete=models.CASCADE, related_name="skills"
@@ -281,7 +271,15 @@ class PlayerSkill(Skill, PlayerOwnedMixin):
         return f"{self.name} ({self.player.name})"
 
 
-class CharacterSkill(SkillRecordStatsMixin):
+class CharacterSkill(models.Model):
+    """
+    A character's progress in a SkillDefinition. Time/XP totals are derived
+    from the character's completed CharacterActivity records for this skill
+    (via ActivityDefinition.skill) - the same source Role/SkillGroup
+    proficiency aggregates over - rather than owning any TimeRecord of its
+    own.
+    """
+
     character = models.ForeignKey(
         "character.Character", on_delete=models.CASCADE, related_name="skills"
     )
@@ -302,6 +300,29 @@ class CharacterSkill(SkillRecordStatsMixin):
     def __str__(self):
         return f"{self.skill_definition.name} ({self.character})"
 
+    def _matching_activities(self):
+        return CharacterActivity.objects.filter(
+            character=self.character,
+            activity_definition__skill=self.skill_definition,
+            is_complete=True,
+        )
+
+    @property
+    def total_time(self):
+        return (
+            self._matching_activities().aggregate(total=Sum("duration"))["total"] or 0
+        )
+
+    @property
+    def total_records(self):
+        return self._matching_activities().count()
+
+    @property
+    def total_xp(self):
+        return (
+            self._matching_activities().aggregate(total=Sum("xp_gained"))["total"] or 0
+        )
+
 
 #########################################
 #####      TimeRecord models
@@ -310,13 +331,14 @@ class CharacterSkill(SkillRecordStatsMixin):
 
 class TimeRecord(models.Model):
     """
-    Abstract base model for tracking time-based records, such as quests or activities.
+    Abstract base model for tracking time-based records, such as activities.
 
-    Stores metadata about start, completion, duration, and XP rewards.
+    Stores metadata about start, completion, duration, and XP rewards. Does
+    not carry name/description - subclasses that need an editable label own
+    that themselves (e.g. PlayerActivity); CharacterActivity instead points
+    at an ActivityDefinition for its name.
     """
 
-    name = models.CharField(max_length=255, blank=True)
-    description = models.TextField(max_length=2000, blank=True)
     duration = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField(null=True, blank=True)
     is_complete = models.BooleanField(default=False)
@@ -376,6 +398,8 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
     Activities may be linked to a skill or project, and can be private.
     """
 
+    name = models.CharField(max_length=255, blank=True)
+    description = models.TextField(max_length=2000, blank=True)
     player = models.ForeignKey(
         "users.Player", on_delete=models.CASCADE, related_name="activities"
     )
@@ -597,6 +621,41 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         return self.xp_gained
 
 
+class ActivityDefinition(models.Model):
+    """
+    Authored definition of a scheduled block a character's day can be made
+    of. Fully uniform: every CharacterActivity - work as well as sleep,
+    meals, and other routine blocks - points at one of these rather than
+    owning its own name/kind.
+    """
+
+    class Kind(models.TextChoices):
+        SLEEP = "sleep", "Sleeping"
+        MORNING = "morning", "Morning routine"
+        WORK = "work", "Working"
+        MEAL = "meal", "Meal"
+        LEISURE = "leisure", "Leisure"
+        WIND_DOWN = "wind_down", "Wind down"
+        REST = "rest", "Resting"
+        IDLE = "idle", "Idling"
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    kind = models.CharField(max_length=50, choices=Kind.choices)
+    skill = models.ForeignKey(
+        SkillDefinition,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activity_definitions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
 class CharacterActivity(TimeRecord):
     """
     Character's autonomous activity.
@@ -611,32 +670,32 @@ class CharacterActivity(TimeRecord):
         on_delete=models.CASCADE,
         related_name="activities",
     )
-    kind = models.CharField(
-        max_length=50,
-        choices=[
-            ("sleep", "Sleeping"),
-            ("morning", "Morning routine"),
-            ("work", "Working"),
-            ("meal", "Meal"),
-            ("leisure", "Leisure"),
-            ("wind_down", "Wind down"),
-            ("rest", "Resting"),
-            ("idle", "Idling"),
-        ],
+    activity_definition = models.ForeignKey(
+        ActivityDefinition,
+        on_delete=models.PROTECT,
+        related_name="character_activities",
     )
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"character_activity {self.name}"
+        return f"character_activity {self.activity_definition.name}"
+
+    @property
+    def name(self) -> str:
+        return self.activity_definition.name
+
+    @property
+    def kind(self) -> str:
+        return self.activity_definition.kind
 
     def calculate_base_xp(self, duration: int) -> int:
         """
         Calculate and store the XP gained based on duration.
         """
         base_xp = duration // 60
-        multiplier = 0.25 if self.kind == "rest" else 1
+        multiplier = 0.25 if self.kind == ActivityDefinition.Kind.REST else 1
         return int(base_xp * multiplier)
 
     def complete_now(self):
@@ -712,49 +771,6 @@ class CharacterActivity(TimeRecord):
             ]
         )
         return self.completed_at
-
-
-class CharacterQuest(TimeRecord):
-    """
-    Represents a quest assigned to a character.
-
-    Inherits common time tracking fields and behaviour from ``TimeRecord``.
-    Includes extra narrative fields (intro/outro text), user-selected
-    duration, and stage progression data.
-    """
-
-    character = models.ForeignKey(
-        "character.Character", on_delete=models.CASCADE, related_name="character_quests"
-    )
-    skill = models.ForeignKey(
-        "progression.CharacterSkill",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="records",
-    )
-    intro_text = models.TextField(max_length=2000, blank=True)
-    outro_text = models.TextField(max_length=2000, blank=True)
-    target_duration = models.PositiveIntegerField(default=0)
-    stages = models.JSONField(
-        default=list
-    )  # use this to add stage: self.stages = self.stages + [new_stage]
-    stages_fixed = models.BooleanField(default=False)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"character_quest {self.name}"
-
-    def calculate_base_xp(self) -> int:
-        """
-        Calculate and store the XP reward based on duration.
-
-        Currently, XP gained equals total duration in seconds.
-        """
-        xp = self.duration
-        return xp
 
 
 #########################################

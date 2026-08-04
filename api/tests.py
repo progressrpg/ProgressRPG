@@ -13,7 +13,7 @@ from unittest.mock import patch, MagicMock
 from character.models import Character, PlayerCharacterLink
 from core.models import Announcement, PlayerAnnouncementState
 from gameplay.models import Quest
-from progression.models import CharacterQuest, PlayerActivity
+from progression.models import PlayerActivity
 from server_management.models import FeatureFlag
 from users.models import CustomUserManager, Player
 

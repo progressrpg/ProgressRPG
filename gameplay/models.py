@@ -598,7 +598,7 @@ class QuestTimer(Timer):
         "character.Character", on_delete=models.CASCADE, related_name="quest_timer"
     )
     quest = models.ForeignKey(
-        "progression.CharacterQuest",
+        "gameplay.Quest",
         on_delete=models.SET_NULL,
         related_name="quest_timer",
         null=True,
@@ -613,11 +613,8 @@ class QuestTimer(Timer):
         """
         Reset the timer and change the associated quest.
         """
-        from progression.utils import copy_quest
-
         self.reset()
-        # self.quest = quest
-        self.quest = copy_quest(self.character, quest)
+        self.quest = quest
         self.duration = duration
         self.set_waiting()
         self.save(update_fields=["quest", "duration", "status"])
