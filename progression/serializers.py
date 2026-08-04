@@ -8,6 +8,9 @@ from users.models import Player
 from .models import (
     Category,
     Role,
+    SkillGroup,
+    SkillDefinition,
+    CharacterRole,
     PlayerSkill,
     CharacterSkill,
     PlayerActivity,
@@ -95,10 +98,37 @@ class CategorySerializer(GroupBaseSerializer):
         read_only_fields = ["player"]
 
 
-class RoleSerializer(GroupBaseSerializer):
-    class Meta(GroupBaseSerializer.Meta):
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
         model = Role
-        fields = GroupBaseSerializer.Meta.fields + ["character"]
+        fields = ["id", "name", "description", "created_at", "last_updated"]
+
+
+class SkillGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SkillGroup
+        fields = ["id", "role", "name", "description", "created_at", "last_updated"]
+
+
+class SkillDefinitionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SkillDefinition
+        fields = [
+            "id",
+            "name",
+            "description",
+            "role",
+            "gate_group",
+            "min_proficiency",
+            "created_at",
+            "last_updated",
+        ]
+
+
+class CharacterRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CharacterRole
+        fields = ["id", "character", "role", "assigned_at"]
 
 
 #########################################
@@ -117,10 +147,23 @@ class PlayerSkillSerializer(SkillBaseSerializer):
         read_only_fields = ["player"]
 
 
-class CharacterSkillSerializer(SkillBaseSerializer):
-    class Meta(SkillBaseSerializer.Meta):
+class CharacterSkillSerializer(serializers.ModelSerializer):
+    total_time = serializers.IntegerField(read_only=True)
+    total_records = serializers.IntegerField(read_only=True)
+    total_xp = serializers.IntegerField(read_only=True)
+
+    class Meta:
         model = CharacterSkill
-        fields = SkillBaseSerializer.Meta.fields + ["character", "roles"]
+        fields = [
+            "id",
+            "character",
+            "skill_definition",
+            "created_at",
+            "last_updated",
+            "total_time",
+            "total_records",
+            "total_xp",
+        ]
 
 
 #########################################

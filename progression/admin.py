@@ -5,6 +5,9 @@ from django.contrib import admin
 from .models import (
     Category,
     Role,
+    SkillGroup,
+    SkillDefinition,
+    CharacterRole,
     PlayerSkill,
     CharacterSkill,
     PlayerActivity,
@@ -38,18 +41,29 @@ class CategoryAdmin(admin.ModelAdmin):
 
 # @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "name",
-        "character",
-        "total_time",
-        "total_records",
-        "total_xp",
-        "created_at",
-    )
-    search_fields = ("name", "description", "character__name")
-    list_filter = ("character",)
-    readonly_fields = ("total_time", "total_records", "total_xp")
+    list_display = ("id", "name", "created_at")
+    search_fields = ("name", "description")
+
+
+# @admin.register(SkillGroup)
+class SkillGroupAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "role", "created_at")
+    search_fields = ("name", "description", "role__name")
+    list_filter = ("role",)
+
+
+# @admin.register(SkillDefinition)
+class SkillDefinitionAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "role", "gate_group", "min_proficiency", "created_at")
+    search_fields = ("name", "description", "role__name")
+    list_filter = ("role", "gate_group")
+
+
+# @admin.register(CharacterRole)
+class CharacterRoleAdmin(admin.ModelAdmin):
+    list_display = ("id", "character", "role", "assigned_at")
+    search_fields = ("character__name", "role__name")
+    list_filter = ("role",)
 
 
 #########################################
@@ -79,15 +93,14 @@ class PlayerSkillAdmin(admin.ModelAdmin):
 class CharacterSkillAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "name",
+        "skill_definition",
         "character",
-        "level",
         "total_time",
         "total_records",
         "total_xp",
     )
-    search_fields = ("name", "description", "character__name")
-    list_filter = ("character", "roles")
+    search_fields = ("skill_definition__name", "character__name")
+    list_filter = ("character",)
     readonly_fields = ("total_time", "total_records", "total_xp")
 
 

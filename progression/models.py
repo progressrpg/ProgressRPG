@@ -33,7 +33,7 @@ class Group(models.Model):
     last_updated = models.DateTimeField(auto_now=True)
 
     if TYPE_CHECKING:
-        # Reverse FK added by concrete subclasses (Category, Role) via each
+        # Reverse FK added by concrete subclasses (Category) via each
         # Skill subclass's `related_name="skills"`.
         skills: "Manager[Any]"
 
@@ -77,13 +77,127 @@ class Category(Group, PlayerOwnedMixin):
         return self.name
 
 
-class Role(Group):
-    character = models.ForeignKey(
-        "character.Character", on_delete=models.CASCADE, related_name="roles"
+#########################################
+#####      Role / skill taxonomy models
+#########################################
+
+
+def _character_skill_proficiency(character, **skill_definition_filter):
+    """
+    Sum XP earned by a character across CharacterSkills whose SkillDefinition
+    matches the given filter. Shared by `Role.proficiency_for` (filters on
+    `role`) and `SkillGroup.proficiency_for` (filters on `gate_group`) so both
+    scopes use the same aggregation.
+    """
+    return (
+        CharacterSkill.objects.filter(
+            character=character, **skill_definition_filter
+        ).aggregate(total=Sum("records__xp_gained"))["total"]
+        or 0
     )
+
+
+class Role(models.Model):
+    """
+    Authored role definition (e.g. "Farmer", "Guard") - not owned by any one
+    character. Characters hold roles via `CharacterRole`; `SkillGroup` and
+    `SkillDefinition` scope to a `Role` to build the skill taxonomy.
+    """
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+    def proficiency_for(self, character) -> int:
+        return _character_skill_proficiency(character, skill_definition__role=self)
+
+
+class SkillGroup(models.Model):
+    """
+    A named grouping of SkillDefinitions within a single Role, used as a
+    gating scope (see `SkillDefinition.gate_group`).
+    """
+
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name="skill_groups"
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.role.name})"
+
+    def proficiency_for(self, character) -> int:
+        return _character_skill_proficiency(
+            character, skill_definition__gate_group=self
+        )
+
+
+class SkillDefinition(models.Model):
+    """
+    Authored definition of a skill a character can practice. `role` is
+    nullable to allow general skills that aren't tied to any one role.
+    `gate_group` + `min_proficiency` gate the skill on a SkillGroup's
+    aggregate proficiency rather than on any specific prerequisite skill.
+    """
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.CASCADE,
+        related_name="skill_definitions",
+        null=True,
+        blank=True,
+    )
+    gate_group = models.ForeignKey(
+        SkillGroup,
+        on_delete=models.SET_NULL,
+        related_name="gated_skill_definitions",
+        null=True,
+        blank=True,
+    )
+    min_proficiency = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    def is_unlocked_for(self, character) -> bool:
+        if self.gate_group_id is None or self.min_proficiency is None:
+            return True
+        return self.gate_group.proficiency_for(character) >= self.min_proficiency
+
+
+class CharacterRole(models.Model):
+    """
+    Through model letting a character hold multiple Roles.
+    """
+
+    character = models.ForeignKey(
+        "character.Character", on_delete=models.CASCADE, related_name="character_roles"
+    )
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name="character_roles"
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["character", "role"], name="unique_character_role"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.character} - {self.role}"
 
 
 #########################################
@@ -91,16 +205,13 @@ class Role(Group):
 #########################################
 
 
-class Skill(models.Model):
+class SkillRecordStatsMixin(models.Model):
     """
-    Abstract base model for tracking skills.
+    Shared total_time/total_records/total_xp aggregation over a skill's
+    linked TimeRecord (`records`) instances - split out from `Skill` so
+    `CharacterSkill` (which no longer owns name/description/level) can reuse
+    just the aggregation.
     """
-
-    name = models.CharField(max_length=255)
-    description = models.TextField(max_length=2000, blank=True)
-    level = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_updated = models.DateTimeField(auto_now=True)
 
     if TYPE_CHECKING:
         # Reverse FK added by concrete subclasses (PlayerSkill, CharacterSkill)
@@ -133,6 +244,21 @@ class Skill(models.Model):
         abstract = True
 
 
+class Skill(SkillRecordStatsMixin):
+    """
+    Abstract base model for tracking skills.
+    """
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    level = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
 class PlayerSkill(Skill, PlayerOwnedMixin):
     player = models.ForeignKey(
         "users.Player", on_delete=models.CASCADE, related_name="skills"
@@ -155,14 +281,26 @@ class PlayerSkill(Skill, PlayerOwnedMixin):
         return f"{self.name} ({self.player.name})"
 
 
-class CharacterSkill(Skill):
+class CharacterSkill(SkillRecordStatsMixin):
     character = models.ForeignKey(
         "character.Character", on_delete=models.CASCADE, related_name="skills"
     )
-    roles = models.ManyToManyField(Role, related_name="skills")
+    skill_definition = models.ForeignKey(
+        SkillDefinition, on_delete=models.CASCADE, related_name="character_skills"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["character", "skill_definition"],
+                name="unique_character_skill_definition",
+            )
+        ]
 
     def __str__(self):
-        return self.name
+        return f"{self.skill_definition.name} ({self.character})"
 
 
 #########################################

@@ -1,6 +1,9 @@
 from progression.models import (
     Category,
     Role,
+    SkillGroup,
+    SkillDefinition,
+    CharacterRole,
     PlayerSkill,
     CharacterSkill,
     PlayerActivity,
@@ -47,33 +50,76 @@ class SkillModelTests(BaseTestCase):
 
         self.assertEqual(skill.name, "Deep Focus")
 
-    def test_character_skill_roles(self):
-        role1 = Role.objects.create(character=self.character, name="Leader")
-        role2 = Role.objects.create(character=self.character, name="Diplomat")
+    def test_character_skill_holds_multiple_roles_via_character_role(self):
+        role1 = Role.objects.create(name="Leader")
+        role2 = Role.objects.create(name="Diplomat")
+
+        CharacterRole.objects.create(character=self.character, role=role1)
+        CharacterRole.objects.create(character=self.character, role=role2)
+
+        held_roles = Role.objects.filter(character_roles__character=self.character)
+        self.assertEqual(held_roles.count(), 2)
+        self.assertIn(role1, held_roles)
+        self.assertIn(role2, held_roles)
+
+
+class RoleSkillGroupProficiencyTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.role = Role.objects.create(name="Adventurer")
+        self.skill_group = SkillGroup.objects.create(
+            role=self.role, name="Survival skills"
+        )
+        self.gated_skill_definition = SkillDefinition.objects.create(
+            name="Advanced foraging",
+            role=self.role,
+            gate_group=self.skill_group,
+            min_proficiency=10,
+        )
+        self.skill_definition = SkillDefinition.objects.create(
+            name="Survival",
+            role=self.role,
+            gate_group=self.skill_group,
+        )
+        self.general_skill_definition = SkillDefinition.objects.create(
+            name="Reading",
+        )
+
+    def test_skill_definition_without_gate_is_always_unlocked(self):
+        self.assertTrue(self.skill_definition.is_unlocked_for(self.character))
+        self.assertTrue(self.general_skill_definition.is_unlocked_for(self.character))
+
+    def test_gated_skill_definition_locked_until_min_proficiency_met(self):
+        self.assertFalse(self.gated_skill_definition.is_unlocked_for(self.character))
 
         skill = CharacterSkill.objects.create(
-            character=self.character,
-            name="Communication",
+            character=self.character, skill_definition=self.skill_definition
         )
-        skill.roles.add(role1, role2)
+        CharacterQuest.objects.create(
+            character=self.character,
+            name="Forage for food",
+            skill=skill,
+            duration=45,
+            xp_gained=45,
+            is_complete=True,
+        )
 
-        self.assertEqual(skill.roles.count(), 2)
-        self.assertIn(role1, skill.roles.all())
-        self.assertIn(role2, skill.roles.all())
+        self.assertEqual(self.role.proficiency_for(self.character), 45)
+        self.assertEqual(self.skill_group.proficiency_for(self.character), 45)
+        self.assertTrue(self.gated_skill_definition.is_unlocked_for(self.character))
 
 
 class CharacterQuestTests(BaseTestCase):
     def setUp(self):
         super().setUp()
-        self.role = Role.objects.create(
-            character=self.character,
-            name="Adventurer",
+        self.role = Role.objects.create(name="Adventurer")
+        self.skill_definition = SkillDefinition.objects.create(
+            name="Survival", role=self.role
         )
         self.skill = CharacterSkill.objects.create(
             character=self.character,
-            name="Survival",
+            skill_definition=self.skill_definition,
         )
-        self.skill.roles.add(self.role)
 
     def test_character_quest_complete(self):
         quest = CharacterQuest.objects.create(
