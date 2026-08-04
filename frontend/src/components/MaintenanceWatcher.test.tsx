@@ -1,7 +1,7 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router";
 
 import MaintenanceWatcher from "./MaintenanceWatcher";
 import { MaintenanceProvider, useMaintenanceContext } from "../context/MaintenanceContext";

@@ -5,6 +5,7 @@ import Button from "../../components/Button/Button";
 import PopulationCentreMap, {
   type PopulationCentreMapHandle,
 } from "../../components/Map/Map";
+import TodayPointsBadge from "../../components/TodayPointsBadge/TodayPointsBadge";
 import {
   useInitialMapCentre,
   useMapViewport,
@@ -104,6 +105,7 @@ export default function MapPage(): React.ReactElement {
             onViewportChange={setBbox}
             worldBounds={worldBounds?.bbox}
           >
+            <TodayPointsBadge />
             {nextVillage && (
               <Button
                 type="button"

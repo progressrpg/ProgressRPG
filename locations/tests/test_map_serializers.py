@@ -9,6 +9,7 @@ from ..models import Building, LandArea, PopulationCentre, Subzone
 from ..serializers import (
     BuildingFeatureSerializer,
     CharacterPointFeatureSerializer,
+    PopulationCentreLabelFeatureSerializer,
     SubzoneFeatureSerializer,
 )
 
@@ -185,3 +186,51 @@ class SubzoneFeatureSerializerTest(TestCase):
         props = self.properties()
         self.assertEqual(props["crop_stage"], "ready")
         self.assertIsNone(props["crop_progress"])
+
+
+class PopulationCentreLabelFeatureSerializerTest(TestCase):
+    """
+    The marker feature MapViewportView sends for each village on the
+    cross-village map (see issue #673) - needs state/progress alongside the
+    name/id it already carried, so the frontend can colour each marker by
+    state without an extra per-village fetch.
+    """
+
+    def setUp(self):
+        self.centre = PopulationCentre.objects.create(
+            name="Testville", location=Point(0, 0, srid=3857)
+        )
+
+    def properties(self):
+        return PopulationCentreLabelFeatureSerializer(self.centre).data["properties"]
+
+    def test_includes_state_and_progress_with_no_residents(self):
+        props = self.properties()
+        self.assertEqual(props["name"], "Testville")
+        self.assertEqual(props["population_centre_id"], self.centre.id)
+        self.assertEqual(props["state"], "Struggling")
+        self.assertEqual(props["progress"], 0)
+
+    def test_reflects_village_points_derived_state(self):
+        from character.models import Character, PlayerCharacterLink
+        from users.models import CustomUser
+
+        resident = Character.objects.create(
+            first_name="Res", last_name="Ident", population_centre=self.centre
+        )
+        user = CustomUser.objects.create_user(email="villager@example.com", password="x")
+        # Deactivate the auto-assigned link/character so only `resident`
+        # (with a controllable link_points via days_linked) counts here.
+        for link in PlayerCharacterLink.objects.filter(player=user.player, is_active=True):
+            link.unlink()
+        link = PlayerCharacterLink.objects.create(player=user.player, character=resident)
+        link.linked_at = timezone.now() - timezone.timedelta(days=10)
+        link.save(update_fields=["linked_at"])
+
+        # village_points is a cached_property read fresh per PopulationCentre
+        # instance, so re-fetch rather than reuse self.centre.
+        centre = PopulationCentre.objects.get(pk=self.centre.pk)
+        props = PopulationCentreLabelFeatureSerializer(centre).data["properties"]
+
+        self.assertEqual(props["state"], centre.state)
+        self.assertEqual(props["progress"], centre.progress)

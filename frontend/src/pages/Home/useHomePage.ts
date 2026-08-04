@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import { useAuth } from "../../context/AuthContext";
 import { trackEvent } from "../../utils/analytics";

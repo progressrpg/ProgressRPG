@@ -4,7 +4,7 @@ import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { GameProvider } from './context/GameContext';
 import { OnlineCountProvider } from './context/OnlineCountContext';
-import { BrowserRouter, useLocation } from 'react-router-dom';
+import { BrowserRouter, useLocation } from 'react-router';
 import { WebSocketProvider } from './context/WebSocketContext';
 
 import MaintenanceWatcher from './components/MaintenanceWatcher';

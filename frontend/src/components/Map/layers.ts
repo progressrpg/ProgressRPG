@@ -7,6 +7,7 @@ export const SUBZONES_FILL_LAYER = "subzones-fill";
 export const PATHS_LINE_LAYER = "paths-line";
 export const ROADS_LINE_LAYER = "roads-line";
 export const VILLAGE_LABEL_LAYER = "village-label";
+export const VILLAGE_MARKER_LAYER = "village-marker";
 export const CLICKABLE_LAYERS = [
 	BOUNDARY_FILL_LAYER,
 	BUILDINGS_FILL_LAYER,
@@ -14,6 +15,30 @@ export const CLICKABLE_LAYERS = [
 ];
 
 const CHARACTERS_LAYER = "characters";
+
+// Marker colour per PopulationCentre.state (see locations/models.py) - a
+// placeholder palette (issue #673 explicitly leaves the exact icon/colour
+// set as an open design question). Mirrors ProgressBar.module.scss's own
+// danger/warning/default/success classes (rather than inventing a separate
+// palette) so a village's marker colour and its tooltip progress bar
+// (VILLAGE_STATE_PROGRESS_COLORS below) read as the same colour per state.
+export const VILLAGE_STATE_COLORS: Record<string, string> = {
+	Struggling: "#c62828", // ProgressBar .danger (c.$color-error)
+	Recovering: "#ff9800", // ProgressBar .warning (c.$color-warning)
+	Stable: "#007a32", // ProgressBar .default (c.$color-progress-bar)
+	Thriving: "#00612a", // ProgressBar .success (c.$color-status-success)
+};
+const VILLAGE_STATE_DEFAULT_COLOR = "#888";
+
+// ProgressBar `color` prop values per state, for the "tap a marker" expanded
+// tooltip - see VILLAGE_STATE_COLORS above for how these line up with the
+// marker's own fill colour.
+export const VILLAGE_STATE_PROGRESS_COLORS: Record<string, string> = {
+	Struggling: "danger",
+	Recovering: "warning",
+	Stable: "default",
+	Thriving: "success",
+};
 
 function createCharacterIcon(): ImageData {
     const size = 256;
@@ -111,6 +136,37 @@ export function addVillageLayers(map: MapLibreMap): void {
 		paint: {
 			"line-color": "#8b5a2b",
 			"line-width": ["*", ["coalesce", ["get", "width"], 6], 0.5],
+		},
+	});
+	map.addLayer({
+		id: VILLAGE_MARKER_LAYER,
+		type: "circle",
+		source: "village",
+		filter: [
+			"==",
+			["get", "feature_type"],
+			"population_centre_label",
+		],
+		paint: {
+			"circle-radius": [
+				"interpolate",
+				["linear"],
+				["zoom"],
+				2, 3,
+				10, 5,
+				14, 9,
+			],
+			"circle-color": [
+				"match",
+				["get", "state"],
+				"Struggling", VILLAGE_STATE_COLORS.Struggling,
+				"Recovering", VILLAGE_STATE_COLORS.Recovering,
+				"Stable", VILLAGE_STATE_COLORS.Stable,
+				"Thriving", VILLAGE_STATE_COLORS.Thriving,
+				VILLAGE_STATE_DEFAULT_COLOR,
+			],
+			"circle-stroke-width": 1.5,
+			"circle-stroke-color": "#fff",
 		},
 	});
 	map.addLayer({

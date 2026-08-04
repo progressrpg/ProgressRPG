@@ -196,6 +196,33 @@ class TestMeViewSet(APITestCase):
         self.assertTrue(player_for(self.user).onboarding_completed)
         self.assertEqual(res.data, {"onboarding_completed": True})
 
+    def test_today_points_null_when_no_active_link(self):
+        self.authenticate()
+        player = player_for(self.user)
+        self.assertIsNone(player.active_link)
+
+        res = self.client.get(reverse("me-today-points"))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIsNone(res.data["points_today"])
+
+    def test_today_points_reflects_todays_completed_activities(self):
+        self.authenticate()
+        player = player_for(self.user)
+        PlayerCharacterLink.objects.create(player=player, character=self.character)
+
+        PlayerActivity.objects.create(
+            player=player,
+            is_complete=True,
+            duration=1200,  # 20 minutes -> 2 points
+            completed_at=datetime.now(timezone.utc),
+        )
+
+        res = self.client.get(reverse("me-today-points"))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["points_today"], 2)
+
 
 class CustomTokenObtainPairViewTests(APITestCase):
     def setUp(self):

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router";
 import { apiFetch } from "../utils/api";
 import { useGame } from "../hooks/useGame";
 import Button from "../components/Button/Button";

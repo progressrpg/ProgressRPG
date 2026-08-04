@@ -1,5 +1,5 @@
 import React, { lazy } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate } from "react-router";
 import FeatureToggle from "../components/FeatureToggle";
 
 // Lazy load pages

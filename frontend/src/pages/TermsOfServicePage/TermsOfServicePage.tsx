@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import styles from '../LegalPage/LegalPage.module.scss';
 import BackToTopButton from '../../components/BackToTopButton/BackToTopButton';
 

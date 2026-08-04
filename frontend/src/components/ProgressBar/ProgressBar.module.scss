@@ -85,6 +85,10 @@
   background-color: c.$color-error;
 }
 
+.success {
+  background-color: c.$color-status-success;
+}
+
 .paused {
   opacity: 0.5;
 }

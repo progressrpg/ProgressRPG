@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import BackToTopButton from '../../components/BackToTopButton/BackToTopButton';
 import Button from '../../components/Button/Button';
 import Seo from '../../components/Seo/Seo';

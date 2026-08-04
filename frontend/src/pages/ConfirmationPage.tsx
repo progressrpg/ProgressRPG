@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE_URL } from "../config";
 

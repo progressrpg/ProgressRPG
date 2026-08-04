@@ -40,3 +40,14 @@ export const deleteAccount = async (): Promise<unknown> => {
   });
   return response;
 };
+
+export interface TodayPointsResponse {
+  // null (not 0) when the player has no active PlayerCharacterLink - see
+  // MeViewSet.today_points in api/views.py. Callers use this to hide the
+  // map view's "today" badge entirely rather than showing a zero (issue #673).
+  points_today: number | null;
+}
+
+export const fetchTodayPoints = async (): Promise<TodayPointsResponse> => {
+  return apiFetch<TodayPointsResponse>("/me/today_points/");
+};

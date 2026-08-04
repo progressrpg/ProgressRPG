@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import Form from '../../components/Form/Form';
 import Input from '../../components/Input/Input';
 import Turnstile from '../../components/Turnstile/Turnstile';

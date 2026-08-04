@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import styles from "./NavDrawer.module.scss";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useAuth } from "../../context/AuthContext";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 

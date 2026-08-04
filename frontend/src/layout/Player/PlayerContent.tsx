@@ -2,7 +2,7 @@ import React from "react";
 import styles from "./PlayerContent.module.scss";
 import FeatureToggle from "../../components/FeatureToggle";
 import ActivityList from "../ActivityList/ActivityList";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 // PlayerContent accepts arbitrary props and forwards them to ActivityList.
 // The props are not formally typed here because ActivityList itself accepts none —
