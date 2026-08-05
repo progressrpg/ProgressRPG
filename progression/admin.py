@@ -10,6 +10,8 @@ from .models import (
     CharacterRole,
     PlayerSkill,
     CharacterSkill,
+    Activity,
+    SuggestedActivity,
     PlayerActivity,
     ActivityDefinition,
     CharacterActivity,
@@ -105,6 +107,24 @@ class CharacterSkillAdmin(admin.ModelAdmin):
 
 
 #########################################
+#####      Activity admins
+#########################################
+
+
+# @admin.register(Activity)
+class ActivityAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "player", "created_at")
+    search_fields = ("name", "description", "player__name")
+    list_filter = ("player",)
+
+
+# @admin.register(SuggestedActivity)
+class SuggestedActivityAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "created_at")
+    search_fields = ("name", "description")
+
+
+#########################################
 #####      TimeRecord admins
 #########################################
 
@@ -114,14 +134,14 @@ class PlayerActivityAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "group_key",
+        "activity",
         "player",
         "duration",
         "created_at",
         "started_at",
         "completed_at",
     )
-    search_fields = ("name", "group_key", "description", "player__name")
+    search_fields = ("name", "activity__name", "description", "player__name")
     list_filter = ("player", "is_private", "is_complete", "skill", "project", "task")
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)

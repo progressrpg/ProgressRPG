@@ -1,9 +1,10 @@
-from datetime import timedelta
+from django.contrib.auth import get_user_model
 
-from django.utils import timezone
-
-from progression.models import Category, PlayerActivity, PlayerSkill
+from progression.models import Activity, Category, PlayerActivity, PlayerSkill
+from users.models import Player
 from .base import BaseTestCase
+
+User = get_user_model()
 
 
 class ActivityModelTests(BaseTestCase):
@@ -47,77 +48,42 @@ class ActivityModelTests(BaseTestCase):
         self.assertEqual(self.skill.total_time, 30)
         self.assertEqual(self.skill.records.count(), 1)
 
-    def test_activity_infers_group_key_from_exact_case_insensitive_match(self):
-        PlayerActivity.objects.create(
-            player=self.player,
-            name="Deep Work",
-            group_key="deep-work-session",
-        )
-        PlayerActivity.objects.create(
-            player=self.player,
-            name="deep work",
-            group_key="deep-work-session",
-        )
-        PlayerActivity.objects.create(
-            player=self.player,
-            name="Deep Work",
-            group_key="other-group",
-        )
+    def test_creating_a_session_resolves_a_case_insensitive_match(self):
+        first = PlayerActivity.objects.create(player=self.player, name="Deep Work")
+        second = PlayerActivity.objects.create(player=self.player, name="deep work")
+        third = PlayerActivity.objects.create(player=self.player, name="DEEP WORK")
 
-        activity = PlayerActivity.objects.create(
-            player=self.player,
-            name="DEEP WORK",
-        )
+        self.assertEqual(Activity.objects.filter(player=self.player).count(), 1)
+        self.assertEqual(first.activity_id, second.activity_id)
+        self.assertEqual(first.activity_id, third.activity_id)
+        self.assertEqual(first.activity.name, "Deep Work")
 
-        self.assertEqual(activity.group_key, "deep-work-session")
+    def test_creating_a_session_with_a_new_name_creates_a_new_activity(self):
+        PlayerActivity.objects.create(player=self.player, name="Deep Work")
+        activity = PlayerActivity.objects.create(player=self.player, name="Admin")
 
-    def test_activity_infers_group_key_from_dominant_similar_titles(self):
-        recent_time = timezone.now() - timedelta(days=5)
-        for name in [
-            "Write docs",
-            "Write documentation",
-            "Write docs sprint",
-        ]:
-            activity = PlayerActivity.objects.create(
-                player=self.player,
-                name=name,
-                group_key="docs-writing",
-            )
-            PlayerActivity.objects.filter(pk=activity.pk).update(
-                last_updated=recent_time
-            )
+        self.assertEqual(Activity.objects.filter(player=self.player).count(), 2)
+        self.assertEqual(activity.activity.name, "Admin")
 
-        older_activity = PlayerActivity.objects.create(
-            player=self.player,
-            name="Write document",
-            group_key="other-group",
-        )
-        PlayerActivity.objects.filter(pk=older_activity.pk).update(
-            last_updated=timezone.now() - timedelta(days=180)
-        )
+    def test_blank_named_session_leaves_activity_unset(self):
+        activity = PlayerActivity.objects.create(player=self.player, name="")
 
-        activity = PlayerActivity.objects.create(
-            player=self.player,
-            name="Write doc",
-        )
+        self.assertIsNone(activity.activity)
 
-        self.assertEqual(activity.group_key, "docs-writing")
+    def test_renaming_a_session_re_resolves_its_activity(self):
+        first = PlayerActivity.objects.create(player=self.player, name="Deep Work")
+        session = PlayerActivity.objects.create(player=self.player, name="")
 
-    def test_activity_leaves_group_key_null_when_similar_signal_is_weak(self):
-        PlayerActivity.objects.create(
-            player=self.player,
-            name="Write docs",
-            group_key="docs-writing",
-        )
-        PlayerActivity.objects.create(
-            player=self.player,
-            name="Write document",
-            group_key="document-work",
-        )
+        session.rename("deep work")
 
-        activity = PlayerActivity.objects.create(
-            player=self.player,
-            name="Write doc",
-        )
+        self.assertEqual(session.activity_id, first.activity_id)
 
-        self.assertIsNone(activity.group_key)
+    def test_activities_are_not_shared_across_players(self):
+        other_user = User.objects.create_user(email="other@test.com", password="pass")
+        other_player, _ = Player.objects.get_or_create(user=other_user)
+
+        mine = PlayerActivity.objects.create(player=self.player, name="Deep Work")
+        theirs = PlayerActivity.objects.create(player=other_player, name="Deep Work")
+
+        self.assertNotEqual(mine.activity_id, theirs.activity_id)
+        self.assertEqual(Activity.objects.filter(name__iexact="deep work").count(), 2)

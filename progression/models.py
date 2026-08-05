@@ -1,6 +1,5 @@
 # progression/models.py
 from decimal import Decimal
-from datetime import datetime, timedelta
 from django.apps import apps
 from django.db import models, transaction
 from django.db.models import CheckConstraint, Q, Sum
@@ -427,12 +426,67 @@ class TimeRecord(models.Model):
         abstract = True
 
 
+class Activity(PlayerOwnedMixin):
+    """
+    A player's reusable activity "type" (e.g. "Write tests"). PlayerActivity
+    sessions FK this explicitly rather than each owning a free-standing
+    name, replacing the old fuzzy name-matching (group_key/infer_group_key).
+    """
+
+    player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="activity_catalog"
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # progression_activity is already claimed by PlayerActivity's legacy
+        # explicit db_table.
+        db_table = "progression_activity_catalog"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["player", "name"], name="unique_player_activity_name"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.player.name})"
+
+    @classmethod
+    def get_or_create_for_player(cls, player, name: str) -> "Activity":
+        normalized_name = name.strip()
+        existing = cls.objects.filter(
+            player=player, name__iexact=normalized_name
+        ).first()
+        if existing:
+            return existing
+        return cls.objects.create(player=player, name=normalized_name)
+
+
+class SuggestedActivity(models.Model):
+    """
+    Authored, curated catalog for activity-name autocomplete - no FK to any
+    player's data, so player-typed activity names (see Activity) stay
+    private.
+    """
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
 class PlayerActivity(TimeRecord, PlayerOwnedMixin):
     """
-    Represents an activity tracked by a user.
+    Represents an activity session tracked by a user.
 
     Inherits common time tracking fields and behaviour from ``TimeRecord``.
-    Activities may be linked to a skill or project, and can be private.
+    Sessions may be linked to a skill or project, and can be private.
     """
 
     name = models.CharField(max_length=255, blank=True)
@@ -440,7 +494,13 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
     player = models.ForeignKey(
         "users.Player", on_delete=models.CASCADE, related_name="activities"
     )
-    group_key = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    activity = models.ForeignKey(
+        Activity,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sessions",
+    )
     is_private = models.BooleanField(default=False)
     skill = models.ForeignKey(
         "progression.PlayerSkill",
@@ -480,139 +540,22 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         """
         return "Private activity" if self.is_private else f"activity {self.name}"
 
-    @staticmethod
-    def _normalized_grouping_name(name: str | None) -> str:
-        return (name or "").strip().casefold()
-
-    @staticmethod
-    def _history_last_seen(activity: "PlayerActivity"):
-        return activity.completed_at or activity.last_updated or activity.created_at
-
-    def _grouped_history(self):
-        if not self.player_id:
-            return []
-
-        queryset = (
-            self.__class__.objects.filter(player_id=self.player_id)
-            .exclude(group_key__isnull=True)
-            .exclude(group_key="")
-            .only(
-                "id", "name", "group_key", "completed_at", "last_updated", "created_at"
-            )
-        )
-
-        if self.pk:
-            queryset = queryset.exclude(pk=self.pk)
-
-        return list(queryset)
-
-    def infer_group_key(self) -> str | None:
-        normalized_name = self._normalized_grouping_name(self.name)
-        if not normalized_name:
-            return None
-
-        history = self._grouped_history()
-        if not history:
-            return None
-
-        overall_stats: dict[str, dict[str, Any]] = {}
-        exact_stats: dict[str, dict[str, Any]] = {}
-        similar_stats: dict[str, dict[str, Any]] = {}
-
-        for activity in history:
-            if not activity.group_key:
-                continue
-
-            last_seen = self._history_last_seen(activity)
-            group_key = activity.group_key
-            existing_name = self._normalized_grouping_name(activity.name)
-
-            overall_entry = overall_stats.setdefault(
-                group_key,
-                {"count": 0, "last_seen": last_seen},
-            )
-            overall_entry["count"] += 1
-            if last_seen > overall_entry["last_seen"]:
-                overall_entry["last_seen"] = last_seen
-
-            if existing_name == normalized_name:
-                exact_entry = exact_stats.setdefault(
-                    group_key,
-                    {"count": 0, "last_seen": last_seen},
-                )
-                exact_entry["count"] += 1
-                if last_seen > exact_entry["last_seen"]:
-                    exact_entry["last_seen"] = last_seen
-                continue
-
-            if existing_name and (
-                normalized_name in existing_name or existing_name in normalized_name
-            ):
-                similar_entry = similar_stats.setdefault(
-                    group_key,
-                    {"count": 0, "last_seen": last_seen},
-                )
-                similar_entry["count"] += 1
-                if last_seen > similar_entry["last_seen"]:
-                    similar_entry["last_seen"] = last_seen
-
-        def ranked_candidates(stats: dict[str, dict[str, Any]]):
-            return sorted(
-                (
-                    {
-                        "group_key": group_key,
-                        "count": values["count"],
-                        "overall_count": overall_stats[group_key]["count"],
-                        "last_seen": values["last_seen"],
-                    }
-                    for group_key, values in stats.items()
-                ),
-                key=lambda candidate: (
-                    -candidate["count"],
-                    -candidate["overall_count"],
-                    -candidate["last_seen"].timestamp(),
-                ),
-            )
-
-        exact_candidates = ranked_candidates(exact_stats)
-        if exact_candidates:
-            return cast(str, exact_candidates[0]["group_key"])
-
-        similar_candidates = ranked_candidates(similar_stats)
-        if not similar_candidates:
-            return None
-
-        top_candidate = similar_candidates[0]
-        top_last_seen = cast(datetime, top_candidate["last_seen"])
-        if top_candidate["count"] < 3 or timezone.now() - top_last_seen > timedelta(
-            days=120
-        ):
-            return None
-
-        if len(similar_candidates) > 1:
-            second_candidate = similar_candidates[1]
-            if (
-                top_candidate["count"] < second_candidate["count"] * 2
-                or top_candidate["count"] - second_candidate["count"] < 2
-            ):
-                return None
-
-        return cast(str, top_candidate["group_key"])
-
     def save(self, *args, **kwargs):
-        if not self.group_key:
-            inferred_group_key = self.infer_group_key()
-            if inferred_group_key:
-                self.group_key = inferred_group_key
-                update_fields = kwargs.get("update_fields")
-                if update_fields is not None:
-                    kwargs["update_fields"] = set(update_fields) | {"group_key"}
+        if not self.activity_id and self.player_id and self.name.strip():
+            self.activity = Activity.get_or_create_for_player(self.player, self.name)
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"activity"}
 
         super().save(*args, **kwargs)
 
     def rename(self, newName):
         self.name = newName
-        self.save(update_fields=["name"])
+        update_fields = ["name"]
+        if newName.strip() and self.player_id:
+            self.activity = Activity.get_or_create_for_player(self.player, newName)
+            update_fields.append("activity")
+        self.save(update_fields=update_fields)
 
     def calculate_base_xp(self, duration: int) -> int:
         from .points import base_rate

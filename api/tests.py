@@ -13,7 +13,7 @@ from unittest.mock import patch, MagicMock
 from character.models import Character, PlayerCharacterLink
 from core.models import Announcement, PlayerAnnouncementState
 from gameplay.models import Quest
-from progression.models import PlayerActivity
+from progression.models import Activity, PlayerActivity
 from server_management.models import FeatureFlag
 from users.models import CustomUserManager, Player
 
@@ -430,7 +430,7 @@ class AppConfigViewTests(APITestCase):
         )
 
 
-class PlayerActivityGroupKeyAPITests(APITestCase):
+class PlayerActivityActivityLinkAPITests(APITestCase):
     def setUp(self):
         self.user = create_test_user(
             email="activity-groups@example.com",
@@ -439,16 +439,10 @@ class PlayerActivityGroupKeyAPITests(APITestCase):
         self.client.force_authenticate(user=self.user)
         self.url = reverse("playeractivity-list")
 
-    def test_create_reuses_dominant_exact_match_group_key(self):
-        PlayerActivity.objects.create(
+    def test_create_reuses_case_insensitive_matching_activity(self):
+        existing = PlayerActivity.objects.create(
             player=player_for(self.user),
             name="Morning planning",
-            group_key="morning-planning",
-        )
-        PlayerActivity.objects.create(
-            player=player_for(self.user),
-            name="morning planning",
-            group_key="morning-planning",
         )
 
         response = self.client.post(
@@ -459,6 +453,9 @@ class PlayerActivityGroupKeyAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(
-            response.data["activity"]["group_key"],
-            "morning-planning",
+            response.data["activity"]["activity"],
+            existing.activity_id,
+        )
+        self.assertEqual(
+            Activity.objects.filter(player=player_for(self.user)).count(), 1
         )

@@ -13,6 +13,8 @@ from .models import (
     CharacterRole,
     PlayerSkill,
     CharacterSkill,
+    Activity,
+    SuggestedActivity,
     PlayerActivity,
     ActivityDefinition,
     CharacterActivity,
@@ -188,23 +190,46 @@ class ActivityDefinitionSerializer(serializers.ModelSerializer):
         ]
 
 
+class ActivitySerializer(serializers.ModelSerializer):
+    player: serializers.PrimaryKeyRelatedField[Player] = (
+        serializers.PrimaryKeyRelatedField(read_only=True)
+    )
+
+    class Meta:
+        model = Activity
+        fields = [
+            "id",
+            "player",
+            "name",
+            "description",
+            "created_at",
+            "last_updated",
+        ]
+        read_only_fields = ["player"]
+
+
+class SuggestedActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SuggestedActivity
+        fields = ["id", "name", "description", "created_at", "last_updated"]
+
+
 class PlayerActivitySerializer(TimeRecordBaseSerializer):
     player: serializers.PrimaryKeyRelatedField[Player] = (
         serializers.PrimaryKeyRelatedField(read_only=True)
     )
-    group_key = serializers.CharField(read_only=True)
 
     class Meta(TimeRecordBaseSerializer.Meta):
         model = PlayerActivity
         fields = TimeRecordBaseSerializer.Meta.fields + [
             "player",
-            "group_key",
+            "activity",
             "is_private",
             "skill",
             "project",
             "task",
         ]
-        read_only_fields = ["player"]
+        read_only_fields = ["player", "activity"]
 
 
 class CharacterActivitySerializer(serializers.ModelSerializer):
