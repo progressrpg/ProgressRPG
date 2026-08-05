@@ -206,7 +206,16 @@ class Character(Person, LifeCycleMixin, Movable):
 
     @property
     def total_activities(self):
-        return self.activities.filter(is_complete=True).count()
+        from progression.models import CharacterActivityArchive
+
+        live_count = self.activities.filter(is_complete=True).count()
+        archived_count = (
+            CharacterActivityArchive.objects.filter(character=self).aggregate(
+                total=Sum("record_count")
+            )["total"]
+            or 0
+        )
+        return live_count + archived_count
 
     @property
     def full_name(self):

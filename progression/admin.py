@@ -15,6 +15,7 @@ from .models import (
     PlayerActivity,
     ActivityDefinition,
     CharacterActivity,
+    CharacterActivityArchive,
     Project,
     Task,
 )
@@ -188,6 +189,34 @@ class CharacterActivityAdmin(admin.ModelAdmin):
         for activity in queryset:
             activity.complete_past()
         self.message_user(request, "Activities have been completed.")
+
+
+@admin.register(CharacterActivityArchive)
+class CharacterActivityArchiveAdmin(admin.ModelAdmin):
+    """
+    Read-only - rows are written exclusively by
+    progression.tasks.compact_character_activities.
+    """
+
+    list_display = (
+        "character",
+        "activity_definition",
+        "month",
+        "total_duration",
+        "record_count",
+    )
+    search_fields = ("character__name", "activity_definition__name")
+    list_filter = ("month", "activity_definition")
+    date_hierarchy = "month"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 #########################################

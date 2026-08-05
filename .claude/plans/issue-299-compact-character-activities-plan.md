@@ -51,7 +51,7 @@ No changes needed to `CharacterActivityViewSet`/serializer/filters — archived 
 - **Character/ActivityDefinition deletion:** `CharacterActivity.character` is `CASCADE` and `activity_definition` is `PROTECT`. Archive rows should mirror this — `character` `CASCADE` (a deleted character's archived history should go with it, same as its live rows do today) and `activity_definition` `PROTECT` (an authored definition can't be deleted out from under archived aggregates, same protection the live table already has).
 - **Partial task failure mid-run:** processing per-group in its own transaction means a crash partway through only risks re-processing the last incomplete group (safe, since archive writes are additive) — not the whole batch.
 - **Concurrent compaction runs** (e.g. retried Celery task overlapping a slow prior run): guard with `select_for_update()` on the `CharacterActivity` rows being grouped/deleted per group, matching the locking pattern already used in `behaviour_services.py` (`CharacterActivity.objects.select_for_update()`), so two overlapping runs can't double-delete/double-count the same rows.
-- **Migration/backfill of existing production data:** the first run of this task against the existing table could touch a very large number of rows at once. Worth capping how far back the *first* run compacts (e.g. process one month-cohort per invocation, oldest-first) rather than assuming a single run clears the entire backlog — flagged as an open question below rather than decided here.
+- **Migration/backfill of existing production data:** characters only accumulate a few months of `CharacterActivity` history at most (not years), so the first scheduled run of `compact_character_activities` doubles as the backfill — no separate one-off/bounded command needed. Per-group transactions already keep individual lock windows short regardless of how many groups exist in that first run.
 - **`character_total_skill_xp` recalculation cost:** it's called on every `CharacterActivity.complete_now()`/`complete_past()` to compute the mastery multiplier. Adding a second aggregate query (against the archive table) roughly doubles that cost per completion. Should stay cheap given both queries are indexed sums, but worth confirming with a query-count assertion in tests, not just a functional one.
 
 ## 6. Tests
@@ -67,10 +67,7 @@ No changes needed to `CharacterActivityViewSet`/serializer/filters — archived 
 
 - Forgetting to update *all* consumers of `_character_skill_duration` — it's a single shared helper, so this is low-risk by construction, but any code that queries `CharacterActivity` directly for a duration/XP total *outside* that helper (worth a fresh grep at implementation time) would silently under-count once compaction starts running.
 - Off-by-one on the cutoff boundary (`completed_at < cutoff` vs `<=`, and month-bucketing using `completed_at` vs `scheduled_end`) — should pick one field consistently and document why (recommend `completed_at`, since `scheduled_end` can differ for activities completed late via `complete_past()`).
-- Running the first compaction pass against a large existing production backlog inside one Celery task invocation without a batch/resume cap, risking a long-running task or timeout (see edge case above).
-
 ## 8. Open questions
 
 - What cutoff should `activity_completion_cutoff_days` default to (issue says "past month" as an example, not a firm number)?
-- Should the very first backfill run against existing production data be a one-off management command (bounded, observable, re-runnable manually) rather than letting the first beat-scheduled run process the entire historical backlog at once?
 - Is there any product requirement to ever surface archived months to players/admins (e.g. "time spent per month" summary), or is this purely a backend storage concern for now? Affects whether `CharacterActivityArchive` needs a serializer/endpoint at all.

@@ -102,6 +102,14 @@ class GameSettings(models.Model):
     xp_mastery_multiplier_cap = models.DecimalField(
         max_digits=5, decimal_places=2, default="3.00"
     )
+    activity_compaction_cutoff_days = models.IntegerField(
+        default=90,
+        help_text=(
+            "Completed CharacterActivity rows older than this are rolled "
+            "into CharacterActivityArchive monthly summaries and deleted "
+            "(see progression.tasks.compact_character_activities)."
+        ),
+    )
     activity_search_includes_tasks = models.BooleanField(default=False)
     trial_period_days = models.IntegerField(default=14)
     registration_cap = models.IntegerField(default=1_000_000_000)
@@ -158,6 +166,8 @@ class GameSettings(models.Model):
             errors["xp_mastery_scale"] = "Must be > 0."
         if self.xp_mastery_multiplier_cap < 1:
             errors["xp_mastery_multiplier_cap"] = "Must be >= 1."
+        if self.activity_compaction_cutoff_days <= 0:
+            errors["activity_compaction_cutoff_days"] = "Must be > 0."
         if self.trial_period_days < 0:
             errors["trial_period_days"] = "Must be non-negative."
         if self.registration_cap < 0:

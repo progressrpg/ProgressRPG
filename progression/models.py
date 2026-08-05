@@ -89,17 +89,32 @@ def _character_skill_duration(character, **skill_definition_filter):
     Sum completed duration for a character across CharacterActivity records
     whose ActivityDefinition.skill matches the given SkillDefinition filter
     (e.g. role=<Role> or gate_group=<SkillGroup>; no filter = every skill).
+
+    Includes both the live CharacterActivity table (recent history) and
+    CharacterActivityArchive (older history rolled up by
+    progression.tasks.compact_character_activities) - the archive holds the
+    same duration total under a coarser (character, activity_definition,
+    month) grouping, so summing both keeps this the single source of truth
+    proficiency/mastery calculations rely on regardless of what's been
+    compacted.
     """
     filter_kwargs = {
         f"activity_definition__skill__{lookup}": value
         for lookup, value in skill_definition_filter.items()
     }
-    return (
+    live_total = (
         CharacterActivity.objects.filter(
             character=character, is_complete=True, **filter_kwargs
         ).aggregate(total=Sum("duration"))["total"]
         or 0
     )
+    archived_total = (
+        CharacterActivityArchive.objects.filter(
+            character=character, **filter_kwargs
+        ).aggregate(total=Sum("total_duration"))["total"]
+        or 0
+    )
+    return live_total + archived_total
 
 
 def _character_skill_proficiency(character, **skill_definition_filter):
@@ -328,15 +343,27 @@ class CharacterSkill(models.Model):
             is_complete=True,
         )
 
-    @property
-    def total_time(self):
-        return (
-            self._matching_activities().aggregate(total=Sum("duration"))["total"] or 0
+    def _matching_archive(self):
+        return CharacterActivityArchive.objects.filter(
+            character=self.character,
+            activity_definition__skill=self.skill_definition,
         )
 
     @property
+    def total_time(self):
+        # Reuses _character_skill_duration (rather than aggregating
+        # _matching_activities() directly) so this stays in sync with
+        # CharacterActivityArchive once compaction rolls older rows up -
+        # see progression.tasks.compact_character_activities.
+        return _character_skill_duration(self.character, pk=self.skill_definition_id)
+
+    @property
     def total_records(self):
-        return self._matching_activities().count()
+        live_count = self._matching_activities().count()
+        archived_count = (
+            self._matching_archive().aggregate(total=Sum("record_count"))["total"] or 0
+        )
+        return live_count + archived_count
 
     @property
     def total_xp(self):
@@ -793,6 +820,50 @@ class CharacterActivity(TimeRecord):
 
         self._finish(self.get_xp_reward_summary())
         return self.completed_at
+
+
+class CharacterActivityArchive(models.Model):
+    """
+    Monthly rollup of a character's completed CharacterActivity history -
+    see progression.tasks.compact_character_activities. Once a
+    CharacterActivity row ages past GameSettings.activity_compaction_cutoff_days,
+    its duration/count are folded into the matching (character,
+    activity_definition, month) row here and the original row is deleted.
+
+    Grouped by activity_definition rather than pre-aggregated to skill so
+    `_character_skill_duration` can still join through
+    `activity_definition__skill` at query time - archived rows don't need
+    rewriting if a definition's skill is reassigned later.
+    """
+
+    character = models.ForeignKey(
+        "character.Character",
+        on_delete=models.CASCADE,
+        related_name="activity_archive",
+    )
+    activity_definition = models.ForeignKey(
+        ActivityDefinition,
+        on_delete=models.PROTECT,
+        related_name="character_activity_archive",
+    )
+    month = models.DateField(help_text="First day of the archived month.")
+    total_duration = models.PositiveIntegerField(default=0)
+    record_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["character", "activity_definition", "month"],
+                name="unique_character_activity_archive_month",
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.character} / {self.activity_definition.name} / {self.month:%Y-%m}"
+        )
 
 
 #########################################

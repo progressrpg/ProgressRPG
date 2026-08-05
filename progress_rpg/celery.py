@@ -58,6 +58,10 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=1, minute=0),
         "args": (),
     },
+    "compact_character_activities_3am": {
+        "task": "progression.tasks.compact_character_activities",
+        "schedule": crontab(hour=3, minute=0),
+    },
     "calculate-daily-metrics": {
         "task": "metrics.tasks.calculate_daily_metrics",
         "schedule": crontab(hour=1, minute=0),  # Daily at 1 AM
