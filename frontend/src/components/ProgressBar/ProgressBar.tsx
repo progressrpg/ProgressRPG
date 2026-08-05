@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import * as Progress from "@radix-ui/react-progress";
+import { Progress } from "tamagui";
 import styles from "./ProgressBar.module.scss";
 import type { TimerStatus } from "../../types";
 
@@ -41,7 +41,7 @@ const ProgressBar = ({
   const progressClass = [
     styles.progressBarFill,
     styles[color] || styles.default,
-    paused ? styles.paused : ""
+    paused ? styles.paused : "",
   ].join(" ");
 
   // Border-only variant of the same colour, applied to the track rather than
@@ -75,23 +75,25 @@ const ProgressBar = ({
         <span className={styles.labelOutside}>{label}</span>
       )}
 
-      <Progress.Root
+      <Progress
+        unstyled
         className={trackClass}
         value={Math.min(value, max)}
         max={max}
         aria-label={label || undefined}
       >
-        <div
-          ref={fillRef}
-          className={progressClass}
-          style={{ width: `${percent}%` }}
-          aria-hidden="true"
-        >
-          {label && showInsideLabel && (
-            <span className={styles.labelInside}>{label}</span>
-          )}
-        </div>
-      </Progress.Root>
+        <Progress.Indicator aria-hidden="true">
+          <div
+            ref={fillRef}
+            className={progressClass}
+            style={{ width: `${percent}%` }}
+          >
+            {label && showInsideLabel && (
+              <span className={styles.labelInside}>{label}</span>
+            )}
+          </div>
+        </Progress.Indicator>
+      </Progress>
     </div>
   );
 };
