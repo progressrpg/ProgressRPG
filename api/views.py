@@ -203,7 +203,9 @@ class WaitlistJoinAPIView(APIView):
         ).exists()
         if not already_waiting:
             try:
-                entry = Waitlist.objects.create(email=email, status=Waitlist.Status.WAITING)
+                entry = Waitlist.objects.create(
+                    email=email, status=Waitlist.Status.WAITING
+                )
             except IntegrityError:
                 pass  # race with a concurrent signup — treat as already-waiting
             else:
