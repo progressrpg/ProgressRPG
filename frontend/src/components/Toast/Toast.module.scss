@@ -17,7 +17,8 @@
   align-items: center;
   gap: sp.$spacing-gap;
   width: min(96vw, 720px);
-  /* Required by Radix to be a list */
+  /* Tamagui's ToastViewport (#581) renders a View, not Radix's <ol> - these
+     resets are vestigial now but harmless to keep. */
   list-style: none;
   padding: 0;
   margin: 0;
