@@ -28,7 +28,6 @@
     "@radix-ui/react-dropdown-menu": "^2.1.19",
     "@radix-ui/react-popover": "^1.1.18",
     "@radix-ui/react-tabs": "^1.1.16",
-    "@radix-ui/react-tooltip": "^1.2.8",
     "@tamagui/config": "2.6.0",
     "@tamagui/core": "2.6.0",
     "@tamagui/vite-plugin": "2.6.0",

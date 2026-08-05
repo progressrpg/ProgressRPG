@@ -6,10 +6,21 @@
   // Click/tap opens the tooltip now (see #568), so a long-press on a
   // trigger must never fall through to the browser's native
   // text-selection/callout gesture - only our own tap handling should run.
+  // touch-action/user-select apply to this element's whole box (including
+  // descendants), so they still work correctly even though this class now
+  // lands on Tamagui's wrapper (see display:contents below), not directly
+  // on the child trigger the way Radix's asChild put it.
   touch-action: manipulation;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  // Tamagui's Tooltip.Trigger (PopoverTrigger) always wraps its children in
+  // its own View, unlike Radix's asChild, which cloned onto the child
+  // directly with no extra element. display:contents removes that wrapper
+  // from the box model (and, in current browsers, the accessibility tree)
+  // so it doesn't become an unexpected flex/grid item or extra tab stop
+  // wherever a Tooltip trigger sits inside a layout.
+  display: contents;
 }
 
 .content {
@@ -31,30 +42,38 @@
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
   font-size: 0.875rem;
   line-height: 1.4;
-  transform-origin: var(--radix-tooltip-content-transform-origin);
+  // Tamagui computes and applies transform-origin itself as an inline style
+  // (see @tamagui/popper's transformOriginMiddleware) - no CSS var needed on
+  // this end, unlike Radix which exposed one for the consumer to read.
   animation-duration: v.$duration-fast;
   animation-timing-function: v.$easing-standard;
   animation-fill-mode: both;
 
-  &[data-side='top'] {
+  // Tamagui sets data-placement (the full floating-ui string, e.g. "top" or
+  // "top-start"), not Radix's separate data-side - ^= matches any alignment
+  // of a given side.
+  &[data-placement^='top'] {
     animation-name: tooltip-slide-up;
   }
 
-  &[data-side='bottom'] {
+  &[data-placement^='bottom'] {
     animation-name: tooltip-slide-down;
   }
 
-  &[data-side='left'] {
+  &[data-placement^='left'] {
     animation-name: tooltip-slide-left;
   }
 
-  &[data-side='right'] {
+  &[data-placement^='right'] {
     animation-name: tooltip-slide-right;
   }
 }
 
 .arrow {
-  fill: rgba(c.$color-bg-invert, 0.96);
+  // Tamagui's Arrow is a rotated square (background-color), not Radix's SVG
+  // polygon (which this used `fill` for) - see the comment on
+  // TamaguiTooltip.Arrow in Tooltip.tsx.
+  background-color: rgba(c.$color-bg-invert, 0.96);
 }
 
 @keyframes tooltip-slide-up {

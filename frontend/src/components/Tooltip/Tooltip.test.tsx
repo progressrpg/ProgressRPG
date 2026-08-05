@@ -1,16 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { TamaguiProvider } from 'tamagui';
 import Tooltip, { TooltipProvider } from './Tooltip';
+import tamaguiConfig from '../../../tamagui.config';
 
 function renderTooltip() {
   render(
-    <TooltipProvider delayDuration={0} skipDelayDuration={0}>
-      <Tooltip content="Helpful context">
-        <button type="button">Trigger</button>
-      </Tooltip>
-      <button type="button">Elsewhere</button>
-    </TooltipProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <TooltipProvider delayDuration={0} skipDelayDuration={0}>
+        <Tooltip content="Helpful context">
+          <button type="button">Trigger</button>
+        </Tooltip>
+        <button type="button">Elsewhere</button>
+      </TooltipProvider>
+    </TamaguiProvider>
   );
 }
 
@@ -67,7 +71,22 @@ describe('Tooltip', () => {
     const tooltip = await screen.findByRole('tooltip');
 
     expect(trigger).toHaveFocus();
-    expect(trigger).toHaveAttribute('aria-describedby', tooltip.id);
+
+    // Radix's role="tooltip" element and its description-bearing id were
+    // the same node. Tamagui's floating positioning wrapper (role="tooltip")
+    // and the content frame this component sets its own explicit id on
+    // (see Tooltip.tsx's contentId) are two different, nested elements -
+    // confirmed by reading the rendered DOM, not assumed. aria-describedby
+    // pointing at the inner content frame is still valid: the reference
+    // only needs to resolve to an element carrying the descriptive text, not
+    // specifically the role="tooltip" node itself, and this is what a
+    // screen reader actually reads out.
+    const describedById = trigger.getAttribute('aria-describedby');
+    expect(describedById).toBeTruthy();
+    const describedByEl = document.getElementById(describedById ?? '');
+    expect(describedByEl).not.toBeNull();
+    expect(tooltip.contains(describedByEl)).toBe(true);
+    expect(describedByEl).toHaveTextContent('Helpful context');
   });
 
   it('dismisses when Escape is pressed', async () => {

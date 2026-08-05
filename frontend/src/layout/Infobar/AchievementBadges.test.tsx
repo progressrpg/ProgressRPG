@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { TamaguiProvider } from "tamagui";
 
 import { TooltipProvider } from "../../components/Tooltip/Tooltip";
 import AchievementBadges from "./AchievementBadges";
+import tamaguiConfig from "../../../tamagui.config";
 
 const achievements = [
   {
@@ -32,16 +34,24 @@ const achievements = [
 
 function renderBadges(props: Partial<React.ComponentProps<typeof AchievementBadges>> = {}) {
   return render(
-    <TooltipProvider delayDuration={0} skipDelayDuration={0}>
-      <AchievementBadges achievements={achievements} {...props} />
-    </TooltipProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <TooltipProvider delayDuration={0} skipDelayDuration={0}>
+        <AchievementBadges achievements={achievements} {...props} />
+      </TooltipProvider>
+    </TamaguiProvider>
   );
 }
 
 describe("AchievementBadges", () => {
   it("renders nothing when there are no achievements", () => {
-    const { container } = renderBadges({ achievements: [] });
-    expect(container).toBeEmptyDOMElement();
+    // Not toBeEmptyDOMElement() on the whole container - TamaguiProvider
+    // (needed now that Tooltip is on Tamagui, #583) always renders its own
+    // theme-wrapping markup around whatever AchievementBadges itself
+    // returns, so the render root is never literally empty. Assert on
+    // AchievementBadges' own actual output (it returns null with no
+    // achievements) instead: no badge buttons at all.
+    renderBadges({ achievements: [] });
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
   it("renders an accessible badge per achievement with an aria-label summarizing state", () => {

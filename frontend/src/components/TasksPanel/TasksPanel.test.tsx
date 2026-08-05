@@ -1,15 +1,19 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TamaguiProvider } from "tamagui";
 
 import { TooltipProvider } from "../Tooltip/Tooltip";
 import TasksPanel from "./TasksPanel";
+import tamaguiConfig from "../../../tamagui.config";
 
 function renderTasksPanel() {
   return render(
-    <TooltipProvider>
-      <TasksPanel />
-    </TooltipProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <TooltipProvider>
+        <TasksPanel />
+      </TooltipProvider>
+    </TamaguiProvider>
   );
 }
 
