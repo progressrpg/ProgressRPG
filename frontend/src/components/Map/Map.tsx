@@ -1,6 +1,7 @@
 import type React from "react";
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { TamaguiProvider } from "tamagui";
 import {
   Map as MapLibreMap,
   NavigationControl,
@@ -11,6 +12,7 @@ import {
   type MapMouseEvent,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import tamaguiConfig from "../../../tamagui.config";
 import { fromLngLat, quantizeBbox, toLngLat } from "./utils";
 import { CharacterTooltipContent, PopulationCentreTooltipContent } from "./MapTooltips";
 import { scatterCharacters } from "./characters/placement";
@@ -333,6 +335,13 @@ export default function PopulationCentreMap({
   // run saw `tooltip` go falsy, leaving a stale root pointed at a removed
   // DOM node that every later tooltip would silently render into instead of
   // the real (new) host div.
+  //
+  // This root is a separate React tree from the one main.tsx mounts, so it
+  // doesn't inherit that tree's <TamaguiProvider> context (React context
+  // follows the component tree, not DOM nesting) - PopulationCentreTooltipContent's
+  // ProgressBar (#673, #580) would otherwise throw ("Missing tamagui config")
+  // the moment a village marker is tapped. Re-providing it here, right at
+  // this second root, is the fix.
   useEffect(() => {
     const host = tooltipHostRef.current;
     if (!host) return;
@@ -341,9 +350,11 @@ export default function PopulationCentreMap({
     }
     tooltipRootRef.current.render(
       tooltip ? (
-        <div role="tooltip" className={styles.floatingTooltip}>
-          {tooltip.content}
-        </div>
+        <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+          <div role="tooltip" className={styles.floatingTooltip}>
+            {tooltip.content}
+          </div>
+        </TamaguiProvider>
       ) : null
     );
   }, [tooltip]);

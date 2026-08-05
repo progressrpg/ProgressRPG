@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import * as Progress from "@radix-ui/react-progress";
+import { Progress } from "tamagui";
 import styles from "./ProgressBar.module.scss";
 import type { TimerStatus } from "../../types";
 
@@ -61,7 +61,18 @@ const ProgressBar = ({
         <span className={styles.labelOutside}>{label}</span>
       )}
 
-      <Progress.Root
+      {/*
+        Tamagui's Progress applies its own default visuals (rounded track,
+        `$background` fill, a size-driven height/width) via a styled()
+        variant unless `unstyled` is set - opting out so `.progressTrack`
+        stays the sole source of truth for appearance, matching how Radix's
+        bare `Progress.Root` behaved. As with the Radix version, the fill is
+        a plain styled `<div>` rather than Progress's own `Indicator` (which
+        drives its own transform-based positioning that doesn't match this
+        component's percent-width fill).
+      */}
+      <Progress
+        unstyled
         className={styles.progressTrack}
         value={Math.min(value, max)}
         max={max}
@@ -77,7 +88,7 @@ const ProgressBar = ({
             <span className={styles.labelInside}>{label}</span>
           )}
         </div>
-      </Progress.Root>
+      </Progress>
     </div>
   );
 };

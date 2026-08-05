@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
+import { TamaguiProvider } from 'tamagui';
 import { fromLngLat, toLngLat } from './utils';
 import { colourForCharacter } from './characters/placement';
+import tamaguiConfig from '../../../tamagui.config';
 
 // MapLibre needs a real WebGL context, which jsdom doesn't provide - these
 // fakes stand in for just enough of the maplibre-gl API surface for Map.tsx
@@ -228,11 +230,17 @@ function positionAlongPathForTest(
   return pos;
 }
 
+// Map's tap-to-expand village tooltip renders ProgressBar (#673/#674), which
+// needs a TamaguiProvider ancestor since it moved onto Tamagui's Progress
+// primitive (#580) - the app root (src/main.tsx) provides this in
+// production, tests need their own.
 function renderMap(props: ComponentProps<typeof PopulationCentreMap>) {
   return render(
-    <TooltipProvider>
-      <PopulationCentreMap {...props} />
-    </TooltipProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <TooltipProvider>
+        <PopulationCentreMap {...props} />
+      </TooltipProvider>
+    </TamaguiProvider>
   );
 }
 
@@ -928,9 +936,11 @@ describe('PopulationCentreMap path-aware interpolation (#615)', () => {
       ],
     };
     rerender(
-      <TooltipProvider>
-        <PopulationCentreMap geojson={correctedGeojson} />
-      </TooltipProvider>
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        <TooltipProvider>
+          <PopulationCentreMap geojson={correctedGeojson} />
+        </TooltipProvider>
+      </TamaguiProvider>
     );
 
     const justAfter = positionAlongPathForTest([50, 50], [[60, 50]], 0.08);
