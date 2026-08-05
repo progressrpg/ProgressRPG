@@ -251,6 +251,19 @@ class IsOwnerCharacter(permissions.BasePermission):
         return False
 
 
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """
+    For authored/curated catalogs (roles, skill taxonomy, activity
+    definitions, suggested activities) - any authenticated player can read,
+    only staff can create/update/delete.
+    """
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return bool(request.user and request.user.is_staff)
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
