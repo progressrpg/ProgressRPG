@@ -31,10 +31,10 @@ def xp_for_duration(duration_seconds) -> int:
 def xp_mastery_multiplier(total_xp) -> Decimal:
     """
     AP-earning multiplier driven by accumulated skill XP - the more skilled
-    a character has become overall, the faster they earn AP on anything.
-    Linear growth up to a configurable cap, both GameSettings-tunable.
-    Players have no skill XP source yet, so `total_xp=0` here always
-    resolves to 1.0 (no boost) until a player-side skill system exists.
+    a character or player has become overall, the faster they earn AP on
+    anything. Linear growth up to a configurable cap, both GameSettings-
+    tunable. See progression.models.character_total_skill_xp/
+    player_total_skill_xp for how `total_xp` is computed for each owner.
     """
     from core.models import GameSettings
 

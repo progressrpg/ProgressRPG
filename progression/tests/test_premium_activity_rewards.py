@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from payments.models import SubscriptionPlan, UserSubscription
-from progression.models import PlayerActivity
+from progression.models import PlayerActivity, PlayerSkill
 
 
 class PlayerActivityPremiumRewardTests(TestCase):
@@ -75,3 +75,38 @@ class PlayerActivityPremiumRewardTests(TestCase):
             },
         )
         self.assertEqual(activity.complete(), 120)
+
+    def test_prior_skill_xp_boosts_mastery_multiplier(self):
+        # See .claude/plans/progression-track-abstraction.md §9 -
+        # player_total_skill_xp feeds this the same way character_total_skill_xp
+        # feeds CharacterActivity's mastery_multiplier.
+        skill = PlayerSkill.objects.create(player=self.player, name="Coding")
+        PlayerActivity.objects.create(
+            player=self.player,
+            name="Prior work",
+            skill=skill,
+            duration=500,
+            is_complete=True,
+        )
+
+        activity = PlayerActivity.objects.create(
+            player=self.player,
+            name="Write tests",
+            duration=60,
+        )
+
+        reward_summary = activity.get_xp_reward_summary()
+
+        # 500s of prior skill XP at the default 1000/1.0x mastery scale -> +0.5x.
+        self.assertEqual(
+            reward_summary,
+            {
+                "duration_seconds": 60,
+                "base_xp": 60,
+                "xp_multiplier": 1.5,
+                "task_xp_multiplier": 1,
+                "mastery_multiplier": 1.5,
+                "xp_gained": 90,
+                "skill_xp_gained": 0,
+            },
+        )

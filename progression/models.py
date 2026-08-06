@@ -140,6 +140,25 @@ def character_total_skill_xp(character) -> int:
     return xp_for_duration(_character_skill_duration(character))
 
 
+def player_total_skill_xp(player) -> int:
+    """
+    A player's total skill XP across every skill - the "total XP" input to
+    the AP mastery multiplier (see progression.points.xp_mastery_multiplier).
+    Mirrors character_total_skill_xp; player skills (PlayerSkill) have no
+    Role/SkillGroup gating to scope by, so this is always the flat,
+    unfiltered total.
+    """
+    from .points import xp_for_duration
+
+    total_duration = (
+        PlayerActivity.objects.filter(
+            player=player, is_complete=True, skill__isnull=False
+        ).aggregate(total=Sum("duration"))["total"]
+        or 0
+    )
+    return xp_for_duration(total_duration)
+
+
 class Role(models.Model):
     """
     Authored role definition (e.g. "Farmer", "Guard") - not owned by any one
@@ -607,10 +626,7 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
 
             task_xp_multiplier = GameSettings.current().task_activity_xp_multiplier
             multiplier *= task_xp_multiplier
-        # Players have no skill XP source yet (see progression.points), so
-        # this always evaluates to 1.0 - kept explicit here rather than
-        # hardcoded so it picks up a real total once player skills exist.
-        mastery_multiplier = xp_mastery_multiplier(0)
+        mastery_multiplier = xp_mastery_multiplier(player_total_skill_xp(player))
         multiplier *= mastery_multiplier
 
         def _fmt(d: Decimal) -> int | float:
