@@ -328,41 +328,21 @@ class Person(models.Model):
         """
         Add experience points (XP) to the person and handle level-up logic.
         """
-        self.xp += amount
-        levelups = []
+        from progression import ap
 
-        while True:
-            xp_needed = self.get_xp_for_next_level()
-            if self.xp < xp_needed:
-                break
-
-            old_level = self.level
-            self.xp -= xp_needed
-            self.level += 1
-            levelups.append(
-                {
-                    "old_level": old_level,
-                    "new_level": self.level,
-                    "person": self,
-                    "name": self.name,
-                }
-            )
-
-        self.xp = max(0, self.xp)
+        self.level, self.xp, levelups = ap.apply_xp(self.level, self.xp, amount)
         self.xp_next_level = self.get_xp_for_next_level()
 
         self.save(update_fields=["xp", "level", "xp_next_level"])
-        return levelups
-
-    @staticmethod
-    def _ap_threshold_for_level(level: int) -> int:
-        return 100 * (level + 1)
+        return [{**event, "person": self, "name": self.name} for event in levelups]
 
     def get_xp_for_next_level(self):
         """
         Calculate the XP required to reach the next level.
         """
-        return self._ap_threshold_for_level(self.level)
+        from progression import ap
+
+        return ap.threshold_for_level(self.level)
 
     @property
     def total_ap_earned(self):
@@ -373,25 +353,14 @@ class Person(models.Model):
         stays monotonic - used wherever a long-term progress/prestige figure
         is needed, e.g. village points.
         """
-        thresholds_cleared = sum(
-            self._ap_threshold_for_level(lvl) for lvl in range(self.level)
-        )
-        return thresholds_cleared + self.xp
+        from progression import ap
+
+        return ap.total_ap_earned(self.level, self.xp)
 
     def get_xp_multiplier(self, now=None):
-        now = now or timezone.now()
+        from progression import ap
 
-        link = self.active_link
-
-        mods = self.xp_mods.filter(
-            is_active=True,
-            starts_at__lte=now,
-        ).filter(models.Q(ends_at__isnull=True) | models.Q(ends_at__gt=now))
-        mult = Decimal("1.0")
-        for m in mods:
-            mult *= m.multiplier
-
-        return mult
+        return ap.get_multiplier(self, now=now)
 
 
 class Player(Person):
