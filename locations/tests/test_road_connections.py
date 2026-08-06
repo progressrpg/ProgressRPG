@@ -33,9 +33,11 @@ class ConnectNearestVillageRoadsTest(TestCase):
 
         self.assertIsNotNone(connector)
         coords = connector.geom.coords
-        self.assertEqual(len(coords), 2)
-        self.assertIn((10.0, 0.0), coords)
-        self.assertIn((990.0, 0.0), coords)
+        self.assertGreater(len(coords), 2)
+        self.assertAlmostEqual(coords[0][0], 10.0)
+        self.assertAlmostEqual(coords[0][1], 0.0)
+        self.assertAlmostEqual(coords[-1][0], 990.0)
+        self.assertAlmostEqual(coords[-1][1], 0.0)
 
     def test_returns_none_when_village_has_no_roads(self):
         empty = _centre("Empty", 0, 0)
