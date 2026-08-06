@@ -147,15 +147,33 @@ without touching every call site simultaneously. Also formalizes "AP" as the
 name in code (rename internal helpers away from generic `xp` where they mean
 AP specifically), addressing conflation #1 without a data migration.
 
-**Phase 2 — give skill XP an actual ledger.**
-Introduce `ProgressionTrackDefinition` + `CharacterProgressionTrack` (Player
-doesn't need this yet — players have no skill XP source, per
-`progression.points`'s own comment) and start crediting skill XP to it
-instead of re-summing `CharacterActivity.duration` on every read. This is the
-one place a genuinely new model earns its keep today: skill XP currently has
-*zero* persistence, not "persistence conflated with something else."
-`Role.proficiency_for`/`SkillGroup.proficiency_for`/`SkillDefinition.
-is_unlocked_for` switch from live duration aggregation to reading the ledger.
+**Phase 2 — give skill XP an actual ledger.** *(corrected — see §8)*
+Both owners already have a live-derived skill XP source that's never
+persisted: `CharacterSkill.total_xp` (via `SkillDefinition`, summing
+`CharacterActivity`/`CharacterActivityArchive` duration) and
+`PlayerSkill.total_xp` (inherited from the abstract `Skill.total_xp`, summing
+linked `PlayerActivity` duration) — `PlayerSkill` is a real, user-facing
+model (own viewset/serializer, displayed in the frontend `SkillsPanel`), not
+a stub. The narrower true gap is that no `player_total_skill_xp()` aggregate
+feeds a player's own AP mastery multiplier the way `character_total_skill_xp`
+does for characters (`PlayerActivity.get_xp_reward_summary` hardcodes
+`xp_mastery_multiplier(0)`).
+
+Because `PlayerSkill`/`CharacterSkill` are already one row per (owner,
+skill) — the exact granularity a skill-XP ledger needs — Phase 2 is likely
+**not** "introduce a new `ProgressionTrack`-shaped table," but "add a
+persisted `total_earned` field + a credit method directly onto the existing
+`PlayerSkill`/`CharacterSkill` models," reusing what's already there instead
+of inventing a new abstraction for it. `Role.proficiency_for`/
+`SkillGroup.proficiency_for`/`SkillDefinition.is_unlocked_for` (character
+side) switch from live duration aggregation to reading the credited total;
+a `player_total_skill_xp()` aggregate can then be added for the player-side
+mastery multiplier gap. Needs a proper pass at Phase-2 planning time rather
+than deciding the final shape here.
+
+Also worth cleaning up in the same pass: `Skill.level` (inherited by
+`PlayerSkill`) is a stored field that's never written anywhere in
+non-migration code — dead, same class of issue as `Person.xp_modifier`.
 
 **Phase 3 — migrate AP itself, if still justified.**
 Once Phase 2 is proven, decide whether `Person.xp`/`level` should also move
@@ -426,3 +444,26 @@ middle of an already 118-file epic, designed against a single known track
 exact "unnecessary abstraction" / "architectural drift" risk the planning
 template flags. B is worth doing once skill XP is ready to move onto the same
 mechanism; it is not worth doing to unblock F specifically.
+
+---
+
+## 8. Correction — players already have a skill XP source
+
+An earlier version of §3 claimed "Player doesn't need [a ledger] yet -
+players have no skill XP source", citing a comment in `progression.points`.
+That was wrong. `PlayerSkill` (a real, user-facing model — own viewset/
+serializer, `total_xp` displayed in the frontend `SkillsPanel`) inherits
+`total_xp` from the abstract `Skill` base, live-derived from linked
+`PlayerActivity` duration via `xp_for_duration` — the same mechanism
+`CharacterSkill.total_xp` uses for characters. The `progression.points`
+comment actually being referenced is narrower: no `player_total_skill_xp()`
+aggregate feeds a player's *own AP mastery multiplier* the way
+`character_total_skill_xp` does for characters — a real gap, but not "no
+skill XP."
+
+This also reframes Phase 2's likely shape: since `PlayerSkill`/
+`CharacterSkill` are already one row per (owner, skill) — the granularity a
+skill-XP ledger needs — Phase 2 is more likely to be "persist a total on the
+existing skill models" than "introduce a new `ProgressionTrack` table." §3's
+Phase 2 description above has been corrected accordingly; the final shape
+still needs a proper look at Phase-2 planning time.
