@@ -160,20 +160,16 @@ does for characters (`PlayerActivity.get_xp_reward_summary` hardcodes
 `xp_mastery_multiplier(0)`).
 
 Because `PlayerSkill`/`CharacterSkill` are already one row per (owner,
-skill) — the exact granularity a skill-XP ledger needs — Phase 2 is likely
-**not** "introduce a new `ProgressionTrack`-shaped table," but "add a
-persisted `total_earned` field + a credit method directly onto the existing
-`PlayerSkill`/`CharacterSkill` models," reusing what's already there instead
-of inventing a new abstraction for it. `Role.proficiency_for`/
-`SkillGroup.proficiency_for`/`SkillDefinition.is_unlocked_for` (character
-side) switch from live duration aggregation to reading the credited total;
-a `player_total_skill_xp()` aggregate can then be added for the player-side
-mastery multiplier gap. Needs a proper pass at Phase-2 planning time rather
-than deciding the final shape here.
+skill) — the exact granularity a skill-XP ledger needs — the natural next
+question was whether Phase 2 needs a persisted `total_earned` on those models
+at all. **Finalized design: see §9 — it doesn't.** The live-aggregation
+pattern already in production for `CharacterSkill` is sufficient for
+`PlayerSkill` too; Phase 2 turns out to be a two-function change with no
+schema migration.
 
-Also worth cleaning up in the same pass: `Skill.level` (inherited by
-`PlayerSkill`) is a stored field that's never written anywhere in
-non-migration code — dead, same class of issue as `Person.xp_modifier`.
+`Skill.level` (inherited by `PlayerSkill`) is a stored field that's never
+written anywhere in non-migration code — dead, same class of issue as
+`Person.xp_modifier`. Deliberately **not** bundled into Phase 2 — see §9.5.
 
 **Phase 3 — migrate AP itself, if still justified.**
 Once Phase 2 is proven, decide whether `Person.xp`/`level` should also move
@@ -465,5 +461,130 @@ This also reframes Phase 2's likely shape: since `PlayerSkill`/
 `CharacterSkill` are already one row per (owner, skill) — the granularity a
 skill-XP ledger needs — Phase 2 is more likely to be "persist a total on the
 existing skill models" than "introduce a new `ProgressionTrack` table." §3's
-Phase 2 description above has been corrected accordingly; the final shape
-still needs a proper look at Phase-2 planning time.
+Phase 2 description above has been corrected accordingly. Finalized design
+below in §9 — it goes a step further: no persistence needed at all.
+
+---
+
+## 9. Phase 2 — finalized design
+
+### 9.1 Scope decision: no schema change
+
+The one concrete gap identified in §8 is narrow: `PlayerActivity.
+get_xp_reward_summary` hardcodes `xp_mastery_multiplier(0)` instead of
+reading a real total, because no `player_total_skill_xp()` aggregate exists
+(the character-side equivalent, `character_total_skill_xp`, already does).
+Closing that gap doesn't require persisting anything — `character_total_skill_xp`
+itself is a live aggregation (`Sum("duration")` over completed
+`CharacterActivity` + `CharacterActivityArchive`), not a ledger read, and it's
+already proven in production. `player_total_skill_xp` can be the same shape,
+one query, no new model.
+
+The performance concern that would justify persistence — unbounded row
+growth — was already solved character-side by #299's compaction
+(`CharacterActivityArchive`), and doesn't apply symmetrically to players:
+`CharacterActivity` rows are generated autonomously every day for every
+character, `PlayerActivity` rows are created one at a time by a human
+manually running a timer, so volume is bounded very differently. If player
+activity volume ever becomes a real aggregation cost, that's the point to
+revisit — not now, speculatively. Building a ledger today would be
+persistence with no observed problem to justify it, the same
+"unnecessary abstraction" risk flagged against Approach B in §7.5.
+
+**Net result: Phase 2 needs no migration.** The 3-step
+add-table/backfill/drop-column template used twice already in this branch
+(§7.3) doesn't get exercised a third time here.
+
+### 9.2 The change
+
+Add `player_total_skill_xp`, mirroring `character_total_skill_xp` but
+without the `**skill_definition_filter` machinery `_character_skill_duration`
+carries for Role/SkillGroup scoping — player skills (`PlayerSkill`) aren't
+authored/gated content, there's no equivalent scoping to filter by, so this
+is the flat form only:
+
+```python
+def player_total_skill_xp(player) -> int:
+    """
+    A player's total skill XP across every skill - the "total XP" input to
+    the AP mastery multiplier (see progression.points.xp_mastery_multiplier).
+    Mirrors character_total_skill_xp; player skills have no Role/SkillGroup
+    gating to scope by, so this is always the flat, unfiltered total.
+    """
+    from .points import xp_for_duration
+
+    total_duration = (
+        PlayerActivity.objects.filter(
+            player=player, is_complete=True, skill__isnull=False
+        ).aggregate(total=Sum("duration"))["total"]
+        or 0
+    )
+    return xp_for_duration(total_duration)
+```
+
+Place it in `progression/models.py` next to `character_total_skill_xp` for
+discoverability (forward-referencing `PlayerActivity`, defined later in the
+file, is fine — same as `character_total_skill_xp` forward-referencing
+`CharacterActivity`/`CharacterActivityArchive` today).
+
+Then in `PlayerActivity.get_xp_reward_summary`, replace:
+
+```python
+        # Players have no skill XP source yet (see progression.points), so
+        # this always evaluates to 1.0 - kept explicit here rather than
+        # hardcoded so it picks up a real total once player skills exist.
+        mastery_multiplier = xp_mastery_multiplier(0)
+```
+
+with:
+
+```python
+        mastery_multiplier = xp_mastery_multiplier(player_total_skill_xp(player))
+```
+
+matching `CharacterActivity.get_xp_reward_summary`'s
+`xp_mastery_multiplier(character_total_skill_xp(self.character))` call
+exactly. Also drop the now-inaccurate "Players have no skill XP source yet"
+line from `xp_mastery_multiplier`'s docstring in `progression/points.py`.
+
+### 9.3 Self-reference safety
+
+The record currently being completed must not count toward its own mastery
+multiplier. `CharacterActivity` already relies on this and it holds for the
+same reason `PlayerActivity` will: `get_xp_reward_summary()` runs *before*
+`self.save()` persists `is_complete = True` to the database (in both
+`PlayerActivity.complete()` and `CharacterActivity.complete_now()`/
+`complete_past()`, `is_complete` is flipped on the in-memory instance first,
+but the aggregate queries hit the DB, which still shows the row as
+incomplete until `save()` runs afterward). No new code needed to preserve
+this — just confirmed it holds symmetrically before relying on it.
+
+### 9.4 Tests
+
+Mirror `progression/tests/test_activity_archive.py`'s
+`character_total_skill_xp` coverage:
+
+- `player_total_skill_xp` sums completed, skill-linked `PlayerActivity`
+  duration and ignores incomplete/unlinked rows.
+- `assertNumQueries` guard (1 aggregate query) so it can't silently regress
+  into an N+1 later.
+- Extend `progression/tests/test_premium_activity_rewards.py`'s pattern with
+  a case that has prior completed skill-linked activity and asserts
+  `mastery_multiplier > 1` in `get_xp_reward_summary()`. The two existing
+  cases in that file have no skill-linked activity in `setUp`, so
+  `player_total_skill_xp` returns 0 and `mastery_multiplier` stays `1` for
+  them — unaffected by this change, confirmed by reading their `setUp`.
+
+### 9.5 Deliberately out of scope: `Skill.level`
+
+`Skill.level` (inherited by `PlayerSkill`) is stored, default `0`,
+client-writable via `SkillBaseSerializer` (not `read_only`), listed in
+`PlayerSkillAdmin`, and rendered in the frontend
+(`SkillsPanel.tsx`: `Level {skill.level}`) — but nothing ever computes or
+writes it outside migrations, so it always renders `Level 0`. Real, but not
+a progression-abstraction problem: fixing it means picking one of two product
+decisions (compute a real skill level from `total_xp` via some curve, or
+remove the field and the UI text that implies it means something), either of
+which touches the API contract and frontend, independent of anything else in
+Phase 2. Recommend filing it as its own follow-up issue rather than folding
+it into this change.
