@@ -25,7 +25,8 @@ export type FeatureFlagKey =
   | "onlinePlayerCount"
   | "unified_homepage"
   | "results_mode"
-  | "map";
+  | "map"
+  | "todayPointsBadge";
 
 // ---------------------------------------------------------------------------
 // Timer statuses (Timer.STATUS_CHOICES in gameplay/models.py)

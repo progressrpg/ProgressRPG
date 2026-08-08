@@ -6,6 +6,7 @@ import PopulationCentreMap, {
   type PopulationCentreMapHandle,
 } from "../../components/Map/Map";
 import TodayPointsBadge from "../../components/TodayPointsBadge/TodayPointsBadge";
+import FeatureToggle from "../../components/FeatureToggle";
 import {
   useInitialMapCentre,
   useMapViewport,
@@ -123,7 +124,9 @@ export default function MapPage(): React.ReactElement {
             onViewportChange={handleViewportChange}
             worldBounds={worldBounds?.bbox}
           >
-            <TodayPointsBadge />
+            <FeatureToggle flag="todayPointsBadge" fallback={null}>
+              <TodayPointsBadge />
+            </FeatureToggle>
             {nextVillage && (
               <Button
                 type="button"
