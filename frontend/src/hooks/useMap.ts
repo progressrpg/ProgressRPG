@@ -1,7 +1,7 @@
 // src/hooks/useMap.ts
 import { useQuery } from "@tanstack/react-query";
 import {
-  fetchFirstPopulationCentreId,
+  fetchInitialMapCentre,
   fetchMapCharacterDetail,
   fetchMapViewport,
   fetchMapWorldBounds,
@@ -13,31 +13,23 @@ import {
 // tracks actual journeys closely, without polling every single tick.
 export const MAP_POLL_INTERVAL_MS = 2000;
 
-// Player-character linking isn't implemented yet (fetch_info deliberately
-// omits it), so the map view can't key off character.population_centre_id.
-// Instead it just picks the first population centre - fine while there's
-// only ever the one small seeded village.
-export function usePopulationCentreId() {
+// One-shot (not polled) fetch of just enough (id/name/bbox) to know where
+// the camera should start - the requesting player's linked character's
+// village if they have one, otherwise an arbitrary but deterministic
+// fallback (see InitialMapCentreView's docstring, locations/views.py).
+// Deliberately not the full per-village map payload fetchPopulationCentreMap
+// returns: once the camera exists, all ongoing content comes from
+// useMapViewport below instead, so there's nothing here worth paying for
+// beyond the bbox to fit to. A short staleTime (rather than
+// effectively-forever) means a player who links to a different character
+// mid-session and revisits the map later still gets pointed at the right
+// village instead of a stale cached one.
+export function useInitialMapCentre() {
   return useQuery({
-    queryKey: ["population-centres", "first-id"],
-    queryFn: fetchFirstPopulationCentreId,
-    staleTime: 15 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-  });
-}
-
-// One-shot (not polled) fetch of the single existing village's map, used
-// only to derive where the camera should start (see design decision #6 in
-// the map-viewport plan: initial view centres on the single seeded
-// PopulationCentre until multiple villages/player-linking exist). Once the
-// camera exists, all ongoing data comes from useMapViewport below instead.
-export function useInitialMapCentre(pcId: number | null | undefined) {
-  return useQuery({
-    queryKey: ["map", "population-centre", "initial-centre", pcId],
-    queryFn: () => fetchPopulationCentreMap(pcId as number),
-    enabled: pcId != null,
-    staleTime: 15 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    queryKey: ["map", "initial-centre"],
+    queryFn: fetchInitialMapCentre,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 }
 
@@ -50,7 +42,7 @@ export function useInitialMapCentre(pcId: number | null | undefined) {
 // the prefetch already completed; only hits the network if it hasn't.
 export function useTargetCentreMap(centreId: number | null) {
   return useQuery({
-    queryKey: ["map", "population-centre", "initial-centre", centreId],
+    queryKey: ["map", "population-centre", "full-map", centreId],
     queryFn: () => fetchPopulationCentreMap(centreId as number),
     enabled: centreId != null,
     staleTime: 15 * 60 * 1000,
