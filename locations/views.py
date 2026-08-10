@@ -146,6 +146,54 @@ class PopulationCentreMapView(APIView):
         )
 
 
+class InitialMapCentreView(APIView):
+    """
+    Picks which PopulationCentre the map's camera should open on and returns
+    just enough to frame it there - id/name/bbox, not the full per-village
+    payload (buildings/characters/roads/fields) PopulationCentreMapView
+    returns. That fuller payload is unnecessary here: MapViewportView takes
+    over as the source of truth within moments, once the camera's first
+    "moveend" fires (see Map.tsx's initial-fit effect), so this only needs to
+    get the camera pointed at the right place cheaply.
+
+    Prefers the PopulationCentre containing the requesting player's linked
+    character (see PlayerCharacterLink/Player.active_link) - the village the
+    player actually cares about. Falls back to the lowest-pk PopulationCentre
+    when there's no active link (e.g. player-character linking hasn't
+    happened yet), same "just pick one, deterministically" behaviour used
+    before per-player villages existed here.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        population_centre = None
+
+        active_link = request.user.player.active_link
+        if active_link and active_link.character.population_centre_id:
+            population_centre = active_link.character.population_centre
+
+        if population_centre is None:
+            population_centre = PopulationCentre.objects.order_by("pk").first()
+
+        if population_centre is None:
+            return Response({"id": None, "name": None, "bbox": None})
+
+        if population_centre.boundary:
+            bbox = list(population_centre.boundary.extent)
+        else:
+            # Mirrors PopulationCentreMapView's own null-boundary guard - a
+            # centre with no boundary polygon yet (e.g. in tests) still has a
+            # location point to frame a small window around.
+            x, y = population_centre.location.x, population_centre.location.y
+            pad = WORLD_BOUNDS_PADDING_M
+            bbox = [x - pad, y - pad, x + pad, y + pad]
+
+        return Response(
+            {"id": population_centre.id, "name": population_centre.name, "bbox": bbox}
+        )
+
+
 class MapViewportView(APIView):
     """
     Cross-village map endpoint: returns every map feature whose geometry

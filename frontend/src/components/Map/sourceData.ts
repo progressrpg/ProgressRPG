@@ -48,22 +48,37 @@ function positionAlongPath(
 	return pos;
 }
 
-interface BuildVillageSourceDataArgs {
-	features: GeoJSONFeature[];
+// Styled buildings/roads/fields/boundaries - everything except characters.
+// This only changes when `features` itself changes (i.e. once per ~2s poll),
+// unlike character positions, which are recomputed on every animation frame
+// by the walker loop in Map.tsx. Callers should memoize this separately
+// (keyed on `features`) rather than folding it into buildVillageSourceData,
+// so that per-frame loop isn't re-styling and re-reprojecting every building/
+// road/field 60 times a second when only the characters are actually moving.
+export function buildStaticVillageFeatures(features: GeoJSONFeature[]) {
+	return [
+		...styledPolygonFeatures(features),
+		...styledLineFeatures(features),
+		...styledPointFeatures(
+			features.filter((feature) => feature.properties?.feature_type !== "character")
+		),
+	];
+}
+
+interface BuildCharacterPointFeaturesArgs {
 	characterFeatures: GeoJSONFeature[];
 	idleCharacterPositions: Map<string, [number, number]>;
 	walkers: Map<string, WalkerState>;
 	now: number;
 }
 
-export function buildVillageSourceData({
-	features,
+export function buildCharacterPointFeatures({
 	characterFeatures,
 	idleCharacterPositions,
 	walkers,
 	now,
-}: BuildVillageSourceDataArgs) {
-	const characterPointFeatures: LngLatPointFeature[] = characterFeatures.map((feature) => {
+}: BuildCharacterPointFeaturesArgs): LngLatPointFeature[] {
+	return characterFeatures.map((feature) => {
 		const id = String(feature.properties?.id);
 		const walker = walkers.get(id);
 		const rawPoint = walker
@@ -83,16 +98,34 @@ export function buildVillageSourceData({
 			properties: feature.properties,
 		};
 	});
+}
 
+interface BuildVillageSourceDataArgs {
+	features: GeoJSONFeature[];
+	characterFeatures: GeoJSONFeature[];
+	idleCharacterPositions: Map<string, [number, number]>;
+	walkers: Map<string, WalkerState>;
+	now: number;
+}
+
+// Full rebuild of the source's FeatureCollection - static features plus
+// current character positions. Used on mount and whenever `features` itself
+// changes; the per-frame walker loop in Map.tsx calls
+// buildCharacterPointFeatures directly against a memoized
+// buildStaticVillageFeatures result instead, since that loop only ever needs
+// to update character positions, not the static geometry around them.
+export function buildVillageSourceData({
+	features,
+	characterFeatures,
+	idleCharacterPositions,
+	walkers,
+	now,
+}: BuildVillageSourceDataArgs) {
 	return {
 		type: "FeatureCollection" as const,
 		features: [
-			...styledPolygonFeatures(features),
-			...styledLineFeatures(features),
-			...styledPointFeatures(
-				features.filter((feature) => feature.properties?.feature_type !== "character")
-			),
-			...characterPointFeatures,
+			...buildStaticVillageFeatures(features),
+			...buildCharacterPointFeatures({ characterFeatures, idleCharacterPositions, walkers, now }),
 		],
 	};
 }
