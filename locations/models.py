@@ -576,6 +576,7 @@ class Subzone(models.Model):
             ("foraging", "Foraging"),
             ("woodland", "Woodland"),
             ("orchard", "Orchard"),
+            ("square", "Square"),
             ("other", "Other"),
         ],
         default="crops",

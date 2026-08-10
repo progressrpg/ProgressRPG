@@ -111,6 +111,7 @@ export function polygonTooltipContent(
     );
   }
   if (properties?.feature_type === "subzone") {
+    if (properties?.usage === "square") return "Square";
     if (properties?.usage !== "crops") return properties?.name;
 
     const stage = properties?.crop_stage as string | null | undefined;
@@ -125,6 +126,12 @@ export function polygonTooltipContent(
   return properties?.name;
 }
 
+// Open communal outdoor space (see watabou_import._import_squares) - a
+// warm, paved tone distinct from both a crops Subzone's green (fieldFillFor)
+// and a building's default grey, so a plaza reads as open ground rather
+// than a structure.
+const SQUARE_FILL_COLOR = "#d8c9a8";
+
 // Precomputes per-feature presentation properties (fill/stroke) so map
 // styling can stay simple `["get", ...]` paint expressions instead of
 // duplicating fieldFillFor's stage/progress logic as a style expression.
@@ -135,6 +142,8 @@ export function styledPolygonFeatures(features: GeoJSONFeature[]) {
       const isBoundary = f.properties?.feature_type === "boundary";
       const isCropSubzone =
         f.properties?.feature_type === "subzone" && f.properties?.usage === "crops";
+      const isSquareSubzone =
+        f.properties?.feature_type === "subzone" && f.properties?.usage === "square";
       const fillColor = isBoundary
         ? "transparent"
         : isCropSubzone
@@ -142,6 +151,8 @@ export function styledPolygonFeatures(features: GeoJSONFeature[]) {
             f.properties?.crop_stage as string | null | undefined,
             f.properties?.crop_progress as number | null | undefined
           )
+        : isSquareSubzone
+        ? SQUARE_FILL_COLOR
         : "#ddd";
       return {
         type: "Feature" as const,

@@ -347,6 +347,21 @@ class SubzoneFeatureSerializerTest(TestCase):
         self.assertEqual(props["crop_stage"], "ready")
         self.assertIsNone(props["crop_progress"])
 
+    def test_square_usage_has_no_crop_properties(self):
+        square = Subzone.objects.create(
+            name="Testville - Square",
+            land_area=self.subzone.land_area,
+            usage="square",
+            size=0.2,
+            boundary=SQUARE,
+        )
+        square = Subzone.objects.select_related("field_crop").get(pk=square.pk)
+        props = SubzoneFeatureSerializer(square).data["properties"]
+        self.assertEqual(props["usage"], "square")
+        self.assertIsNone(props["crop_stage"])
+        self.assertIsNone(props["crop_progress"])
+        self.assertIsNone(props["shelter_building_id"])
+
 
 class PopulationCentreLabelFeatureSerializerTest(TestCase):
     """
