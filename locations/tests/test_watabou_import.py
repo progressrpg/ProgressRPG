@@ -30,7 +30,13 @@ EARTH = {"coordinates": [[[-500, -500], [500, -500], [500, 500], [-500, 500]]]}
 
 
 def _make_export(
-    *, districts=None, buildings=None, roads=None, road_width=None, fields=None
+    *,
+    districts=None,
+    buildings=None,
+    roads=None,
+    road_width=None,
+    fields=None,
+    squares=None,
 ):
     features = [
         {"type": "Feature", "id": "earth", **EARTH},
@@ -51,6 +57,10 @@ def _make_export(
         features.append({"type": "Feature", "id": "districts", "geometries": districts})
     if fields is not None:
         features.append({"type": "MultiPolygon", "id": "fields", "coordinates": fields})
+    if squares is not None:
+        features.append(
+            {"type": "MultiPolygon", "id": "squares", "coordinates": squares}
+        )
     return {"features": features}
 
 
@@ -348,3 +358,54 @@ class WatabouImportFieldsTest(TestCase):
         centre = import_watabou_village(data, name="Empty Fields", origin=origin)
 
         self.assertFalse(LandArea.objects.filter(population_centre=centre).exists())
+
+
+# Reuses FIELD_ONE/FIELD_TWO's shapes for the "squares" MultiPolygon too -
+# same convention, different feature id/usage.
+SQUARE_ONE = FIELD_ONE
+SQUARE_TWO = FIELD_TWO
+
+
+class WatabouImportSquaresTest(TestCase):
+    def test_creates_one_square_subzone_per_square_polygon(self):
+        data = _make_export(
+            districts=[TRADE_DISTRICT, MILL_WARD], squares=[SQUARE_ONE, SQUARE_TWO]
+        )
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="Plaza Wards", origin=origin)
+
+        land_area = LandArea.objects.get(
+            population_centre=centre, name__startswith="Squares"
+        )
+        subzones = list(land_area.subzones.all())
+        self.assertEqual(len(subzones), 2)
+        self.assertTrue(all(s.usage == "square" for s in subzones))
+
+    def test_squares_and_fields_create_separate_land_areas(self):
+        data = _make_export(
+            districts=[TRADE_DISTRICT, MILL_WARD],
+            fields=[FIELD_ONE],
+            squares=[SQUARE_TWO],
+        )
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="Mixed Wards", origin=origin)
+
+        self.assertEqual(LandArea.objects.filter(population_centre=centre).count(), 2)
+        crop_subzone = Subzone.objects.get(usage="crops")
+        square_subzone = Subzone.objects.get(usage="square")
+        self.assertNotEqual(crop_subzone.land_area_id, square_subzone.land_area_id)
+
+    def test_no_squares_feature_creates_no_square_subzone(self):
+        data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD])
+        origin = Point(0, 0, srid=3857)
+
+        centre = import_watabou_village(data, name="No Squares", origin=origin)
+
+        self.assertFalse(
+            LandArea.objects.filter(
+                population_centre=centre, name__startswith="Squares"
+            ).exists()
+        )
+        self.assertFalse(Subzone.objects.filter(usage="square").exists())
