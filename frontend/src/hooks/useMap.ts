@@ -13,6 +13,13 @@ import {
 // tracks actual journeys closely, without polling every single tick.
 export const MAP_POLL_INTERVAL_MS = 2000;
 
+// Shared {queryKey, queryFn, staleTime, gcTime} for the map's two cheap,
+// one-shot "where/how big is the world" queries - exported (rather than
+// inlined in useInitialMapCentre/useMapWorldBounds below) so GameContext's
+// login-time prefetch (see useBootstrapGameData) primes the exact same cache
+// entries these hooks read, instead of duplicating the queryKey literals and
+// risking the two drifting apart.
+//
 // One-shot (not polled) fetch of just enough (id/name/bbox) to know where
 // the camera should start - the requesting player's linked character's
 // village if they have one, otherwise an arbitrary but deterministic
@@ -24,13 +31,15 @@ export const MAP_POLL_INTERVAL_MS = 2000;
 // effectively-forever) means a player who links to a different character
 // mid-session and revisits the map later still gets pointed at the right
 // village instead of a stale cached one.
+export const initialMapCentreQueryOptions = {
+  queryKey: ["map", "initial-centre"] as const,
+  queryFn: fetchInitialMapCentre,
+  staleTime: 5 * 60 * 1000,
+  gcTime: 15 * 60 * 1000,
+};
+
 export function useInitialMapCentre() {
-  return useQuery({
-    queryKey: ["map", "initial-centre"],
-    queryFn: fetchInitialMapCentre,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
-  });
+  return useQuery(initialMapCentreQueryOptions);
 }
 
 // Reads the same cache entry MapPage's prefetch effect primes for the
@@ -71,13 +80,15 @@ export function useMapViewport(bbox: string | null) {
 // MapLibre's maxBounds (see design decision #6 in the map-viewport plan).
 // One-shot per session rather than polled - the world's overall extent
 // changes far more slowly than any individual viewport's contents.
+export const mapWorldBoundsQueryOptions = {
+  queryKey: ["map", "world-bounds"] as const,
+  queryFn: fetchMapWorldBounds,
+  staleTime: 30 * 60 * 1000,
+  gcTime: 60 * 60 * 1000,
+};
+
 export function useMapWorldBounds() {
-  return useQuery({
-    queryKey: ["map", "world-bounds"],
-    queryFn: fetchMapWorldBounds,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-  });
+  return useQuery(mapWorldBoundsQueryOptions);
 }
 
 // On-demand fetch for one character's map detail card (see DetailCard/
