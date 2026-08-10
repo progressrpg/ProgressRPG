@@ -104,6 +104,11 @@ def log_offline_activity(
 
     level_ups = player.add_activity(duration, xp=xp_gained) if xp_gained else []
 
+    from .daily_goals import check_and_award_daily_goals
+
+    _goals_state, bonus_level_ups = check_and_award_daily_goals(player)
+    level_ups = level_ups + bonus_level_ups
+
     return OfflineActivityLogResult(
         activity=activity,
         reward_summary=reward_summary,

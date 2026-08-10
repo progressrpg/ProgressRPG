@@ -194,17 +194,34 @@ class TestMeViewSet(APITestCase):
         self.assertTrue(player_for(self.user).onboarding_completed)
         self.assertEqual(res.data, {"onboarding_completed": True})
 
-    def test_today_points_null_when_no_active_link(self):
+    def test_daily_goals_null_when_no_active_link(self):
         self.authenticate()
         player = player_for(self.user)
         self.assertIsNone(player.active_link)
 
-        res = self.client.get(reverse("me-today-points"))
+        res = self.client.get(reverse("me-daily-goals"))
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIsNone(res.data["points_today"])
+        self.assertIsNone(res.data["goals"])
 
-    def test_today_points_reflects_todays_completed_activities(self):
+    def test_daily_goals_all_false_when_linked_but_no_activity_or_login(self):
+        self.authenticate()
+        player = player_for(self.user)
+        PlayerCharacterLink.objects.create(player=player, character=self.character)
+
+        res = self.client.get(reverse("me-daily-goals"))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        goals = res.data["goals"]
+        self.assertFalse(goals["logged_in_today"])
+        self.assertFalse(goals["completed_activity_today"])
+        self.assertEqual(goals["activity_minutes_today"], 0)
+        self.assertFalse(goals["minutes_goal_met"])
+        self.assertFalse(goals["all_goals_met"])
+        self.assertFalse(goals["bonus_awarded_today"])
+        self.assertEqual(goals["bonus_ap"], 0)
+
+    def test_daily_goals_reflects_todays_completed_activities(self):
         self.authenticate()
         player = player_for(self.user)
         PlayerCharacterLink.objects.create(player=player, character=self.character)
@@ -212,14 +229,43 @@ class TestMeViewSet(APITestCase):
         PlayerActivity.objects.create(
             player=player,
             is_complete=True,
-            duration=1200,  # 20 minutes -> 2 points
+            duration=1200,  # 20 minutes
             completed_at=datetime.now(timezone.utc),
         )
 
-        res = self.client.get(reverse("me-today-points"))
+        res = self.client.get(reverse("me-daily-goals"))
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data["points_today"], 2)
+        goals = res.data["goals"]
+        self.assertTrue(goals["completed_activity_today"])
+        self.assertEqual(goals["activity_minutes_today"], 20)
+        self.assertTrue(goals["minutes_goal_met"])
+
+    def test_daily_goals_all_met_awards_bonus_once(self):
+        from users.models import UserLogin
+
+        self.authenticate()
+        player = player_for(self.user)
+        PlayerCharacterLink.objects.create(player=player, character=self.character)
+        UserLogin.objects.create(user=self.user)
+
+        PlayerActivity.objects.create(
+            player=player,
+            is_complete=True,
+            duration=1200,
+            completed_at=datetime.now(timezone.utc),
+        )
+
+        res = self.client.get(reverse("me-daily-goals"))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        goals = res.data["goals"]
+        self.assertTrue(goals["all_goals_met"])
+        # Reads never award the bonus themselves - only activity completion
+        # does (via check_and_award_daily_goals), so a plain GET here
+        # shouldn't have paid it out.
+        self.assertFalse(goals["bonus_awarded_today"])
+        self.assertEqual(goals["bonus_ap"], 0)
 
 
 class CustomTokenObtainPairViewTests(APITestCase):

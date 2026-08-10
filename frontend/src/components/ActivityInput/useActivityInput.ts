@@ -5,7 +5,7 @@ import { useGame } from "../../hooks/useGame";
 import { useEntitySearchCache } from "../../hooks/useEntitySearchCache";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
-import { TODAY_POINTS_QUERY_KEY } from "../../hooks/usePlayer";
+import { DAILY_GOALS_QUERY_KEY } from "../../hooks/usePlayer";
 import type { PlayerActivity } from "../../types";
 import { playLimitReachedSound, primeAudio } from "../../utils/sounds";
 
@@ -295,7 +295,7 @@ export function useActivityInput() {
           fetchPlayerAndCharacter(),
           fetchCharacterCurrent(),
           fetchActivities(),
-          queryClient.invalidateQueries({ queryKey: TODAY_POINTS_QUERY_KEY }),
+          queryClient.invalidateQueries({ queryKey: DAILY_GOALS_QUERY_KEY }),
           completedTaskId ? queryClient.invalidateQueries({ queryKey: ["tasks"] }) : Promise.resolve(),
         ]);
       } catch (err) {
