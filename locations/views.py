@@ -73,9 +73,15 @@ class PopulationCentreMapView(APIView):
                 "character_locations", "goods_stocks"
             )
         )
-        crop_subzones = list(
+        # "crops" drives FieldCrop growth-cycle rendering (see
+        # SubzoneFeatureSerializer); "square" is purely a communal-space map
+        # feature with no economy behaviour attached (see
+        # watabou_import._import_squares) - both are just polygons on the
+        # map, so they're queried and serialized together.
+        visible_subzones = list(
             Subzone.objects.filter(
-                land_area__population_centre=population_centre, usage="crops"
+                land_area__population_centre=population_centre,
+                usage__in=["crops", "square"],
             ).select_related("field_crop")
         )
 
@@ -109,7 +115,7 @@ class PopulationCentreMapView(APIView):
             features.append(BoundaryFeatureSerializer(population_centre).data)
         features.extend(CharacterPointFeatureSerializer(characters, many=True).data)
         features.extend(BuildingFeatureSerializer(buildings, many=True).data)
-        features.extend(SubzoneFeatureSerializer(crop_subzones, many=True).data)
+        features.extend(SubzoneFeatureSerializer(visible_subzones, many=True).data)
         features.extend(PathFeatureSerializer(paths, many=True).data)
         features.extend(RoadFeatureSerializer(roads, many=True).data)
 
@@ -120,7 +126,7 @@ class PopulationCentreMapView(APIView):
         )
         for polygon_obj, polygon_attr in [
             *((b, "footprint") for b in buildings),
-            *((s, "boundary") for s in crop_subzones),
+            *((s, "boundary") for s in visible_subzones),
             *((r, "geom") for r in roads),
         ]:
             geom = getattr(polygon_obj, polygon_attr)
@@ -222,9 +228,13 @@ class MapViewportView(APIView):
                 footprint__isnull=False, footprint__bboverlaps=bbox
             ).prefetch_related("character_locations", "goods_stocks")
         )
-        crop_subzones = list(
+        # See PopulationCentreMapView's matching comment - "crops" and
+        # "square" are both just polygon map features, queried together.
+        visible_subzones = list(
             Subzone.objects.filter(
-                usage="crops", boundary__isnull=False, boundary__bboverlaps=bbox
+                usage__in=["crops", "square"],
+                boundary__isnull=False,
+                boundary__bboverlaps=bbox,
             ).select_related("field_crop")
         )
         paths = (
@@ -262,7 +272,7 @@ class MapViewportView(APIView):
 
         features.extend(CharacterPointFeatureSerializer(characters, many=True).data)
         features.extend(BuildingFeatureSerializer(buildings, many=True).data)
-        features.extend(SubzoneFeatureSerializer(crop_subzones, many=True).data)
+        features.extend(SubzoneFeatureSerializer(visible_subzones, many=True).data)
         features.extend(PathFeatureSerializer(paths, many=True).data)
         features.extend(RoadFeatureSerializer(roads, many=True).data)
 
