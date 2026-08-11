@@ -1,7 +1,7 @@
 -r requirements.in
 
 build<2
-django-stubs<6
+django-stubs<7
 django-stubs-ext<7
 djangorestframework-stubs<3.17
 freezegun<2
