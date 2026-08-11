@@ -16,7 +16,7 @@ const featureFlags: Record<FeatureFlagKey, FeatureFlagValue> = {
   unified_homepage: [],
   results_mode: [],
   map: ['testers'],
-  dailyGoalsBadge: ['all'],
+  dailyGoalsBadge: ['testers'],
 };
 
 export default featureFlags;
