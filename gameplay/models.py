@@ -350,7 +350,14 @@ class ActivityTimer(Timer):
         reward_summary = self.activity.get_xp_reward_summary()
         xp_gained = self.activity.complete(reward_summary=reward_summary)
         level_ups = self.player.add_activity(self.elapsed_time, xp=xp_gained)
+
+        from progression.daily_goals import check_and_award_daily_goals
+
+        goals_state, bonus_level_ups = check_and_award_daily_goals(self.player)
+        level_ups = level_ups + bonus_level_ups
+
         reward_summary["level_ups"] = level_ups
+        reward_summary["daily_goals_bonus_ap"] = goals_state.bonus_ap
 
         logger.debug(
             f"[TIMER COMPLETE] Timer {self.id} completed — elapsed_time: {self.elapsed_time}, completed_at: {self.activity.completed_at}"

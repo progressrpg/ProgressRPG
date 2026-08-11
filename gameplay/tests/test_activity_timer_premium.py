@@ -49,6 +49,7 @@ class ActivityTimerPremiumRewardTests(TestCase):
                 "xp_gained": 120,
                 "skill_xp_gained": 0,
                 "level_ups": [1],
+                "daily_goals_bonus_ap": 0,
             },
         )
         self.assertEqual(self.player.level, 1)
