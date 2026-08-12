@@ -15,12 +15,4 @@
   border-radius: sp.$border-radius;
   padding: map.get(sp.$gap, xs) map.get(sp.$gap, sm);
   @include t.apply-text-style(t.$text-body);
-
-  @include mix.respond-to(md, down) {
-    bottom: 8rem;
-  }
-
-  @include mix.respond-to(sm, down) {
-    bottom: 9rem;
-  }
 }
