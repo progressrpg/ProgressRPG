@@ -35,8 +35,7 @@ function capitalize(word: string): string {
 function residentLine(resident: BuildingDetailResident): string {
   // "walking" overrides the scheduled activity while moving, same rule as
   // a character's own map tooltip (CharacterTooltipContent).
-  const activity = resident.isMoving ? "walking" : resident.currentActivity;
-  return activity ? `${resident.name} — ${activity}` : resident.name;
+  return resident.name;
 }
 
 export default function BuildingDetail({
