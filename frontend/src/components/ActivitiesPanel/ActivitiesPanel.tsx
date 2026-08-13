@@ -103,11 +103,14 @@ export default function ActivitiesPanel(): React.ReactElement | null {
   const hasTabActivities = groupedByCategory[activeTab].length > 0;
 
   const handleEdit = useCallback(
-    (activity: PlayerActivity, name: string) => {
-      updateActivity.mutate({
-        activityId: activity.id,
-        data: { name },
-      });
+    (activity: PlayerActivity, name: string, callbacks?: { onSuccess?: () => void; onError?: () => void }) => {
+      updateActivity.mutate(
+        {
+          activityId: activity.id,
+          data: { name },
+        },
+        callbacks,
+      );
     },
     [updateActivity],
   );

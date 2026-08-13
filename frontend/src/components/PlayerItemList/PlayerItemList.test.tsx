@@ -26,7 +26,7 @@ describe("PlayerItemList", () => {
     expect(screen.getByText("Duration: 15m • 15 XP gained")).toBeInTheDocument();
   });
 
-  it("opens the edit modal and saves a trimmed name", async () => {
+  it("autosaves a trimmed name on blur", async () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();
 
@@ -43,10 +43,57 @@ describe("PlayerItemList", () => {
     const input = screen.getByLabelText("activity name");
     await user.clear(input);
     await user.type(input, "  Deep work  ");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.tab();
 
-    expect(onEdit).toHaveBeenCalledWith(items[0], "Deep work");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(onEdit).toHaveBeenCalledWith(
+      items[0],
+      "Deep work",
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
+    // Autosave doesn't close the modal — there's no explicit Save action anymore.
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("does not re-fire the save when blurring without changing the name", async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+
+    render(
+      <PlayerItemList items={items} itemLabel="activity" onEdit={onEdit} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open activity Write docs" }));
+    const input = screen.getByLabelText("activity name");
+    await user.click(input);
+    await user.tab();
+
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it("shows a Saved indicator once the autosave succeeds, then shows a warning on failure", async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn((_item, _name, callbacks) => callbacks?.onSuccess?.());
+
+    const { rerender } = render(
+      <PlayerItemList items={items} itemLabel="activity" onEdit={onEdit} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open activity Write docs" }));
+    const input = screen.getByLabelText("activity name");
+    await user.clear(input);
+    await user.type(input, "Deep work");
+    await user.tab();
+
+    expect(await screen.findByText("Saved")).toBeInTheDocument();
+
+    const failingOnEdit = vi.fn((_item, _name, callbacks) => callbacks?.onError?.());
+    rerender(<PlayerItemList items={items} itemLabel="activity" onEdit={failingOnEdit} />);
+
+    await user.clear(input);
+    await user.type(input, "Deeper work");
+    await user.tab();
+
+    expect(await screen.findByText("Couldn't save — try again")).toBeInTheDocument();
   });
 
   it("opens the delete modal and confirms deletion", async () => {

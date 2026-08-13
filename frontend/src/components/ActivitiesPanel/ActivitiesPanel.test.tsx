@@ -47,13 +47,13 @@ describe("ActivitiesPanel", () => {
     const input = screen.getByLabelText("activity name");
     await user.clear(input);
     await user.type(input, "Write tests");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith({
-        activityId: 1,
-        data: { name: "Write tests" },
-      });
+      expect(updateMutate).toHaveBeenCalledWith(
+        { activityId: 1, data: { name: "Write tests" } },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
     });
   });
 
