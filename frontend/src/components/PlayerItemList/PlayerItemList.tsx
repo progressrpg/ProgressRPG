@@ -3,7 +3,6 @@ import classNames from "classnames";
 
 import Button from "../Button/Button";
 import List from "../List/List";
-import Li from "../List/Li";
 import Modal from "../Modal/Modal";
 import SaveStatusIndicator from "./SaveStatusIndicator";
 import { usePlayerItemListControls } from "./usePlayerItemListControls";
@@ -141,11 +140,15 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
     return ids;
   }, [items, getChildren]);
 
-  const topLevelDisplayItems = useMemo(() => {
+  // Sort/filter controls only apply to top-level items; a child keeps its
+  // place directly after its parent (in `getChildren`'s order) rather than
+  // being reordered independently.
+  const flatDisplayItems = useMemo(() => {
     if (!getChildren) return displayItems;
-    return displayItems.filter(
+    const topLevel = displayItems.filter(
       (item) => item.id === undefined || !childIds.has(item.id)
     );
+    return topLevel.flatMap((item) => [item, ...(getChildren(item) ?? [])]);
   }, [displayItems, getChildren, childIds]);
 
   const renderRow = (item: T): React.ReactNode => (
@@ -256,7 +259,7 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
       ) : null}
       <div className={styles.listScroll}>
       <List
-        items={topLevelDisplayItems}
+        items={flatDisplayItems}
         ariaLabel={ariaLabel}
         canHover
         className={classNames(styles.list, listClassName)}
@@ -264,31 +267,11 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
         getKey={getItemKey}
         getItemClassName={(item) =>
           classNames(styles.item, {
+            [styles.childItem]: item.id !== undefined && childIds.has(item.id),
             [styles.itemCompleted]: isItemComplete?.(item),
           })
         }
-        renderItem={(item) => {
-          const children = getChildren?.(item);
-          return (
-            <>
-              {renderRow(item)}
-              {children?.length ? (
-                <ul className={styles.childList}>
-                  {children.map((child, index) => (
-                    <Li
-                      key={(child.id as string | number | undefined) ?? index}
-                      className={classNames(styles.item, styles.childItem, {
-                        [styles.itemCompleted]: isItemComplete?.(child),
-                      })}
-                    >
-                      {renderRow(child)}
-                    </Li>
-                  ))}
-                </ul>
-              ) : null}
-            </>
-          );
-        }}
+        renderItem={(item) => renderRow(item)}
       />
       </div>
 

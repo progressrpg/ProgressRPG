@@ -8,6 +8,7 @@ from rest_framework.serializers import BaseSerializer
 import logging
 
 from .serializers import ActivityTimerSerializer
+from .utils import broadcast_activity_timer
 
 from progression.models import Task
 
@@ -34,22 +35,28 @@ class BaseTimerViewSet(viewsets.ViewSet):
         assert self.serializer_class is not None
         return self.serializer_class(timer).data
 
+    def broadcast_timer_update(self, timer):
+        broadcast_activity_timer(timer)
+
     @action(detail=False, methods=["post"])
     def start(self, request):
         timer = self.get_timer(request)
         timer.start()
+        self.broadcast_timer_update(timer)
         return Response(self.serialize(timer))
 
     @action(detail=False, methods=["post"])
     def pause(self, request):
         timer = self.get_timer(request)
         timer.pause()
+        self.broadcast_timer_update(timer)
         return Response(self.serialize(timer))
 
     @action(detail=False, methods=["post"])
     def reset(self, request):
         timer = self.get_timer(request)
         timer.reset()
+        self.broadcast_timer_update(timer)
         return Response(self.serialize(timer))
 
     @action(detail=False, methods=["post"])
@@ -58,6 +65,7 @@ class BaseTimerViewSet(viewsets.ViewSet):
         name = request.data.get("activityName")
 
         timer.complete(newName=name)
+        self.broadcast_timer_update(timer)
         return Response(self.serialize(timer))
 
 
@@ -90,6 +98,7 @@ class ActivityTimerViewSet(BaseTimerViewSet):
             client_elapsed_seconds=client_elapsed_seconds,
             completion_source=completion_source,
         )
+        self.broadcast_timer_update(timer)
 
         return Response({"activity_timer": self.serialize(timer), **completion})
 
@@ -108,6 +117,7 @@ class ActivityTimerViewSet(BaseTimerViewSet):
 
         updated = timer.new_activity(name=name, task=task)
         updated.refresh_from_db()
+        self.broadcast_timer_update(updated)
         return Response({"success": True, "activity_timer": self.serialize(updated)})
 
     @action(detail=False, methods=["post"])
@@ -135,5 +145,6 @@ class ActivityTimerViewSet(BaseTimerViewSet):
             timer.change_task(task)
 
         timer.rename_activity(name)
+        self.broadcast_timer_update(timer)
 
         return Response({"success": True, "activity_timer": self.serialize(timer)})

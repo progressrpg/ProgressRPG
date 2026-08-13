@@ -1,16 +1,23 @@
 // websockets/handleGlobalWebSocketEvent.ts
-import type { IncomingWebSocketMessage } from '../types';
+import type { ActivityTimerApiData, IncomingWebSocketMessage } from '../types';
 import type { MaintenanceState } from '../context/MaintenanceContext';
 
 interface HandleGlobalWebSocketEventOptions {
   showToast?: (message: string) => void;
   maintenanceRefetch?: () => Promise<MaintenanceState>;
   setMaintenance?: (state: MaintenanceState) => void;
+  /**
+   * Called when the server pushes an authoritative activity-timer snapshot
+   * (another of this player's sessions started/labelled/submitted the
+   * timer) so the caller can reconcile local timer state, e.g. via
+   * useActivityTimer's loadFromServer.
+   */
+  onActivityTimerUpdate?: (activityTimer: ActivityTimerApiData) => void;
 }
 
 export async function handleGlobalWebSocketEvent(
   data: IncomingWebSocketMessage,
-  { showToast, maintenanceRefetch, setMaintenance }: HandleGlobalWebSocketEventOptions,
+  { showToast, maintenanceRefetch, setMaintenance, onActivityTimerUpdate }: HandleGlobalWebSocketEventOptions,
 ): Promise<void> {
   switch (data.type) {
     case 'notification':
@@ -65,6 +72,11 @@ export async function handleGlobalWebSocketEvent(
           break;
         case 'load-game':
           console.log("[WS] Django consumer 'load-game' message not currently in use.");
+          break;
+        case 'activity_timer_update':
+          if (data.data?.activity_timer) {
+            onActivityTimerUpdate?.(data.data.activity_timer);
+          }
           break;
         default:
           console.warn('[WS] Unknown action:', data);

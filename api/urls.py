@@ -43,6 +43,7 @@ from users.views import PlayerViewSet
 
 from locations.views import (
     PopulationCentreMapView,
+    InitialMapCentreView,
     MapCharacterDetailView,
     MapViewportView,
     MapWorldBoundsView,
@@ -134,6 +135,11 @@ urlpatterns = [
         "population-centres/<int:pk>/map/",
         PopulationCentreMapView.as_view(),
         name="populationcentre-map",
+    ),
+    path(
+        "map/initial-centre/",
+        InitialMapCentreView.as_view(),
+        name="map-initial-centre",
     ),
     path(
         "map/viewport/",

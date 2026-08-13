@@ -188,44 +188,42 @@ export default function TasksPanel({
                     </Button>
                   )}
                 </div>
-                {taskItem.parent == null && (
-                  <div className={styles.parentRow}>
-                    <label className={styles.timestampLabel} htmlFor="task-parent">
-                      Parent task
-                    </label>
-                    <Tooltip
-                      content={
-                        hasSubtasks
-                          ? "This task already has subtasks and can't be nested under another task."
-                          : undefined
-                      }
+                <div className={styles.parentRow}>
+                  <label className={styles.timestampLabel} htmlFor="task-parent">
+                    Parent task
+                  </label>
+                  <Tooltip
+                    content={
+                      hasSubtasks
+                        ? "This task already has subtasks and can't be nested under another task."
+                        : undefined
+                    }
+                  >
+                    <select
+                      id="task-parent"
+                      className={styles.parentSelect}
+                      disabled={hasSubtasks}
+                      defaultValue={taskItem.parent ?? ""}
+                      onChange={(event) => {
+                        saveHelpers.reportSaving();
+                        updateTask.mutate(
+                          {
+                            id: taskItem.id,
+                            data: { parent: event.target.value ? Number(event.target.value) : null },
+                          },
+                          { onSuccess: saveHelpers.reportSaved, onError: saveHelpers.reportError },
+                        );
+                      }}
                     >
-                      <select
-                        id="task-parent"
-                        className={styles.parentSelect}
-                        disabled={hasSubtasks}
-                        defaultValue={taskItem.parent ?? ""}
-                        onChange={(event) => {
-                          saveHelpers.reportSaving();
-                          updateTask.mutate(
-                            {
-                              id: taskItem.id,
-                              data: { parent: event.target.value ? Number(event.target.value) : null },
-                            },
-                            { onSuccess: saveHelpers.reportSaved, onError: saveHelpers.reportError },
-                          );
-                        }}
-                      >
-                        <option value="">No parent</option>
-                        {parentOptions.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.name}
-                          </option>
-                        ))}
-                      </select>
-                    </Tooltip>
-                  </div>
-                )}
+                      <option value="">No parent</option>
+                      {parentOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Tooltip>
+                </div>
               </>
             );
           }}

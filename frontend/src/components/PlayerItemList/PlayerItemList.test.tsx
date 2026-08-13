@@ -201,7 +201,7 @@ describe("PlayerItemList", () => {
     const child = { id: 11, name: "Child task" };
     const flatItems = [parent, child];
 
-    it("renders children nested under their parent without a top-level row", () => {
+    it("renders children as independent rows, indented, directly after their parent", () => {
       render(
         <PlayerItemList
           items={flatItems}
@@ -212,8 +212,15 @@ describe("PlayerItemList", () => {
 
       expect(screen.getByRole("button", { name: "Open task Parent task" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Open task Child task" })).toBeInTheDocument();
-      // The child is not rendered as its own top-level list item.
+      // The child is not duplicated as a second top-level entry sourced from `items`.
       expect(screen.getAllByRole("button", { name: /^Open task / })).toHaveLength(2);
+
+      // Both render as siblings within the list, not one nested inside the other.
+      const rows = screen.getAllByRole("listitem");
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveTextContent("Parent task");
+      expect(rows[1]).toHaveTextContent("Child task");
+      expect(within(rows[0]).queryByText("Child task")).not.toBeInTheDocument();
     });
 
     it("is unaffected when getChildren is not passed (ProjectsPanel-style usage)", () => {

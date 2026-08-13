@@ -60,6 +60,27 @@ class CharacterRelationshipMembershipInline(admin.TabularInline):
         return ", ".join(str(c) for c in others)
 
 
+class CanLinkListFilter(admin.SimpleListFilter):
+    """
+    can_link is a derived property, not a DB column, so it can't be listed
+    in list_filter directly - filter via Character.objects.linkable()
+    (the queryset-level equivalent) instead.
+    """
+
+    title = "can link"
+    parameter_name = "can_link"
+
+    def lookups(self, request, model_admin):
+        return (("yes", "Yes"), ("no", "No"))
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return queryset.filter(pk__in=Character.objects.linkable())
+        if self.value() == "no":
+            return queryset.exclude(pk__in=Character.objects.linkable())
+        return queryset
+
+
 @admin.action(description="Mark selected characters as NPCs and unlink from players")
 def mark_as_npc(modeladmin, request, queryset):
     for character in queryset:
@@ -73,17 +94,6 @@ def mark_as_npc(modeladmin, request, queryset):
     )
 
 
-@admin.action(description="Mark selected characters as available to link")
-def mark_as_canlink(modeladmin, request, queryset):
-    for character in queryset:
-        character.can_link = True
-        character.save(update_fields=["can_link"])
-
-    messages.success(
-        request, f"{queryset.count()} character(s) marked as available to link."
-    )
-
-
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
     fieldsets = (
@@ -93,6 +103,7 @@ class CharacterAdmin(admin.ModelAdmin):
                 "fields": (
                     "given_name",
                     "can_link",
+                    "is_reserved",
                     "sex",
                 )
             },
@@ -145,7 +156,8 @@ class CharacterAdmin(admin.ModelAdmin):
         "birth_date",
     ]
     list_filter = [
-        "can_link",
+        CanLinkListFilter,
+        "is_reserved",
         "birth_date",
         "death_date",
         "sex",
@@ -156,6 +168,7 @@ class CharacterAdmin(admin.ModelAdmin):
         "links__player__name",
     ]
     readonly_fields = [
+        "can_link",
         "get_player",
         "get_age",
         "created_at",
@@ -168,7 +181,7 @@ class CharacterAdmin(admin.ModelAdmin):
         CharacterRelationshipMembershipInline,
         CharacterCurrencyInline,
     ]
-    actions = [mark_as_npc, mark_as_canlink]
+    actions = [mark_as_npc]
 
     @admin.display(description="Player")
     def get_player(self, obj):

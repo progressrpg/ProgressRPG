@@ -5,13 +5,13 @@ import Button from "../../components/Button/Button";
 import PopulationCentreMap, {
   type PopulationCentreMapHandle,
 } from "../../components/Map/Map";
-import TodayPointsBadge from "../../components/TodayPointsBadge/TodayPointsBadge";
+import DailyGoalsBadge from "../../components/DailyGoalsBadge/DailyGoalsBadge";
+import { fetchPopulationCentreMap } from "../../api/map";
 import FeatureToggle from "../../components/FeatureToggle";
 import {
   useInitialMapCentre,
   useMapViewport,
   useMapWorldBounds,
-  usePopulationCentreId,
   usePopulationCentres,
   useTargetCentreMap,
 } from "../../hooks/useMap";
@@ -42,12 +42,12 @@ function HomeIcon(): React.ReactElement {
 
 export default function MapPage(): React.ReactElement {
   const queryClient = useQueryClient();
-  const { data: pcId } = usePopulationCentreId();
-  // One-time fetch of the single seeded village's map, used only to give the
-  // camera somewhere to start (see useInitialMapCentre) and to have
-  // something on screen before the camera has settled on its first
-  // viewport below.
-  const { data: initialCentre } = useInitialMapCentre(pcId);
+  // One-time fetch of just enough (id/name/bbox) to give the camera
+  // somewhere to start - the player's linked village if they have one,
+  // otherwise a deterministic fallback (see InitialMapCentreView). Only
+  // frames the camera; there's no feature data here to show before the
+  // camera's first viewport below settles (see the `geojson` placeholder).
+  const { data: initialCentre } = useInitialMapCentre();
 
   const [bbox, setBbox] = useState<string | null>(null);
   const { data: viewportGeojson } = useMapViewport(bbox);
@@ -66,9 +66,19 @@ export default function MapPage(): React.ReactElement {
   // Once the map's camera has fitted itself to the initial village and
   // reported its first viewport (Map.tsx's onViewportChange), the
   // bbox-scoped viewport poll becomes the source of truth for what's on
-  // screen; until then, fall back to the mid-flight target (if any) or the
-  // one-time initial fetch.
-  const geojson = viewportGeojson ?? targetCentreGeojson ?? initialCentre;
+  // screen; until then, fall back to the mid-flight target (if any) or a
+  // feature-less placeholder built from the one-time initial fetch, just so
+  // Map.tsx has a bbox to fit its first camera position to.
+  const geojson =
+    viewportGeojson ??
+    targetCentreGeojson ??
+    (initialCentre?.bbox
+      ? {
+          bbox: initialCentre.bbox,
+          features: [],
+          meta: { population_centre_name: initialCentre.name },
+        }
+      : null);
 
   const handleViewportChange = (nextBbox: string) => {
     setBbox(nextBbox);
@@ -87,16 +97,18 @@ export default function MapPage(): React.ReactElement {
     : null;
 
   useEffect(() => {
-    if (!populationCentres?.length || !initialCentre) return;
+    if (!populationCentres?.length || !initialCentre?.bbox) return;
 
     const currentVillage = populationCentres[cycleIndex % populationCentres.length];
     const nextVillageToPrefetch = populationCentres[(cycleIndex + 1) % populationCentres.length];
 
     const villagesToPrefetch = [currentVillage, nextVillageToPrefetch].filter(Boolean);
     for (const village of villagesToPrefetch) {
+      // Query key must match useTargetCentreMap's, so the prefetch here and
+      // the read there hit the same cache entry.
       void queryClient.prefetchQuery({
-        queryKey: ["map", "population-centre", "initial-centre", village.id],
-        queryFn: () => import("../../api/map").then(({ fetchPopulationCentreMap }) => fetchPopulationCentreMap(village.id)),
+        queryKey: ["map", "population-centre", "full-map", village.id],
+        queryFn: () => fetchPopulationCentreMap(village.id),
         staleTime: 15 * 60 * 1000,
         gcTime: 30 * 60 * 1000,
       });
@@ -117,15 +129,15 @@ export default function MapPage(): React.ReactElement {
           visible title (the map itself is the content). */}
       <h1 className="sr-only">{geojson?.meta?.population_centre_name || "Village map"}</h1>
       <div className={styles.content}>
-        {initialCentre ? (
+        {geojson ? (
           <PopulationCentreMap
             ref={mapRef}
             geojson={geojson}
             onViewportChange={handleViewportChange}
             worldBounds={worldBounds?.bbox}
           >
-            <FeatureToggle flag="todayPointsBadge" fallback={null}>
-              <TodayPointsBadge />
+            <FeatureToggle flag="dailyGoalsBadge" fallback={null}>
+              <DailyGoalsBadge />
             </FeatureToggle>
             {nextVillage && (
               <Button

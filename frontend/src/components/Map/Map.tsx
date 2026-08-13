@@ -43,7 +43,12 @@ import {
   TOOLTIP_ONLY_SELECTION_OPACITY,
   VILLAGE_LABEL_LAYER,
 } from "./layers";
-import { buildVillageSourceData, type WalkerState } from "./sourceData";
+import {
+  buildCharacterPointFeatures,
+  buildStaticVillageFeatures,
+  buildVillageSourceData,
+  type WalkerState,
+} from "./sourceData";
 import MapDetailCard from "../MapDetailCard/MapDetailCard";
 import CharacterDetail from "../CharacterDetail/CharacterDetail";
 import BuildingDetail from "../BuildingDetail/BuildingDetail";
@@ -212,6 +217,17 @@ export default function PopulationCentreMap({
     [features]
   );
 
+  // Styled buildings/roads/fields/boundaries - everything the map draws
+  // except characters. Only recomputed when `features` itself changes (each
+  // ~2s poll), unlike character positions, which the walker loop below
+  // recomputes on every animation frame - keeping this out of that loop is
+  // what keeps a village's buildings/roads/fields from being re-styled and
+  // re-reprojected 60 times a second while nothing about them has changed.
+  const staticVillageFeatures = useMemo(
+    () => buildStaticVillageFeatures(features),
+    [features]
+  );
+
   // Lets scatterCharacters spread a field_shelter's idle workers across the
   // crops Subzone(s) it services instead of clustering them at the
   // shelter's own small footprint - see scatterCharacters' own comment.
@@ -258,16 +274,19 @@ export default function PopulationCentreMap({
   const walkersRef = useRef<Map<string, WalkerState>>(new Map());
 
   const refreshVillageSource = useCallback(() => {
-    sourceRef.current?.setData(
-      buildVillageSourceData({
-        features,
-        characterFeatures,
-        idleCharacterPositions,
-        walkers: walkersRef.current,
-        now: Date.now(),
-      })
-    );
-  }, [features, characterFeatures, idleCharacterPositions]);
+    sourceRef.current?.setData({
+      type: "FeatureCollection",
+      features: [
+        ...staticVillageFeatures,
+        ...buildCharacterPointFeatures({
+          characterFeatures,
+          idleCharacterPositions,
+          walkers: walkersRef.current,
+          now: Date.now(),
+        }),
+      ],
+    });
+  }, [staticVillageFeatures, characterFeatures, idleCharacterPositions]);
 
   // Creates the map once. onViewportChange and refreshVillageSource are each
   // read via a ref inside the handlers below rather than as effect deps, so
@@ -689,18 +708,19 @@ export default function PopulationCentreMap({
   // Each frame recomputes position from scratch - the checkpoint plus how
   // much time has passed since it was taken - rather than stepping forward
   // from wherever the previous frame left off, so nothing compounds across
-  // frames or across polls (see the WalkerState comment above).
+  // frames or across polls (see the WalkerState comment above). Only runs
+  // while at least one character actually has an active journey - an idle
+  // village (the common case) has nothing to animate, so there's no reason
+  // to keep a 60fps timer alive rebuilding the source every 16ms.
   useEffect(() => {
-    const step = () => {
-      if (mapReady) {
-        refreshVillageSource();
-      }
-    };
+    if (!mapReady || walkingFeatures.length === 0) return;
+
+    const step = () => refreshVillageSource();
 
     step();
     const intervalId = window.setInterval(step, 16);
     return () => window.clearInterval(intervalId);
-  }, [mapReady, refreshVillageSource]);
+  }, [mapReady, walkingFeatures.length, refreshVillageSource]);
 
   // Outlines whichever building/character the detail card currently has
   // open (see SELECTED_BUILDING_OUTLINE_LAYER/SELECTED_CHARACTER_HIGHLIGHT_LAYER

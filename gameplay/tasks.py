@@ -27,6 +27,7 @@ def auto_complete_timer_on_disconnect(self, player_id: int):
     Revoked by TimerConsumer.connect() if the player reconnects in time.
     """
     from .models import ActivityTimer
+    from .utils import broadcast_activity_timer
 
     stored_task_id = cache.get(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
     if stored_task_id != self.request.id:
@@ -44,6 +45,7 @@ def auto_complete_timer_on_disconnect(self, player_id: int):
         return f"skipped:{timer.status}"
 
     timer.complete(completion_source="auto")
+    broadcast_activity_timer(timer)
     cache.delete(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
     return "completed"
 
@@ -61,6 +63,7 @@ def auto_complete_timers_for_stale_players():
     completes them the same way the disconnect grace period does.
     """
     from .models import ActivityTimer
+    from .utils import broadcast_activity_timer
 
     cutoff = timezone.now() - STALE_TIMER_THRESHOLD
     stale_timers = (
@@ -72,6 +75,7 @@ def auto_complete_timers_for_stale_players():
     completed_count = 0
     for timer in stale_timers:
         timer.complete(completion_source="auto")
+        broadcast_activity_timer(timer)
         completed_count += 1
 
     return completed_count

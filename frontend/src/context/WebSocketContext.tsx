@@ -10,7 +10,7 @@ import { handleGlobalWebSocketEvent } from '../websockets/handleGlobalWebSocketE
 import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 import { useMaintenanceContext } from './MaintenanceContext';
 import { WebSocketContext } from './webSocketContext';
-import type { IncomingWebSocketMessage, OutgoingWebSocketMessage } from '../types';
+import type { ActivityTimerApiData, IncomingWebSocketMessage, OutgoingWebSocketMessage } from '../types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,7 +30,7 @@ const HEARTBEAT_INTERVAL_MS = 60_000;
 // ---------------------------------------------------------------------------
 
 export const WebSocketProvider = ({ children }: ProviderProps): ReactElement => {
-  const { player } = useGame();
+  const { player, activityTimer, freeTimerLimitSeconds } = useGame();
   const { setOnlinePlayerCount } = useOnlineCount();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { showToast } = useToast();
@@ -40,14 +40,26 @@ export const WebSocketProvider = ({ children }: ProviderProps): ReactElement => 
   const eventHandlersRef = useRef<Set<(data: IncomingWebSocketMessage) => void>>(new Set());
   const wsEnabled = Boolean(!authLoading && isAuthenticated && player?.id);
 
+  const { loadFromServer } = activityTimer;
+  const onActivityTimerUpdate = useCallback((activityTimerData: ActivityTimerApiData) => {
+    // Reconciles this session's timer to the authoritative state pushed
+    // whenever another of the player's open sessions (tabs/devices) starts,
+    // labels, or submits the activity timer. loadFromServer just overwrites
+    // local state, so applying it to the session that originated the change
+    // (an echo of its own update) is harmless.
+    loadFromServer(activityTimerData, {
+      limitSeconds: player?.is_premium ? null : freeTimerLimitSeconds,
+    });
+  }, [loadFromServer, player?.is_premium, freeTimerLimitSeconds]);
+
   const onMessage = useCallback((data: IncomingWebSocketMessage) => {
     if (data.type === 'online_count') {
       setOnlinePlayerCount(data.count);
     }
     //console.log("[WS Provider] showToast:", showToast);
-    handleGlobalWebSocketEvent(data, { showToast, maintenanceRefetch, setMaintenance });
+    handleGlobalWebSocketEvent(data, { showToast, maintenanceRefetch, setMaintenance, onActivityTimerUpdate });
     eventHandlersRef.current.forEach((handler) => handler(data));
-  }, [showToast, maintenanceRefetch, setMaintenance, setOnlinePlayerCount]);
+  }, [showToast, maintenanceRefetch, setMaintenance, setOnlinePlayerCount, onActivityTimerUpdate]);
 
   const onError = useCallback(() => {
     console.error('WebSocket connection error');
