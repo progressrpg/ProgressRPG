@@ -155,15 +155,11 @@ class Command(BaseCommand):
                 given_name = random.choice(MALE_NAMES if sex == "M" else FEMALE_NAMES)
 
                 birth_date = birth_date_for_age(age)
-                # can_link possible for chars over 15 years old
-                age_days = (date.today() - birth_date).days
-                can_link = age_days >= int(15 * 365.25)
 
                 char = Character.objects.create(
                     given_name=given_name,
                     sex=sex,
                     birth_date=birth_date,
-                    can_link=can_link,
                 )
                 household_members.append((char, role))
                 household_characters.append(char)
