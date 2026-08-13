@@ -363,8 +363,8 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
                     Delete
                   </Button>
                 ) : null}
+                <SaveStatusIndicator status={saveStatus} />
               </div>
-              <SaveStatusIndicator status={saveStatus} />
             </div>
           )}
         </Modal>

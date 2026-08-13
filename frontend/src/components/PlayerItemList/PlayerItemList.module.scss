@@ -259,6 +259,7 @@
 }
 
 .editConfirmActions {
+  position: relative;
   display: flex;
   justify-content: flex-start;
   align-items: center;
@@ -293,14 +294,17 @@
 
 .saveStatus {
   position: absolute;
-  right: sp.$padding-base;
-  bottom: sp.$spacing-sm;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   padding: sp.$spacing-xs sp.$spacing-sm;
   border-radius: sp.$border-radius;
+  border: 1px solid rgba(c.$color-border-primary, 0.4);
   background: rgba(c.$color-bg, 0.95);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   pointer-events: none;
   z-index: 1;
+  font-weight: 600;
   @include t.apply-text-style(t.$text-caption);
   animation: saveStatusFadeIn 0.15s ease;
 }

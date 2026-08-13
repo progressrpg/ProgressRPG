@@ -9,6 +9,9 @@ export interface SaveStatusHelpers {
 }
 
 const SAVED_DISPLAY_MS = 2500;
+// Saves usually resolve fast enough that "Saving…" would just flash on
+// screen; only show it once a save has been pending this long.
+const SAVING_DISPLAY_DELAY_MS = 150;
 
 /**
  * Tracks a single in-flight autosave's status so a modal can show a brief
@@ -19,6 +22,7 @@ const SAVED_DISPLAY_MS = 2500;
 export function useSaveStatus() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current) {
@@ -27,28 +31,47 @@ export function useSaveStatus() {
     }
   }, []);
 
+  const clearSavingTimer = useCallback(() => {
+    if (savingTimerRef.current) {
+      clearTimeout(savingTimerRef.current);
+      savingTimerRef.current = null;
+    }
+  }, []);
+
   const reportSaving = useCallback(() => {
     clearHideTimer();
-    setSaveStatus("saving");
-  }, [clearHideTimer]);
+    clearSavingTimer();
+    savingTimerRef.current = setTimeout(() => {
+      savingTimerRef.current = null;
+      setSaveStatus("saving");
+    }, SAVING_DISPLAY_DELAY_MS);
+  }, [clearHideTimer, clearSavingTimer]);
 
   const reportSaved = useCallback(() => {
     clearHideTimer();
+    clearSavingTimer();
     setSaveStatus("saved");
     hideTimerRef.current = setTimeout(() => setSaveStatus("idle"), SAVED_DISPLAY_MS);
-  }, [clearHideTimer]);
+  }, [clearHideTimer, clearSavingTimer]);
 
   const reportError = useCallback(() => {
     clearHideTimer();
+    clearSavingTimer();
     setSaveStatus("error");
-  }, [clearHideTimer]);
+  }, [clearHideTimer, clearSavingTimer]);
 
   const resetSaveStatus = useCallback(() => {
     clearHideTimer();
+    clearSavingTimer();
     setSaveStatus("idle");
-  }, [clearHideTimer]);
+  }, [clearHideTimer, clearSavingTimer]);
 
-  useEffect(() => clearHideTimer, [clearHideTimer]);
+  useEffect(() => {
+    return () => {
+      clearHideTimer();
+      clearSavingTimer();
+    };
+  }, [clearHideTimer, clearSavingTimer]);
 
   return { saveStatus, reportSaving, reportSaved, reportError, resetSaveStatus };
 }
