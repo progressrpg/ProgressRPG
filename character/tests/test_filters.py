@@ -17,7 +17,6 @@ class CharacterFilterTests(TestCase):
             given_name="NPC1",
             birth_date=date(2000, 1, 1),
             sex="Male",
-            can_link=True,
             level=5,
             xp=100,
         )
@@ -25,7 +24,6 @@ class CharacterFilterTests(TestCase):
             given_name="NPC2",
             birth_date=date(2000, 1, 1),
             sex="Female",
-            can_link=True,
             level=10,
             xp=500,
         )
@@ -45,7 +43,6 @@ class CharacterFilterTests(TestCase):
             given_name="Player1",
             birth_date=date(2000, 1, 1),
             sex="Male",
-            can_link=False,
             level=3,
             xp=75,
         )
@@ -66,7 +63,6 @@ class CharacterFilterTests(TestCase):
             given_name="Player2",
             birth_date=date(2000, 1, 1),
             sex="Female",
-            can_link=False,
             level=7,
             xp=200,
         )

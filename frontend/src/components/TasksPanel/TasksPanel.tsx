@@ -107,7 +107,7 @@ export default function TasksPanel({
               </>
             );
           }}
-          renderEditSummary={(taskItem) => {
+          renderEditSummary={(taskItem, saveHelpers) => {
             const summary = getTaskEditSummary(taskItem);
             const hasSubtasks = (taskItem.subtask_count ?? 0) > 0;
             const parentOptions = topLevelTasks.filter((t) => t.id !== taskItem.id);
@@ -162,58 +162,68 @@ export default function TasksPanel({
                     type="datetime-local"
                     className={styles.dueDateInput}
                     defaultValue={toDatetimeLocalValue(taskItem.due_at)}
-                    onBlur={(event) =>
-                      updateTask.mutate({
-                        id: taskItem.id,
-                        data: { due_at: fromDatetimeLocalValue(event.target.value) },
-                      })
-                    }
+                    onBlur={(event) => {
+                      saveHelpers.reportSaving();
+                      updateTask.mutate(
+                        {
+                          id: taskItem.id,
+                          data: { due_at: fromDatetimeLocalValue(event.target.value) },
+                        },
+                        { onSuccess: saveHelpers.reportSaved, onError: saveHelpers.reportError },
+                      );
+                    }}
                   />
                   {taskItem.due_at && (
                     <Button
                       variant="secondary"
-                      onClick={() =>
-                        updateTask.mutate({ id: taskItem.id, data: { due_at: null } })
-                      }
+                      onClick={() => {
+                        saveHelpers.reportSaving();
+                        updateTask.mutate(
+                          { id: taskItem.id, data: { due_at: null } },
+                          { onSuccess: saveHelpers.reportSaved, onError: saveHelpers.reportError },
+                        );
+                      }}
                     >
                       Clear
                     </Button>
                   )}
                 </div>
-                {taskItem.parent == null && (
-                  <div className={styles.parentRow}>
-                    <label className={styles.timestampLabel} htmlFor="task-parent">
-                      Parent task
-                    </label>
-                    <Tooltip
-                      content={
-                        hasSubtasks
-                          ? "This task already has subtasks and can't be nested under another task."
-                          : undefined
-                      }
-                    >
-                      <select
-                        id="task-parent"
-                        className={styles.parentSelect}
-                        disabled={hasSubtasks}
-                        defaultValue={taskItem.parent ?? ""}
-                        onChange={(event) =>
-                          updateTask.mutate({
+                <div className={styles.parentRow}>
+                  <label className={styles.timestampLabel} htmlFor="task-parent">
+                    Parent task
+                  </label>
+                  <Tooltip
+                    content={
+                      hasSubtasks
+                        ? "This task already has subtasks and can't be nested under another task."
+                        : undefined
+                    }
+                  >
+                    <select
+                      id="task-parent"
+                      className={styles.parentSelect}
+                      disabled={hasSubtasks}
+                      defaultValue={taskItem.parent ?? ""}
+                      onChange={(event) => {
+                        saveHelpers.reportSaving();
+                        updateTask.mutate(
+                          {
                             id: taskItem.id,
                             data: { parent: event.target.value ? Number(event.target.value) : null },
-                          })
-                        }
-                      >
-                        <option value="">No parent</option>
-                        {parentOptions.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.name}
-                          </option>
-                        ))}
-                      </select>
-                    </Tooltip>
-                  </div>
-                )}
+                          },
+                          { onSuccess: saveHelpers.reportSaved, onError: saveHelpers.reportError },
+                        );
+                      }}
+                    >
+                      <option value="">No parent</option>
+                      {parentOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Tooltip>
+                </div>
               </>
             );
           }}

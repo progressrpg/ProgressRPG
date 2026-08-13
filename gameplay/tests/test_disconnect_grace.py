@@ -141,12 +141,18 @@ class AutoCompleteTimerTaskTests(TransactionTestCase):
 
         with patch.object(
             ActivityTimer, "complete", return_value={"xp_gained": 50}
-        ) as mock_complete:
+        ) as mock_complete, patch(
+            "gameplay.tasks.broadcast_activity_timer"
+        ) as mock_broadcast:
             result = _run_task(self.player.id, self.TASK_ID)
 
         self.assertEqual(result, "completed")
         mock_complete.assert_called_once_with(completion_source="auto")
         self.assertIsNone(cache.get(self._cache_key()))
+        # Any other open session (tabs/devices) for this player should be
+        # told the timer was auto-completed, so it stops ticking a timer
+        # the server has already closed out.
+        mock_broadcast.assert_called_once_with(self.timer)
 
 
 # ── consumer disconnect tests ──────────────────────────────────────────────────

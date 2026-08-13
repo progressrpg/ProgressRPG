@@ -344,7 +344,7 @@ describe('useActivityInput unified handlers', () => {
     });
   });
 
-  it('invalidates the today-points query after completing an activity, so the map badge updates immediately (#673)', async () => {
+  it('invalidates the daily-goals query after completing an activity, so the map badge updates immediately (#673, #751)', async () => {
     mockGame({ status: 'active', currentActivity: { name: 'Deep work' } });
     stop.mockResolvedValue({ xp_gained: 10 });
 
@@ -355,7 +355,7 @@ describe('useActivityInput unified handlers', () => {
     });
 
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['me', 'today-points'],
+      queryKey: ['me', 'daily-goals'],
     });
   });
 });

@@ -2,7 +2,16 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { TooltipProvider } from "../Tooltip/Tooltip";
 import ActivitiesPanel from "./ActivitiesPanel";
+
+function renderActivitiesPanel() {
+  return render(
+    <TooltipProvider>
+      <ActivitiesPanel />
+    </TooltipProvider>
+  );
+}
 
 const mockUseActivities = vi.fn();
 const mockUseDeleteActivity = vi.fn();
@@ -39,7 +48,7 @@ describe("ActivitiesPanel", () => {
 
   it("renders activities and delegates edit through PlayerItemList", async () => {
     const user = userEvent.setup();
-    render(<ActivitiesPanel />);
+    renderActivitiesPanel();
 
     expect(screen.getByText("Write docs")).toBeInTheDocument();
 
@@ -47,19 +56,19 @@ describe("ActivitiesPanel", () => {
     const input = screen.getByLabelText("activity name");
     await user.clear(input);
     await user.type(input, "Write tests");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith({
-        activityId: 1,
-        data: { name: "Write tests" },
-      });
+      expect(updateMutate).toHaveBeenCalledWith(
+        { activityId: 1, data: { name: "Write tests" } },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
     });
   });
 
   it("delegates delete confirmation through PlayerItemList", async () => {
     const user = userEvent.setup();
-    render(<ActivitiesPanel />);
+    renderActivitiesPanel();
 
     await user.click(screen.getByRole("button", { name: "Open activity Write docs" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));

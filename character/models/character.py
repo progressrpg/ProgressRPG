@@ -1,4 +1,5 @@
 # from datetime import datetime
+from datetime import timedelta
 from celery import current_app
 from decimal import Decimal
 from django.contrib.gis.geos import Point
@@ -309,6 +310,33 @@ class LifeCycleMixin(models.Model):
 ########################################################################
 
 
+class CharacterQuerySet(models.QuerySet):
+    def linkable(self):
+        """
+        Characters currently eligible to be linked to a player - the
+        queryset-level equivalent of `Character.can_link`, for call sites
+        that need to filter/exist-check in SQL rather than load instances.
+        Keep this in sync with `Character.can_link` by hand; there's no
+        way to share the logic verbatim since one runs in the DB and the
+        other in Python.
+        """
+        cutoff_date = timezone.now().date() - timedelta(
+            days=Character.MIN_LINK_AGE_DAYS
+        )
+        return (
+            self.filter(is_reserved=False)
+            .filter(
+                models.Q(birth_date__isnull=True)
+                | models.Q(birth_date__lte=cutoff_date)
+            )
+            .exclude(links__is_active=True)
+        )
+
+
+class CharacterManager(models.Manager.from_queryset(CharacterQuerySet)):
+    pass
+
+
 class Character(LevelProgressionMixin, LifeCycleMixin, Movable):
     class SexChoices(models.TextChoices):
         MALE = "Male", "Male"
@@ -335,10 +363,20 @@ class Character(LevelProgressionMixin, LifeCycleMixin, Movable):
         max_length=20, choices=SexChoices.choices, null=True, blank=True
     )
     reputation = models.IntegerField(default=0)
-    can_link = models.BooleanField(default=False)
+    is_reserved = models.BooleanField(
+        default=False,
+        verbose_name="Reserved",
+        help_text="Manually held back from linking (e.g. reserved for a future storyline), independent of age or link status.",
+    )
     link_points_multiplier = models.DecimalField(
         max_digits=5, decimal_places=2, default="1.00"
     )
+
+    objects = CharacterManager()
+
+    # Minimum age (in days) for a character to be linkable. ~18 years,
+    # matching spawn-time character generation.
+    MIN_LINK_AGE_DAYS = int(18 * 365.25)
 
     @property
     def is_npc(self):
@@ -346,6 +384,33 @@ class Character(LevelProgressionMixin, LifeCycleMixin, Movable):
         A character is an NPC if they don't have an active PlayerCharacterLink.
         """
         return not self.links.filter(is_active=True).exists()
+
+    @property
+    def is_underage(self):
+        # An unknown birth_date isn't evidence of being underage - it just
+        # means age isn't gating linkability for this character.
+        if self.birth_date is None:
+            return False
+        return self.get_age() < self.MIN_LINK_AGE_DAYS
+
+    @property
+    def can_link(self) -> bool:
+        """
+        Whether this character is currently eligible to be linked to a
+        player, derived from independent reasons - manual reservation,
+        age, active link, and (once population centres can gate linking -
+        see #681) population_centre.characters_can_link - rather than a
+        flag several call sites could clobber. Keep in sync by hand with
+        `CharacterQuerySet.linkable`, the SQL-level equivalent used where
+        a Python loop over instances isn't practical.
+        """
+        if self.is_reserved:
+            return False
+        if self.is_underage:
+            return False
+        if self.links.filter(is_active=True).exists():
+            return False
+        return True
 
     def __str__(self):
         return self.name
@@ -519,34 +584,6 @@ class PlayerCharacterLink(models.Model):
             self.player.link_points_multiplier * self.character.link_points_multiplier
         )
         return int(base_points * multiplier)
-
-    @property
-    def player_time_today(self):
-        """
-        Completed activity time for this link so far today (in minutes) -
-        a date-filtered variant of player_time, bounded to the current UTC
-        day instead of the whole link lifetime.
-        """
-        start_of_day = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        start = max(start_of_day, self.linked_at)
-
-        qs = self.player.activities.filter(is_complete=True, completed_at__gte=start)
-        if self.unlinked_at:
-            qs = qs.filter(completed_at__lte=self.unlinked_at)
-
-        total_seconds = qs.aggregate(total=Sum("duration"))["total"] or 0
-        return int(total_seconds // 60)
-
-    @property
-    def points_today(self):
-        """
-        Points earned today (issue #673's map-view "today" badge) - only the
-        activity-time component of link_points, date-filtered to today.
-        link_points' other terms (days_linked * 20, login_points) aren't
-        "earned today" in the same sense, so they're deliberately left out
-        here rather than prorated.
-        """
-        return self.player_time_today // 10
 
     @classmethod
     def get_character(cls, player: Player) -> Character:

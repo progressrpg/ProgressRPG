@@ -363,24 +363,61 @@ class MeViewSet(viewsets.ViewSet):
 
     @extend_schema(
         responses=inline_serializer(
-            name="TodayPointsResponse",
+            name="DailyGoalsResponse",
             fields={
-                "points_today": drf_serializers.IntegerField(allow_null=True),
+                "goals": inline_serializer(
+                    name="DailyGoalsStateResponse",
+                    fields={
+                        "logged_in_today": drf_serializers.BooleanField(),
+                        "completed_activity_today": drf_serializers.BooleanField(),
+                        "activity_minutes_today": drf_serializers.IntegerField(),
+                        "minutes_goal_threshold": drf_serializers.IntegerField(),
+                        "minutes_goal_met": drf_serializers.BooleanField(),
+                        "all_goals_met": drf_serializers.BooleanField(),
+                        "bonus_awarded_today": drf_serializers.BooleanField(),
+                        "bonus_ap": drf_serializers.IntegerField(),
+                    },
+                    allow_null=True,
+                ),
             },
         )
     )
     @action(detail=False, methods=["get"])
-    def today_points(self, request):
+    def daily_goals(self, request):
         """
-        Personal "points earned today" for the map view's badge (issue #673).
-        `points_today` is null - not zero - when the player has no active
+        Daily goals for the map view's badge (issue #751, replacing the old
+        `today_points`/`points_today` mechanic from issue #673). `goals` is
+        null - not a set of all-false goals - when the player has no active
         PlayerCharacterLink, so the frontend can tell "no link" apart from
-        "linked but nothing earned yet today" and hide the badge entirely.
+        "linked but no goals cleared yet today" and hide the badge entirely.
         """
+        from progression.daily_goals import (
+            MINUTES_GOAL_THRESHOLD,
+            get_daily_goals_state,
+        )
+
         player = request.user.player
         link = player.active_link
 
-        return Response({"points_today": link.points_today if link else None})
+        if not link:
+            return Response({"goals": None})
+
+        state = get_daily_goals_state(player)
+
+        return Response(
+            {
+                "goals": {
+                    "logged_in_today": state.logged_in_today,
+                    "completed_activity_today": state.completed_activity_today,
+                    "activity_minutes_today": state.activity_minutes_today,
+                    "minutes_goal_threshold": MINUTES_GOAL_THRESHOLD,
+                    "minutes_goal_met": state.minutes_goal_met,
+                    "all_goals_met": state.all_goals_met,
+                    "bonus_awarded_today": state.bonus_awarded_today,
+                    "bonus_ap": state.bonus_ap,
+                }
+            }
+        )
 
     @extend_schema(
         responses=inline_serializer(

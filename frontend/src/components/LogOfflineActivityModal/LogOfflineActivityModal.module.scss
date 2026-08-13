@@ -1,0 +1,126 @@
+@use '../../styles/semantic/spacing' as sp;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/utilities/mixins' as m;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-md;
+  width: 100%;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-xs;
+}
+
+.label {
+  @include t.apply-text-style(t.$text-body);
+  font-weight: 600;
+}
+
+.required {
+  color: c.$color-error;
+}
+
+.row {
+  display: flex;
+  gap: sp.$spacing-sm;
+  width: 100%;
+
+  > * {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.durationPartField {
+  flex: 0 0 auto;
+  width: 4.5rem;
+  max-width: 4.5rem;
+
+  input[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      appearance: none;
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+}
+
+.taskInput {
+  width: 100%;
+}
+
+.durationPreview {
+  @include t.apply-text-style(t.$text-body);
+  opacity: 0.75;
+  margin: 0;
+}
+
+.errorText {
+  @include t.apply-text-style(t.$text-body);
+  color: c.$color-error;
+  margin: 0;
+}
+
+.eligibilityBanner {
+  @include t.apply-text-style(t.$text-body);
+  margin: 0;
+  padding: sp.$spacing-sm sp.$spacing-md;
+  border-radius: sp.$border-radius;
+  border: 1px solid transparent;
+
+  &.info {
+    background: rgba(c.$color-status-info, 0.1);
+    border-color: rgba(c.$color-status-info, 0.4);
+  }
+
+  &.success {
+    background: rgba(c.$color-status-success, 0.1);
+    border-color: rgba(c.$color-status-success, 0.4);
+  }
+
+  &.warning {
+    background: rgba(c.$color-warning, 0.12);
+    border-color: rgba(c.$color-warning, 0.4);
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: sp.$spacing-sm;
+  margin-top: sp.$spacing-sm;
+}
+
+.confirmation {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-md;
+  width: 100%;
+  text-align: center;
+}
+
+.confirmationHeadline {
+  @include t.apply-text-style(t.$text-body);
+  margin: 0;
+}
+
+.confirmationActions {
+  display: flex;
+  justify-content: center;
+  gap: sp.$spacing-sm;
+}
+
+@include m.respond-to(sm, down) {
+  .row {
+    flex-direction: column;
+  }
+}

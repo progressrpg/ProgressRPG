@@ -5,7 +5,7 @@ import Button from "../../components/Button/Button";
 import PopulationCentreMap, {
   type PopulationCentreMapHandle,
 } from "../../components/Map/Map";
-import TodayPointsBadge from "../../components/TodayPointsBadge/TodayPointsBadge";
+import DailyGoalsBadge from "../../components/DailyGoalsBadge/DailyGoalsBadge";
 import { fetchPopulationCentreMap } from "../../api/map";
 import FeatureToggle from "../../components/FeatureToggle";
 import {
@@ -136,8 +136,8 @@ export default function MapPage(): React.ReactElement {
             onViewportChange={handleViewportChange}
             worldBounds={worldBounds?.bbox}
           >
-            <FeatureToggle flag="todayPointsBadge" fallback={null}>
-              <TodayPointsBadge />
+            <FeatureToggle flag="dailyGoalsBadge" fallback={null}>
+              <DailyGoalsBadge />
             </FeatureToggle>
             {nextVillage && (
               <Button

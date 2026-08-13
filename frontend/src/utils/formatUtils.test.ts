@@ -31,16 +31,16 @@ describe("formatDueAt", () => {
     expect(formatDueAt(null)).toBe("-");
   });
 
-  it("labels the current day as Today", () => {
-    expect(formatDueAt(atLocalMidnight(0))).toBe("Today");
+  it("labels the current day as today", () => {
+    expect(formatDueAt(atLocalMidnight(0))).toBe("today");
   });
 
-  it("labels the next day as Tomorrow", () => {
-    expect(formatDueAt(atLocalMidnight(1))).toBe("Tomorrow");
+  it("labels the next day as tomorrow", () => {
+    expect(formatDueAt(atLocalMidnight(1))).toBe("tomorrow");
   });
 
-  it("labels the previous day as Yesterday", () => {
-    expect(formatDueAt(atLocalMidnight(-1))).toBe("Yesterday");
+  it("labels the previous day as yesterday", () => {
+    expect(formatDueAt(atLocalMidnight(-1))).toBe("yesterday");
   });
 
   it("labels a few days out as 'in N days'", () => {
@@ -51,13 +51,37 @@ describe("formatDueAt", () => {
     expect(formatDueAt(atLocalMidnight(-3))).toBe("3 days ago");
   });
 
-  it("labels a further-back date in weeks", () => {
+  it("labels a further-back date in whole weeks", () => {
     expect(formatDueAt(atLocalMidnight(-14))).toBe("2 weeks ago");
   });
 
-  it("labels a further-out date as an absolute weekday/day/month", () => {
-    // 9 days out from Wed 15 Jul 2026 is Fri 24 Jul 2026.
-    expect(formatDueAt(atLocalMidnight(9))).toBe("Fri 24th Jul");
+  it("labels a further-out date in weeks, with a leftover-days remainder", () => {
+    expect(formatDueAt(atLocalMidnight(9))).toBe("in 1 week, 2 days");
+  });
+
+  it("labels a further-out whole-week date without a days remainder", () => {
+    expect(formatDueAt(atLocalMidnight(14))).toBe("in 2 weeks");
+  });
+
+  it("labels a further-back date in weeks, with a leftover-days remainder", () => {
+    expect(formatDueAt(atLocalMidnight(-20))).toBe("2 weeks, 6 days ago");
+  });
+
+  it("labels a date beyond the week cutoff in months (future)", () => {
+    expect(formatDueAt(atLocalMidnight(60))).toBe("in 2 months");
+  });
+
+  it("labels a date beyond the week cutoff in months (past)", () => {
+    expect(formatDueAt(atLocalMidnight(-60))).toBe("2 months ago");
+  });
+
+  it("keeps counting months uncapped on the past side", () => {
+    expect(formatDueAt(atLocalMidnight(-200))).toBe("7 months ago");
+  });
+
+  it("falls back to an absolute date beyond the month cap (future)", () => {
+    // 200 days out from Wed 15 Jul 2026 is Sun 31 Jan 2027.
+    expect(formatDueAt(atLocalMidnight(200))).toBe("Sun 31st Jan");
   });
 });
 

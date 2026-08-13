@@ -1,16 +1,14 @@
 // src/config.ts
-let API_BASE_URL: string;
-const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+function resolveApiBaseUrl(): string {
+  const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
-if (envApiBaseUrl) {
-  API_BASE_URL = envApiBaseUrl;
-} else if (window.location.hostname === 'localhost') {
-  API_BASE_URL = 'http://localhost:8000';
-} else {
-  API_BASE_URL = window.location.origin;
+  const base =
+    envApiBaseUrl ??
+    (window.location.hostname === 'localhost'
+      ? 'http://localhost:8000'
+      : window.location.origin);
+
+  return base.replace(/\/api\/v1\/?$/i, '').replace(/\/$/, '');
 }
 
-API_BASE_URL = API_BASE_URL.replace(/\/api\/v1\/?$/i, '');
-API_BASE_URL = API_BASE_URL.replace(/\/$/, '');
-
-export { API_BASE_URL };
+export const API_BASE_URL = resolveApiBaseUrl();

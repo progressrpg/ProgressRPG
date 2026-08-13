@@ -60,11 +60,16 @@ class AutoCompleteStaleTimersTaskTests(TestCase):
             timezone.now() - (STALE_TIMER_THRESHOLD + timedelta(seconds=1))
         )
 
-        with patch.object(ActivityTimer, "complete") as mock_complete:
+        with patch.object(ActivityTimer, "complete") as mock_complete, patch(
+            "gameplay.tasks.broadcast_activity_timer"
+        ) as mock_broadcast:
             result = auto_complete_timers_for_stale_players()
 
         mock_complete.assert_called_once_with(completion_source="auto")
         self.assertEqual(result, 1)
+        # Any other open session (tabs/devices) for this player should be
+        # told the timer was auto-completed by this sweep.
+        mock_broadcast.assert_called_once_with(self.timer)
 
     def test_completes_timer_when_last_seen_was_never_set(self):
         self._make_active(None)

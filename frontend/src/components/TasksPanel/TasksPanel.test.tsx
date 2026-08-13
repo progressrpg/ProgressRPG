@@ -284,13 +284,13 @@ describe("TasksPanel", () => {
     const input = screen.getByLabelText("task name");
     await user.clear(input);
     await user.type(input, "Evening routine");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith({
-        id: 1,
-        data: { name: "Evening routine" },
-      });
+      expect(updateMutate).toHaveBeenCalledWith(
+        { id: 1, data: { name: "Evening routine" } },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
     });
   });
 
@@ -325,7 +325,7 @@ describe("TasksPanel", () => {
       total_records: 0,
     };
 
-    it("renders a subtask nested under its parent", () => {
+    it("renders a subtask as an independent, indented row directly after its parent", () => {
       mockUseTasks.mockReturnValue({
         isLoading: false,
         data: [parentTask, childTask],
@@ -336,9 +336,14 @@ describe("TasksPanel", () => {
       const childButton = screen.getAllByRole("button", { name: "Edit task Child subtask" })[0];
       expect(parentButton).toBeInTheDocument();
       expect(childButton).toBeInTheDocument();
-      // The subtask is nested inside the parent's <li>, not a sibling top-level row.
+      // The subtask is its own sibling row, not nested inside the parent's <li>.
       const parentListItem = parentButton.closest("li");
-      expect(parentListItem).toContainElement(childButton);
+      const childListItem = childButton.closest("li");
+      expect(parentListItem).not.toBe(childListItem);
+      expect(parentListItem).not.toContainElement(childButton);
+
+      const rows = screen.getAllByRole("listitem");
+      expect(rows.indexOf(childListItem!)).toBe(rows.indexOf(parentListItem!) + 1);
     });
 
     it("hides a completed parent and its subtasks together", () => {
@@ -405,10 +410,10 @@ describe("TasksPanel", () => {
       await user.tab();
 
       await waitFor(() => {
-        expect(updateMutate).toHaveBeenCalledWith({
-          id: 1,
-          data: { due_at: expect.any(String) },
-        });
+        expect(updateMutate).toHaveBeenCalledWith(
+          { id: 1, data: { due_at: expect.any(String) } },
+          expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+        );
       });
     });
   });

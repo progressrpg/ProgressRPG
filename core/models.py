@@ -90,6 +90,13 @@ class GameSettings(models.Model):
         max_digits=5, decimal_places=2, default="1.25"
     )
     task_completion_xp = models.IntegerField(default=100)
+    daily_goals_completion_bonus_ap = models.IntegerField(
+        default=50,
+        help_text=(
+            "Lump-sum AP awarded once per day when a player clears all "
+            "three daily goals (see progression.daily_goals)."
+        ),
+    )
     xp_mastery_scale = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -162,6 +169,8 @@ class GameSettings(models.Model):
             errors["task_activity_xp_multiplier"] = "Must be > 0."
         if self.task_completion_xp < 0:
             errors["task_completion_xp"] = "Must be non-negative."
+        if self.daily_goals_completion_bonus_ap < 0:
+            errors["daily_goals_completion_bonus_ap"] = "Must be non-negative."
         if self.xp_mastery_scale <= 0:
             errors["xp_mastery_scale"] = "Must be > 0."
         if self.xp_mastery_multiplier_cap < 1:

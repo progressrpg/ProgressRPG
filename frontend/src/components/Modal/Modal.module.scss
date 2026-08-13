@@ -53,8 +53,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  padding-top: sp.$spacing-md;
-  padding-bottom: sp.$spacing-md;
+  padding: sp.$spacing-md sp.$spacing-sm;
   @include tc.two-column-layout;
 
   justify-content: flex-start;

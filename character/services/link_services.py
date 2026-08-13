@@ -37,8 +37,6 @@ def player_link_unlink(link) -> None:
     link.unlinked_at = timezone.now()
     link.is_active = False
     link.save()
-    link.character.can_link = True
-    link.character.save(update_fields=["can_link"])
 
 
 def player_link_deactivate_active_links(model_cls, player) -> None:
@@ -59,6 +57,4 @@ def player_link_assign_character(model_cls, player, character):
         character=character,
         is_active=True,
     )
-    character.can_link = False
-    character.save(update_fields=["can_link"])
     return link

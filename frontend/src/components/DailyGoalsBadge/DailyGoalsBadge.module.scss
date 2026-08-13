@@ -1,0 +1,60 @@
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/spacing' as sp;
+
+.badge {
+  background: c.$color-bg;
+  border: 1px solid c.$color-border-primary;
+  border-radius: sp.$border-radius;
+  padding: sp.$spacing-xs sp.$spacing-sm;
+  min-width: 11rem;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.title {
+  margin: 0 0 sp.$spacing-xs;
+  @include t.apply-text-style(t.$text-caption);
+  color: c.$color-text-muted;
+}
+
+.goalList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.goal,
+.goalMet {
+  display: flex;
+  align-items: center;
+  gap: sp.$spacing-xs;
+  @include t.apply-text-style(t.$text-list);
+}
+
+.goal {
+  color: c.$color-text-muted;
+}
+
+.goalMet {
+  color: c.$color-text-body;
+}
+
+.goalMark {
+  color: c.$color-status-success;
+  width: 1em;
+  text-align: center;
+}
+
+.goal .goalMark {
+  color: c.$color-text-disabled;
+}
+
+.bonus {
+  margin: sp.$spacing-xs 0 0;
+  color: c.$color-status-success;
+  font-weight: bold;
+  @include t.apply-text-style(t.$text-list);
+}
