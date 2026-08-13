@@ -56,7 +56,7 @@ describe('BuildingDetail', () => {
     expect(screen.queryByText(/Wheat/)).not.toBeInTheDocument();
   });
 
-  it('shows each resident, with "walking" overriding their scheduled activity', () => {
+  it('shows each resident by name only', () => {
     render(
       <BuildingDetail
         buildingType="residential"
@@ -67,8 +67,8 @@ describe('BuildingDetail', () => {
       />
     );
 
-    expect(screen.getByText('Alice — idle')).toBeInTheDocument();
-    expect(screen.getByText('Bob — walking')).toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
   });
 
   it('calls onSelectResident when a resident row is clicked', async () => {
