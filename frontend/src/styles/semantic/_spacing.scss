@@ -38,6 +38,9 @@ $button-padding: $spacing-xs $spacing-md;
 $button-radius: $spacing-md;
 $content-padding: $spacing-lg;
 
+$form-control-height: 2rem;
+$form-control-radius: $border-radius;
+
 // === Gap / radius / shadow collections ===
 $gap: (
   xs: map.get(s.$spacing, xs),

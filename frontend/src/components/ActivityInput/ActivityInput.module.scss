@@ -4,7 +4,7 @@
 @use '../../styles/semantic/spacing' as sp;
 @use 'sass:map';
 
-$row-control-height: 44px;
+$row-control-height: sp.$form-control-height;
 .control {
   height: $row-control-height;
   display: flex;
@@ -216,14 +216,6 @@ $row-control-height: 44px;
 }
 
 @include m.respond-to(md, down) {
-  .control {
-    height: 40px;
-  }
-
-  .grow {
-    min-height: 40px;
-  }
-
   .inputText {
     font-size: 1rem;
     line-height: 1.1;
@@ -242,14 +234,6 @@ $row-control-height: 44px;
 }
 
 @include m.respond-to(sm, down) {
-  .control {
-    height: 38px;
-  }
-
-  .grow {
-    min-height: 38px;
-  }
-
   .inputText {
     font-size: 0.9rem;
     line-height: 1.05;

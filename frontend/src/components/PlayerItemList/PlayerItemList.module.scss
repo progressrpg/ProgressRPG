@@ -228,9 +228,10 @@
 .editInput {
   flex: 1;
   min-width: 0;
+  height: sp.$form-control-height;
   padding: sp.$spacing-xs sp.$spacing-sm;
   border: 2px solid rgba(c.$color-status-success, 0.45);
-  border-radius: sp.$border-radius;
+  border-radius: sp.$form-control-radius;
   font-size: 1em;
   font-family: inherit;
   transition: border-color 0.2s ease;

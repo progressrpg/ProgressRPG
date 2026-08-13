@@ -27,6 +27,7 @@
 
 .inputField {
   padding: sp.$padding-base;
+  height: sp.$form-control-height;
   box-sizing: border-box;
   max-width: 30rem;
   @include m.border-interactive(
@@ -34,7 +35,7 @@
     c.$color-border-primary,
     c.$color-border-accent
   );
-  border-radius: sp.$border-radius;
+  border-radius: sp.$form-control-radius;
   transition: border 0.2s, background 0.2s;
   @include t.apply-text-style(t.$text-body);
 
