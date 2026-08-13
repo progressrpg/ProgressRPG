@@ -75,6 +75,21 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+const WEEK_CUTOFF_DAYS = 56; // 8 weeks: weeks[, days] granularity applies up to this many days out/back
+const MONTH_CUTOFF_DAYS = 180; // 6 months: beyond this on the future side, fall back to an absolute date
+
+function formatWeeksAndDays(totalDays: number): string {
+  const weeks = Math.floor(totalDays / 7);
+  const days = totalDays % 7;
+  const weeksPart = `${weeks} ${pluralize(weeks, "week")}`;
+  return days > 0 ? `${weeksPart}, ${days} ${pluralize(days, "day")}` : weeksPart;
+}
+
+function formatMonths(totalDays: number): string {
+  const months = Math.max(1, Math.round(totalDays / 30));
+  return `${months} ${pluralize(months, "month")}`;
+}
+
 export function formatDueAt(dueAt: string | null): string {
   if (!dueAt) return "-";
   const date = new Date(dueAt);
@@ -84,19 +99,23 @@ export function formatDueAt(dueAt: string | null): string {
     (startOfDay(date).getTime() - startOfDay(new Date()).getTime()) / (24 * 60 * 60 * 1000)
   );
 
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Tomorrow";
-  if (diffDays === -1) return "Yesterday";
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "tomorrow";
+  if (diffDays === -1) return "yesterday";
 
   if (diffDays > 1 && diffDays <= 6) return `in ${diffDays} days`;
   if (diffDays < -1 && diffDays >= -6) return `${-diffDays} days ago`;
 
-  if (diffDays < -6) {
-    const weeks = Math.round(-diffDays / 7);
-    return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
+  if (diffDays > 6 && diffDays <= WEEK_CUTOFF_DAYS) return `in ${formatWeeksAndDays(diffDays)}`;
+  if (diffDays < -6 && diffDays >= -WEEK_CUTOFF_DAYS) return `${formatWeeksAndDays(-diffDays)} ago`;
+
+  if (diffDays < -WEEK_CUTOFF_DAYS) return `${formatMonths(-diffDays)} ago`;
+
+  if (diffDays > WEEK_CUTOFF_DAYS && diffDays <= MONTH_CUTOFF_DAYS) {
+    return `in ${formatMonths(diffDays)}`;
   }
 
-  // diffDays > 6: further out than a week, show an absolute date.
+  // diffDays > MONTH_CUTOFF_DAYS: further out than ~6 months, show an absolute date.
   const weekday = date.toLocaleDateString(undefined, { weekday: "short" });
   const month = date.toLocaleDateString(undefined, { month: "short" });
   const day = date.getDate();
