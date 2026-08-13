@@ -40,6 +40,4 @@ def character_assign_work(character, building) -> None:
 
 
 def character_has_available(model_cls) -> bool:
-    return (
-        model_cls.objects.filter(can_link=True).exclude(links__is_active=True).exists()
-    )
+    return model_cls.objects.linkable().exists()

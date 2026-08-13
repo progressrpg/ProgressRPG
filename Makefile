@@ -26,6 +26,8 @@ ds:
 
 t:
 	docker compose exec web python manage.py test $(t) --keepdb --buffer
+tnk:
+	docker compose exec web python manage.py test $(t) --buffer
 
 vt:
 	cd ./frontend

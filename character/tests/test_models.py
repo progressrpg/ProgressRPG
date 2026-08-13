@@ -413,13 +413,11 @@ class CharacterNPCTests(TestCase):
             given_name="NPC1",
             birth_date=date(2000, 1, 1),
             sex="Male",
-            can_link=True,
         )
         self.npc2 = Character.objects.create(
             given_name="NPC2",
             birth_date=date(2000, 1, 1),
             sex="Female",
-            can_link=True,
         )
 
         # Create a player-linked character
@@ -440,14 +438,10 @@ class CharacterNPCTests(TestCase):
             given_name="Player",
             birth_date=date(2000, 1, 1),
             sex="Male",
-            can_link=False,
         )
         PlayerCharacterLink.objects.create(
             player=self.player, character=self.player_character, is_active=True
         )
-        # Update can_link to match real behavior
-        self.player_character.can_link = False
-        self.player_character.save()
 
     def test_is_npc_property_for_npc(self):
         """Test that a character without an active player link is an NPC"""
@@ -483,8 +477,8 @@ class CharacterNPCTests(TestCase):
 
     def test_has_available_no_linkable_characters(self):
         """Test has_available returns False when no linkable characters exist"""
-        # Mark all NPCs as not linkable
-        Character.objects.filter(can_link=True).update(can_link=False)
+        # Mark all currently-linkable NPCs as reserved, so none remain linkable
+        Character.objects.linkable().update(is_reserved=True)
         self.assertFalse(Character.has_available())
 
     def test_has_available_all_linked(self):

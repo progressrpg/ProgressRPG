@@ -39,11 +39,7 @@ def assign_character_to_player(player):
     any currently active character and associates a new NPC with the Player.
     """
 
-    character = (
-        Character.objects.filter(can_link=True, death_date__isnull=True)
-        .exclude(links__is_active=True)
-        .first()
-    )
+    character = Character.objects.linkable().filter(death_date__isnull=True).first()
 
     if not character:
         logger.warning(f"No available NPC character to assign to player {player.id}")
