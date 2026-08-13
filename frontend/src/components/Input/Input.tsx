@@ -23,6 +23,7 @@ function EyeOffIcon() {
 interface InputProps {
   id: string;
   label?: string;
+  ariaLabel?: string;
   type?: string;
   value?: string;
   onChange?: (value: string | boolean) => void;
@@ -34,6 +35,8 @@ interface InputProps {
   checked?: boolean;
   minLength?: number;
   maxLength?: number;
+  min?: string | number;
+  max?: string | number;
   className?: string;
   inputClassName?: string;
   disabled?: boolean;
@@ -44,6 +47,7 @@ interface InputProps {
 export default function Input({
   id,
   label,
+  ariaLabel,
   type = 'text',
   value,
   onChange,
@@ -55,6 +59,8 @@ export default function Input({
   checked,
   minLength,
   maxLength,
+  min,
+  max,
   className,
   inputClassName,
   disabled = false,
@@ -91,13 +97,15 @@ export default function Input({
       onBlur={onBlur}
       onKeyDown={onKeyDown}
       placeholder={placeholder}
+      aria-label={!label ? ariaLabel : undefined}
       aria-invalid={!!error}
       aria-describedby={describedBy}
       aria-required={required}
       autoComplete={autoComplete}
-      required={required}
       minLength={minLength}
       maxLength={maxLength}
+      min={min}
+      max={max}
       disabled={disabled}
     />
   );
