@@ -97,6 +97,16 @@ export interface AnnouncementReadMutationResponse {
   unread_count: number;
 }
 
+/** Response from POST /player-activities/log_offline/ */
+export interface OfflineActivityLogResponse {
+  success: boolean;
+  message: string;
+  activity: PlayerActivity;
+  xp_gained: number;
+  xp_eligible_seconds: number;
+  level_ups: number[];
+}
+
 // Forward references resolved in domain.ts
 import type { Player } from "./domain";
 import type { Character } from "./domain";
@@ -104,4 +114,5 @@ import type { Announcement } from "./domain";
 import type { ActivityTimerApiData } from "./timers";
 import type { PopulationCentre } from "./domain";
 import type { XpModifier } from "./domain";
+import type { PlayerActivity } from "./domain";
 import type { LoginState } from "./enums";
