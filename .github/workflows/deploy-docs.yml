@@ -55,7 +55,7 @@ jobs:
       run: cd frontend && npm ci
 
     - name: Build Storybook
-      run: cd frontend && npm run build-storybook -- --base=/ProgressRPG/storybook/
+      run: cd frontend && npm run build-storybook
 
     - name: Combine sites
       run: |
