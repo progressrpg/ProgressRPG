@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from character.models import PlayerCharacterLink
 from .models import XpModifier
-from .utils import broadcast_activity_timer
 
 DISCONNECT_TASK_CACHE_KEY = "disconnect_task:{player_id}"
 
@@ -28,6 +27,7 @@ def auto_complete_timer_on_disconnect(self, player_id: int):
     Revoked by TimerConsumer.connect() if the player reconnects in time.
     """
     from .models import ActivityTimer
+    from .utils import broadcast_activity_timer
 
     stored_task_id = cache.get(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
     if stored_task_id != self.request.id:
@@ -63,6 +63,7 @@ def auto_complete_timers_for_stale_players():
     completes them the same way the disconnect grace period does.
     """
     from .models import ActivityTimer
+    from .utils import broadcast_activity_timer
 
     cutoff = timezone.now() - STALE_TIMER_THRESHOLD
     stale_timers = (

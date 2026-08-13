@@ -156,19 +156,12 @@
   }
 }
 
-.childList {
-  list-style: none;
-  margin: sp.$spacing-xs 0 0;
-  padding: 0 0 0 sp.$spacing-lg;
-  display: flex;
-  flex-direction: column;
-  gap: sp.$spacing-xs;
-}
-
 .childItem {
-  background: transparent;
-  border-color: rgba(c.$color-border-primary, 0.12);
-  opacity: 0.9;
+  // Shrink width by the indent instead of just shifting it, so the right
+  // edge still lines up with the parent's — .listItem's width: 100% would
+  // otherwise push the box that far past the parent's right edge.
+  width: calc(100% - #{sp.$spacing-lg});
+  margin-left: sp.$spacing-lg;
 }
 
 .itemCompleted {
