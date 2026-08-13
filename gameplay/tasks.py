@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from character.models import PlayerCharacterLink
 from .models import XpModifier
+from .utils import broadcast_activity_timer
 
 DISCONNECT_TASK_CACHE_KEY = "disconnect_task:{player_id}"
 
@@ -44,6 +45,7 @@ def auto_complete_timer_on_disconnect(self, player_id: int):
         return f"skipped:{timer.status}"
 
     timer.complete(completion_source="auto")
+    broadcast_activity_timer(timer)
     cache.delete(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
     return "completed"
 
@@ -72,6 +74,7 @@ def auto_complete_timers_for_stale_players():
     completed_count = 0
     for timer in stale_timers:
         timer.complete(completion_source="auto")
+        broadcast_activity_timer(timer)
         completed_count += 1
 
     return completed_count
