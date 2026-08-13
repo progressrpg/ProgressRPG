@@ -245,15 +245,8 @@ export function useTasksPanel(openTaskId?: number | null, onOpenNote?: (noteId: 
   }, []);
 
   const handleEdit = useCallback(
-    (task: ItemRecord, name: string, options?: { parent?: number | null; due_at?: string | null }) => {
-      updateTask.mutate({
-        id: task.id,
-        data: {
-          name,
-          ...(options?.parent !== undefined ? { parent: options.parent } : {}),
-          ...(options?.due_at !== undefined ? { due_at: options.due_at } : {}),
-        },
-      });
+    (task: ItemRecord, name: string, callbacks?: { onSuccess?: () => void; onError?: () => void }) => {
+      updateTask.mutate({ id: task.id, data: { name } }, callbacks);
     },
     [updateTask]
   );

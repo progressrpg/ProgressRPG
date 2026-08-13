@@ -107,7 +107,7 @@ export default function TasksPanel({
               </>
             );
           }}
-          renderEditSummary={(taskItem) => {
+          renderEditSummary={(taskItem, saveHelpers) => {
             const summary = getTaskEditSummary(taskItem);
             const hasSubtasks = (taskItem.subtask_count ?? 0) > 0;
             const parentOptions = topLevelTasks.filter((t) => t.id !== taskItem.id);
@@ -162,19 +162,27 @@ export default function TasksPanel({
                     type="datetime-local"
                     className={styles.dueDateInput}
                     defaultValue={toDatetimeLocalValue(taskItem.due_at)}
-                    onBlur={(event) =>
-                      updateTask.mutate({
-                        id: taskItem.id,
-                        data: { due_at: fromDatetimeLocalValue(event.target.value) },
-                      })
-                    }
+                    onBlur={(event) => {
+                      saveHelpers.reportSaving();
+                      updateTask.mutate(
+                        {
+                          id: taskItem.id,
+                          data: { due_at: fromDatetimeLocalValue(event.target.value) },
+                        },
+                        { onSuccess: saveHelpers.reportSaved, onError: saveHelpers.reportError },
+                      );
+                    }}
                   />
                   {taskItem.due_at && (
                     <Button
                       variant="secondary"
-                      onClick={() =>
-                        updateTask.mutate({ id: taskItem.id, data: { due_at: null } })
-                      }
+                      onClick={() => {
+                        saveHelpers.reportSaving();
+                        updateTask.mutate(
+                          { id: taskItem.id, data: { due_at: null } },
+                          { onSuccess: saveHelpers.reportSaved, onError: saveHelpers.reportError },
+                        );
+                      }}
                     >
                       Clear
                     </Button>
@@ -197,12 +205,16 @@ export default function TasksPanel({
                         className={styles.parentSelect}
                         disabled={hasSubtasks}
                         defaultValue={taskItem.parent ?? ""}
-                        onChange={(event) =>
-                          updateTask.mutate({
-                            id: taskItem.id,
-                            data: { parent: event.target.value ? Number(event.target.value) : null },
-                          })
-                        }
+                        onChange={(event) => {
+                          saveHelpers.reportSaving();
+                          updateTask.mutate(
+                            {
+                              id: taskItem.id,
+                              data: { parent: event.target.value ? Number(event.target.value) : null },
+                            },
+                            { onSuccess: saveHelpers.reportSaved, onError: saveHelpers.reportError },
+                          );
+                        }}
                       >
                         <option value="">No parent</option>
                         {parentOptions.map((option) => (

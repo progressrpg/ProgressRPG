@@ -44,13 +44,13 @@ describe("SkillsPanel", () => {
     const input = screen.getByLabelText("skill name");
     await user.clear(input);
     await user.type(input, "Research");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith({
-        id: 1,
-        data: { name: "Research" },
-      });
+      expect(updateMutate).toHaveBeenCalledWith(
+        { id: 1, data: { name: "Research" } },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
     });
   });
 

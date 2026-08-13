@@ -77,16 +77,16 @@ describe("ProjectsPanel", () => {
     const input = screen.getByLabelText("project name");
     await user.clear(input);
     await user.type(input, "Platform refresh");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith({
-        id: 1,
-        data: { name: "Platform refresh" },
-      });
+      expect(updateMutate).toHaveBeenCalledWith(
+        { id: 1, data: { name: "Platform refresh" } },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
     });
 
-    await user.click(screen.getByRole("button", { name: "Open project Website overhaul" }));
+    // The modal stays open after an autosave — no explicit Save click to close it.
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
 

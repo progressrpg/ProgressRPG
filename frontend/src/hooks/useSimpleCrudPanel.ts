@@ -8,6 +8,11 @@ interface Entity {
   name: string;
 }
 
+interface SaveCallbacks {
+  onSuccess?: () => void;
+  onError?: () => void;
+}
+
 interface UseSimpleCrudPanelOptions<T extends Entity> {
   useList: () => Pick<UseQueryResult<T[]>, "data" | "isLoading">;
   useCreate: () => Pick<UseMutationResult<unknown, unknown, Partial<T>>, "mutate">;
@@ -41,8 +46,8 @@ export function useSimpleCrudPanel<T extends Entity>({
   );
 
   const handleEdit = useCallback(
-    (item: T, name: string) => {
-      update.mutate({ id: item.id, data: { name } as Partial<T> });
+    (item: T, name: string, callbacks?: SaveCallbacks) => {
+      update.mutate({ id: item.id, data: { name } as Partial<T> }, callbacks);
     },
     [update],
   );

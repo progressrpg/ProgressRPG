@@ -5,8 +5,11 @@ import Button from "../Button/Button";
 import List from "../List/List";
 import Li from "../List/Li";
 import Modal from "../Modal/Modal";
+import SaveStatusIndicator from "./SaveStatusIndicator";
 import { usePlayerItemListControls } from "./usePlayerItemListControls";
 import { usePlayerItemModal } from "./usePlayerItemModal";
+import type { SaveCallbacks } from "./usePlayerItemModal";
+import type { SaveStatusHelpers } from "./useSaveStatus";
 import styles from "./PlayerItemList.module.scss";
 
 export interface SortOption<T> {
@@ -30,8 +33,8 @@ interface PlayerItemListProps<T extends { id?: string | number; name?: string }>
   onToggleComplete?: (item: T) => void;
   getItemKey?: (item: T, index: number) => string | number;
   renderItemMeta?: (item: T) => React.ReactNode;
-  renderEditSummary?: (item: T) => React.ReactNode;
-  onEdit?: (item: T, name: string) => void;
+  renderEditSummary?: (item: T, saveHelpers: SaveStatusHelpers) => React.ReactNode;
+  onEdit?: (item: T, name: string, callbacks?: SaveCallbacks) => void;
   onDelete?: (item: T) => void;
   hoverEdit?: boolean;
   renderRowActions?: (item: T) => React.ReactNode;
@@ -92,6 +95,7 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
     liveActiveItem,
     editingName,
     confirmingDelete,
+    saveStatus,
     activeItemName,
     modalSummary,
     setEditingName,
@@ -337,6 +341,7 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
                       aria-label={`${itemLabel} name`}
                       value={editingName}
                       onChange={(event) => setEditingName(event.target.value)}
+                      onBlur={handleEditSave}
                       autoFocus
                       onKeyDown={(event) => {
                         if (event.key === "Enter") handleEditSave();
@@ -350,13 +355,8 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
                 <div className={styles.editConfirmMeta}>{modalSummary}</div>
               ) : null}
               <div className={styles.editConfirmActions}>
-                {canEdit ? (
-                  <Button variant="primary" onClick={handleEditSave}>
-                    Save
-                  </Button>
-                ) : null}
                 <Button variant="secondary" onClick={handleModalClose}>
-                  {canEdit ? "Cancel" : "Close"}
+                  Close
                 </Button>
                 {canDelete ? (
                   <Button variant="secondaryDanger" onClick={handleDeleteRequest}>
@@ -364,6 +364,7 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
                   </Button>
                 ) : null}
               </div>
+              <SaveStatusIndicator status={saveStatus} />
             </div>
           )}
         </Modal>

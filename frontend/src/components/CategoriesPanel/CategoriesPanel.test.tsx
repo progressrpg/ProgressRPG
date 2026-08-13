@@ -44,16 +44,16 @@ describe("CategoriesPanel", () => {
     const input = screen.getByLabelText("category name");
     await user.clear(input);
     await user.type(input, "Admin");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith({
-        id: 1,
-        data: { name: "Admin" },
-      });
+      expect(updateMutate).toHaveBeenCalledWith(
+        { id: 1, data: { name: "Admin" } },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
     });
 
-    await user.click(screen.getByRole("button", { name: "Open category Deep Work" }));
+    // The modal stays open after an autosave — no explicit Save click to close it.
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
 

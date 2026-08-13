@@ -284,13 +284,13 @@ describe("TasksPanel", () => {
     const input = screen.getByLabelText("task name");
     await user.clear(input);
     await user.type(input, "Evening routine");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith({
-        id: 1,
-        data: { name: "Evening routine" },
-      });
+      expect(updateMutate).toHaveBeenCalledWith(
+        { id: 1, data: { name: "Evening routine" } },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
     });
   });
 
@@ -405,10 +405,10 @@ describe("TasksPanel", () => {
       await user.tab();
 
       await waitFor(() => {
-        expect(updateMutate).toHaveBeenCalledWith({
-          id: 1,
-          data: { due_at: expect.any(String) },
-        });
+        expect(updateMutate).toHaveBeenCalledWith(
+          { id: 1, data: { due_at: expect.any(String) } },
+          expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+        );
       });
     });
   });
