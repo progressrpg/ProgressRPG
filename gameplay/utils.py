@@ -204,6 +204,26 @@ def process_completion(player: Player, character: Character, action: str) -> boo
         return True
 
 
+def broadcast_activity_timer(timer: ActivityTimer) -> None:
+    """
+    Push `timer`'s current state to every other open session (tabs, devices)
+    this player has connected, so they can reconcile via useActivityTimer's
+    loadFromServer instead of drifting until their next manual fetch.
+    Reuses the per-player `player_{id}` group that TimerConsumer already
+    joins on connect. Safe to call from sync contexts (views, Celery tasks).
+    """
+    from .serializers import ActivityTimerSerializer
+
+    async_to_sync(send_group_message)(
+        f"player_{timer.player_id}",
+        {
+            "type": "action",
+            "action": "activity_timer_update",
+            "data": {"activity_timer": ActivityTimerSerializer(timer).data},
+        },
+    )
+
+
 async def send_group_message(group_name: str, message: dict) -> bool:
     logger.info(
         f"[SEND GROUP MESSAGE] Sending message to group {group_name}. Message: {message}"
