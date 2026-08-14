@@ -140,3 +140,57 @@ class GetMultiplierTests(TestCase):
             is_active=True,
         )
         self.assertEqual(ap.get_multiplier(player, now=self.now), Decimal("1.5"))
+
+
+class GetProductivityTests(TestCase):
+    def setUp(self):
+        self.character = Character.objects.create(given_name="Test")
+        self.now = timezone.now()
+
+    def test_no_modifiers_returns_baseline(self):
+        self.assertEqual(
+            ap.get_productivity(self.character, now=self.now),
+            ap.CHARACTER_BASELINE_PRODUCTIVITY,
+        )
+
+    def test_active_modifier_scales_baseline(self):
+        XpModifier.objects.create(
+            scope=XpModifier.Scope.CHARACTER,
+            character=self.character,
+            key="test_modifier",
+            multiplier=Decimal("1.5"),
+            starts_at=self.now - timedelta(hours=1),
+            is_active=True,
+        )
+        self.assertEqual(
+            ap.get_productivity(self.character, now=self.now),
+            ap.CHARACTER_BASELINE_PRODUCTIVITY * Decimal("1.5"),
+        )
+
+    def test_inactive_modifier_excluded(self):
+        XpModifier.objects.create(
+            scope=XpModifier.Scope.CHARACTER,
+            character=self.character,
+            key="test_modifier",
+            multiplier=Decimal("2"),
+            starts_at=self.now - timedelta(hours=1),
+            is_active=False,
+        )
+        self.assertEqual(
+            ap.get_productivity(self.character, now=self.now),
+            ap.CHARACTER_BASELINE_PRODUCTIVITY,
+        )
+
+    def test_character_get_productivity_matches_ap_function(self):
+        XpModifier.objects.create(
+            scope=XpModifier.Scope.CHARACTER,
+            character=self.character,
+            key="test_modifier",
+            multiplier=Decimal("1.25"),
+            starts_at=self.now - timedelta(hours=1),
+            is_active=True,
+        )
+        self.assertEqual(
+            self.character.get_productivity(now=self.now),
+            ap.get_productivity(self.character, now=self.now),
+        )
