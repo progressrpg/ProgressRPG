@@ -5,9 +5,10 @@ import { useGame } from "../../hooks/useGame";
 import { useEntitySearchCache } from "../../hooks/useEntitySearchCache";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
-import { TODAY_POINTS_QUERY_KEY } from "../../hooks/usePlayer";
+import { DAILY_GOALS_QUERY_KEY } from "../../hooks/usePlayer";
 import type { PlayerActivity } from "../../types";
 import { playLimitReachedSound, primeAudio } from "../../utils/sounds";
+import { formatDuration } from "../../utils/formatUtils";
 
 /** Populated on stop when `results_mode` is on, instead of opening the SupportFlow modal. */
 export interface ResultsData {
@@ -295,7 +296,7 @@ export function useActivityInput() {
           fetchPlayerAndCharacter(),
           fetchCharacterCurrent(),
           fetchActivities(),
-          queryClient.invalidateQueries({ queryKey: TODAY_POINTS_QUERY_KEY }),
+          queryClient.invalidateQueries({ queryKey: DAILY_GOALS_QUERY_KEY }),
           completedTaskId ? queryClient.invalidateQueries({ queryKey: ["tasks"] }) : Promise.resolve(),
         ]);
       } catch (err) {
@@ -536,8 +537,8 @@ export function useActivityInput() {
     stop,
   ]);
 
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = elapsed % 60;
+  const formattedElapsed =
+  formatDuration(elapsed)
 
   const formattedLimit = useMemo(() => {
     if (typeof limitSeconds !== "number" || limitSeconds <= 0) {
@@ -563,8 +564,8 @@ export function useActivityInput() {
     inputValue,
     taskId: currentActivity?.taskId ?? null,
     activityCatalogId: currentActivity?.activity ?? null,
-    minutes,
-    seconds,
+    elapsed,
+    formattedElapsed,
     formattedLimit,
     showAutoStopWarning,
     flowState,

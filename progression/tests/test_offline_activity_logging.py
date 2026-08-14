@@ -242,6 +242,32 @@ class LogOfflineActivityServiceTests(OfflineLoggingTestBase):
         expected = result.activity.get_xp_reward_summary(duration=600)
         self.assertEqual(result.activity.xp_gained, expected["xp_gained"])
 
+    def test_offline_logging_can_clear_daily_goals(self):
+        """Offline-logged activities count toward the daily-goals badge
+        (issue #751) the same as timer-based completions - both are player
+        activity completions."""
+        from users.models import UserLogin
+
+        from progression.daily_goals import MINUTES_GOAL_THRESHOLD
+        from progression.models import DailyGoalAward
+
+        UserLogin.objects.create(user=self.user)
+        completed_at = timezone.now() - timedelta(minutes=5)
+        started_at = completed_at - timedelta(minutes=MINUTES_GOAL_THRESHOLD)
+
+        log_offline_activity(
+            self.player,
+            name="Evening chores",
+            started_at=started_at,
+            completed_at=completed_at,
+        )
+
+        self.assertTrue(
+            DailyGoalAward.objects.filter(
+                player=self.player, date=timezone.localdate()
+            ).exists()
+        )
+
 
 class PlayerActivityLogOfflineApiTests(APITestCase):
     def setUp(self):

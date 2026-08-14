@@ -768,6 +768,38 @@ class OfflineActivityLedger(models.Model):
         return f"OfflineActivityLedger(player={self.player_id}, date={self.date})"
 
 
+class DailyGoalAward(models.Model):
+    """
+    Records that a player's daily-goals completion bonus (issue #751) has
+    already been paid out for a given calendar day.
+
+    The unique constraint is what makes
+    ``progression.daily_goals.check_and_award_daily_goals`` idempotent under
+    concurrent activity completions - the row is only ever created once per
+    player per day, so a second completion in the same day can tell the
+    bonus has already been claimed instead of re-awarding it.
+    """
+
+    player = models.ForeignKey(
+        "users.Player",
+        on_delete=models.CASCADE,
+        related_name="daily_goal_awards",
+    )
+    date = models.DateField()
+    bonus_ap = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["player", "date"], name="unique_daily_goal_award_player_date"
+            )
+        ]
+
+    def __str__(self):
+        return f"DailyGoalAward(player={self.player_id}, date={self.date})"
+
+
 class CharacterActivity(TimeRecord):
     """
     Character's autonomous activity.

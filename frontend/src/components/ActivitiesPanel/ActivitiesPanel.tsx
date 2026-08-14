@@ -6,6 +6,8 @@ import { formatDurationShort, pluralize } from "../../utils/formatUtils";
 
 import Button from "../Button/Button";
 import PlayerItemList from "../PlayerItemList/PlayerItemList";
+import Tooltip from "../Tooltip/Tooltip";
+import LogOfflineActivityModal from "../LogOfflineActivityModal/LogOfflineActivityModal";
 import styles from "./ActivitiesPanel.module.scss";
 
 type DateCategory = "today" | "yesterday" | "older";
@@ -68,6 +70,7 @@ export default function ActivitiesPanel(): React.ReactElement | null {
   const deleteActivity = useDeleteActivity();
   const updateActivity = useUpdateActivity();
   const [activeTab, setActiveTab] = useState<DateCategory>("today");
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
   const bucketed = useMemo(() => bucketActivities(activities ?? []), [activities]);
 
@@ -103,11 +106,14 @@ export default function ActivitiesPanel(): React.ReactElement | null {
   const hasTabActivities = groupedByCategory[activeTab].length > 0;
 
   const handleEdit = useCallback(
-    (activity: PlayerActivity, name: string) => {
-      updateActivity.mutate({
-        activityId: activity.id,
-        data: { name },
-      });
+    (activity: PlayerActivity, name: string, callbacks?: { onSuccess?: () => void; onError?: () => void }) => {
+      updateActivity.mutate(
+        {
+          activityId: activity.id,
+          data: { name },
+        },
+        callbacks,
+      );
     },
     [updateActivity],
   );
@@ -124,8 +130,8 @@ export default function ActivitiesPanel(): React.ReactElement | null {
   return (
     <div className={styles.page}>
       <div className={styles.content}>
-      {hasActivities && (
-        <>
+      <div className={styles.toolbar}>
+        {hasActivities && (
           <div className={styles.dateTabs}>
             {dateTabs.map(({ key, label }) => (
               <Button
@@ -138,7 +144,25 @@ export default function ActivitiesPanel(): React.ReactElement | null {
               </Button>
             ))}
           </div>
+        )}
+        <Tooltip content="Add offline activity">
+          <button
+            type="button"
+            className={styles.addOfflineButton}
+            aria-label="Add offline activity"
+            onClick={() => setIsLogModalOpen(true)}
+          >
+            +
+          </button>
+        </Tooltip>
+      </div>
 
+      {isLogModalOpen && (
+        <LogOfflineActivityModal onClose={() => setIsLogModalOpen(false)} />
+      )}
+
+      {hasActivities && (
+        <>
           {hasTabActivities ? (
             <div className={styles.activitiesList}>
               {Object.entries(activitiesByDay).map(([dateKey, dayActivities]) => {

@@ -15,6 +15,7 @@ from .models import (
     ActivityDefinition,
     CharacterActivity,
     OfflineActivityLedger,
+    DailyGoalAward,
     CharacterActivityArchive,
     Project,
     Task,
@@ -190,6 +191,23 @@ class OfflineActivityLedgerAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Append-only ledger — rows are only ever written by
         # progression.services.log_offline_activity.
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DailyGoalAward)
+class DailyGoalAwardAdmin(admin.ModelAdmin):
+    list_display = ("id", "player", "date", "bonus_ap", "created_at")
+    search_fields = ("player__name",)
+    list_filter = ("date",)
+    date_hierarchy = "date"
+    readonly_fields = ("player", "date", "bonus_ap", "created_at")
+
+    def has_add_permission(self, request):
+        # Rows are only ever written by
+        # progression.daily_goals.check_and_award_daily_goals.
         return False
 
     def has_change_permission(self, request, obj=None):

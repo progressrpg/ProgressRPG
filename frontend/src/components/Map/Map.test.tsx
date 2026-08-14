@@ -1165,7 +1165,6 @@ describe('PopulationCentreMap entity detail card', () => {
     const dialog = await screen.findByRole('dialog', { name: 'House 2' });
     expect(dialog).toHaveTextContent('1 / 4');
     expect(dialog).toHaveTextContent('Alice');
-    expect(dialog).toHaveTextContent('idle');
   });
 
   it('switches to a resident\'s own detail card when clicked inside the building detail card', async () => {

@@ -5,15 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import MapPage from './MapPage';
 
-const mockFetchFirstPopulationCentreId = vi.fn();
+const mockFetchInitialMapCentre = vi.fn();
 const mockFetchPopulationCentreMap = vi.fn();
 const mockFetchMapViewport = vi.fn();
 const mockFetchMapWorldBounds = vi.fn();
 const mockFetchPopulationCentres = vi.fn();
 
 vi.mock('../../api/map', () => ({
-  fetchFirstPopulationCentreId: (...args: unknown[]) =>
-    mockFetchFirstPopulationCentreId(...args),
+  fetchInitialMapCentre: (...args: unknown[]) => mockFetchInitialMapCentre(...args),
   fetchPopulationCentreMap: (...args: unknown[]) => mockFetchPopulationCentreMap(...args),
   fetchMapViewport: (...args: unknown[]) => mockFetchMapViewport(...args),
   fetchMapWorldBounds: (...args: unknown[]) => mockFetchMapWorldBounds(...args),
@@ -60,12 +59,20 @@ function renderMapPage(queryClient?: QueryClient) {
 
 describe('MapPage', () => {
   beforeEach(() => {
-    mockFetchFirstPopulationCentreId.mockReset();
+    mockFetchInitialMapCentre.mockReset();
     mockFetchPopulationCentreMap.mockReset();
     mockFetchMapViewport.mockReset();
     mockFetchMapWorldBounds.mockReset();
     mockFetchPopulationCentres.mockReset();
-    mockFetchFirstPopulationCentreId.mockResolvedValue(1);
+    mockFetchInitialMapCentre.mockResolvedValue({
+      id: 1,
+      name: 'Driftmoor',
+      bbox: [0, 0, 100, 100],
+    });
+    mockFetchPopulationCentreMap.mockResolvedValue({
+      meta: { population_centre_name: 'Driftmoor' },
+      bbox: [0, 0, 100, 100],
+    });
     mockFetchMapViewport.mockResolvedValue({ meta: { population_centre_name: 'Driftmoor' } });
     mockFetchMapWorldBounds.mockResolvedValue({ bbox: [-1000, -1000, 1000, 1000] });
     mockFetchPopulationCentres.mockResolvedValue([
@@ -77,23 +84,13 @@ describe('MapPage', () => {
     vi.useRealTimers();
   });
 
-  it('renders the map once the population centre and its initial map data have loaded', async () => {
-    mockFetchPopulationCentreMap.mockResolvedValue({
-      meta: { population_centre_name: 'Driftmoor' },
-      bbox: [0, 0, 100, 100],
-    });
-
+  it('renders the map once the initial map centre has loaded', async () => {
     renderMapPage();
 
     expect(await screen.findByTestId('map-stub')).toHaveTextContent('Driftmoor');
   });
 
   it('reuses cached viewport data when the page is remounted within the cache window', async () => {
-    mockFetchPopulationCentreMap.mockResolvedValue({
-      meta: { population_centre_name: 'Driftmoor' },
-      bbox: [0, 0, 100, 100],
-    });
-
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -117,10 +114,6 @@ describe('MapPage', () => {
   });
 
   it('prefetches the next village map data once the village list is available', async () => {
-    mockFetchPopulationCentreMap.mockResolvedValue({
-      meta: { population_centre_name: 'Driftmoor' },
-      bbox: [0, 0, 100, 100],
-    });
     mockFetchPopulationCentres.mockResolvedValue([
       { id: 1, name: 'Driftmoor village', location: [0, 0] },
       { id: 2, name: 'Cedar Hollow', location: [100, 100] },
@@ -134,11 +127,6 @@ describe('MapPage', () => {
   });
 
   it('does not issue a second viewport request while the previous poll is still in flight (#624)', async () => {
-    mockFetchPopulationCentreMap.mockResolvedValue({
-      meta: { population_centre_name: 'Driftmoor' },
-      bbox: [0, 0, 100, 100],
-    });
-
     vi.useFakeTimers();
     const pending: { resolve: (value: unknown) => void }[] = [];
     mockFetchMapViewport.mockImplementation(
@@ -150,12 +138,12 @@ describe('MapPage', () => {
 
     renderMapPage();
 
-    // Flush the population-centre lookup and initial-centre fetch, then the
-    // stub's onViewportChange call, so the first viewport fetch fires. This
-    // is a chain of several dependent async hops (pcId -> initial centre ->
-    // Map mounts -> onViewportChange -> viewport query starts), each of
-    // which may need its own microtask turn under fake timers, so flush
-    // repeatedly rather than assuming one pass covers it.
+    // Flush the initial-centre fetch, then the stub's onViewportChange call,
+    // so the first viewport fetch fires. This is a chain of several
+    // dependent async hops (initial centre -> Map mounts -> onViewportChange
+    // -> viewport query starts), each of which may need its own microtask
+    // turn under fake timers, so flush repeatedly rather than assuming one
+    // pass covers it.
     await act(async () => {
       await vi.runOnlyPendingTimersAsync();
     });

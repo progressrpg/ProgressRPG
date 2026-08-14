@@ -6,7 +6,7 @@
   Leave a category empty (or delete its header) if nothing applies.
 -->
 
-## User-visible improvements (UVIs)
+## Summary
 
 ### Features
 -
@@ -19,9 +19,8 @@
 
 ---
 
+## Contributors
+<!-- Credit anyone who contributed a PR in this batch besides yourself (e.g. @username). -->
+
 ## Technical notes
 <!-- Migrations, env vars, feature flags, anything a reviewer needs to know -->
-
-## Test plan
-- [ ] CI passes
-- [ ] Smoke test on staging after deploy

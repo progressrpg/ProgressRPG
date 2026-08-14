@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import classNames from "classnames";
 
 import Button from "../Button/Button";
 import List from "../List/List";
-import Li from "../List/Li";
 import Modal from "../Modal/Modal";
+import SaveStatusIndicator from "./SaveStatusIndicator";
 import { usePlayerItemListControls } from "./usePlayerItemListControls";
 import { usePlayerItemModal } from "./usePlayerItemModal";
+import type { SaveCallbacks } from "./usePlayerItemModal";
+import type { SaveStatusHelpers } from "./useSaveStatus";
 import styles from "./PlayerItemList.module.scss";
 
 export interface SortOption<T> {
@@ -30,8 +32,10 @@ interface PlayerItemListProps<T extends { id?: string | number; name?: string }>
   onToggleComplete?: (item: T) => void;
   getItemKey?: (item: T, index: number) => string | number;
   renderItemMeta?: (item: T) => React.ReactNode;
-  renderEditSummary?: (item: T) => React.ReactNode;
-  onEdit?: (item: T, name: string) => void;
+  renderEditSummary?: (item: T, saveHelpers: SaveStatusHelpers) => React.ReactNode;
+  /** Rendered next to the name input in the edit modal's title row (e.g. an icon button). */
+  renderTitleRowActions?: (item: T) => React.ReactNode;
+  onEdit?: (item: T, name: string, callbacks?: SaveCallbacks) => void;
   onDelete?: (item: T) => void;
   hoverEdit?: boolean;
   renderRowActions?: (item: T) => React.ReactNode;
@@ -45,6 +49,10 @@ interface PlayerItemListProps<T extends { id?: string | number; name?: string }>
   /** Called once the requested `openItemId` has been opened, so the caller can clear it. */
   onOpenItemHandled?: () => void;
   getChildren?: (item: T) => T[] | undefined;
+  /** Ids of items present in `items` (e.g. for the deep-link lookup) that should not be rendered as rows. */
+  hiddenItemIds?: Set<string | number>;
+  /** Called with the item whose edit modal just closed (via Close, backdrop, or Escape). */
+  onModalClose?: (item: T) => void;
 }
 
 export default function PlayerItemList<T extends { id?: string | number; name?: string }>({
@@ -57,6 +65,7 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
   getItemKey,
   renderItemMeta,
   renderEditSummary,
+  renderTitleRowActions,
   onEdit,
   onDelete,
   hoverEdit = false,
@@ -69,6 +78,8 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
   openItemId,
   onOpenItemHandled,
   getChildren,
+  hiddenItemIds,
+  onModalClose,
 }: PlayerItemListProps<T>) {
   const {
     activeFilterKey,
@@ -92,6 +103,7 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
     liveActiveItem,
     editingName,
     confirmingDelete,
+    saveStatus,
     activeItemName,
     modalSummary,
     setEditingName,
@@ -122,6 +134,13 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
     onOpenItemHandled?.();
   }, [openItemId, items, handleOpenItem, onOpenItemHandled]);
 
+  // Wraps handleModalClose so a consumer (e.g. to discard an unsaved draft
+  // item) learns which item's modal just closed via Close/backdrop/Escape.
+  const closeModal = useCallback(() => {
+    if (activeItem) onModalClose?.(activeItem);
+    handleModalClose();
+  }, [activeItem, onModalClose, handleModalClose]);
+
   const canToggleComplete = typeof onToggleComplete === "function";
   const canEdit = typeof onEdit === "function";
   const canDelete = typeof onDelete === "function";
@@ -137,12 +156,23 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
     return ids;
   }, [items, getChildren]);
 
-  const topLevelDisplayItems = useMemo(() => {
-    if (!getChildren) return displayItems;
-    return displayItems.filter(
+  // Items present in `items` only so the deep-link/openItemId lookup can find
+  // them (e.g. an unsaved draft) are excluded from the rendered rows.
+  const visibleDisplayItems = useMemo(() => {
+    if (!hiddenItemIds || hiddenItemIds.size === 0) return displayItems;
+    return displayItems.filter((item) => item.id === undefined || !hiddenItemIds.has(item.id));
+  }, [displayItems, hiddenItemIds]);
+
+  // Sort/filter controls only apply to top-level items; a child keeps its
+  // place directly after its parent (in `getChildren`'s order) rather than
+  // being reordered independently.
+  const flatDisplayItems = useMemo(() => {
+    if (!getChildren) return visibleDisplayItems;
+    const topLevel = visibleDisplayItems.filter(
       (item) => item.id === undefined || !childIds.has(item.id)
     );
-  }, [displayItems, getChildren, childIds]);
+    return topLevel.flatMap((item) => [item, ...(getChildren(item) ?? [])]);
+  }, [visibleDisplayItems, getChildren, childIds]);
 
   const renderRow = (item: T): React.ReactNode => (
     <>
@@ -252,7 +282,7 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
       ) : null}
       <div className={styles.listScroll}>
       <List
-        items={topLevelDisplayItems}
+        items={flatDisplayItems}
         ariaLabel={ariaLabel}
         canHover
         className={classNames(styles.list, listClassName)}
@@ -260,31 +290,11 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
         getKey={getItemKey}
         getItemClassName={(item) =>
           classNames(styles.item, {
+            [styles.childItem]: item.id !== undefined && childIds.has(item.id),
             [styles.itemCompleted]: isItemComplete?.(item),
           })
         }
-        renderItem={(item) => {
-          const children = getChildren?.(item);
-          return (
-            <>
-              {renderRow(item)}
-              {children?.length ? (
-                <ul className={styles.childList}>
-                  {children.map((child, index) => (
-                    <Li
-                      key={(child.id as string | number | undefined) ?? index}
-                      className={classNames(styles.item, styles.childItem, {
-                        [styles.itemCompleted]: isItemComplete?.(child),
-                      })}
-                    >
-                      {renderRow(child)}
-                    </Li>
-                  ))}
-                </ul>
-              ) : null}
-            </>
-          );
-        }}
+        renderItem={(item) => renderRow(item)}
       />
       </div>
 
@@ -296,7 +306,7 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
               ? `Delete ${itemLabelLower}?`
               : `Edit ${itemLabelLower}`
           }
-          onClose={handleModalClose}
+          onClose={closeModal}
           onBack={confirmingDelete ? () => setConfirmingDelete(false) : undefined}
           backLabel="Back"
         >
@@ -337,32 +347,32 @@ export default function PlayerItemList<T extends { id?: string | number; name?: 
                       aria-label={`${itemLabel} name`}
                       value={editingName}
                       onChange={(event) => setEditingName(event.target.value)}
+                      onBlur={handleEditSave}
                       autoFocus
                       onKeyDown={(event) => {
                         if (event.key === "Enter") handleEditSave();
-                        if (event.key === "Escape") handleModalClose();
+                        if (event.key === "Escape") closeModal();
                       }}
                     />
                   ) : null}
+                  {renderTitleRowActions && liveActiveItem
+                    ? renderTitleRowActions(liveActiveItem)
+                    : null}
                 </div>
               ) : null}
               {modalSummary ? (
                 <div className={styles.editConfirmMeta}>{modalSummary}</div>
               ) : null}
               <div className={styles.editConfirmActions}>
-                {canEdit ? (
-                  <Button variant="primary" onClick={handleEditSave}>
-                    Save
-                  </Button>
-                ) : null}
-                <Button variant="secondary" onClick={handleModalClose}>
-                  {canEdit ? "Cancel" : "Close"}
+                <Button variant="secondary" onClick={closeModal}>
+                  Close
                 </Button>
                 {canDelete ? (
                   <Button variant="secondaryDanger" onClick={handleDeleteRequest}>
                     Delete
                   </Button>
                 ) : null}
+                <SaveStatusIndicator status={saveStatus} />
               </div>
             </div>
           )}

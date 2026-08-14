@@ -1,18 +1,24 @@
 // src/api/map.ts
 import { apiFetch } from "../utils/api";
 
-interface PopulationCentreListItem {
-  id: number;
+export interface InitialMapCentre {
+  id: number | null;
+  name: string | null;
+  // [minX, minY, maxX, maxY] in raw EPSG:3857 metres - just enough to frame
+  // the camera on this village; not the full per-village feature payload
+  // fetchPopulationCentreMap returns (see InitialMapCentreView's docstring).
+  bbox: [number, number, number, number] | null;
 }
 
-type PopulationCentreListResponse =
-  | { results?: PopulationCentreListItem[] }
-  | PopulationCentreListItem[];
-
-export async function fetchFirstPopulationCentreId(): Promise<number | null> {
-  const data = await apiFetch<PopulationCentreListResponse>("/population-centres/");
-  const list = Array.isArray(data) ? data : (data?.results ?? []);
-  return list.length > 0 ? list[0].id : null;
+// Which village the map's camera should open on - the requesting player's
+// linked character's village if they have one, otherwise an arbitrary but
+// deterministic fallback (see InitialMapCentreView, locations/views.py).
+// Deliberately a separate, lightweight endpoint rather than reusing
+// fetchPopulationCentreMap: this only needs to get the camera pointed at the
+// right place before useMapViewport (bbox-scoped, polled) takes over as the
+// source of truth moments later, once the camera's first move settles.
+export function fetchInitialMapCentre(): Promise<InitialMapCentre> {
+  return apiFetch("/map/initial-centre/");
 }
 
 export interface PopulationCentreSummary {

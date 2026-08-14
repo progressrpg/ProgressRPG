@@ -4,7 +4,7 @@
 @use '../../styles/semantic/spacing' as sp;
 @use 'sass:map';
 
-$row-control-height: 44px;
+$row-control-height: sp.$form-control-height;
 
 .wrapper {
   position: relative;
@@ -180,25 +180,13 @@ $row-control-height: 44px;
 }
 
 @include m.respond-to(md, down) {
-  .timerPill,
-  .ctaButton {
-    height: 40px;
-  }
-
   .inputText {
-    height: 40px;
     font-size: 1rem;
   }
 }
 
 @include m.respond-to(sm, down) {
-  .timerPill,
-  .ctaButton {
-    height: 38px;
-  }
-
   .inputText {
-    height: 38px;
     font-size: 0.9rem;
   }
 }

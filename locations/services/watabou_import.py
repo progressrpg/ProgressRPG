@@ -14,9 +14,9 @@ locations/ already uses (see MAX_BBOX_AREA_SQ_M in locations/utils.py).
 
 This only creates static geometry - PopulationCentre, Building, Road, the
 Node graph's CENTRE/BUILDING points plus BUILDING_ENTRANCE for non-granary
-buildings, and (if the export
-has a "fields" feature) a LandArea/Subzone pair per field polygon. It
-deliberately does not generate Path edges: Path is the movement/pathfinding
+buildings, and (if the export has a "fields" and/or "squares" feature) a
+LandArea/Subzone pair per field/square polygon (see _import_polygon_subzones).
+It deliberately does not generate Path edges: Path is the movement/pathfinding
 graph and Road is just the drawn street, so wiring the graph is left to the
 existing `generate_paths` command (see the `--generate-paths` flag on
 import_watabou_village's management command) rather than trying to derive
@@ -198,19 +198,28 @@ def _translate_linestring(coordinates, offset, srid=3857) -> LineString:
     return LineString(points, srid=srid)
 
 
-def _import_fields(
-    fields_feature: dict, population_centre: PopulationCentre, offset
+def _import_polygon_subzones(
+    feature: dict,
+    population_centre: PopulationCentre,
+    offset,
+    *,
+    land_area_name: str,
+    subzone_name: str,
+    usage: str,
 ) -> None:
     """
-    Create one LandArea (wrapping the whole imported field area) and one
-    "crops" Subzone per polygon in the "fields" MultiPolygon - unlike
+    Create one LandArea (wrapping the whole imported area) and one Subzone
+    per polygon in a watabou MultiPolygon feature - unlike
     generate_landarea's procedurally-synthesized Subzone geometry, these
     polygons are real imported shapes, so they're used directly rather than
-    derived from a size fraction.
+    derived from a size fraction. Shared by _import_fields (usage="crops")
+    and _import_squares (usage="square") below - the only difference
+    between them is naming and the usage tag, since neither FieldCrop
+    growth nor any other economy behaviour is usage-specific here.
     """
     polygons = [
         _translate_polygon(polygon_coords, offset)
-        for polygon_coords in fields_feature.get("coordinates", [])
+        for polygon_coords in feature.get("coordinates", [])
     ]
     if not polygons:
         return
@@ -225,7 +234,7 @@ def _import_fields(
     )
 
     land_area = LandArea.objects.create(
-        name=f"Fields of ({population_centre.name})",
+        name=land_area_name,
         population_centre=population_centre,
         location=boundary.centroid,
         boundary=boundary,
@@ -235,12 +244,48 @@ def _import_fields(
     for i, polygon in enumerate(polygons):
         Subzone.objects.create(
             land_area=land_area,
-            name=f"Field {i + 1} of ({population_centre.name})",
+            name=f"{subzone_name} {i + 1} of ({population_centre.name})",
             location=polygon.centroid,
             boundary=polygon,
             size=polygon.area / SQUARE_METRES_PER_HECTARE,
-            usage="crops",
+            usage=usage,
         )
+
+
+def _import_fields(
+    fields_feature: dict, population_centre: PopulationCentre, offset
+) -> None:
+    _import_polygon_subzones(
+        fields_feature,
+        population_centre,
+        offset,
+        land_area_name=f"Fields of ({population_centre.name})",
+        subzone_name="Field",
+        usage="crops",
+    )
+
+
+def _import_squares(
+    squares_feature: dict, population_centre: PopulationCentre, offset
+) -> None:
+    """
+    Import watabou's "squares" feature - open communal outdoor space (a
+    market square/plaza) rather than property. Modelled the same way as a
+    crops Subzone (see _import_polygon_subzones) since LandArea is already
+    documented as "not property... a communal or functional area", but
+    tagged usage="square" instead of "crops": squares have no FieldCrop
+    growth cycle or other economy behaviour attached, they're purely a map
+    feature (see SubzoneFeatureSerializer, which already returns None for
+    every crop_* property when there's no attached FieldCrop).
+    """
+    _import_polygon_subzones(
+        squares_feature,
+        population_centre,
+        offset,
+        land_area_name=f"Squares of ({population_centre.name})",
+        subzone_name="Square",
+        usage="square",
+    )
 
 
 @transaction.atomic
@@ -258,6 +303,7 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
     districts_feature = _feature_by_id(data, "districts")
     earth_feature = _feature_by_id(data, "earth")
     fields_feature = _feature_by_id(data, "fields")
+    squares_feature = _feature_by_id(data, "squares")
 
     # Districts are the actual town/village extent, each a named ward -
     # prefer their union over the "earth" feature, which is just the
@@ -359,6 +405,9 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
 
     if fields_feature and fields_feature.get("type") == "MultiPolygon":
         _import_fields(fields_feature, population_centre, offset)
+
+    if squares_feature and squares_feature.get("type") == "MultiPolygon":
+        _import_squares(squares_feature, population_centre, offset)
 
     # Compute-and-log only for now (see population_estimation's module
     # docstring and .claude/plans/village-capacity-sizing-plan.md step 3) -

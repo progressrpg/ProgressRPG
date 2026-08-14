@@ -9,6 +9,7 @@ from locations.models import PopulationCentre
 from locations.services.population_centre_admin import delete_population_centre
 from locations.services.road_connections import connect_nearest_village_roads
 from locations.services.watabou_import import import_watabou_village
+from locations.village_layout import VILLAGE_LAYOUT
 from locations.village_names import VILLAGE_NAMES
 
 
@@ -27,13 +28,17 @@ class Command(BaseCommand):
             "--x",
             type=int,
             help="Origin X coordinate (metres, SRID 3857) to centre the village on. "
-            "Required unless --overwrite is reusing an existing centre's location.",
+            "Pass both --x and --y together, or omit both to auto-pick the "
+            "first unoccupied village_layout.VILLAGE_LAYOUT slot (ignored if "
+            "--overwrite ends up reusing an existing centre's location).",
         )
         parser.add_argument(
             "--y",
             type=int,
             help="Origin Y coordinate (metres, SRID 3857) to centre the village on. "
-            "Required unless --overwrite is reusing an existing centre's location.",
+            "Pass both --x and --y together, or omit both to auto-pick the "
+            "first unoccupied village_layout.VILLAGE_LAYOUT slot (ignored if "
+            "--overwrite ends up reusing an existing centre's location).",
         )
         parser.add_argument(
             "--overwrite",
@@ -154,9 +159,39 @@ class Command(BaseCommand):
         )
 
     def _resolve_origin(self, x: int | None, y: int | None) -> Point:
+        if x is None and y is None:
+            return self._pick_unused_layout_slot()
         if x is None or y is None:
             raise CommandError(
-                "Pass both --x and --y for the village's origin (or --overwrite "
-                "an existing centre to reuse its location)."
+                "Pass both --x and --y together for the village's origin, or "
+                "neither to auto-pick an unoccupied village_layout.VILLAGE_LAYOUT "
+                "slot."
             )
         return Point(x, y, srid=3857)
+
+    def _pick_unused_layout_slot(self) -> Point:
+        """
+        First VILLAGE_LAYOUT slot with no existing PopulationCentre already
+        sitting on it - lets an ad-hoc import (e.g. trying out a village file
+        outside locations/data/, so outside the setup_world/import_villages
+        pipeline) claim spare grid space without hand-picking coordinates.
+
+        Not persistent across a setup_world rerun: that command deletes every
+        existing PopulationCentre before reimporting only locations/data/'s
+        files (see setup_world.py), so an ad-hoc import placed here will need
+        to be redone afterwards - and may land on a different free slot next
+        time, since which slots are "unoccupied" depends on whatever other
+        centres exist at that moment.
+        """
+        occupied = {
+            (round(centre.location.x), round(centre.location.y))
+            for centre in PopulationCentre.objects.only("location")
+        }
+        for x, y in VILLAGE_LAYOUT:
+            if (x, y) not in occupied:
+                return Point(x, y, srid=3857)
+        raise CommandError(
+            f"Every village_layout.VILLAGE_LAYOUT slot ({len(VILLAGE_LAYOUT)}) is "
+            "already occupied by a PopulationCentre - pass --x/--y explicitly, "
+            "or add more slots (GRID_COLUMNS/GRID_ROWS)."
+        )

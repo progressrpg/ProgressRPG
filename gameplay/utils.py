@@ -32,7 +32,6 @@ from .models import ActivityTimer
 
 from character.models import Character
 from users.models import Player
-from gameplay.services.xp_modifiers import set_activity_active_modifiers
 
 import logging
 
@@ -48,6 +47,8 @@ def start_server_timers(act_timer: ActivityTimer):
 
     if act_timer.status in ["active", "paused", "waiting"]:
         try:
+            from gameplay.services.xp_modifiers import set_activity_active_modifiers
+
             act_timer.start()
             set_activity_active_modifiers(act_timer.player, is_active=True)
             result_text = "[START SERVER TIMERS] Timers successfully started"
@@ -72,6 +73,8 @@ def pause_server_timers(act_timer: ActivityTimer):
 
     try:
         if act_timer.status not in ["completed", "empty"]:
+            from gameplay.services.xp_modifiers import set_activity_active_modifiers
+
             act_timer.pause()
             set_activity_active_modifiers(act_timer.player, is_active=False)
             logger.debug("[PAUSE SERVER TIMERS] Activity timer successfully paused")
@@ -202,6 +205,26 @@ def process_completion(player: Player, character: Character, action: str) -> boo
             },
         )
         return True
+
+
+def broadcast_activity_timer(timer: ActivityTimer) -> None:
+    """
+    Push `timer`'s current state to every other open session (tabs, devices)
+    this player has connected, so they can reconcile via useActivityTimer's
+    loadFromServer instead of drifting until their next manual fetch.
+    Reuses the per-player `player_{id}` group that TimerConsumer already
+    joins on connect. Safe to call from sync contexts (views, Celery tasks).
+    """
+    from .serializers import ActivityTimerSerializer
+
+    async_to_sync(send_group_message)(
+        f"player_{timer.player_id}",
+        {
+            "type": "action",
+            "action": "activity_timer_update",
+            "data": {"activity_timer": ActivityTimerSerializer(timer).data},
+        },
+    )
 
 
 async def send_group_message(group_name: str, message: dict) -> bool:

@@ -41,13 +41,25 @@ export const deleteAccount = async (): Promise<unknown> => {
   return response;
 };
 
-export interface TodayPointsResponse {
-  // null (not 0) when the player has no active PlayerCharacterLink - see
-  // MeViewSet.today_points in api/views.py. Callers use this to hide the
-  // map view's "today" badge entirely rather than showing a zero (issue #673).
-  points_today: number | null;
+export interface DailyGoalsState {
+  logged_in_today: boolean;
+  completed_activity_today: boolean;
+  activity_minutes_today: number;
+  minutes_goal_threshold: number;
+  minutes_goal_met: boolean;
+  all_goals_met: boolean;
+  bonus_awarded_today: boolean;
+  bonus_ap: number;
 }
 
-export const fetchTodayPoints = async (): Promise<TodayPointsResponse> => {
-  return apiFetch<TodayPointsResponse>("/me/today_points/");
+export interface DailyGoalsResponse {
+  // null (not a set of all-false goals) when the player has no active
+  // PlayerCharacterLink - see MeViewSet.daily_goals in api/views.py.
+  // Callers use this to hide the map view's badge entirely rather than
+  // showing an unearned "0 of 3" (issue #673, redesigned in #751).
+  goals: DailyGoalsState | null;
+}
+
+export const fetchDailyGoals = async (): Promise<DailyGoalsResponse> => {
+  return apiFetch<DailyGoalsResponse>("/me/daily_goals/");
 };

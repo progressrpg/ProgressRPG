@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { AnimatePresence, motion } from "framer-motion";
+import { formatDuration } from "../../utils/formatUtils";
 
 import Button from "../Button/Button";
 import AlertDialog from "../AlertDialog/AlertDialog";
@@ -40,8 +41,7 @@ export default function UnifiedTimerHome() {
     inputValue,
     taskId,
     activityCatalogId,
-    minutes,
-    seconds,
+    elapsed,
     formattedLimit,
     showAutoStopWarning,
     flowState,
@@ -191,7 +191,7 @@ export default function UnifiedTimerHome() {
             <AnimatePresence mode="popLayout" initial={false}>
               {isActive && (
                 <motion.div key="timer" layout {...fadeProps} className={styles.timerPill}>
-                  {minutes}:{seconds.toString().padStart(2, "0")}
+                  {formatDuration(elapsed)}
                 </motion.div>
               )}
             </AnimatePresence>

@@ -13,9 +13,10 @@
 .input {
   width: 100%;
   min-width: 0;
+  height: sp.$form-control-height;
   padding: sp.$padding-base;
   box-sizing: border-box;
-  border-radius: sp.$border-radius;
+  border-radius: sp.$form-control-radius;
   @include t.apply-text-style(t.$text-body);
   @include m.border-interactive(
     rgba(c.$color-border-primary, 0.4),

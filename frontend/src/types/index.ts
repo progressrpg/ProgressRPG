@@ -19,6 +19,7 @@ export type {
   AnnouncementListResponse,
   AnnouncementUnreadCountResponse,
   AnnouncementReadMutationResponse,
+  OfflineActivityLogResponse,
 } from "./api";
 
 // Enums and literal union types

@@ -284,13 +284,13 @@ describe("TasksPanel", () => {
     const input = screen.getByLabelText("task name");
     await user.clear(input);
     await user.type(input, "Evening routine");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
+    await user.tab();
 
     await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith({
-        id: 1,
-        data: { name: "Evening routine" },
-      });
+      expect(updateMutate).toHaveBeenCalledWith(
+        { id: 1, data: { name: "Evening routine" } },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
     });
   });
 
@@ -325,7 +325,7 @@ describe("TasksPanel", () => {
       total_records: 0,
     };
 
-    it("renders a subtask nested under its parent", () => {
+    it("renders a subtask as an independent, indented row directly after its parent", () => {
       mockUseTasks.mockReturnValue({
         isLoading: false,
         data: [parentTask, childTask],
@@ -336,9 +336,14 @@ describe("TasksPanel", () => {
       const childButton = screen.getAllByRole("button", { name: "Edit task Child subtask" })[0];
       expect(parentButton).toBeInTheDocument();
       expect(childButton).toBeInTheDocument();
-      // The subtask is nested inside the parent's <li>, not a sibling top-level row.
+      // The subtask is its own sibling row, not nested inside the parent's <li>.
       const parentListItem = parentButton.closest("li");
-      expect(parentListItem).toContainElement(childButton);
+      const childListItem = childButton.closest("li");
+      expect(parentListItem).not.toBe(childListItem);
+      expect(parentListItem).not.toContainElement(childButton);
+
+      const rows = screen.getAllByRole("listitem");
+      expect(rows.indexOf(childListItem!)).toBe(rows.indexOf(parentListItem!) + 1);
     });
 
     it("hides a completed parent and its subtasks together", () => {
@@ -354,7 +359,7 @@ describe("TasksPanel", () => {
       expect(screen.queryByText("Child subtask")).not.toBeInTheDocument();
     });
 
-    it("pre-fills the add-task form with a parent chip via the add-subtask row action", async () => {
+    it("opens the task detail modal for a blank draft subtask without creating one yet", async () => {
       const user = userEvent.setup({ pointerEventsCheck: 0 });
       mockUseTasks.mockReturnValue({
         isLoading: false,
@@ -364,15 +369,65 @@ describe("TasksPanel", () => {
 
       await user.click(screen.getByRole("button", { name: "Add subtask to Parent project task" }));
 
-      expect(screen.getByText(/Subtask of Parent project task/)).toBeInTheDocument();
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByLabelText("task name")).toHaveValue("");
+      expect(createMutate).not.toHaveBeenCalled();
+    });
 
-      const input = screen.getByLabelText("new task");
-      await user.type(input, "Buy groceries");
-      await user.click(screen.getByRole("button", { name: "Add subtask" }));
+    it("creates the subtask only once its draft name has actually been edited, then opens the persisted task", async () => {
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      const newSubtask = { ...childTask, id: 7, name: "New task" };
+      createMutate.mockImplementation((_data, callbacks) => {
+        callbacks?.onSuccess?.(newSubtask);
+      });
+      mockUseTasks.mockReturnValue({
+        isLoading: false,
+        data: [parentTask],
+      });
+      const { rerender } = renderTasksPanel();
+
+      await user.click(screen.getByRole("button", { name: "Add subtask to Parent project task" }));
+      const dialog = await screen.findByRole("dialog");
+      const input = within(dialog).getByLabelText("task name");
+      await user.type(input, "New task");
+      await user.tab();
+
+      expect(createMutate).toHaveBeenCalledWith(
+        { name: "New task", parent: 3 },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+      );
+
+      // The new subtask isn't in `items` until the tasks query refetches with it included.
+      mockUseTasks.mockReturnValue({
+        isLoading: false,
+        data: [parentTask, newSubtask],
+      });
+      rerender(
+        <TooltipProvider>
+          <TasksPanel />
+        </TooltipProvider>,
+      );
+
+      const reopenedDialog = await screen.findByRole("dialog");
+      expect(within(reopenedDialog).getByDisplayValue("New task")).toBeInTheDocument();
+    });
+
+    it("discards the draft subtask, without creating anything, when its modal is closed unedited", async () => {
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      mockUseTasks.mockReturnValue({
+        isLoading: false,
+        data: [parentTask],
+      });
+      renderTasksPanel();
+
+      await user.click(screen.getByRole("button", { name: "Add subtask to Parent project task" }));
+      const dialog = await screen.findByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: "Close" }));
 
       await waitFor(() => {
-        expect(createMutate).toHaveBeenCalledWith({ name: "Buy groceries", parent: 3 });
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       });
+      expect(createMutate).not.toHaveBeenCalled();
     });
 
     it("disables the parent picker for a task that already has subtasks", async () => {
@@ -401,15 +456,61 @@ describe("TasksPanel", () => {
       );
 
       const dueDateInput = screen.getByLabelText("Due date");
-      await user.type(dueDateInput, "2026-06-01T09:00");
+      await user.type(dueDateInput, "2026-06-01");
       await user.tab();
 
       await waitFor(() => {
-        expect(updateMutate).toHaveBeenCalledWith({
-          id: 1,
-          data: { due_at: expect.any(String) },
-        });
+        expect(updateMutate).toHaveBeenCalledWith(
+          { id: 1, data: { due_at: expect.any(String) } },
+          expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+        );
       });
+    });
+
+    it("defaults the date to today when only a time is set", async () => {
+      const user = userEvent.setup();
+      renderTasksPanel();
+
+      await user.click(
+        screen.getAllByRole("button", { name: "Edit task Morning routine" })[0],
+      );
+
+      const dueTimeInput = screen.getByLabelText("Due time");
+      await user.type(dueTimeInput, "0900");
+      await user.tab();
+
+      await waitFor(() => {
+        expect(updateMutate).toHaveBeenCalledWith(
+          { id: 1, data: { due_at: expect.any(String) } },
+          expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+        );
+      });
+
+      const lastCall = updateMutate.mock.calls.at(-1) as [{ data: { due_at: string } }, unknown];
+      const committedDate = new Date(lastCall[0].data.due_at);
+      const today = new Date();
+      expect(committedDate.getFullYear()).toBe(today.getFullYear());
+      expect(committedDate.getMonth()).toBe(today.getMonth());
+      expect(committedDate.getDate()).toBe(today.getDate());
+    });
+  });
+
+  describe("timestamps tooltip", () => {
+    it("shows Created/Modified/Completed on click of the clock button", async () => {
+      const user = userEvent.setup();
+      renderTasksPanel();
+
+      await user.click(
+        screen.getAllByRole("button", { name: "Edit task Morning routine" })[0],
+      );
+
+      expect(screen.queryByText("Created", { selector: "div" })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "View task timestamps" }));
+
+      expect(screen.getByText("Created", { selector: "div" })).toBeInTheDocument();
+      expect(screen.getByText("Modified", { selector: "div" })).toBeInTheDocument();
+      expect(screen.getByText("Completed", { selector: "div" })).toBeInTheDocument();
     });
   });
 });

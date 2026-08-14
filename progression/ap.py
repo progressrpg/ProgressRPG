@@ -79,3 +79,25 @@ def get_multiplier(person, now=None) -> Decimal:
         mult *= m.multiplier
 
     return mult
+
+
+# Authored baseline productivity for every character - flat for v1, may
+# later factor in role/mood/history (see issue #750).
+CHARACTER_BASELINE_PRODUCTIVITY = Decimal("1.0")
+
+
+def get_productivity(character, now=None) -> Decimal:
+    """
+    Live "how productive is this character right now" signal: the authored
+    baseline times whatever XpModifier multiplier is currently active on the
+    character (player-online / player-actively-timing boosts - see
+    gameplay.services.xp_modifiers).
+
+    Deliberately not derived from lifetime AP total - an old character
+    accumulates AP over a long life regardless of whether a player is
+    currently engaged with it, which would read as misleadingly
+    "productive". Reading live modifier state instead gives instant
+    feedback: productivity moves the moment a boost activates or clears, no
+    averaging/smoothing/lag.
+    """
+    return CHARACTER_BASELINE_PRODUCTIVITY * get_multiplier(character, now=now)

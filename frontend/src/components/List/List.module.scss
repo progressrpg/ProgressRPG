@@ -61,7 +61,6 @@
 
 .canHover .listItem:hover {
   background: rgba(c.$color-border-primary, 0.18);
-  border-color: rgba(c.$color-border-primary, 0.7);
   @include m.box-shadow(md);
   z-index: 1;
   cursor: default;
