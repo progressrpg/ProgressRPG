@@ -55,6 +55,7 @@
   justify-content: space-between;
   gap: sp.$spacing-sm;
   margin-bottom: sp.$spacing-sm;
+  font-size: 0.9rem;
 }
 
 .list {
@@ -88,13 +89,13 @@
 
 .publishedAt {
   margin: sp.$spacing-xs 0 0;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   opacity: 0.7;
 }
 
 .summary {
   margin: sp.$spacing-xs 0;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   opacity: 0.9;
 
   // Redundant once the full body is shown - hide while the item is open.
@@ -115,6 +116,12 @@
   text-align: left;
   cursor: pointer;
   color: inherit;
+  // Buttons don't inherit ambient typography by default - browsers give
+  // them their own UA control font instead. Set explicitly (rather than
+  // `font: inherit`, which pulled in the ancestor h3's full-size heading
+  // style) so the title stays compact along with the rest of this list.
+  font-family: inherit;
+  font-size: 0.85rem;
 
   // No custom focus style here - falls back to the site-wide
   // :focus-visible outline (see styles/base/_a11y.scss) instead of this
@@ -157,13 +164,18 @@
 
 // Body is rendered from markdown (see Announcements.tsx), so styles target
 // the elements react-markdown can produce rather than a single bare <p>.
+//
+// font-size is set on p/li directly, not just .body - the global `p { }`
+// rule (styles/base/_global.scss) targets <p> explicitly, which wins over
+// an inherited size from this container regardless of .body's own value.
 .body {
   margin: sp.$spacing-xs 0 0;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   line-height: 1.35;
 
   p {
     margin: 0 0 sp.$spacing-xs;
+    font-size: 0.75rem;
 
     &:last-child {
       margin-bottom: 0;
@@ -178,6 +190,7 @@
 
   li {
     margin-bottom: sp.$spacing-xs;
+    font-size: 0.75rem;
   }
 
   a {
@@ -204,7 +217,7 @@
   color: inherit;
   cursor: pointer;
   text-decoration: underline;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   padding: 0;
 
   &:disabled {
