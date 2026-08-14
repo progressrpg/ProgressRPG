@@ -77,7 +77,17 @@ const ProgressBar = ({
         max={max}
         aria-label={label || undefined}
       >
-        <Progress.Indicator aria-hidden={true}>
+        {/*
+          Tamagui's Progress.Indicator has its own built-in fill behaviour:
+          it renders at width 200% and slides via `x` (translateX) to reveal
+          the right portion within the track's overflow:hidden clip. We
+          don't want that here - ProgressBar.module.scss's plain
+          width-percentage fill below is the source of truth - so `x`/
+          `width` override Tamagui's internal values (props passed to a
+          component always win over its own defaults) to cancel that
+          behaviour out, leaving Indicator as a neutral 100%-wide wrapper.
+        */}
+        <Progress.Indicator unstyled x={0} width="100%" aria-hidden={true}>
           <View
             className={progressClass}
             style={{ width: `${percent}%` }}
