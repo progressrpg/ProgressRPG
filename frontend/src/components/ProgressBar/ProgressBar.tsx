@@ -1,5 +1,6 @@
-import React, { useRef, useState, useEffect } from "react";
-import { Progress } from "tamagui";
+import React, { useState } from "react";
+import { Progress, View } from "tamagui";
+import type { LayoutChangeEvent } from "react-native";
 import styles from "./ProgressBar.module.scss";
 import type { TimerStatus } from "../../types";
 
@@ -20,21 +21,13 @@ const ProgressBar = ({
   paused = false,
 }: ProgressBarProps) => {
   const percent = Math.min((value / max) * 100, 100);
-  const fillRef = useRef<HTMLDivElement>(null);
-  const labelMeasureRef = useRef<HTMLSpanElement>(null);
 
+  // Measured via Tamagui's onLayout (backed by ResizeObserver on web, the
+  // native layout event on RN) rather than ref.offsetWidth, so this works
+  // on both platforms and re-measures on resize, not just on [percent, label]
+  // changes.
   const [fillWidth, setFillWidth] = useState(0);
   const [labelWidth, setLabelWidth] = useState(0);
-
-  // Measure fill and label widths to decide which label to show
-  useEffect(() => {
-    if (fillRef.current) {
-      setFillWidth(fillRef.current.offsetWidth);
-    }
-    if (labelMeasureRef.current) {
-      setLabelWidth(labelMeasureRef.current.offsetWidth);
-    }
-  }, [percent, label]);
 
   const showInsideLabel = fillWidth > labelWidth + 10;
 
@@ -62,13 +55,15 @@ const ProgressBar = ({
     <div className={styles.progressBarWrapper}>
       {/* Hidden label used for measuring width */}
       {label && (
-        <span
-          ref={labelMeasureRef}
+        <View
           className={styles.labelMeasure}
           aria-hidden
+          onLayout={(e: LayoutChangeEvent) =>
+            setLabelWidth(e.nativeEvent.layout.width)
+          }
         >
           {label}
-        </span>
+        </View>
       )}
 
       {label && !showInsideLabel && (
@@ -82,16 +77,18 @@ const ProgressBar = ({
         max={max}
         aria-label={label || undefined}
       >
-        <Progress.Indicator aria-hidden="true">
-          <div
-            ref={fillRef}
+        <Progress.Indicator aria-hidden={true}>
+          <View
             className={progressClass}
             style={{ width: `${percent}%` }}
+            onLayout={(e: LayoutChangeEvent) =>
+              setFillWidth(e.nativeEvent.layout.width)
+            }
           >
             {label && showInsideLabel && (
               <span className={styles.labelInside}>{label}</span>
             )}
-          </div>
+          </View>
         </Progress.Indicator>
       </Progress>
     </div>
