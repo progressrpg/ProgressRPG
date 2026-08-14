@@ -76,7 +76,7 @@ export const WithAnnouncements: Story = {
             id: 1,
             title: 'New feature: the map is live',
             summary: 'Explore other characters at work on the world map.',
-            body: 'The map view is now available from the nav bar.',
+            body: 'The **map view** is now available from the nav bar. Highlights:\n\n- See other characters at work\n- Explore villages and buildings\n- [Read the announcement](https://example.com) for details',
             published_at: '2026-08-01T00:00:00Z',
             created_at: '2026-08-01T00:00:00Z',
             is_read: false,

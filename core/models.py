@@ -233,7 +233,7 @@ class FeatureFlag(models.Model):
 class Announcement(models.Model):
     title = models.CharField(max_length=200)
     summary = models.CharField(max_length=300, blank=True)
-    body = models.TextField()
+    body = models.TextField(help_text="Supports Markdown (bold, links, lists, etc.).")
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)

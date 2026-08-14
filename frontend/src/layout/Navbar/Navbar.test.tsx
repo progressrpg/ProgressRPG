@@ -172,6 +172,37 @@ describe("Navbar", () => {
     expect(markAllMutate).toHaveBeenCalledTimes(1);
   });
 
+  it("renders announcement body as markdown", async () => {
+    const user = userEvent.setup();
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    mockUseFeatureFlag.mockReturnValue(true);
+    mockUseAnnouncements.mockReturnValue({
+      data: {
+        results: [
+          {
+            id: 1,
+            title: "New feature",
+            summary: "",
+            body: "**Bold** and a [link](https://example.com).",
+            is_read: false,
+          },
+        ],
+        unread_count: 1,
+      },
+      isLoading: false,
+    });
+    renderNavbar();
+
+    await user.click(screen.getByRole("button", { name: "Announcements" }));
+    await user.click(screen.getByText("New feature"));
+
+    expect(screen.getByText("Bold").tagName).toBe("STRONG");
+    expect(screen.getByRole("link", { name: "link" })).toHaveAttribute(
+      "href",
+      "https://example.com"
+    );
+  });
+
   it("marks a single announcement as read", async () => {
     const user = userEvent.setup();
     mockUseAuth.mockReturnValue({ isAuthenticated: true });

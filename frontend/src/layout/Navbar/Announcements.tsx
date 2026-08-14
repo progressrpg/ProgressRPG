@@ -2,6 +2,7 @@ import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Accordion from "@radix-ui/react-accordion";
+import ReactMarkdown from "react-markdown";
 import Button from "../../components/Button/Button";
 import styles from "./Announcements.module.scss";
 import type { Announcement } from "../../types";
@@ -71,7 +72,9 @@ function AnnouncementsListContent({
                 </Accordion.Trigger>
               </Accordion.Header>
               <Accordion.Content className={styles.accordionContent}>
-                <p className={styles.body}>{announcement.body}</p>
+                <div className={styles.body}>
+                  <ReactMarkdown>{announcement.body}</ReactMarkdown>
+                </div>
               </Accordion.Content>
               {!announcement.is_read && (
                 <button

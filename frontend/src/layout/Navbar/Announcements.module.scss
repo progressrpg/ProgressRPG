@@ -113,11 +113,42 @@
   gap: sp.$spacing-xs;
 }
 
+// Body is rendered from markdown (see Announcements.tsx), so styles target
+// the elements react-markdown can produce rather than a single bare <p>.
 .body {
   margin: sp.$spacing-xs 0 0;
   font-size: 0.9rem;
-  white-space: pre-wrap;
   line-height: 1.35;
+
+  p {
+    margin: 0 0 sp.$spacing-xs;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  ul,
+  ol {
+    margin: 0 0 sp.$spacing-xs;
+    padding-left: sp.$spacing-md;
+  }
+
+  li {
+    margin-bottom: sp.$spacing-xs;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  code {
+    font-size: 0.85em;
+    background: rgba(c.$color-border-primary, 0.12);
+    border-radius: 0.2rem;
+    padding: 0.1rem 0.3rem;
+  }
 }
 
 .empty {
