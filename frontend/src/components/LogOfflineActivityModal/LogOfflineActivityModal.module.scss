@@ -120,7 +120,7 @@
 }
 
 @include m.respond-to(sm, down) {
-  .row {
+  .row:not(.durationRow) {
     flex-direction: column;
   }
 }
