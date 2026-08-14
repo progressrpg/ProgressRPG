@@ -520,6 +520,15 @@ class Character(LevelProgressionMixin, LifeCycleMixin, Movable):
         """
         return PlayerCharacterLink.total_link_points(self.links.all())
 
+    def get_productivity(self, now=None):
+        """
+        Live productivity signal - see progression.ap.get_productivity for
+        what drives it (authored baseline x current active XpModifiers).
+        """
+        from progression import ap
+
+        return ap.get_productivity(self, now=now)
+
 
 ########################################################################
 ####    PLAYER CHARACTER LINK MODEL
