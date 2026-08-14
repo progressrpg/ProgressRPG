@@ -1,6 +1,7 @@
 // context/WebSocketContext.tsx
 import { useRef, useCallback, useEffect } from 'react';
 import type { ReactNode, ReactElement } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useGame } from '../hooks/useGame';
 import { useOnlineCount } from './OnlineCountContext';
 import { useToast } from '../hooks/useToast';
@@ -10,6 +11,10 @@ import { handleGlobalWebSocketEvent } from '../websockets/handleGlobalWebSocketE
 import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 import { useMaintenanceContext } from './MaintenanceContext';
 import { WebSocketContext } from './webSocketContext';
+import {
+  ANNOUNCEMENTS_QUERY_KEY,
+  ANNOUNCEMENT_UNREAD_QUERY_KEY,
+} from '../hooks/useAnnouncements';
 import type { ActivityTimerApiData, IncomingWebSocketMessage, OutgoingWebSocketMessage } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -36,6 +41,7 @@ export const WebSocketProvider = ({ children }: ProviderProps): ReactElement => 
   const { showToast } = useToast();
   const { refetch: maintenanceRefetch } = useMaintenanceStatus();
   const { setMaintenance } = useMaintenanceContext();
+  const queryClient = useQueryClient();
   // Set stores message handler callbacks registered by child components
   const eventHandlersRef = useRef<Set<(data: IncomingWebSocketMessage) => void>>(new Set());
   const wsEnabled = Boolean(!authLoading && isAuthenticated && player?.id);
@@ -52,14 +58,25 @@ export const WebSocketProvider = ({ children }: ProviderProps): ReactElement => 
     });
   }, [loadFromServer, player?.is_premium, freeTimerLimitSeconds]);
 
+  const onAnnouncementPublished = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ANNOUNCEMENTS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: ANNOUNCEMENT_UNREAD_QUERY_KEY });
+  }, [queryClient]);
+
   const onMessage = useCallback((data: IncomingWebSocketMessage) => {
     if (data.type === 'online_count') {
       setOnlinePlayerCount(data.count);
     }
     //console.log("[WS Provider] showToast:", showToast);
-    handleGlobalWebSocketEvent(data, { showToast, maintenanceRefetch, setMaintenance, onActivityTimerUpdate });
+    handleGlobalWebSocketEvent(data, {
+      showToast,
+      maintenanceRefetch,
+      setMaintenance,
+      onActivityTimerUpdate,
+      onAnnouncementPublished,
+    });
     eventHandlersRef.current.forEach((handler) => handler(data));
-  }, [showToast, maintenanceRefetch, setMaintenance, setOnlinePlayerCount, onActivityTimerUpdate]);
+  }, [showToast, maintenanceRefetch, setMaintenance, setOnlinePlayerCount, onActivityTimerUpdate, onAnnouncementPublished]);
 
   const onError = useCallback(() => {
     console.error('WebSocket connection error');
