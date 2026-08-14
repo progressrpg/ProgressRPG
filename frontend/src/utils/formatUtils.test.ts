@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatDueAt,
-  toDatetimeLocalValue,
-  fromDatetimeLocalValue,
+  toDateInputValue,
+  toTimeInputValue,
+  fromDateAndTimeInputValues,
   isOverdue,
 } from "./formatUtils";
 
@@ -85,33 +86,69 @@ describe("formatDueAt", () => {
   });
 });
 
-describe("toDatetimeLocalValue", () => {
+describe("toDateInputValue", () => {
   it("returns an empty string when null", () => {
-    expect(toDatetimeLocalValue(null)).toBe("");
+    expect(toDateInputValue(null)).toBe("");
   });
 
-  it("formats a valid ISO string as YYYY-MM-DDTHH:mm", () => {
-    const value = toDatetimeLocalValue("2026-05-01T08:30:00.000Z");
-    expect(value).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+  it("formats a valid ISO string as YYYY-MM-DD", () => {
+    const value = toDateInputValue("2026-05-01T08:30:00.000Z");
+    expect(value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 
-describe("fromDatetimeLocalValue", () => {
-  it("returns null for an empty string", () => {
-    expect(fromDatetimeLocalValue("")).toBeNull();
+describe("toTimeInputValue", () => {
+  it("returns an empty string when null", () => {
+    expect(toTimeInputValue(null)).toBe("");
   });
 
-  it("converts a datetime-local value to an ISO string", () => {
-    const iso = fromDatetimeLocalValue("2026-05-01T08:30");
+  it("formats a valid ISO string as HH:mm", () => {
+    const value = toTimeInputValue("2026-05-01T08:30:00.000Z");
+    expect(value).toMatch(/^\d{2}:\d{2}$/);
+  });
+
+  it("returns an empty string for the 23:59 no-time-set sentinel", () => {
+    const localMidnight = new Date(2026, 4, 1, 23, 59);
+    expect(toTimeInputValue(localMidnight.toISOString())).toBe("");
+  });
+});
+
+describe("fromDateAndTimeInputValues", () => {
+  it("returns null when both inputs are empty", () => {
+    expect(fromDateAndTimeInputValues("", "")).toBeNull();
+  });
+
+  it("converts a date and time to an ISO string", () => {
+    const iso = fromDateAndTimeInputValues("2026-05-01", "08:30");
     expect(iso).not.toBeNull();
     expect(new Date(iso as string).getFullYear()).toBe(2026);
   });
 
-  it("round-trips through toDatetimeLocalValue", () => {
+  it("defaults the date to today when only a time is given", () => {
+    const iso = fromDateAndTimeInputValues("", "08:30") as string;
+    const result = new Date(iso);
+    const today = new Date();
+    expect(result.getFullYear()).toBe(today.getFullYear());
+    expect(result.getMonth()).toBe(today.getMonth());
+    expect(result.getDate()).toBe(today.getDate());
+    expect(result.getHours()).toBe(8);
+    expect(result.getMinutes()).toBe(30);
+  });
+
+  it("defaults the time to 23:59 when only a date is given", () => {
+    const iso = fromDateAndTimeInputValues("2026-05-01", "") as string;
+    const result = new Date(iso);
+    expect(result.getHours()).toBe(23);
+    expect(result.getMinutes()).toBe(59);
+  });
+
+  it("round-trips through toDateInputValue and toTimeInputValue", () => {
     const original = "2026-05-01T08:30:00.000Z";
-    const localValue = toDatetimeLocalValue(original);
-    const roundTripped = fromDatetimeLocalValue(localValue);
-    expect(toDatetimeLocalValue(roundTripped)).toBe(localValue);
+    const dateValue = toDateInputValue(original);
+    const timeValue = toTimeInputValue(original);
+    const roundTripped = fromDateAndTimeInputValues(dateValue, timeValue);
+    expect(toDateInputValue(roundTripped)).toBe(dateValue);
+    expect(toTimeInputValue(roundTripped)).toBe(timeValue);
   });
 });
 

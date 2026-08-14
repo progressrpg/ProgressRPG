@@ -122,25 +122,47 @@ export function formatDueAt(dueAt: string | null): string {
   return `${weekday} ${day}${ordinalSuffix(day)} ${month}`;
 }
 
-export function toDatetimeLocalValue(dueAt: string | null): string {
+// Sentinel time used to represent "date set, no time set" — see fromDateAndTimeInputValues.
+const END_OF_DAY_TIME = "23:59";
+
+function todayLocalDateValue(): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+export function toDateInputValue(dueAt: string | null): string {
   if (!dueAt) return "";
   const date = new Date(dueAt);
   if (Number.isNaN(date.getTime())) return "";
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-export function fromDatetimeLocalValue(value: string): string | null {
-  if (!value) return null;
-  const date = new Date(value);
+export function toTimeInputValue(dueAt: string | null): string {
+  if (!dueAt) return "";
+  const date = new Date(dueAt);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  // 23:59 is the sentinel for "no time set" (see fromDateAndTimeInputValues), so it
+  // displays as an empty time field rather than a literal end-of-day time.
+  if (hours === 23 && minutes === 59) return "";
+
+  return `${pad(hours)}:${pad(minutes)}`;
+}
+
+export function fromDateAndTimeInputValues(dateValue: string, timeValue: string): string | null {
+  if (!dateValue && !timeValue) return null;
+
+  const effectiveDate = dateValue || todayLocalDateValue();
+  const effectiveTime = timeValue || END_OF_DAY_TIME;
+  const date = new Date(`${effectiveDate}T${effectiveTime}`);
   if (Number.isNaN(date.getTime())) return null;
+
   return date.toISOString();
 }
 

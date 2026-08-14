@@ -99,6 +99,27 @@
   gap: sp.$spacing-sm;
 }
 
+.timestampButton {
+  flex-shrink: 0;
+  height: sp.$form-control-height;
+  width: sp.$form-control-height;
+  padding: 0;
+  border: 1px solid rgba(c.$color-border-primary, 0.35);
+  border-radius: sp.$form-control-radius;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(c.$color-border-primary, 0.55);
+  }
+}
+
 .timestampLabel {
   font-weight: 600;
   margin-bottom: 2px;
