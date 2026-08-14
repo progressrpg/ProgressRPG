@@ -266,7 +266,6 @@ function renderMap(props: ComponentProps<typeof PopulationCentreMap>) {
     defaultOptions: { queries: { retry: false } },
   });
   return render(
-<<<<<<< HEAD
     <QueryClientProvider client={queryClient}>
       <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
         <TooltipProvider>
@@ -274,13 +273,6 @@ function renderMap(props: ComponentProps<typeof PopulationCentreMap>) {
         </TooltipProvider>
       </TamaguiProvider>
     </QueryClientProvider>
-=======
-    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
-      <TooltipProvider>
-        <PopulationCentreMap {...props} />
-      </TooltipProvider>
-    </TamaguiProvider>
->>>>>>> 14f59eb8f6e9755e2991c953c024516fbb34f943
   );
 }
 
