@@ -20,6 +20,7 @@ import {
   type MapMouseEvent,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import tamaguiConfig from "../../../tamagui.config";
 import { fromLngLat, quantizeBbox, toLngLat } from "./utils";
 import { CharacterTooltipContent, PopulationCentreTooltipContent } from "./MapTooltips";
 import { scatterCharacters } from "./characters/placement";
