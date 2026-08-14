@@ -1,36 +1,14 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import type { Dispatch, ReactElement, ReactNode, SetStateAction } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { apiFetch, ApiFetchError, setUnauthorizedHandler } from "../utils/api";
 import { clearAuthStorage, getStoredAuthTokens, storeAuthTokens } from '../utils/authStorage';
 import { clearUserPreferences } from '../utils/userPreferences';
+import { AuthContext, type AuthContextValue } from './authContext';
 import type { User } from '../types';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface AuthContextValue {
-  accessToken: string | null;
-  refreshToken: string | null;
-  isAuthenticated: boolean;
-  user: User | null;
-  setUser: Dispatch<SetStateAction<User | null>>;
-  login: (accessToken: string, refreshToken: string, options?: { rememberMe?: boolean }) => Promise<unknown>;
-  logout: () => void;
-  /** Thin wrapper around apiFetch — use apiFetch directly for typed responses. */
-  authFetch: <T = unknown>(path: string, options?: Parameters<typeof apiFetch>[1]) => Promise<T>;
-  loading: boolean;
-}
 
 interface ProviderProps {
   children: ReactNode;
 }
-
-// ---------------------------------------------------------------------------
-// Context
-// ---------------------------------------------------------------------------
-
-const AuthContext = createContext<AuthContextValue | null>(null);
 
 // ---------------------------------------------------------------------------
 // Provider
