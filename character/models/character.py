@@ -333,7 +333,7 @@ class CharacterQuerySet(models.QuerySet):
         )
 
 
-class CharacterManager(models.Manager.from_queryset(CharacterQuerySet)):
+class CharacterManager(models.Manager.from_queryset(CharacterQuerySet)):  # type: ignore[misc]
     pass
 
 
