@@ -21,7 +21,3 @@
 
 ## Technical notes
 <!-- Migrations, env vars, feature flags, rollout/rollback risk -->
-
-## Test plan
-- [ ] CI passes
-- [ ] Verified on staging

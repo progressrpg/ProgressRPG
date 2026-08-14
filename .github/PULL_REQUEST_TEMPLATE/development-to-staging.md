@@ -6,7 +6,7 @@
   Leave a category empty (or delete its header) if nothing applies.
 -->
 
-## User-visible improvements (UVIs)
+## Summary
 
 ### Features
 -
@@ -21,7 +21,3 @@
 
 ## Technical notes
 <!-- Migrations, env vars, feature flags, anything a reviewer needs to know -->
-
-## Test plan
-- [ ] CI passes
-- [ ] Smoke test on staging after deploy
