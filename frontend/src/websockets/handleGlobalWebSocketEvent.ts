@@ -13,11 +13,22 @@ interface HandleGlobalWebSocketEventOptions {
    * useActivityTimer's loadFromServer.
    */
   onActivityTimerUpdate?: (activityTimer: ActivityTimerApiData) => void;
+  /**
+   * Called when the server announces a newly-published Announcement, so the
+   * caller can refetch the announcements list / unread-count queries.
+   */
+  onAnnouncementPublished?: () => void;
 }
 
 export async function handleGlobalWebSocketEvent(
   data: IncomingWebSocketMessage,
-  { showToast, maintenanceRefetch, setMaintenance, onActivityTimerUpdate }: HandleGlobalWebSocketEventOptions,
+  {
+    showToast,
+    maintenanceRefetch,
+    setMaintenance,
+    onActivityTimerUpdate,
+    onAnnouncementPublished,
+  }: HandleGlobalWebSocketEventOptions,
 ): Promise<void> {
   switch (data.type) {
     case 'notification':
@@ -74,9 +85,12 @@ export async function handleGlobalWebSocketEvent(
           console.log("[WS] Django consumer 'load-game' message not currently in use.");
           break;
         case 'activity_timer_update':
-          if (data.data?.activity_timer) {
+          if (data.data && 'activity_timer' in data.data) {
             onActivityTimerUpdate?.(data.data.activity_timer);
           }
+          break;
+        case 'announcement_published':
+          onAnnouncementPublished?.();
           break;
         default:
           console.warn('[WS] Unknown action:', data);

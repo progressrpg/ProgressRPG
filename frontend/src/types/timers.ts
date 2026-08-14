@@ -157,7 +157,7 @@ export interface WebSocketErrorMessage extends WebSocketMessageBase {
 /** Server-initiated action message (maintenance refresh, game events) */
 export interface WebSocketActionMessage {
   type: "action";
-  action: "refresh" | "load-game" | "activity_timer_update";
+  action: "refresh" | "load-game" | "activity_timer_update" | "announcement_published";
   message?: string;
   maintenance_active?: boolean;
   name?: string;
@@ -168,8 +168,12 @@ export interface WebSocketActionMessage {
    * Present when action is "activity_timer_update" — pushed whenever another
    * of this player's sessions (tabs/devices) starts, labels, or submits the
    * activity timer, so every open session can reconcile to server state.
+   *
+   * Present when action is "announcement_published" — the id of the
+   * newly-published Announcement, so callers can invalidate the
+   * announcements list and unread-count queries.
    */
-  data?: { activity_timer: ActivityTimerApiData };
+  data?: { activity_timer: ActivityTimerApiData } | { id: number };
 }
 
 /** Generic server message (currently unused payload) */
