@@ -5,6 +5,7 @@ import * as Accordion from "@radix-ui/react-accordion";
 import ReactMarkdown from "react-markdown";
 import Button from "../../components/Button/Button";
 import styles from "./Announcements.module.scss";
+import { formatPublishedAt } from "../../utils/formatUtils";
 import type { Announcement } from "../../types";
 
 interface AnnouncementsData {
@@ -32,14 +33,16 @@ function AnnouncementsListContent({
     <>
       <div className={styles.header}>
         <strong>Announcements</strong>
-        <button
-          className={styles.actionButton}
-          type="button"
-          onClick={onMarkAllRead}
-          disabled={unreadCount === 0 || isMarkingAllRead}
-        >
-          Mark all read
-        </button>
+        {unreadCount > 0 && (
+          <button
+            className={styles.actionButton}
+            type="button"
+            onClick={onMarkAllRead}
+            disabled={isMarkingAllRead}
+          >
+            Mark all read
+          </button>
+        )}
       </div>
 
       {isLoading && <p className={styles.empty}>Loading announcements...</p>}
@@ -50,7 +53,9 @@ function AnnouncementsListContent({
 
       {!isLoading && announcements.length > 0 && (
         <Accordion.Root type="multiple" className={styles.list}>
-          {announcements.map((announcement) => (
+          {announcements.map((announcement) => {
+            const publishedAt = formatPublishedAt(announcement.published_at);
+            return (
             <Accordion.Item
               key={announcement.id}
               className={styles.item}
@@ -64,8 +69,10 @@ function AnnouncementsListContent({
                       {!announcement.is_read && (
                         <span className={styles.unreadDot} aria-hidden="true" />
                       )}
+                      <span className={styles.chevron} aria-hidden="true" />
                     </span>
                   </div>
+                  {publishedAt && <p className={styles.publishedAt}>{publishedAt}</p>}
                   {announcement.summary && (
                     <p className={styles.summary}>{announcement.summary}</p>
                   )}
@@ -75,19 +82,20 @@ function AnnouncementsListContent({
                 <div className={styles.body}>
                   <ReactMarkdown>{announcement.body}</ReactMarkdown>
                 </div>
+                {!announcement.is_read && (
+                  <button
+                    className={styles.actionButton}
+                    type="button"
+                    onClick={() => onMarkOneRead(announcement.id)}
+                    disabled={isMarkingOneRead}
+                  >
+                    Mark read
+                  </button>
+                )}
               </Accordion.Content>
-              {!announcement.is_read && (
-                <button
-                  className={styles.actionButton}
-                  type="button"
-                  onClick={() => onMarkOneRead(announcement.id)}
-                  disabled={isMarkingOneRead}
-                >
-                  Mark read
-                </button>
-              )}
             </Accordion.Item>
-          ))}
+            );
+          })}
         </Accordion.Root>
       )}
     </>

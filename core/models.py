@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.storage import Storage
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.deconstruct import deconstructible
 
 
@@ -246,6 +247,11 @@ class Announcement(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        if self.is_published and self.published_at is None:
+            self.published_at = timezone.now()
+        super().save(*args, **kwargs)
 
 
 class PlayerAnnouncementState(models.Model):

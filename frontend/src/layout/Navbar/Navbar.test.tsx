@@ -226,6 +226,10 @@ describe("Navbar", () => {
     renderNavbar();
 
     await user.click(screen.getByRole("button", { name: "Announcements" }));
+
+    expect(screen.queryByRole("button", { name: "Mark read" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("New feature"));
     await user.click(screen.getByRole("button", { name: "Mark read" }));
 
     expect(markOneMutate).toHaveBeenCalledWith(42);

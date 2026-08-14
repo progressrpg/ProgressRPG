@@ -70,6 +70,12 @@
   border: 1px solid rgba(c.$color-border-primary, 0.2);
   border-radius: sp.$border-radius;
   padding: sp.$spacing-sm;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.06);
+    border-color: rgba(c.$color-border-primary, 0.35);
+  }
 }
 
 .titleRow {
@@ -80,10 +86,24 @@
   font-weight: 600;
 }
 
+.publishedAt {
+  margin: sp.$spacing-xs 0 0;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
 .summary {
   margin: sp.$spacing-xs 0;
   font-size: 0.9rem;
   opacity: 0.9;
+
+  // Redundant once the full body is shown - hide while the item is open.
+  // Scoped to .item specifically (see .chevron) rather than a bare
+  // [data-state="open"] ancestor match, since Popover.Content also carries
+  // data-state="open" for as long as the popover itself is open.
+  .item[data-state="open"] & {
+    display: none;
+  }
 }
 
 .accordionTrigger {
@@ -96,11 +116,9 @@
   cursor: pointer;
   color: inherit;
 
-  &:focus-visible {
-    outline: 2px solid rgba(c.$color-border-primary, 0.5);
-    outline-offset: 2px;
-    border-radius: sp.$border-radius;
-  }
+  // No custom focus style here - falls back to the site-wide
+  // :focus-visible outline (see styles/base/_a11y.scss) instead of this
+  // component's own green one.
 }
 
 .accordionContent {
@@ -111,6 +129,30 @@
   display: inline-flex;
   align-items: center;
   gap: sp.$spacing-xs;
+}
+
+// CSS-drawn arrow rather than a text glyph, so its size and orientation
+// render consistently across browsers/fonts instead of relying on a
+// unicode triangle that can look ambiguous at small sizes.
+.chevron {
+  display: inline-block;
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: -0.15rem;
+  opacity: 0.6;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg); // points down at rest
+  transition: transform 0.15s ease;
+
+  // Points up once the item is open. Scoped to .item specifically, not a
+  // bare [data-state="open"] ancestor match - Popover.Content also carries
+  // data-state="open" for as long as the popover itself is open, which would
+  // otherwise match every chevron regardless of its own item's state.
+  .item[data-state="open"] & {
+    transform: rotate(-135deg);
+  }
 }
 
 // Body is rendered from markdown (see Announcements.tsx), so styles target
