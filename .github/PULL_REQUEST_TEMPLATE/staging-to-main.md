@@ -19,6 +19,9 @@
 
 ---
 
+## Contributors
+<!-- Credit anyone who contributed a PR in this release besides yourself (e.g. @username). -->
+
 ## Technical notes
 <!-- Migrations, env vars, feature flags, rollout/rollback risk -->
 
