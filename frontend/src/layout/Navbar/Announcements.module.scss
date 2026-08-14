@@ -1,0 +1,156 @@
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/spacing' as sp;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  padding: 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(c.$color-border-accent, 0.8);
+}
+
+.badgeOnTrigger {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  margin-left: 0;
+}
+
+// Doubled selector to win the cascade over navLink's own padding rule -
+// both are single-class selectors from separate CSS Modules, so which one
+// wins otherwise depends on unpredictable module bundle order.
+.trigger.trigger {
+  // No explicit height: navLink's siblings (Home, Timer, etc.) don't set
+  // one either - their height comes from line-height + this same padding.
+  // Fixing a height here would only approximate that and drift out of
+  // sync whenever the button's typography changes.
+  position: relative;
+  padding: sp.$spacing-xs;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popoverContent {
+  width: min(22rem, 92vw);
+  max-height: 65vh;
+  overflow: auto;
+  background: c.$color-bg;
+  border: 1px solid rgba(c.$color-border-primary, 0.25);
+  border-radius: sp.$border-radius;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  padding: sp.$spacing-sm;
+  z-index: v.$z-index-dropdown;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp.$spacing-sm;
+  margin-bottom: sp.$spacing-sm;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-sm;
+}
+
+.item {
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: sp.$border-radius;
+  padding: sp.$spacing-sm;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp.$spacing-sm;
+  font-weight: 600;
+}
+
+.summary {
+  margin: sp.$spacing-xs 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.accordionTrigger {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+
+  &:focus-visible {
+    outline: 2px solid rgba(c.$color-border-primary, 0.5);
+    outline-offset: 2px;
+    border-radius: sp.$border-radius;
+  }
+}
+
+.accordionContent {
+  overflow: hidden;
+}
+
+.metaRight {
+  display: inline-flex;
+  align-items: center;
+  gap: sp.$spacing-xs;
+}
+
+.body {
+  margin: sp.$spacing-xs 0 0;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  line-height: 1.35;
+}
+
+.empty {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.actionButton {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.85rem;
+  padding: 0;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.unreadDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: c.$color-border-primary;
+}
+
+.mobilePanel {
+  margin: 0 sp.$spacing-sm sp.$spacing-sm;
+  padding: sp.$spacing-sm;
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: sp.$border-radius;
+  background: rgba(c.$color-bg, 0.95);
+}

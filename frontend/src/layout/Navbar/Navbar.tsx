@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useLocation, Link } from "react-router";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import * as Popover from "@radix-ui/react-popover";
-import * as Accordion from "@radix-ui/react-accordion";
 import styles from "./Navbar.module.scss";
 import Button from "../../components/Button/Button";
+import { AnnouncementsBell, MobileAnnouncements } from "./Announcements";
 import { useAuth } from "../../context/AuthContext";
 import { useGame } from "../../hooks/useGame";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
@@ -39,7 +38,6 @@ export default function Navbar({ onMenuClick, onHelpClick }: NavbarProps) {
 
   const announcements = announcementsData?.results ?? [];
   const unreadCount = announcementsData?.unread_count ?? announcementUnreadCount;
-  const [mobileAnnouncementsOpen, setMobileAnnouncementsOpen] = useState(false);
 
   useEffect(() => {
     if (announcementsData) {
@@ -55,6 +53,20 @@ export default function Navbar({ onMenuClick, onHelpClick }: NavbarProps) {
   const handleMarkAllRead = async () => {
     const result = await markAllAnnouncementsReadMutation.mutateAsync();
     setAnnouncementUnreadCount(result.unread_count);
+  };
+
+  const announcementsProps = {
+    announcements,
+    unreadCount,
+    isLoading: announcementsLoading,
+    onMarkOneRead: (announcementId: number) => {
+      void handleMarkOneRead(announcementId);
+    },
+    onMarkAllRead: () => {
+      void handleMarkAllRead();
+    },
+    isMarkingOneRead: markAnnouncementReadMutation.isPending,
+    isMarkingAllRead: markAllAnnouncementsReadMutation.isPending,
   };
 
   return (
@@ -118,95 +130,7 @@ export default function Navbar({ onMenuClick, onHelpClick }: NavbarProps) {
                 </Button>
               )}
               {isAnnouncementsEnabled && (
-              <Popover.Root>
-                <Popover.Trigger asChild>
-                  <Button
-                    className={`${styles.navLink} ${styles.announcementsTrigger}`}
-                    variant="secondary"
-                    ariaLabel="Announcements"
-                  >
-                    <span aria-hidden="true">🔔</span>
-                    {unreadCount > 0 && (
-                      <span className={`${styles.unreadBadge} ${styles.unreadBadgeOnTrigger}`}>
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </span>
-                    )}
-                  </Button>
-                </Popover.Trigger>
-                <Popover.Portal>
-                  <Popover.Content
-                    className={styles.announcementsPopoverContent}
-                    side="bottom"
-                    align="end"
-                    sideOffset={6}
-                  >
-                    <div className={styles.announcementsPopoverHeader}>
-                      <strong>Announcements</strong>
-                      <button
-                        className={styles.popoverActionButton}
-                        type="button"
-                        onClick={() => {
-                          void handleMarkAllRead();
-                        }}
-                        disabled={unreadCount === 0 || markAllAnnouncementsReadMutation.isPending}
-                      >
-                        Mark all read
-                      </button>
-                    </div>
-
-                    {announcementsLoading && (
-                      <p className={styles.announcementsEmpty}>Loading announcements...</p>
-                    )}
-
-                    {!announcementsLoading && announcements.length === 0 && (
-                      <p className={styles.announcementsEmpty}>No announcements yet.</p>
-                    )}
-
-                    {!announcementsLoading && announcements.length > 0 && (
-                      <Accordion.Root type="multiple" className={styles.announcementsList}>
-                        {announcements.map((announcement) => (
-                          <Accordion.Item
-                            key={announcement.id}
-                            className={styles.announcementItem}
-                            value={`announcement-${announcement.id}`}
-                          >
-                            <Accordion.Header>
-                              <Accordion.Trigger className={styles.announcementAccordionTrigger}>
-                                <div className={styles.announcementTitleRow}>
-                                  <span>{announcement.title}</span>
-                                  <span className={styles.announcementMetaRight}>
-                                    {!announcement.is_read && (
-                                      <span className={styles.unreadDot} aria-hidden="true" />
-                                    )}
-                                  </span>
-                                </div>
-                                {announcement.summary && (
-                                  <p className={styles.announcementSummary}>{announcement.summary}</p>
-                                )}
-                              </Accordion.Trigger>
-                            </Accordion.Header>
-                            <Accordion.Content className={styles.announcementAccordionContent}>
-                              <p className={styles.announcementBody}>{announcement.body}</p>
-                            </Accordion.Content>
-                            {!announcement.is_read && (
-                              <button
-                                className={styles.popoverActionButton}
-                                type="button"
-                                onClick={() => {
-                                  void handleMarkOneRead(announcement.id);
-                                }}
-                                disabled={markAnnouncementReadMutation.isPending}
-                              >
-                                Mark read
-                              </button>
-                            )}
-                          </Accordion.Item>
-                        ))}
-                      </Accordion.Root>
-                    )}
-                  </Popover.Content>
-                </Popover.Portal>
-              </Popover.Root>
+                <AnnouncementsBell {...announcementsProps} triggerClassName={styles.navLink} />
               )}
               <Link to="/account" aria-label="Go to your account">
                 <Button
@@ -300,90 +224,10 @@ export default function Navbar({ onMenuClick, onHelpClick }: NavbarProps) {
                         </DropdownMenu.Item>
                       )}
                       {isAnnouncementsEnabled && (
-                      <DropdownMenu.Item
-                        className={styles.accountDropdownItem}
-                        onSelect={(event) => {
-                          event.preventDefault();
-                          setMobileAnnouncementsOpen((prev) => !prev);
-                        }}
-                      >
-                        <span aria-hidden="true">🔔</span>Announcements
-                        {unreadCount > 0 && (
-                          <span className={styles.unreadBadge}>
-                            {unreadCount > 99 ? "99+" : unreadCount}
-                          </span>
-                        )}
-                      </DropdownMenu.Item>
-                      )}
-                      {isAnnouncementsEnabled && mobileAnnouncementsOpen && (
-                        <div className={styles.mobileAnnouncementsPanel}>
-                          <div className={styles.mobileAnnouncementsHeader}>
-                            <strong>Announcements</strong>
-                            <button
-                              className={styles.popoverActionButton}
-                              type="button"
-                              onClick={() => {
-                                void handleMarkAllRead();
-                              }}
-                              disabled={
-                                unreadCount === 0 || markAllAnnouncementsReadMutation.isPending
-                              }
-                            >
-                              Mark all read
-                            </button>
-                          </div>
-
-                          {announcementsLoading && (
-                            <p className={styles.announcementsEmpty}>Loading announcements...</p>
-                          )}
-
-                          {!announcementsLoading && announcements.length === 0 && (
-                            <p className={styles.announcementsEmpty}>No announcements yet.</p>
-                          )}
-
-                          {!announcementsLoading && announcements.length > 0 && (
-                            <Accordion.Root type="multiple" className={styles.announcementsList}>
-                              {announcements.map((announcement) => (
-                                <Accordion.Item
-                                  key={announcement.id}
-                                  className={styles.announcementItem}
-                                  value={`mobile-announcement-${announcement.id}`}
-                                >
-                                  <Accordion.Header>
-                                    <Accordion.Trigger className={styles.announcementAccordionTrigger}>
-                                      <div className={styles.announcementTitleRow}>
-                                        <span>{announcement.title}</span>
-                                        <span className={styles.announcementMetaRight}>
-                                          {!announcement.is_read && (
-                                            <span className={styles.unreadDot} aria-hidden="true" />
-                                          )}
-                                        </span>
-                                      </div>
-                                      {announcement.summary && (
-                                        <p className={styles.announcementSummary}>{announcement.summary}</p>
-                                      )}
-                                    </Accordion.Trigger>
-                                  </Accordion.Header>
-                                  <Accordion.Content className={styles.announcementAccordionContent}>
-                                    <p className={styles.announcementBody}>{announcement.body}</p>
-                                  </Accordion.Content>
-                                  {!announcement.is_read && (
-                                    <button
-                                      className={styles.popoverActionButton}
-                                      type="button"
-                                      onClick={() => {
-                                        void handleMarkOneRead(announcement.id);
-                                      }}
-                                      disabled={markAnnouncementReadMutation.isPending}
-                                    >
-                                      Mark read
-                                    </button>
-                                  )}
-                                </Accordion.Item>
-                              ))}
-                            </Accordion.Root>
-                          )}
-                        </div>
+                        <MobileAnnouncements
+                          {...announcementsProps}
+                          itemClassName={styles.accountDropdownItem}
+                        />
                       )}
                       <DropdownMenu.Item className={styles.accountDropdownItem} asChild>
                         <Link to="/account">
