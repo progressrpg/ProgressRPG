@@ -86,8 +86,19 @@ const ProgressBar = ({
           `width` override Tamagui's internal values (props passed to a
           component always win over its own defaults) to cancel that
           behaviour out, leaving Indicator as a neutral 100%-wide wrapper.
+          `height` is also set explicitly: Indicator is a flex column item
+          inside the track, and being unstyled it has no height of its own,
+          so without this the nested fill's `height: 100%` (below) resolves
+          against an auto/content-sized parent instead of the track and the
+          fill grows to fit its label text, overflowing the track's border.
         */}
-        <Progress.Indicator unstyled x={0} width="100%" aria-hidden={true}>
+        <Progress.Indicator
+          unstyled
+          x={0}
+          width="100%"
+          height="100%"
+          aria-hidden={true}
+        >
           <View
             className={progressClass}
             style={{ width: `${percent}%` }}
