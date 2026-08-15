@@ -3,9 +3,10 @@ import { expect } from 'storybook/test';
 import ProgressBar from './ProgressBar';
 
 /**
- * `ProgressBar` shows `value`/`max` as a filled track (Radix `Progress`
- * under the hood). The `label` renders inside the fill once there's room,
- * otherwise it moves outside so it stays readable.
+ * `ProgressBar` shows `value`/`max` as a filled track (Tamagui `Progress`
+ * under the hood, unstyled so `ProgressBar.module.scss` stays the sole
+ * source of visual truth). The `label` renders inside the fill once
+ * there's room, otherwise it moves outside so it stays readable.
  */
 const meta: Meta<typeof ProgressBar> = {
   title: 'Shared/ProgressBar',

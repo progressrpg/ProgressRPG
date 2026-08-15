@@ -8,15 +8,15 @@ import { mockAuthContextValue } from '../../testUtils/mockAuthContext';
 /**
  * `Footer` reads `useAuth()` only, to gate the "Admin Panel" link behind a
  * staff user. Wrapped in `MemoryRouter` since its internal links use
- * `react-router`'s `Link`.
+ * `react-router`'s `Link` - mounted once at the meta level (Storybook
+ * composes story-level decorators with meta-level ones rather than
+ * replacing them, so a per-story Router here too would double-nest it).
  */
 function withAuth(overrides: Parameters<typeof mockAuthContextValue>[0] = {}) {
   return (Story: () => React.ReactElement) => (
-    <MemoryRouter>
-      <AuthContext.Provider value={mockAuthContextValue(overrides)}>
-        <Story />
-      </AuthContext.Provider>
-    </MemoryRouter>
+    <AuthContext.Provider value={mockAuthContextValue(overrides)}>
+      <Story />
+    </AuthContext.Provider>
   );
 }
 
@@ -24,7 +24,14 @@ const meta: Meta<typeof Footer> = {
   title: 'Layout/Footer',
   component: Footer,
   tags: ['autodocs'],
-  decorators: [withAuth()],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+    withAuth(),
+  ],
 };
 
 export default meta;

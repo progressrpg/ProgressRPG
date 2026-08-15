@@ -9,65 +9,77 @@ import { mockAuthContextValue } from '../../testUtils/mockAuthContext';
 import { mockGameContextValue } from '../../testUtils/mockGameContext';
 import type { AnnouncementListResponse } from '../../types';
 
+interface NavbarContextOptions {
+  authenticated?: boolean;
+  path?: string;
+  featureFlags?: Record<string, unknown>;
+  announcements?: AnnouncementListResponse;
+}
+
 /**
  * `Navbar` reads `useAuth()` (nav links), `useGame()` (unread-announcement
  * badge) and two `useFeatureFlag()` checks (`map`, `announcements`) that
  * resolve via a seeded `["appConfig"]` query - see `useFeatureFlag.ts`. Each
  * story seeds its own `QueryClient` and wraps in `MemoryRouter` since
  * `Navbar` reads the current route to highlight the active link.
+ *
+ * Since the initial route varies per story, this provider tree - including
+ * `MemoryRouter` - is mounted once from `meta.decorators`, reading its
+ * options from `context.parameters.navbarContext` rather than being
+ * re-applied (and thus re-nesting `MemoryRouter`) via a per-story decorator.
+ * Storybook composes story-level decorators with meta-level ones rather than
+ * replacing them, so a per-story `MemoryRouter` here would double-nest it.
  */
-function withNavbarContext({
+function NavbarProviders({
   authenticated = true,
   path = '/timer',
   featureFlags = {},
   announcements,
-}: {
-  authenticated?: boolean;
-  path?: string;
-  featureFlags?: Record<string, unknown>;
-  announcements?: AnnouncementListResponse;
-}) {
-  return (Story: () => React.ReactElement) => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    queryClient.setQueryData(['appConfig'], { feature_flags: featureFlags });
-    if (announcements) {
-      queryClient.setQueryData(['announcements'], announcements);
-    }
+  children,
+}: NavbarContextOptions & { children: React.ReactNode }) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  queryClient.setQueryData(['appConfig'], { feature_flags: featureFlags });
+  if (announcements) {
+    queryClient.setQueryData(['announcements'], announcements);
+  }
 
-    return (
-      <MemoryRouter initialEntries={[path]}>
-        <QueryClientProvider client={queryClient}>
-          <AuthContext.Provider value={mockAuthContextValue({ authenticated })}>
-            <GameContext.Provider value={mockGameContextValue}>
-              <Story />
-            </GameContext.Provider>
-          </AuthContext.Provider>
-        </QueryClientProvider>
-      </MemoryRouter>
-    );
-  };
+  return (
+    <MemoryRouter initialEntries={[path]}>
+      <QueryClientProvider client={queryClient}>
+        <AuthContext.Provider value={mockAuthContextValue({ authenticated })}>
+          <GameContext.Provider value={mockGameContextValue}>{children}</GameContext.Provider>
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    </MemoryRouter>
+  );
 }
 
 const meta: Meta<typeof Navbar> = {
   title: 'Layout/Navbar',
   component: Navbar,
   tags: ['autodocs'],
-  decorators: [withNavbarContext({})],
+  decorators: [
+    (Story, context) => (
+      <NavbarProviders {...(context.parameters.navbarContext as NavbarContextOptions | undefined)}>
+        <Story />
+      </NavbarProviders>
+    ),
+  ],
 };
 
 export default meta;
 type Story = StoryObj<typeof Navbar>;
 
 export const LoggedOut: Story = {
-  decorators: [withNavbarContext({ authenticated: false, path: '/' })],
+  parameters: { navbarContext: { authenticated: false, path: '/' } },
 };
 
 export const LoggedIn: Story = {};
 
 /** `map` and `announcements` are `["testers"]`-gated by default - enabling them here via the seeded `appConfig` mirrors a tester/premium account. */
 export const WithAnnouncements: Story = {
-  decorators: [
-    withNavbarContext({
+  parameters: {
+    navbarContext: {
       featureFlags: { announcements: 'all' },
       announcements: {
         unread_count: 1,
@@ -92,18 +104,21 @@ export const WithAnnouncements: Story = {
           },
         ],
       },
-    }),
-  ],
+    },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Announcements' }));
 
+    // The announcements panel renders via a Radix Portal into document.body,
+    // outside canvasElement, so it must be queried from the document root.
+    const body = within(canvasElement.ownerDocument.body);
     await waitFor(async () => {
-      await expect(canvas.getByText('New feature: the map is live')).toBeVisible();
+      await expect(body.getByText('New feature: the map is live')).toBeVisible();
     });
   },
 };
 
 export const WithMapEnabled: Story = {
-  decorators: [withNavbarContext({ featureFlags: { map: 'all' } })],
+  parameters: { navbarContext: { featureFlags: { map: 'all' } } },
 };

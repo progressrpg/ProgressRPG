@@ -86,6 +86,7 @@ export default function BuildingDetail({
               canHover={Boolean(onSelectResident)}
               onSelect={(resident) => onSelectResident?.(resident.id)}
               renderItem={(resident) => <span>{residentLine(resident)}</span>}
+              ariaLabel="Residents"
             />
           )}
         </section>
@@ -105,6 +106,7 @@ export default function BuildingDetail({
                 canHover={Boolean(onSelectWorker)}
                 onSelect={(worker) => onSelectWorker?.(worker.id)}
                 renderItem={(worker) => <span>{residentLine(worker)}</span>}
+                ariaLabel="Workers"
               />
             )}
           </section>

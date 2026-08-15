@@ -131,6 +131,7 @@ export function AnnouncementsBell({ triggerClassName, ...data }: AnnouncementsBe
           side="bottom"
           align="end"
           sideOffset={6}
+          aria-label="Announcements"
         >
           <AnnouncementsListContent {...data} idPrefix="announcement-" />
         </Popover.Content>

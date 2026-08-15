@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
-import Tooltip, { TooltipProvider } from './Tooltip';
+import Tooltip from './Tooltip';
 import Button from '../Button/Button';
 
 /**
@@ -8,21 +8,14 @@ import Button from '../Button/Button';
  * content on click/tap or focus via Radix — hover never opens it, on either
  * desktop or mobile (see #568). Clicking/tapping the trigger again, clicking
  * anywhere else, or pressing Escape closes it. It must be nested under a
- * `TooltipProvider` (mounted once near the app root). Use tooltips only for
- * supplementary context — essential information must remain available
- * without clicking or focusing.
+ * `TooltipProvider` (mounted once near the app root, and globally in
+ * .storybook/preview.tsx). Use tooltips only for supplementary context -
+ * essential information must remain available without clicking or focusing.
  */
 const meta: Meta<typeof Tooltip> = {
   title: 'Shared/Tooltip',
   component: Tooltip,
   tags: ['autodocs'],
-  decorators: [
-    (Story) => (
-      <TooltipProvider>
-        <Story />
-      </TooltipProvider>
-    ),
-  ],
   args: {
     content: 'Additional context shown on click/tap or focus',
     placement: 'top',
