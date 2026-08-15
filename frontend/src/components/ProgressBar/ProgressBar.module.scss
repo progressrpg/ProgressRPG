@@ -81,6 +81,13 @@
   @include t.apply-text-style(t.$text-body);
 }
 
+// .warning's background (#ff9800) is too light for the inverted (near-white)
+// label text above - 2.13:1, under WCAG AA's 4.5:1 minimum - so it needs a
+// dark label instead.
+.warning .labelInside {
+  color: c.$color-text-primary;
+}
+
 .labelOutside {
   position: absolute;
   left: 0.5rem;
@@ -109,6 +116,25 @@
   background-color: c.$color-status-success;
 }
 
+// Using element `opacity` here would fade the label text along with the
+// fill, and a faded near-white label composites down to ~1.5:1 contrast
+// against the lightened fill - under WCAG AA's 4.5:1 minimum. Fading only
+// the background via an overlay, and giving the label a solid dark color
+// instead, keeps the same "faded" look without washing out the text.
 .paused {
-  opacity: 0.5;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .labelInside {
+    position: relative;
+    z-index: 1;
+    color: c.$color-text-primary;
+  }
 }

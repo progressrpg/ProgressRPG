@@ -75,7 +75,7 @@ const ProgressBar = ({
         className={trackClass}
         value={Math.min(value, max)}
         max={max}
-        aria-label={label || undefined}
+        aria-label={label || `${Math.round(percent)}% complete`}
       >
         {/*
           Tamagui's Progress.Indicator has its own built-in fill behaviour:
