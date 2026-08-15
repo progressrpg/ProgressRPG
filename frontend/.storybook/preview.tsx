@@ -3,6 +3,7 @@ import { TamaguiProvider } from 'tamagui';
 import tamaguiConfig from '../tamagui.config';
 import '../src/styles/main.scss';
 import { withQueryClient } from './decorators/withQueryClient';
+import { TooltipProvider } from '../src/components/Tooltip/Tooltip';
 
 const preview: Preview = {
   decorators: [
@@ -18,6 +19,17 @@ const preview: Preview = {
       <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
         <Story />
       </TamaguiProvider>
+    ),
+    // Global (rather than living on Tooltip.stories.tsx's meta.decorators)
+    // so it also covers the autodocs-generated Docs page, which renders the
+    // component through its own preview pathway and doesn't reliably pick up
+    // meta-level decorators - without this, Tooltip's Radix primitives throw
+    // "must be used within TooltipProvider" there even though every actual
+    // story works fine.
+    (Story) => (
+      <TooltipProvider>
+        <Story />
+      </TooltipProvider>
     ),
   ],
   parameters: {

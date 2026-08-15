@@ -96,7 +96,10 @@
 .groupLabel {
   padding: sp.$spacing-xs sp.$spacing-md;
   font-size: 0.8em;
-  color: rgba(c.$color-text-body, 0.5);
+  // color-text-muted (not a translucent color-text-body): the latter's
+  // ~50%-opacity #969696-on-white only reaches a 2.95 contrast ratio,
+  // under WCAG AA's 4.5:1 minimum for normal-weight body text.
+  color: c.$color-text-muted;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   pointer-events: none;
@@ -110,7 +113,10 @@
 .emptyMessage {
   margin: sp.$spacing-xs 0 0;
   padding: sp.$spacing-sm sp.$padding-base;
-  color: rgba(c.$color-text-body, 0.6);
+  // color-text-muted (not a translucent color-text-body): the latter's
+  // ~60%-opacity #808080-on-white only reaches a 3.94 contrast ratio,
+  // under WCAG AA's 4.5:1 minimum for normal-weight body text.
+  color: c.$color-text-muted;
   box-sizing: border-box;
   min-height: var(--entity-search-persistent-min-height, auto);
   @include t.apply-text-style(t.$text-body);
