@@ -113,11 +113,17 @@ export default function EntitySearchInput({
   const renderOption = (entity: SearchEntity, index: number) => {
     const isHighlighted = index === activeHighlightedIndex;
     return (
-      <li key={`${entity.id}-${entity.name}`} className={styles.optionItem}>
-        <button
-          type="button"
-          role="option"
-          aria-selected={isHighlighted}
+      // role="option" lives on the <li> itself, not a nested button: a
+      // listbox's immediate children must carry the option role directly
+      // (axe's aria-required-children), so an <option> role one level
+      // deeper (on a button inside the <li>) doesn't satisfy it.
+      <li
+        key={`${entity.id}-${entity.name}`}
+        role="option"
+        aria-selected={isHighlighted}
+        className={styles.optionItem}
+      >
+        <div
           className={classNames(styles.optionButton, {
             [styles.optionButtonActive]: isHighlighted,
           })}
@@ -125,7 +131,7 @@ export default function EntitySearchInput({
           onClick={() => commitSelection(entity)}
         >
           {entity.name}
-        </button>
+        </div>
       </li>
     );
   };

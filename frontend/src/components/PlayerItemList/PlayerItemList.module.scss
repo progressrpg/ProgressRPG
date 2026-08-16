@@ -173,9 +173,6 @@
     opacity: 0.72;
   }
 
-  .itemMeta {
-    opacity: 0.68;
-  }
 }
 
 .completeCheckboxLabel {
@@ -215,7 +212,11 @@
 }
 
 .itemMeta {
-  color: rgba(0, 0, 0, 0.6);
+  // Opaque color-text-muted, not a translucent black: the latter's ~60%
+  // opacity, further dimmed to ~2.89:1 by the completed-item state's
+  // opacity: 0.68 (see .itemCompleted above), fell under WCAG AA's 4.5:1
+  // minimum for normal-weight text.
+  color: c.$color-text-muted;
   @include t.apply-text-style(t.$text-caption);
 }
 

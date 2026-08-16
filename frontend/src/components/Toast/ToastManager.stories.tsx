@@ -1,6 +1,6 @@
 import * as RadixToast from '@radix-ui/react-toast';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 import ToastManager from './ToastManager';
 
 /**
@@ -33,7 +33,12 @@ export const Default: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Task saved.')).toBeVisible();
+    // .toast[data-state='open'] runs a real 0.25s fadeInUp animation
+    // starting at opacity: 0, so the toast isn't `toBeVisible()` on the
+    // very first frame after mount - wait for the animation to progress.
+    await waitFor(() => {
+      expect(canvas.getByText('Task saved.')).toBeVisible();
+    });
   },
 };
 

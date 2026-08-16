@@ -159,6 +159,14 @@ class AnnouncementAdmin(admin.ModelAdmin):
     search_fields = ["title", "summary", "body"]
     actions = [publish_selected_announcements, unpublish_selected_announcements]
 
+    def get_readonly_fields(self, request, obj=None):
+        # published_at is set automatically the first time an announcement is
+        # published (see Announcement.save()) - once set, edit it via
+        # unpublish/republish rather than by hand.
+        if obj is not None and obj.published_at is not None:
+            return ["published_at"]
+        return []
+
 
 @admin.register(PlayerAnnouncementState)
 class PlayerAnnouncementStateAdmin(admin.ModelAdmin):
