@@ -1,12 +1,29 @@
 // SupportFlow/SupportFlowModal.test.tsx
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useReducer } from "react";
 import type { Dispatch } from "react";
+import { TamaguiProvider } from "tamagui";
 import SupportFlowModal from "./SupportFlowModal";
 import type { FlowState } from "./SupportFlowModal";
 import { supportFlowReducer } from "./supportFlowReducer";
+import tamaguiConfig from "../../../tamagui.config";
+
+// SupportFlowModal renders Modal (#582), which needs a TamaguiProvider
+// ancestor - unlike Radix's Dialog.Root, it isn't usable standalone. The
+// app root (src/main.tsx) provides this in production; tests need their own.
+function render(...args: Parameters<typeof rtlRender>) {
+  const [ui, options] = args;
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        {children}
+      </TamaguiProvider>
+    ),
+    ...options,
+  });
+}
 
 const mockUseGame = vi.fn();
 
@@ -61,14 +78,16 @@ function Fixture({
 describe("SupportFlowModal", () => {
   it("renders nothing when modal is closed", () => {
     const state: FlowState = { isOpen: false };
-    const { container } = render(
+    render(
       <SupportFlowModal
         state={state}
         dispatch={() => {}}
         onConfirmActivity={() => {}}
       />
     );
-    expect(container.firstChild).toBeNull();
+    // Not container.firstChild - the TamaguiProvider test wrapper always
+    // renders its own wrapping element, closed or not.
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("opens welcome message screen", async () => {

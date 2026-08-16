@@ -1,6 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { TamaguiProvider } from 'tamagui';
 import TutorialModal from './TutorialModal';
+import tamaguiConfig from '../../../tamagui.config';
+
+// TutorialModal renders Modal (#582), which needs a TamaguiProvider
+// ancestor - unlike Radix's Dialog.Root, it isn't usable standalone. The
+// app root (src/main.tsx) provides this in production; tests need their own.
+function render(...args: Parameters<typeof rtlRender>) {
+  const [ui, options] = args;
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        {children}
+      </TamaguiProvider>
+    ),
+    ...options,
+  });
+}
 
 const mockUseTutorialSteps = vi.fn();
 const mockApiFetch = vi.fn();
