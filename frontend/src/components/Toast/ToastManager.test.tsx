@@ -7,34 +7,30 @@ import tamaguiConfig from '../../../tamagui.config';
 
 // ToastManager's Toast/ToastViewport (#581) need both a TamaguiProvider
 // ancestor (for tokens/theme) and a ToastProvider (duration/swipe context) -
-// ToastContext.tsx supplies both in the app; tests need their own.
-function Wrapper({ children }: { children: React.ReactNode }) {
+// ToastContext.tsx supplies both in the app; tests need their own. `duration`
+// defaults to Tamagui's own default (5000ms) but is overridable per test -
+// the fake-timer tests below pass a short one so they don't wait 5s.
+function Wrapper({
+  children,
+  duration,
+}: {
+  children: React.ReactNode;
+  duration?: number;
+}) {
   return (
     <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
-      <ToastProvider>{children}</ToastProvider>
+      <ToastProvider duration={duration}>{children}</ToastProvider>
     </TamaguiProvider>
   );
 }
 
-function renderManager(props: Parameters<typeof ToastManager>[0]) {
-  return render(<ToastManager {...props} />, { wrapper: Wrapper });
-}
-
-// Auto-dismiss (duration -> onOpenChange(false) -> onDismiss) needs its own
-// duration, distinct from the shared Wrapper's default - a per-test provider
-// lets the fake-timer test below use a short duration without affecting the
-// other tests' default 5000ms Tamagui provider timing.
-function renderWithDuration(
+function renderManager(
   props: Parameters<typeof ToastManager>[0],
-  duration: number
+  duration?: number
 ) {
-  return render(
-    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
-      <ToastProvider duration={duration}>
-        <ToastManager {...props} />
-      </ToastProvider>
-    </TamaguiProvider>
-  );
+  return render(<ToastManager {...props} />, {
+    wrapper: ({ children }) => <Wrapper duration={duration}>{children}</Wrapper>,
+  });
 }
 
 describe('ToastManager', () => {
@@ -99,7 +95,7 @@ describe('ToastManager', () => {
     vi.useFakeTimers();
     try {
       const onDismiss = vi.fn();
-      renderWithDuration({ messages: [{ id: 'abc', message: 'Bye' }], onDismiss }, 100);
+      renderManager({ messages: [{ id: 'abc', message: 'Bye' }], onDismiss }, 100);
 
       expect(onDismiss).not.toHaveBeenCalled();
 
@@ -121,7 +117,7 @@ describe('ToastManager', () => {
     vi.useFakeTimers();
     try {
       const onDismiss = vi.fn();
-      const { unmount } = renderWithDuration(
+      const { unmount } = renderManager(
         { messages: [{ id: 'abc', message: 'Bye' }], onDismiss },
         100
       );
