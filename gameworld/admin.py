@@ -15,7 +15,7 @@ class DailySunTimesAdmin(admin.ModelAdmin):
     ]
     fields = [
         "id",
-        "name",
+        "date",
         ("dawn", "dusk"),
         ("sunrise", "sunset"),
     ]

@@ -249,9 +249,33 @@ class Announcement(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
+        was_published = (
+            Announcement.objects.filter(pk=self.pk, is_published=True).exists()
+            if self.pk
+            else False
+        )
         if self.is_published and self.published_at is None:
             self.published_at = timezone.now()
         super().save(*args, **kwargs)
+        if self.is_published and not was_published:
+            from django.db import transaction
+
+            transaction.on_commit(self._broadcast_published)
+
+    def _broadcast_published(self):
+        from asgiref.sync import async_to_sync
+
+        from gameplay.utils import send_group_message
+
+        async_to_sync(send_group_message)(
+            "online_users",
+            {
+                "type": "action",
+                "action": "announcement_published",
+                "data": {"id": self.id},
+                "success": True,
+            },
+        )
 
 
 class PlayerAnnouncementState(models.Model):

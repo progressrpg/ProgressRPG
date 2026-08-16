@@ -19,5 +19,8 @@
 
 ---
 
+## Contributors
+<!-- Credit anyone who contributed a PR in this batch besides yourself (e.g. @username). -->
+
 ## Technical notes
 <!-- Migrations, env vars, feature flags, anything a reviewer needs to know -->

@@ -88,7 +88,7 @@ export default function LogOfflineActivityModal({ onClose }: LogOfflineActivityM
           <span className={styles.label}>
             Duration <span className={styles.required} aria-label="required">*</span>
           </span>
-          <div className={styles.row}>
+          <div className={classNames(styles.row, styles.durationRow)}>
             <Input
               id="offline-activity-duration-hours"
               ariaLabel="Hours"

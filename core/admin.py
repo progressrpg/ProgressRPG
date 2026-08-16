@@ -133,7 +133,12 @@ class GameSettingsAdmin(admin.ModelAdmin):
 @admin.action(description="Publish selected announcements")
 def publish_selected_announcements(_modeladmin, _request, queryset):
     now = timezone.now()
-    queryset.update(is_published=True, published_at=now)
+    # Save individually (not queryset.update()) so Announcement.save()
+    # broadcasts the "announcement_published" WebSocket event per row.
+    for announcement in queryset:
+        announcement.is_published = True
+        announcement.published_at = now
+        announcement.save()
 
 
 @admin.action(description="Unpublish selected announcements")
