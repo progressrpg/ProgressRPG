@@ -50,7 +50,7 @@ class Command(BaseCommand):
             char = loc.character
 
             if char.is_moving:
-                self.stdout.write(f"{char.full_name} is already moving - skipping")
+                self.stdout.write(f"{char.name} is already moving - skipping")
                 continue
 
             entrance_node = Node.objects.filter(
@@ -59,13 +59,13 @@ class Command(BaseCommand):
             if not entrance_node:
                 self.stdout.write(
                     self.style.WARNING(
-                        f"{loc.location} has no entrance node - skipping {char.full_name}"
+                        f"{loc.location} has no entrance node - skipping {char.name}"
                     )
                 )
                 continue
 
             if char.current_node_id == entrance_node.id:
-                self.stdout.write(f"{char.full_name} is already at {loc.location}")
+                self.stdout.write(f"{char.name} is already at {loc.location}")
                 continue
 
             try:
@@ -73,12 +73,12 @@ class Command(BaseCommand):
             except ValueError as exc:
                 self.stdout.write(
                     self.style.WARNING(
-                        f"Could not route {char.full_name} to {loc.location}: {exc}"
+                        f"Could not route {char.name} to {loc.location}: {exc}"
                     )
                 )
                 continue
 
             moved += 1
-            self.stdout.write(f"{char.full_name} is heading to {loc.location} ({role})")
+            self.stdout.write(f"{char.name} is heading to {loc.location} ({role})")
 
         self.stdout.write(self.style.SUCCESS(f"Started {moved} journey(s)"))

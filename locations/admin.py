@@ -10,7 +10,7 @@ from .models import (
     LandArea,
     Subzone,
 )
-from character.models import Character
+from character.models import CharacterLocation
 
 
 @admin.register(Node)
@@ -90,12 +90,20 @@ class GoodsStockInline(admin.TabularInline):
 
 
 class CharacterInline(admin.TabularInline):
-    model = Character
+    model = CharacterLocation
+    fk_name = "location"
     extra = 0
-    fields = ("name",)
-    readonly_fields = ("name",)
+    fields = ("character",)
+    readonly_fields = ("character",)
     can_delete = False
     show_change_link = True
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .filter(role=CharacterLocation.Role.HOME, is_primary=True)
+        )
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -124,6 +132,8 @@ class BuildingAdmin(admin.ModelAdmin):
         "description",
         "population_centre",
         "building_type",
+        "open_time_override",
+        "close_time_override",
     ]
     search_fields = [
         "name",

@@ -35,6 +35,15 @@ type ResponseType = "json" | "blob" | "text" | "raw";
 interface ApiFetchOptions extends Omit<RequestInit, "headers"> {
   responseType?: ResponseType;
   headers?: Record<string, string>;
+  /**
+   * Skip the Authorization header and the getValidAccessToken() refresh path
+   * entirely, for endpoints that are unauthenticated by design (login,
+   * registration, password reset). A 401 from a skipAuth call means "these
+   * credentials were rejected", not "your session died" — it does not clear
+   * storage or invoke the unauthorized handler, unlike a 401 on an
+   * authenticated call.
+   */
+  skipAuth?: boolean;
 }
 
 function isTokenExpiringSoon(token: string, bufferSeconds = 60): boolean {
@@ -171,14 +180,17 @@ export async function apiFetch<T = unknown>(
   explicitAccessToken: string | null = null
 ): Promise<T | Blob | string | Response> {
   try {
-    const { responseType = "json", ...fetchOptions } = options;
-    const accessToken = explicitAccessToken || (await getValidAccessToken());
+    const { responseType = "json", skipAuth = false, ...fetchOptions } = options;
 
     const headers: Record<string, string> = {
       ...(fetchOptions.headers || {}),
-      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     };
+
+    if (!skipAuth) {
+      const accessToken = explicitAccessToken || (await getValidAccessToken());
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
 
     const response = await fetchWithRetry(`${API_URL}${path}`, {
       ...fetchOptions,
@@ -186,7 +198,9 @@ export async function apiFetch<T = unknown>(
     });
 
     if (response.status === 401) {
-      handleUnauthorized();
+      if (!skipAuth) {
+        handleUnauthorized();
+      }
       throw new ApiFetchError("unauthorized", "Unauthorized");
     }
 

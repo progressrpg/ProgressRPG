@@ -98,7 +98,7 @@ class Command(BaseCommand):
                 p.population_centre = building.population_centre
             Path.objects.bulk_update(paths, ["population_centre"])
 
-            if not entrance_node and nodes:
+            if not entrance_node and nodes and building.building_type != "granary":
                 self.stdout.write(
                     self.style.WARNING(
                         f"Building {building.name} has no entrance node; interior nodes not connected"

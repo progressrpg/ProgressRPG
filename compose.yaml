@@ -24,8 +24,20 @@ services:
   web:
     build:
       context: .
-      target: web
-    command: ["daphne", "-b", "0.0.0.0", "-p", "${PORT:-8000}", "progress_rpg.asgi:application"]
+      target: dev
+    command: >
+      sh -c "
+      daphne -b 0.0.0.0 -p ${PORT:-8000} progress_rpg.asgi:application &
+      DAPHNE_PID=$$!;
+      trap 'kill $$DAPHNE_PID' TERM INT;
+      sleep 7;
+      echo '';
+      echo '========================================';
+      echo '           Docker ready!';
+      echo '========================================';
+      echo '';
+      wait $$DAPHNE_PID
+      "
     ports:
       - "8000:8000"
     volumes:
@@ -76,24 +88,26 @@ services:
       - DB_PORT=5432
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "progress"]
-      interval: 10s
+      interval: 2s
       timeout: 5s
-      retries: 5
+      retries: 15
 
   redis:
     image: redis:7-alpine
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 2s
       timeout: 5s
-      retries: 5
+      retries: 15
 
   celery:
     build:
       context: .
       target: celery
     command: celery -A progress_rpg worker --loglevel=info --concurrency=1 --prefetch-multiplier=1
+    volumes:
+      - .:/app
     depends_on:
       redis:
         condition: service_healthy
@@ -110,6 +124,8 @@ services:
     build:
       context: .
       target: celery-beat
+    volumes:
+      - .:/app
     depends_on:
       redis:
         condition: service_healthy

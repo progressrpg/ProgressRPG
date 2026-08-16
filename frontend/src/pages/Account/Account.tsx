@@ -182,7 +182,7 @@ export default function Account(): React.ReactElement {
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}>
                 <span className={styles.label}>Name</span>
-                <span className={styles.value}>{character.first_name} {character.last_name}</span>
+                <span className={styles.value}>{character.name}</span>
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.label}>Level</span>

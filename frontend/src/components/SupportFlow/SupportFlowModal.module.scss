@@ -221,53 +221,6 @@
   flex: 1 1 auto;
 }
 
-.rewardBreakdown {
-  display: grid;
-  gap: sp.$spacing-sm;
-  margin-bottom: sp.$spacing-md;
-  width: 100%;
-  padding: sp.$spacing-md;
-  border: 2px solid rgba(c.$color-border-primary, 0.4);
-  border-radius: sp.$border-radius;
-  background: rgba(c.$color-bg, 0.9);
-  box-shadow: 0 8px 24px rgba(c.$color-border-primary, 0.14);
-}
-
-.rewardSummary {
-  margin: 0;
-  text-align: center;
-  font-weight: 600;
-}
-
-.rewardBreakdownRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: sp.$spacing-md;
-  align-items: center;
-  padding: sp.$spacing-xs sp.$spacing-sm;
-  border-radius: sp.$border-radius;
-  background: rgba(c.$color-bg, 0.65);
-}
-
-.rewardBreakdownRowPrimary {
-  @extend .rewardBreakdownRow;
-  background: rgba(c.$color-border-accent, 0.16);
-  border: 1px solid rgba(c.$color-border-accent, 0.45);
-}
-
-.rewardBreakdownLabel {
-  color: c.$color-text-muted;
-  font-size: 0.95rem;
-}
-
-.rewardBreakdownValue {
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  white-space: nowrap;
-  font-weight: 700;
-  font-size: 1.125rem;
-}
-
 .taskCompletionPanel {
   width: 100%;
   margin-bottom: sp.$spacing-md;

@@ -183,4 +183,47 @@ describe("apiFetch", () => {
 
     expect(maintenanceHandler).toHaveBeenCalledTimes(1);
   });
+
+  describe("skipAuth", () => {
+    afterEach(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+
+    it("does not attach an Authorization header or call getValidAccessToken", async () => {
+      // No tokens in storage at all — getValidAccessToken() would throw if called.
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(okResponse);
+
+      await apiFetch("/auth/jwt/create/", { method: "POST", skipAuth: true });
+
+      const [, requestInit] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(requestInit.headers).not.toHaveProperty("Authorization");
+    });
+
+    it("rejects with an unauthorized ApiFetchError on 401, without clearing storage or invoking the handler", async () => {
+      storeAuthTokens("still-valid-access-token", "still-valid-refresh-token", true);
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 401 });
+      const unauthorizedHandler = vi.fn();
+      setUnauthorizedHandler(unauthorizedHandler);
+
+      await expect(apiFetch("/auth/jwt/create/", { method: "POST", skipAuth: true })).rejects.toMatchObject({
+        kind: "unauthorized",
+      } satisfies Partial<ApiFetchError>);
+
+      expect(unauthorizedHandler).not.toHaveBeenCalled();
+      // A rejected login shouldn't log out whatever session was already stored.
+      expect(getStoredAuthTokens().accessToken).toBe("still-valid-access-token");
+
+      setUnauthorizedHandler(null);
+    });
+
+    it("takes priority over an explicitAccessToken — no Authorization header either way", async () => {
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(okResponse);
+
+      await apiFetch("/me/", { skipAuth: true }, "explicit-token");
+
+      const [, requestInit] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(requestInit.headers).not.toHaveProperty("Authorization");
+    });
+  });
 });

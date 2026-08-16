@@ -116,11 +116,46 @@ HUNGER_PER_MISSED_MEAL = 10.0
 # unbounded.
 HUNGER_MAX = 100.0
 
+# Link-scaled worker productivity: a physically-present worker contributes
+# 1 (baseline - matches today's flat headcount) plus a bonus derived from
+# their character's total_link_points, instead of a flat 1 per worker.
+# Capped, not linear, since link_points itself is cumulative and unbounded
+# (see PlayerCharacterLink.link_points) - an uncapped multiplier would let a
+# long-linked character's output grow forever. ~100 days of a link
+# (100 * 20 = 2000 link points from days_linked alone, before any
+# login/activity points) reaches the cap - a rough "several months of
+# regular play" outer bound pending a real balance pass.
+LINK_POINTS_PRODUCTIVITY_SCALE = 2000
+
+# Maximum productivity bonus a single worker's link_points can contribute -
+# a fully-maxed worker produces at most 1 + MAX_PRODUCTIVITY_BONUS times the
+# unlinked baseline (2x at the default below).
+MAX_PRODUCTIVITY_BONUS = 1.0
+
+# A settlement at or below this resident count shares one building for both
+# milling and baking (see planning_services.SettlementPlan.
+# combine_milling_and_baking) rather than getting a dedicated building per
+# role, even when there'd be enough building slots for two - two half-empty
+# production buildings isn't a better outcome than one shared one for a
+# small village. 30 is an approximate "small village" cutoff pending a real
+# balance pass, not derived from another constant.
+SMALL_SETTLEMENT_POPULATION_THRESHOLD = 30
+
 
 def unit_suffix(good_type):
     """Display suffix ("kg"/"L") for a good's quantity, per GOOD_TYPE_UNIT."""
     unit = GOOD_TYPE_UNIT.get(good_type, UnitKind.WEIGHT)
     return "L" if unit == UnitKind.VOLUME else "kg"
+
+
+# Grain and flour quantities/rates switch from kg to tonnes past this many
+# kg, rather than staying in kg indefinitely - a granary/mill dealing in
+# tonnes of wheat or flour is a common, expected scale (unlike bread, which
+# stays loaf-counted regardless of size - see _format_bread), so kg alone
+# gets unreadable there. Not applied to signed deltas (see _format_default),
+# which stay in the plain kg figure.
+TONNE_DISPLAY_THRESHOLD_KG = 1000
+TONNE_DISPLAY_GOOD_TYPES = {"wheat", "flour"}
 
 
 # Bread naturally exists as discrete loaves, so it's displayed as a loaf
@@ -140,10 +175,19 @@ def _format_default(good_type, value, signed=False):
     Format a quantity as a plain weight/volume figure. Weight-kind goods are
     stored in grams but displayed in kilograms for readability; volume-kind
     goods (litres) keep one decimal place, since fractional litres are
-    meaningful.
+    meaningful. Unsigned wheat/flour quantities past TONNE_DISPLAY_THRESHOLD_KG
+    switch to tonnes instead (see TONNE_DISPLAY_GOOD_TYPES).
     """
     unit = GOOD_TYPE_UNIT.get(good_type, UnitKind.WEIGHT)
     display_value = value if unit == UnitKind.VOLUME else value / 1000
+
+    if (
+        not signed
+        and good_type in TONNE_DISPLAY_GOOD_TYPES
+        and display_value >= TONNE_DISPLAY_THRESHOLD_KG
+    ):
+        return f"{display_value / 1000:,.1f}t"
+
     sign = "+" if signed else ""
     return f"{display_value:{sign},.1f}{unit_suffix(good_type)}"
 
@@ -184,3 +228,15 @@ def format_quantity(good_type, value, signed=False):
     if formatter:
         return formatter(value)
     return _format_default(good_type, value)
+
+
+def format_rate(good_type, value, signed=False):
+    """
+    Format a continuous per-day flow (demand, production capacity, or the
+    surplus/shortfall between them) - always the plain weight/volume figure
+    (see _format_default), even for goods with a GOOD_TYPE_FORMATTER meant
+    for *stored* quantities (bread as a loaf count, flour rounded up to
+    whole sacks). "3 sacks/day" or a rounded loaf count doesn't mean
+    anything for a rate the way it does for how much space a stock needs.
+    """
+    return _format_default(good_type, value, signed=signed)

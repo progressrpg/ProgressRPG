@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Fuse from "fuse.js";
 
 import { useEntitySearchCache } from "../../hooks/useEntitySearchCache";
@@ -63,11 +62,11 @@ function useEntitySearchResults({
   );
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       setDebouncedQuery(value);
     }, DEBOUNCE_MS);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => clearTimeout(timeoutId);
   }, [value]);
 
   const fuse = useMemo(
@@ -162,27 +161,21 @@ function useEntitySearchResults({
   };
 }
 
-function useEntitySearchDropdown(rootRef: React.RefObject<HTMLDivElement | null>) {
+function useEntitySearchDropdown() {
   const [isFocused, setIsFocused] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setIsFocused(false);
-        setHighlightedIndex(-1);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [rootRef]);
+  const dismiss = useCallback(() => {
+    setIsFocused(false);
+    setHighlightedIndex(-1);
+  }, []);
 
   return {
     isFocused,
     setIsFocused,
     highlightedIndex,
     setHighlightedIndex,
+    dismiss,
   };
 }
 
@@ -198,13 +191,12 @@ export function useEntitySearchInput({
   alwaysOpen = false,
   maxVisibleRows,
 }: UseEntitySearchInputProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
   const { entities, addEntityToCache } = useEntitySearchCache(type);
 
   const canSearch = searchEnabled && !disabled;
 
-  const { isFocused, setIsFocused, highlightedIndex, setHighlightedIndex } =
-    useEntitySearchDropdown(rootRef);
+  const { isFocused, setIsFocused, highlightedIndex, setHighlightedIndex, dismiss } =
+    useEntitySearchDropdown();
 
   const { results, taskItems, activityItems } = useEntitySearchResults({
     entities,
@@ -225,10 +217,9 @@ export function useEntitySearchInput({
     (entity: SearchEntity) => {
       onChange?.(entity.name);
       onSelect?.(entity);
-      setIsFocused(false);
-      setHighlightedIndex(-1);
+      dismiss();
     },
-    [onChange, onSelect, setHighlightedIndex, setIsFocused]
+    [onChange, onSelect, dismiss]
   );
 
   const commitCreate = useCallback(async () => {
@@ -238,9 +229,8 @@ export function useEntitySearchInput({
     addEntityToCache(nextName);
     onChange?.(nextName);
     await onCreate?.(nextName);
-    setIsFocused(false);
-    setHighlightedIndex(-1);
-  }, [addEntityToCache, onChange, onCreate, setHighlightedIndex, setIsFocused, value]);
+    dismiss();
+  }, [addEntityToCache, onChange, onCreate, dismiss, value]);
 
   const handleInputFocus = useCallback(() => {
     setIsFocused(true);
@@ -253,73 +243,49 @@ export function useEntitySearchInput({
     [onChange]
   );
 
-  const handleKeyDown = useCallback(
-    async (event: KeyboardEvent<HTMLInputElement>) => {
-      if (disabled) return;
+  /** Move the highlight to the next result, wrapping to the top. No-op while closed. */
+  const onSelectNext = useCallback(() => {
+    if (!isDropdownOpen) return;
+    setHighlightedIndex(activeHighlightedIndex < results.length - 1 ? activeHighlightedIndex + 1 : 0);
+  }, [activeHighlightedIndex, isDropdownOpen, results.length, setHighlightedIndex]);
 
-      if (event.key === "ArrowDown" && isDropdownOpen) {
-        event.preventDefault();
-        setHighlightedIndex(
-          activeHighlightedIndex < results.length - 1 ? activeHighlightedIndex + 1 : 0
-        );
-        return;
-      }
+  /** Move the highlight to the previous result, wrapping to the bottom. No-op while closed. */
+  const onSelectPrevious = useCallback(() => {
+    if (!isDropdownOpen) return;
+    setHighlightedIndex(activeHighlightedIndex > 0 ? activeHighlightedIndex - 1 : results.length - 1);
+  }, [activeHighlightedIndex, isDropdownOpen, results.length, setHighlightedIndex]);
 
-      if (event.key === "ArrowUp" && isDropdownOpen) {
-        event.preventDefault();
-        setHighlightedIndex(
-          activeHighlightedIndex > 0 ? activeHighlightedIndex - 1 : results.length - 1
-        );
-        return;
-      }
+  /** Close the dropdown and clear the highlight, e.g. on Escape or an outside click/tap. */
+  const onDismiss = useCallback(() => {
+    dismiss();
+  }, [dismiss]);
 
-      if (event.key === "Escape") {
-        if (isDropdownOpen) {
-          event.preventDefault();
-        }
-        setIsFocused(false);
-        setHighlightedIndex(-1);
-        return;
-      }
+  /**
+   * Commit the highlighted result, or create a new entity from the typed
+   * value when nothing is highlighted. Returns whether it took action, so
+   * callers translating a "commit" gesture (e.g. Enter) know whether to
+   * suppress its default behaviour.
+   */
+  const onCommit = useCallback(() => {
+    if (!canSearch) return false;
 
-      if (event.key !== "Enter") return;
+    const hasHighlightedResult =
+      isDropdownOpen && activeHighlightedIndex >= 0 && activeHighlightedIndex < results.length;
 
-      if (!canSearch) {
-        return;
-      }
+    if (hasHighlightedResult) {
+      commitSelection(results[activeHighlightedIndex]);
+      return true;
+    }
 
-      const hasHighlightedResult =
-        isDropdownOpen &&
-        activeHighlightedIndex >= 0 &&
-        activeHighlightedIndex < results.length;
+    if (normalizeQuery(value)) {
+      void commitCreate();
+      return true;
+    }
 
-      if (hasHighlightedResult) {
-        event.preventDefault();
-        commitSelection(results[activeHighlightedIndex]);
-        return;
-      }
-
-      if (normalizeQuery(value)) {
-        event.preventDefault();
-        await commitCreate();
-      }
-    },
-    [
-      activeHighlightedIndex,
-      canSearch,
-      commitCreate,
-      commitSelection,
-      disabled,
-      isDropdownOpen,
-      results,
-      setHighlightedIndex,
-      setIsFocused,
-      value,
-    ]
-  );
+    return false;
+  }, [activeHighlightedIndex, canSearch, commitCreate, commitSelection, isDropdownOpen, results, value]);
 
   return {
-    rootRef,
     canSearch,
     results,
     taskItems,
@@ -327,10 +293,12 @@ export function useEntitySearchInput({
     showGroupLabels,
     isDropdownOpen,
     activeHighlightedIndex,
-    highlightedIndex,
     handleInputFocus,
     handleInputChange,
-    handleKeyDown,
     commitSelection,
+    onSelectNext,
+    onSelectPrevious,
+    onDismiss,
+    onCommit,
   };
 }

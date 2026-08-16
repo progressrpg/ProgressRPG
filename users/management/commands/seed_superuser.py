@@ -1,5 +1,6 @@
-from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.core.management.base import BaseCommand
 import os
 
 
@@ -15,8 +16,15 @@ class Command(BaseCommand):
             self.stderr.write("DJANGO_SUPERUSER_PASSWORD env var not set")
             return
 
-        if User.objects.filter(email=email).exists():
+        user = User.objects.filter(email=email).first()
+        if user is not None:
             self.stdout.write(f"Superuser with email '{email}' already exists.")
         else:
-            User.objects.create_superuser(email=email, password=password)
+            user = User.objects.create_superuser(email=email, password=password)
             self.stdout.write(f"Superuser with email '{email}' created successfully.")
+
+        # Grants access to every FeatureFlag gated on the "testers" access
+        # group (see core.models.FeatureFlag) — the dev/seed superuser
+        # should see everything behind a tester flag by default.
+        testers_group, _created = Group.objects.get_or_create(name="Testers")
+        user.groups.add(testers_group)

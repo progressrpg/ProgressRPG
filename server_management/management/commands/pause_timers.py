@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from gameplay.models import ActivityTimer, QuestTimer
+from gameplay.models import ActivityTimer
 import logging
 
 logger = logging.getLogger("general")
@@ -14,10 +14,6 @@ class Command(BaseCommand):
         for timer in active_act_timers:
             timer.pause()
 
-        active_quest_timers = QuestTimer.objects.filter(status="Active")
-        for quest_timer in active_quest_timers:
-            quest_timer.pause()
-
         logger.info(
-            f"[COMMAND: PAUSE ALL TIMERS] {active_act_timers.count()} active Activity timers paused; {active_quest_timers.count()} active Quest timers paused."
+            f"[COMMAND: PAUSE ALL TIMERS] {active_act_timers.count()} active Activity timers paused."
         )

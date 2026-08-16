@@ -46,7 +46,7 @@ class LocationsModelsTestCase(TestCase):
     def test_movable_move_to_and_nearby_objects(self):
         # Create a character located at node A
         char = Character.objects.create(
-            first_name="Mover",
+            given_name="Mover",
             location=Point(0, 0, srid=3857),
             current_node=self.node_a,
         )
@@ -67,7 +67,7 @@ class LocationsModelsTestCase(TestCase):
         # Patch out the async task to avoid side effects
         with patch("locations.tasks.move_characters_tick.apply_async") as mocked_task:
             char = Character.objects.create(
-                first_name="Walker",
+                given_name="Walker",
                 location=Point(0, 0, srid=3857),
                 current_node=self.node_a,
             )
@@ -97,7 +97,7 @@ class LocationsModelsTestCase(TestCase):
         # Create a Journey manually spanning A -> B -> C
         journey = Journey.objects.create(
             character=Character.objects.create(
-                first_name="J",
+                given_name="J",
                 location=Point(0, 0, srid=3857),
                 current_node=self.node_a,
             ),
@@ -137,7 +137,7 @@ class LocationsModelsTestCase(TestCase):
     def test_remaining_path_nodes_excludes_current_node_and_respects_limit(self):
         journey = Journey.objects.create(
             character=Character.objects.create(
-                first_name="J2",
+                given_name="J2",
                 location=Point(0, 0, srid=3857),
                 current_node=self.node_a,
             ),
@@ -158,7 +158,7 @@ class LocationsModelsTestCase(TestCase):
     def test_remaining_path_nodes_empty_when_no_path(self):
         journey = Journey.objects.create(
             character=Character.objects.create(
-                first_name="J3",
+                given_name="J3",
                 location=Point(0, 0, srid=3857),
                 current_node=self.node_a,
             ),
@@ -175,7 +175,7 @@ class LocationsModelsTestCase(TestCase):
         current_content_type/current_object_id fields, which raised
         AttributeError the moment any real Journey actually completed."""
         char = Character.objects.create(
-            first_name="Arriver",
+            given_name="Arriver",
             location=Point(0, 0, srid=3857),
             current_node=self.node_a,
         )

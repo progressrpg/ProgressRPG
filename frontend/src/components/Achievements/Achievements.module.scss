@@ -114,6 +114,17 @@
 
 .tierPurple {
   @include tc.tier-vars(purple);
+
+  // .achievementHeader h3 is hardcoded to color-border-primary (green) for
+  // every tier, which only reaches a 4.43:1 contrast against this tier's
+  // light purple background - under WCAG AA's 4.5:1 minimum. This tier's own
+  // accent color passes comfortably (~7.6:1) against its own background, so
+  // use it here instead (scoped to this tier only - swapping in
+  // var(--achievement-color) for every tier would newly fail gold, whose
+  // accent color is too light against its own tint).
+  .achievementHeader h3 {
+    color: var(--achievement-color);
+  }
 }
 
 .tierGold {

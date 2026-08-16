@@ -7,6 +7,7 @@ import ActivityInput from './ActivityInput';
 const mockUseGame = vi.fn();
 const mockUseSupportFlow = vi.fn();
 const mockUseEntitySearchCache = vi.fn();
+const mockUseFeatureFlag = vi.fn();
 const openActivityReward = vi.fn();
 const openSupportMode = vi.fn();
 const fetchPlayerAndCharacter = vi.fn();
@@ -31,6 +32,10 @@ vi.mock('../../hooks/useSupportFlow', () => ({
 
 vi.mock('../../hooks/useEntitySearchCache', () => ({
   useEntitySearchCache: (...args) => mockUseEntitySearchCache(...args),
+}));
+
+vi.mock('../../hooks/useFeatureFlag', () => ({
+  useFeatureFlag: (flag: string) => mockUseFeatureFlag(flag),
 }));
 
 vi.mock('../SupportFlow/SupportFlowModal', () => ({
@@ -63,6 +68,7 @@ describe('ActivityInput', () => {
     startActivity.mockReset();
     addEntityToCache.mockReset();
     playLimitReachedSound.mockReset();
+    mockUseFeatureFlag.mockReset().mockReturnValue(false);
 
     fetchPlayerAndCharacter.mockResolvedValue(null);
     fetchCharacterCurrent.mockResolvedValue(null);

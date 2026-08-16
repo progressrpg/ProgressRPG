@@ -1,0 +1,48 @@
+// components/MapDetailCard/MapDetailCard.module.scss
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/spacing' as sp;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/utilities/mixins' as m;
+
+// Mobile-first: full-width bottom sheet fallback (same as DetailCard's
+// centered variant - the map fills the screen at that size, so
+// viewport-fixed is fine there too), but only below a custom, narrower
+// breakpoint than the shared `sm` (576px) token - a docked side panel still
+// has room to mean something down to a fairly small phone width, so this
+// keeps the top-right dock through more of the "mobile" range and reserves
+// the bottom sheet for genuinely narrow screens.
+$dock-breakpoint: 420px;
+
+.card {
+  position: fixed;
+  z-index: v.$z-index-modal;
+  display: flex;
+  flex-direction: column;
+  background: c.$color-bg;
+  box-shadow: 0 sp.$spacing-sm sp.$spacing-md rgba(0, 0, 0, 0.2);
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 80vh;
+  border-radius: sp.$border-radius sp.$border-radius 0 0;
+
+  @include m.respond-to($dock-breakpoint) {
+    position: absolute;
+    left: auto;
+    // Clear of MapLibre's own NavigationControl (zoom buttons, ~58px tall
+    // with the compass hidden - see Map.tsx's addControl call) plus its
+    // own 10px margin, with only a small extra gap above it.
+    top: 78px;
+    right: 10px;
+    bottom: auto;
+    width: 90%;
+    max-width: min(90vw, 200px);
+    max-height: 75vh;
+    border-radius: sp.$border-radius;
+    // No dimming overlay behind this panel (it's non-modal - see the
+    // `modal` prop comment in DetailSurface.tsx), so a border is the only
+    // thing separating it from the map underneath.
+    border: 1px solid c.$color-border-primary;
+  }
+}

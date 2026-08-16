@@ -1,4 +1,4 @@
-from collections import defaultdict
+from datetime import time
 from typing import TYPE_CHECKING
 
 from django.contrib.gis.db import models as gis_models
@@ -295,6 +295,11 @@ class Journey(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, default="active")  # e.g., active, complete
 
+    # Transient, non-persisted cache of {node_id: Node}, set by callers that
+    # batch-fetch nodes across many journeys (e.g. move_characters_tick) to
+    # avoid a per-call query in _get_node. Not a model field.
+    _node_cache: dict[int, "Node"] | None = None
+
     @property
     def is_complete(self):
         return self.status == "complete"
@@ -414,11 +419,29 @@ class Building(models.Model):
         ("field_shelter", "Field Shelter"),
     ]
 
+    # Default working hours by building type. Types with no natural working
+    # hours map to None, meaning callers should fall back to whatever
+    # constants they'd otherwise use (see locations/services/schedule.py).
+    # Doesn't handle overnight-wrapping windows (e.g. 22:00-04:00).
+    BUILDING_TYPE_HOURS = {
+        "residential": None,
+        "granary": (time(7, 0), time(17, 0)),
+        "inn": (time(6, 0), time(23, 0)),
+        "mill": (time(7, 0), time(17, 0)),
+        "bakery": (time(4, 0), time(14, 0)),
+        "hall": (time(8, 0), time(18, 0)),
+        "market": (time(8, 0), time(16, 0)),
+        "communal": None,
+        "field_shelter": None,
+    }
+
     name = models.CharField(max_length=255)
     building_type = models.CharField(
         max_length=50, choices=BUILDING_TYPES, default="residential"
     )
     description = models.TextField(blank=True, default="")
+    open_time_override = models.TimeField(null=True, blank=True)
+    close_time_override = models.TimeField(null=True, blank=True)
     location = gis_models.PointField(
         srid=3857,
         default=Point(0, 0, srid=3857),
@@ -436,6 +459,31 @@ class Building(models.Model):
     )
 
     parent_for_navigation = "population_centre"
+
+    @property
+    def residents(self):
+        """Characters whose primary home is this building."""
+        from character.models import Character, CharacterLocation
+
+        return Character.objects.filter(
+            locations__location=self,
+            locations__role=CharacterLocation.Role.HOME,
+            locations__is_primary=True,
+        )
+
+    @property
+    def open_time(self):
+        if self.open_time_override is not None:
+            return self.open_time_override
+        default = self.BUILDING_TYPE_HOURS.get(self.building_type)
+        return default[0] if default else None
+
+    @property
+    def close_time(self):
+        if self.close_time_override is not None:
+            return self.close_time_override
+        default = self.BUILDING_TYPE_HOURS.get(self.building_type)
+        return default[1] if default else None
 
     def __str__(self):
         return f"{self.name}"
@@ -528,6 +576,7 @@ class Subzone(models.Model):
             ("foraging", "Foraging"),
             ("woodland", "Woodland"),
             ("orchard", "Orchard"),
+            ("square", "Square"),
             ("other", "Other"),
         ],
         default="crops",
@@ -569,24 +618,11 @@ class PopulationCentre(models.Model):
         # cached_property: progress and state below each read this too, so
         # without caching every serialization of a population centre
         # recomputes it 3x over.
-        from character.models import PlayerCharacterLink
-
         residents = list(self.residents.all())
 
-        # Batch-fetch every resident's links in one query instead of
-        # issuing one query per resident (this used to be an N+1).
-        links_by_character = defaultdict(list)
-        for link in PlayerCharacterLink.objects.filter(
-            character__in=residents
-        ).select_related("player__user"):
-            links_by_character[link.character_id].append(link)
-
-        points = sum(
-            PlayerCharacterLink.total_link_points(
-                links_by_character.get(resident.id, [])
-            )
-            for resident in residents
-        )
+        # Activity Points, not link points - a resident's long-term
+        # activity progress rather than how they came to be linked.
+        points = sum(resident.total_ap_earned for resident in residents)
 
         village_multiplier = 2 / (1 + len(residents))
         scaled_points = points * village_multiplier

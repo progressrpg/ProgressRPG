@@ -7,13 +7,13 @@ from django.db import transaction
 
 from economy.models import FieldCrop
 from locations.models import Building, Node, Subzone
-from locations.management.commands.spawn_villages import (
+from locations.management.commands.generate_villages import (
     compute_building_entrance_point,
     create_building_footprint,
 )
 
 # Shelter buildings are a small work-site, not the field itself - sized like
-# a house (matches spawn_villages' residential footprint range), not the
+# a house (matches generate_villages' residential footprint range), not the
 # crops Subzone's own (much larger) area.
 SHELTER_MIN_SIZE = 10
 SHELTER_MAX_SIZE = 25

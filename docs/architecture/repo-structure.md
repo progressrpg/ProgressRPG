@@ -137,8 +137,8 @@ locations/
 │   ├── seed_village_view.py
 │   ├── setup_world.py
 │   ├── show_map.py
-│   ├── spawn_characters.py
-│   └── spawn_villages.py
+│   ├── generate_characters.py
+│   └── generate_villages.py
 ├── models.py
 ├── serializers.py
 ├── services/

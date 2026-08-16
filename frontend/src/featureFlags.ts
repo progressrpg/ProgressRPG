@@ -5,16 +5,18 @@ const featureFlags: Record<FeatureFlagKey, FeatureFlagValue> = {
   // Each flag is an array of groups that have access.
   // Groups: 'all' | 'premium' | 'testers'
   // Empty array = disabled for everyone.
-  activityList: ['all'],
   tasksFeature: ['testers'],
   categoriesFeature: [],
   skillsFeature: [],
+  notesFeature: ['testers'],
   projectsFeature: [],
   toastsFeature: [],
   announcements: ['testers'],
   onlinePlayerCount: ['testers'],
   unified_homepage: [],
+  results_mode: [],
   map: ['testers'],
+  dailyGoalsBadge: ['testers'],
 };
 
 export default featureFlags;

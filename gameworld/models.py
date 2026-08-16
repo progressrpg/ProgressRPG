@@ -9,7 +9,6 @@ import random, math
 import numpy as np
 
 from users.models import Player
-from gameplay.models import QuestCompletion
 
 
 class DailySunTimes(models.Model):

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from character.models import CharacterLocation
 from character.serializers import CharacterSerializer
+from character.services import relationship_services
 from economy.constants import format_quantity
 
 from locations.models import (
@@ -14,6 +15,7 @@ from locations.models import (
     Road,
     Journey,
 )
+from locations.services import population_estimation
 
 ##########################################################
 ##### LOCATION SERIALISERS
@@ -91,10 +93,29 @@ class CharacterPointFeatureSerializer(PointFeatureSerializer):
     def get_point(self, obj):
         return obj.location.x, obj.location.y
 
-    def _primary_location_name(self, obj, role):
+    def _primary_location_type(self, obj, role):
+        # Building.name is a bookkeeping string (e.g. "House 2 of (Driftmoor
+        # village)" - see BuildingFeatureSerializer's docstring), not meant
+        # for display; building_type is what the frontend maps to a plain
+        # label ("House", "Bakery", ...) for the building's own tooltip
+        # (BUILDING_TYPE_LABELS in geojson.tsx) - exposing it here instead of
+        # the name keeps a character's home/work tooltip consistent with
+        # that.
         for location in obj.locations.all():
             if location.role == role and location.is_primary:
-                return location.location.name
+                return location.location.building_type
+        return None
+
+    def _primary_location_id(self, obj, role):
+        # The building's own pk, alongside _primary_location_type's plain
+        # type label - lets the frontend cross-reference a character back
+        # to its home Building (e.g. BuildingDetail's resident list, built
+        # client-side by matching already-loaded character features'
+        # home_id against the selected building's id - see the map entity
+        # detail card).
+        for location in obj.locations.all():
+            if location.role == role and location.is_primary:
+                return location.location_id
         return None
 
     def _active_journey(self, obj):
@@ -102,6 +123,34 @@ class CharacterPointFeatureSerializer(PointFeatureSerializer):
         if journeys is not None:
             return journeys[0] if journeys else None
         return obj.journeys.filter(status="active").first()
+
+    def _building_for_node(self, node):
+        # Node.building and Node.interior_space are mutually exclusive (see
+        # the node_building_or_interior constraint) - an indoor node (kind
+        # INTERIOR) only sets interior_space, so building alone misses it.
+        # InteriorSpace.building is required, so this is the full building
+        # for any node the character could actually be standing at.
+        if node is None:
+            return None
+        return node.building or (
+            node.interior_space.building if node.interior_space else None
+        )
+
+    def _current_activity_name(self, obj):
+        # current_activity_list is a Prefetch (see PopulationCentreMapView/
+        # MapViewportView) filtered to the one CharacterActivity active right
+        # now - falls back to Behaviour.get_current_activity()'s own query
+        # (e.g. for a single un-prefetched character) rather than requiring
+        # every caller to set it up. activity_definition.narrative is the
+        # verb-phrase form for "X is ___" sentences ("delivering goods to
+        # neighbours", not the label "Deliver goods to neighbours") - see
+        # ActivityDefinition.narrative.
+        activities = getattr(obj, "current_activity_list", None)
+        if activities is not None:
+            activity = activities[0] if activities else None
+        else:
+            activity = obj.behaviour.get_current_activity()
+        return activity.narrative if activity else None
 
     def get_properties(self, obj):
         needs = getattr(obj, "needs", None)
@@ -115,15 +164,65 @@ class CharacterPointFeatureSerializer(PointFeatureSerializer):
                 )
             ]
 
+        # current_building/destination building_type feed the map tooltip's
+        # "[Activity] at [building]" / "Walking to [building]" copy - None
+        # means the node has no building (tooltip reads "outside" instead).
+        current_building = self._building_for_node(obj.current_node)
+        destination_building = (
+            self._building_for_node(journey.destination_node)
+            if journey is not None
+            else None
+        )
+
         return {
             "id": obj.id,
             "name": obj.name,
-            "home": self._primary_location_name(obj, CharacterLocation.Role.HOME),
-            "work": self._primary_location_name(obj, CharacterLocation.Role.WORK),
+            "home_type": self._primary_location_type(obj, CharacterLocation.Role.HOME),
+            "home_id": self._primary_location_id(obj, CharacterLocation.Role.HOME),
+            "work_type": self._primary_location_type(obj, CharacterLocation.Role.WORK),
+            "work_id": self._primary_location_id(obj, CharacterLocation.Role.WORK),
             "hunger_label": needs.hunger_label() if needs else None,
+            "current_activity": self._current_activity_name(obj),
+            "is_moving": obj.is_moving,
             "effective_speed": obj.movement_speed,
             "path": path,
+            "current_location_type": (
+                current_building.building_type if current_building else None
+            ),
+            "destination_location_type": (
+                destination_building.building_type if destination_building else None
+            ),
         }
+
+
+class CharacterDetailSerializer(serializers.Serializer):
+    """
+    Richer, on-demand character info for the map's detail card (see
+    MapCharacterDetailView) - starts from the same tooltip-level properties
+    CharacterPointFeatureSerializer already computes (home/work/activity/
+    is_moving), then adds age/sex/relationships. Those involve extra
+    queries per character, so they're deliberately kept out of the bulk
+    per-poll map feature every character on screen carries, and only
+    fetched once a player actually opens that one character's detail card.
+    """
+
+    def to_representation(self, obj):
+        properties = CharacterPointFeatureSerializer().get_properties(obj)
+        properties["age"] = int(obj.get_age() // 365)
+        properties["sex"] = obj.sex
+        properties["relationships"] = [
+            {
+                "character_id": member["character"].id,
+                "name": member["character"].name,
+                "label": relationship_services.household_relationship_label(
+                    member["relationship_type"],
+                    member["other_role"],
+                    member["character"].sex,
+                ),
+            }
+            for member in relationship_services.relationship_get_household_members(obj)
+        ]
+        return properties
 
 
 class LineStringFeatureSerializer(GeoJSONFeatureSerializer):
@@ -235,6 +334,10 @@ class BuildingFeatureSerializer(PolygonFeatureSerializer):
             "building_type": obj.building_type,
             "workers": self._primary_count(obj, CharacterLocation.Role.WORK),
             "residents": self._primary_count(obj, CharacterLocation.Role.HOME),
+            # 0 (never None) for a non-residential building - same "not
+            # applicable" shape residents/workers already use above, rather
+            # than the frontend needing to special-case null vs. zero.
+            "residential_capacity": population_estimation.residential_capacity(obj),
             "goods": goods,
         }
 
@@ -259,6 +362,12 @@ class SubzoneFeatureSerializer(PolygonFeatureSerializer):
             "usage": obj.usage,
             "crop_stage": crop.stage if crop else None,
             "crop_progress": crop.growth_progress if crop else None,
+            # Lets the frontend scatter a field_shelter's idle workers across
+            # the crops Subzone(s) it serves instead of clustering them at the
+            # shelter's own (small, standalone) footprint - see
+            # generate_fields.py, which groups every crops Subzone in a
+            # population centre around one shared shelter Building.
+            "shelter_building_id": crop.shelter_building_id if crop else None,
         }
 
 

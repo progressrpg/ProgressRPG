@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
@@ -94,3 +96,62 @@ class LabelActivityViewTests(APITestCase):
         response = self.client.post(self.url, {"activityName": "Nope"})
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ActivityTimerBroadcastTests(APITestCase):
+    """
+    Every mutating activity-timer endpoint should push the updated timer to
+    the player's other open sessions (tabs/devices) over the `player_{id}`
+    WebSocket group, so they can reconcile via loadFromServer instead of
+    drifting until their next manual fetch. See issue #759.
+    """
+
+    def setUp(self):
+        self.user = user_factory(with_player=True)
+        self.player = self.user.player
+        self.client.force_authenticate(user=self.user)
+
+    def test_set_activity_broadcasts_timer_update(self):
+        with patch("gameplay.views.broadcast_activity_timer") as mock_broadcast:
+            response = self.client.post(
+                reverse("activitytimer-set-activity"), {"activityName": "Focus time"}
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_broadcast.assert_called_once_with(self.player.activity_timer)
+
+    def test_start_broadcasts_timer_update(self):
+        self.player.activity_timer.new_activity(name="Focus time")
+
+        with patch("gameplay.views.broadcast_activity_timer") as mock_broadcast:
+            response = self.client.post(reverse("activitytimer-start"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_broadcast.assert_called_once_with(self.player.activity_timer)
+
+    def test_label_activity_broadcasts_timer_update(self):
+        timer = self.player.activity_timer
+        timer.new_activity(name="Focus time")
+        timer.start()
+
+        with patch("gameplay.views.broadcast_activity_timer") as mock_broadcast:
+            response = self.client.post(
+                reverse("activitytimer-label-activity"), {"activityName": "Deep work"}
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_broadcast.assert_called_once_with(timer)
+
+    def test_complete_broadcasts_timer_update(self):
+        timer = self.player.activity_timer
+        timer.new_activity(name="Focus time")
+        timer.start()
+
+        with patch("gameplay.views.broadcast_activity_timer") as mock_broadcast:
+            response = self.client.post(
+                reverse("activitytimer-complete"),
+                {"activityName": "Focus time", "elapsedSeconds": 30},
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_broadcast.assert_called_once_with(timer)

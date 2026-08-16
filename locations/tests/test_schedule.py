@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from unittest.mock import patch
 
 from django.contrib.gis.geos import Point
@@ -14,7 +14,7 @@ from character.models import Character, CharacterLocation
 class ScheduleServiceTargetRoleTest(TestCase):
     def setUp(self):
         self.character = Character.objects.create(
-            first_name="Scheduled", location=Point(0, 0, srid=3857)
+            given_name="Scheduled", location=Point(0, 0, srid=3857)
         )
 
     def test_target_role_is_work_at_midday(self):
@@ -56,6 +56,112 @@ class ScheduleServiceTargetRoleTest(TestCase):
             )
 
 
+class ScheduleServiceBuildingHoursTest(TestCase):
+    def setUp(self):
+        self.character = Character.objects.create(
+            given_name="Worker", location=Point(0, 0, srid=3857)
+        )
+
+    def _assign_work(self, building):
+        CharacterLocation.objects.create(
+            character=self.character,
+            location=building,
+            role=CharacterLocation.Role.WORK,
+        )
+
+    def test_uses_building_override_hours(self):
+        building = Building.objects.create(
+            name="Late Mill",
+            building_type="mill",
+            location=Point(0, 0, srid=3857),
+            open_time_override=time(20, 0),
+            close_time_override=time(23, 0),
+        )
+        self._assign_work(building)
+
+        with patch(
+            "locations.services.schedule._stagger_offset_seconds", return_value=0
+        ):
+            during_override = timezone.make_aware(datetime(2026, 1, 1, 21, 0, 0))
+            outside_default_hours = timezone.make_aware(datetime(2026, 1, 1, 8, 0, 0))
+            self.assertEqual(
+                target_role_for(self.character, now=during_override),
+                CharacterLocation.Role.WORK,
+            )
+            self.assertEqual(
+                target_role_for(self.character, now=outside_default_hours),
+                CharacterLocation.Role.HOME,
+            )
+
+    def test_uses_building_type_default_hours(self):
+        building = Building.objects.create(
+            name="Bakery", building_type="bakery", location=Point(0, 0, srid=3857)
+        )
+        self._assign_work(building)
+
+        with patch(
+            "locations.services.schedule._stagger_offset_seconds", return_value=0
+        ):
+            during_default = timezone.make_aware(datetime(2026, 1, 1, 5, 0, 0))
+            outside_default = timezone.make_aware(datetime(2026, 1, 1, 15, 0, 0))
+            self.assertEqual(
+                target_role_for(self.character, now=during_default),
+                CharacterLocation.Role.WORK,
+            )
+            self.assertEqual(
+                target_role_for(self.character, now=outside_default),
+                CharacterLocation.Role.HOME,
+            )
+
+    def test_falls_back_to_constants_when_building_has_no_hours(self):
+        building = Building.objects.create(
+            name="Communal Hall",
+            building_type="communal",
+            location=Point(0, 0, srid=3857),
+        )
+        self._assign_work(building)
+
+        with patch(
+            "locations.services.schedule._stagger_offset_seconds", return_value=0
+        ):
+            noon = timezone.make_aware(datetime(2026, 1, 1, 12, 0, 0))
+            midnight = timezone.make_aware(datetime(2026, 1, 1, 0, 0, 0))
+            self.assertEqual(
+                target_role_for(self.character, now=noon), CharacterLocation.Role.WORK
+            )
+            self.assertEqual(
+                target_role_for(self.character, now=midnight),
+                CharacterLocation.Role.HOME,
+            )
+
+    def test_falls_back_to_constants_when_no_work_location(self):
+        with patch(
+            "locations.services.schedule._stagger_offset_seconds", return_value=0
+        ):
+            noon = timezone.make_aware(datetime(2026, 1, 1, 12, 0, 0))
+            self.assertEqual(
+                target_role_for(self.character, now=noon), CharacterLocation.Role.WORK
+            )
+
+    def test_stagger_applied_to_building_resolved_hours(self):
+        building = Building.objects.create(
+            name="Market", building_type="market", location=Point(0, 0, srid=3857)
+        )
+        self._assign_work(building)
+
+        # Market default hours are 08:00-16:00; shift the boundary 10 minutes
+        # later via stagger and confirm it's respected.
+        with patch(
+            "locations.services.schedule._stagger_offset_seconds",
+            return_value=600,
+        ):
+            shifted = timezone.make_aware(datetime(2026, 1, 1, 8, 5, 0))
+            self.assertEqual(
+                target_role_for(self.character, now=shifted),
+                CharacterLocation.Role.HOME,
+            )
+
+
 class SyncCharacterLocationTest(TestCase):
     def setUp(self):
         self.start_node = Node.objects.create(
@@ -84,7 +190,7 @@ class SyncCharacterLocationTest(TestCase):
         Path.objects.create(from_node=self.home_node, to_node=self.work_node)
 
         self.character = Character.objects.create(
-            first_name="Commuter",
+            given_name="Commuter",
             location=Point(0, 0, srid=3857),
             current_node=self.start_node,
         )
@@ -193,19 +299,19 @@ class CommuteTickTaskTest(TestCase):
             name="Commute Village", location=Point(0, 0, srid=3857)
         )
         self.idle_character = Character.objects.create(
-            first_name="Idle",
+            given_name="Idle",
             location=Point(0, 0, srid=3857),
             population_centre=self.centre,
             is_moving=False,
         )
         self.moving_character = Character.objects.create(
-            first_name="Moving",
+            given_name="Moving",
             location=Point(0, 0, srid=3857),
             population_centre=self.centre,
             is_moving=True,
         )
         self.orphan_character = Character.objects.create(
-            first_name="Orphan",
+            given_name="Orphan",
             location=Point(0, 0, srid=3857),
             is_moving=False,
         )

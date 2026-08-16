@@ -23,6 +23,16 @@ body {
   align-items: stretch;
   min-width: 260px;
   flex: 1;
+  // Cursor is inherited, so without this any plain text (tooltip copy,
+  // list items, etc.) shows the browser's default text-selection I-beam
+  // on hover - only actual text inputs should look editable.
+  cursor: default;
+}
+
+input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"], [type="range"], [type="color"], [type="file"]),
+textarea,
+[contenteditable="true"] {
+  cursor: text;
 }
 
 main {

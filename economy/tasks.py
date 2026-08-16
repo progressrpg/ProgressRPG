@@ -19,6 +19,14 @@ from .constants import (
 )
 from .conversion import convert_goods
 from .models import FieldCrop, GoodsConversionState, GoodsStock
+from .services.capacity_services import (
+    daily_bread_demand,
+    daily_flour_demand,
+    find_bakery,
+    find_granary,
+    find_mill,
+    worker_capacity_present,
+)
 from locations.models import Building
 
 logger = logging.getLogger("general")
@@ -91,8 +99,8 @@ def _harvest(crop):
         crop.stage = FieldCrop.Stage.FALLOW
         return
 
-    workers_present = _workers_present(crop.shelter_building)
-    today_yield = min(remaining, workers_present * PER_WORKER_DAILY_CAPACITY)
+    present = worker_capacity_present(crop.shelter_building)
+    today_yield = min(remaining, present * PER_WORKER_DAILY_CAPACITY)
     if today_yield <= 0:
         return
 
@@ -101,52 +109,6 @@ def _harvest(crop):
     crop.harvested_amount += today_yield
     if crop.harvested_amount >= crop.ready_yield:
         crop.stage = FieldCrop.Stage.FALLOW
-
-
-def _workers_present(shelter_building):
-    from character.models import Character
-
-    return Character.objects.filter(
-        current_node__building=shelter_building, is_moving=False
-    ).count()
-
-
-def _find_granary(population_centre):
-    if population_centre is None:
-        return None
-    return (
-        population_centre.buildings.filter(building_type="granary")
-        .order_by("id")
-        .first()
-    )
-
-
-def _find_mill(population_centre):
-    if population_centre is None:
-        return None
-    return (
-        population_centre.buildings.filter(building_type="mill").order_by("id").first()
-    )
-
-
-def _daily_bread_demand(population_centre):
-    if population_centre is None:
-        return 0.0
-    return population_centre.resident_count * BREAD_PER_CHARACTER_DAILY_CONSUMPTION
-
-
-def _daily_flour_demand(population_centre):
-    return _daily_bread_demand(population_centre) / FLOUR_TO_BREAD_RATIO
-
-
-def _find_bakery(population_centre):
-    if population_centre is None:
-        return None
-    return (
-        population_centre.buildings.filter(building_type="bakery")
-        .order_by("id")
-        .first()
-    )
 
 
 def _deposit_into_granary(shelter_building, amount):
@@ -158,7 +120,7 @@ def _deposit_into_granary(shelter_building, amount):
         )
         return
 
-    granary = _find_granary(population_centre)
+    granary = find_granary(population_centre)
     if granary is None:
         logger.warning(
             "No granary in %s - harvested wheat lost", population_centre.name
@@ -188,18 +150,20 @@ def advance_mill_economy_tick(today=None):
     """
     today = today or timezone.localdate()
 
-    for mill in Building.objects.filter(building_type="mill").select_related(
-        "population_centre"
-    ):
-        state, _ = GoodsConversionState.objects.get_or_create(building=mill)
+    for mill in Building.objects.filter(
+        capabilities__activity="milling"
+    ).select_related("population_centre"):
+        state, _ = GoodsConversionState.objects.get_or_create(
+            building=mill, activity="milling"
+        )
         if state.last_processed_on == today:
             continue
 
-        granary = _find_granary(mill.population_centre)
+        granary = find_granary(mill.population_centre)
         if granary is not None:
-            workers_present = _workers_present(mill)
+            present = worker_capacity_present(mill)
             flour_buffer_target = (
-                _daily_flour_demand(mill.population_centre) * FLOUR_BUFFER_DAYS
+                daily_flour_demand(mill.population_centre) * FLOUR_BUFFER_DAYS
             )
             flour_stock = GoodsStock.objects.filter(
                 building=mill, good_type=GoodsStock.GoodType.FLOUR
@@ -212,7 +176,7 @@ def advance_mill_economy_tick(today=None):
                 mill,
                 input_good=GoodsStock.GoodType.WHEAT,
                 output_good=GoodsStock.GoodType.FLOUR,
-                workers_present=workers_present,
+                workers_present=present,
                 per_worker_capacity=PER_WORKER_DAILY_MILLING_CAPACITY,
                 conversion_ratio=WHEAT_TO_FLOUR_RATIO,
                 max_output=mill_target,
@@ -239,29 +203,31 @@ def advance_bakery_economy_tick(today=None):
     """
     today = today or timezone.localdate()
 
-    for bakery in Building.objects.filter(building_type="bakery").select_related(
-        "population_centre"
-    ):
-        state, _ = GoodsConversionState.objects.get_or_create(building=bakery)
+    for bakery in Building.objects.filter(
+        capabilities__activity="baking"
+    ).select_related("population_centre"):
+        state, _ = GoodsConversionState.objects.get_or_create(
+            building=bakery, activity="baking"
+        )
         if state.last_processed_on == today:
             continue
 
-        mill = _find_mill(bakery.population_centre)
+        mill = find_mill(bakery.population_centre)
         if mill is not None:
-            workers_present = _workers_present(bakery)
-            daily_demand = _daily_bread_demand(bakery.population_centre)
+            present = worker_capacity_present(bakery)
+            demand = daily_bread_demand(bakery.population_centre)
             bread_stock = GoodsStock.objects.filter(
                 building=bakery, good_type=GoodsStock.GoodType.BREAD
             ).first()
             current_bread = bread_stock.quantity if bread_stock else 0
-            bake_target = max(0.0, daily_demand - current_bread)
+            bake_target = max(0.0, demand - current_bread)
 
             convert_goods(
                 mill,
                 bakery,
                 input_good=GoodsStock.GoodType.FLOUR,
                 output_good=GoodsStock.GoodType.BREAD,
-                workers_present=workers_present,
+                workers_present=present,
                 per_worker_capacity=PER_WORKER_DAILY_BAKING_CAPACITY,
                 conversion_ratio=FLOUR_TO_BREAD_RATIO,
                 max_output=bake_target,
@@ -309,7 +275,7 @@ def advance_bread_consumption_tick(today=None):
         population_centre = home.location.population_centre
         centre_id = population_centre.id if population_centre else None
         if centre_id not in bakery_cache:
-            bakery_cache[centre_id] = _find_bakery(population_centre)
+            bakery_cache[centre_id] = find_bakery(population_centre)
         bakery = bakery_cache[centre_id]
 
         fed = False

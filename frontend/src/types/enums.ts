@@ -14,16 +14,18 @@ export type FeatureFlagValue = AccessGroup[];
 
 /** Known feature flag keys (from src/featureFlags.js) */
 export type FeatureFlagKey =
-  | "activityList"
   | "tasksFeature"
   | "categoriesFeature"
   | "skillsFeature"
+  | "notesFeature"
   | "projectsFeature"
   | "toastsFeature"
   | "announcements"
   | "onlinePlayerCount"
   | "unified_homepage"
-  | "map";
+  | "results_mode"
+  | "map"
+  | "dailyGoalsBadge";
 
 // ---------------------------------------------------------------------------
 // Timer statuses (Timer.STATUS_CHOICES in gameplay/models.py)
@@ -84,13 +86,6 @@ export type ServerWebSocketAction =
 // ---------------------------------------------------------------------------
 
 export type XpModifierScope = "PLAYER" | "CHARACTER";
-
-// ---------------------------------------------------------------------------
-// Quest category / frequency
-// ---------------------------------------------------------------------------
-
-export type QuestCategory = "NONE" | "TRADE" | "RECUR" | "EVENT";
-export type QuestFrequency = "NONE" | "DAY" | "WEEK" | "MONTH";
 
 // ---------------------------------------------------------------------------
 // Subscription plan

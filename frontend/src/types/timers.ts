@@ -32,22 +32,6 @@ export interface ActivityCompleteResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Quest timer API shape (QuestTimerSerializer)
-// ---------------------------------------------------------------------------
-
-export interface QuestTimerApiData {
-  id: number;
-  status: TimerStatus;
-  elapsed_time: number;
-  created_at: string;
-  last_updated: string;
-  quest: import("./domain").Quest | null;
-  duration: number;
-  remaining_time: number;
-  character: number;
-}
-
-// ---------------------------------------------------------------------------
 // useActivityTimer hook state and return value
 // ---------------------------------------------------------------------------
 
@@ -62,8 +46,14 @@ export interface CurrentActivity {
   text?: string;
   /** Optional task ID the activity is logged against */
   taskId?: number | null;
-  /** Server-assigned id once confirmed */
+  /** Server-assigned id once confirmed (this timed session's PlayerActivity id) */
   id?: number;
+  /**
+   * FK to the reusable Activity "type" (catalog entry) this session resolved
+   * to — stable across separate start/stop cycles of the same-named,
+   * task-less activity, unlike `id` above.
+   */
+  activity?: number | null;
 }
 
 /**
@@ -167,13 +157,23 @@ export interface WebSocketErrorMessage extends WebSocketMessageBase {
 /** Server-initiated action message (maintenance refresh, game events) */
 export interface WebSocketActionMessage {
   type: "action";
-  action: "refresh" | "load-game";
+  action: "refresh" | "load-game" | "activity_timer_update" | "announcement_published";
   message?: string;
   maintenance_active?: boolean;
   name?: string;
   description?: string;
   start_time?: string | null;
   end_time?: string | null;
+  /**
+   * Present when action is "activity_timer_update" — pushed whenever another
+   * of this player's sessions (tabs/devices) starts, labels, or submits the
+   * activity timer, so every open session can reconcile to server state.
+   *
+   * Present when action is "announcement_published" — the id of the
+   * newly-published Announcement, so callers can invalidate the
+   * announcements list and unread-count queries.
+   */
+  data?: { activity_timer: ActivityTimerApiData } | { id: number };
 }
 
 /** Generic server message (currently unused payload) */

@@ -3,12 +3,16 @@ from unittest.mock import patch, PropertyMock
 
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase, override_settings
+from django.contrib import admin as django_admin
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from django.utils import timezone
+
 from core.checks import REQUIRED_PROD_SETTINGS, check_required_prod_settings
-from core.models import GameSettings
+from core.admin import AnnouncementAdmin, FeatureFlagForm
+from core.models import Announcement, FeatureFlag, GameSettings
 from users.services.login_services import (
     calculate_daily_login_reward,
     LOGIN_STATE_ALREADY_LOGGED_TODAY,
@@ -261,3 +265,93 @@ class RequiredProdSettingsCheckTest(SimpleTestCase):
         with override_settings(**overrides):
             errors = check_required_prod_settings(app_configs=None)
         self.assertEqual(errors[0].id, "core.E001")
+
+
+_FAKE_FEATURE_FLAGS_TS = """
+const featureFlags = {
+  activityList: ['all'],
+  tasksFeature: ['testers'],
+  categoriesFeature: [],
+  skillsFeature: [],
+  projectsFeature: [],
+};
+"""
+
+
+@patch("core.admin._FEATURE_FLAGS_TS")
+class FeatureFlagFormKeyChoicesTests(TestCase):
+    def test_excludes_keys_already_created(self, mock_path):
+        mock_path.read_text.return_value = _FAKE_FEATURE_FLAGS_TS
+        FeatureFlag.objects.create(key="tasksFeature", access_groups=["testers"])
+
+        form = FeatureFlagForm()
+
+        choice_keys = [key for key, _ in form.fields["key"].choices]
+        self.assertNotIn("tasksFeature", choice_keys)
+        self.assertIn("activityList", choice_keys)
+        self.assertIn("categoriesFeature", choice_keys)
+
+    def test_editing_existing_flag_keeps_its_own_key_selectable(self, mock_path):
+        mock_path.read_text.return_value = _FAKE_FEATURE_FLAGS_TS
+        flag = FeatureFlag.objects.create(key="tasksFeature", access_groups=["testers"])
+        FeatureFlag.objects.create(key="activityList", access_groups=["all"])
+
+        form = FeatureFlagForm(instance=flag)
+
+        choice_keys = [key for key, _ in form.fields["key"].choices]
+        self.assertIn("tasksFeature", choice_keys)
+        self.assertNotIn("activityList", choice_keys)
+
+
+class AnnouncementSaveTest(TestCase):
+    def test_publishing_sets_published_at_if_unset(self):
+        announcement = Announcement.objects.create(
+            title="Hi", body="Body", is_published=True
+        )
+        self.assertIsNotNone(announcement.published_at)
+
+    def test_publishing_does_not_overwrite_existing_published_at(self):
+        original = timezone.now() - timezone.timedelta(days=3)
+        announcement = Announcement.objects.create(
+            title="Hi", body="Body", is_published=True, published_at=original
+        )
+        self.assertEqual(announcement.published_at, original)
+
+    def test_creating_unpublished_leaves_published_at_unset(self):
+        announcement = Announcement.objects.create(
+            title="Hi", body="Body", is_published=False
+        )
+        self.assertIsNone(announcement.published_at)
+
+    def test_saving_again_after_publish_does_not_change_published_at(self):
+        announcement = Announcement.objects.create(
+            title="Hi", body="Body", is_published=True
+        )
+        first_published_at = announcement.published_at
+
+        announcement.title = "Updated"
+        announcement.save()
+
+        self.assertEqual(announcement.published_at, first_published_at)
+
+
+class AnnouncementAdminReadonlyFieldsTest(TestCase):
+    def setUp(self):
+        self.admin = AnnouncementAdmin(Announcement, django_admin.site)
+
+    def test_published_at_editable_when_unset(self):
+        announcement = Announcement.objects.create(title="Hi", body="Body")
+        self.assertNotIn(
+            "published_at", self.admin.get_readonly_fields(None, announcement)
+        )
+
+    def test_published_at_readonly_once_set(self):
+        announcement = Announcement.objects.create(
+            title="Hi", body="Body", is_published=True
+        )
+        self.assertIn(
+            "published_at", self.admin.get_readonly_fields(None, announcement)
+        )
+
+    def test_published_at_editable_for_new_unsaved_announcement(self):
+        self.assertNotIn("published_at", self.admin.get_readonly_fields(None, None))

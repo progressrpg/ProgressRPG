@@ -34,31 +34,33 @@ describe('ProgressBar', () => {
   });
 
   it('renders progress bar with default values', () => {
-    const { container } = renderProgressBar(<ProgressBar />);
+    renderProgressBar(<ProgressBar />);
 
-    const progressFill = container.querySelector('[style*="width"]');
-    expect(progressFill).toBeInTheDocument();
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toBeInTheDocument();
+    expect(bar).toHaveAttribute('aria-valuemin', '0');
+    expect(bar).toHaveAttribute('aria-valuemax', '100');
   });
 
   it('calculates percentage correctly', () => {
-    const { container } = renderProgressBar(<ProgressBar value={50} max={100} />);
+    renderProgressBar(<ProgressBar value={50} max={100} />);
 
-    const progressFill = container.querySelector('[style*="width"]');
-    expect(progressFill).toHaveStyle({ width: '50%' });
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '50');
   });
 
   it('caps percentage at 100%', () => {
-    const { container } = renderProgressBar(<ProgressBar value={150} max={100} />);
+    renderProgressBar(<ProgressBar value={150} max={100} />);
 
-    const progressFill = container.querySelector('[style*="width"]');
-    expect(progressFill).toHaveStyle({ width: '100%' });
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '100');
   });
 
   it('handles zero values correctly', () => {
-    const { container } = renderProgressBar(<ProgressBar value={0} max={100} />);
+    renderProgressBar(<ProgressBar value={0} max={100} />);
 
-    const progressFill = container.querySelector('[style*="width"]');
-    expect(progressFill).toHaveStyle({ width: '0%' });
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '0');
   });
 
   it('renders label when provided', () => {
@@ -101,9 +103,10 @@ describe('ProgressBar', () => {
   });
 
   it('handles different max values correctly', () => {
-    const { container } = renderProgressBar(<ProgressBar value={25} max={50} />);
+    renderProgressBar(<ProgressBar value={25} max={50} />);
 
-    const progressFill = container.querySelector('[style*="width"]');
-    expect(progressFill).toHaveStyle({ width: '50%' });
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '25');
+    expect(bar).toHaveAttribute('aria-valuemax', '50');
   });
 });

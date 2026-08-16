@@ -9,13 +9,10 @@ interface PopulationCentreResidentsProps {
 }
 
 const formatActivity = (activity: string | null | undefined): string => {
-  if (!activity) return "idle";
-  return String(activity).toLowerCase();
-};
-
-const formatName = (firstName: string | undefined, lastName: string | undefined): string => {
-  const name = `${firstName || ""} ${lastName || ""}`.trim();
-  return name || "Unknown";
+  // current_activity is already narrative/present-tense from the backend
+  // (ActivityDefinition.narrative, e.g. "delivering goods to neighbours") -
+  // no further casing needed here.
+  return activity || "idle";
 };
 
 export default function PopulationCentreResidents({
@@ -29,11 +26,11 @@ export default function PopulationCentreResidents({
     if (leftLinked && !rightLinked) return -1;
     if (!leftLinked && rightLinked) return 1;
 
-    const leftLast = String(left?.last_name || "").toLowerCase();
-    const rightLast = String(right?.last_name || "").toLowerCase();
+    const leftName = String(left?.name || "").toLowerCase();
+    const rightName = String(right?.name || "").toLowerCase();
 
-    if (leftLast < rightLast) return -1;
-    if (leftLast > rightLast) return 1;
+    if (leftName < rightName) return -1;
+    if (leftName > rightName) return 1;
 
     const leftAge = Number.isFinite(left?.age) ? left.age : -1;
     const rightAge = Number.isFinite(right?.age) ? right.age : -1;
@@ -60,17 +57,12 @@ export default function PopulationCentreResidents({
       <List
         items={listItems}
         className={styles.list}
-        getKey={(resident) =>
-          resident.id ?? `${resident.first_name}-${resident.last_name}`
-        }
+        getKey={(resident) => resident.id ?? resident.name}
         getItemClassName={(resident) =>
           `${styles.item} ${resident.id === linkedCharacterId ? styles.linked : ""}`
         }
         renderItem={(resident) => {
-          const name = formatName(
-            resident.first_name as string | undefined,
-            resident.last_name as string | undefined
-          );
+          const name = (resident.name as string | undefined) || "Unknown";
           const age = resident.age ?? "Unknown";
           const activity = formatActivity(resident.current_activity as string | null | undefined);
           const linkedText = !resident.is_npc

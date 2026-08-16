@@ -1,9 +1,4 @@
 {
-  "enabledPlugins": {
-    "stripe@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true,
-    "sentry@claude-plugins-official": true
-  },
   "hooks": {
     "PostToolUse": [
       {
@@ -17,5 +12,10 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "stripe@claude-plugins-official": false,
+    "security-guidance@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true
   }
 }

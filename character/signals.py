@@ -1,25 +1,23 @@
 # character.signals
 from datetime import timedelta, datetime, time
-from django.db import transaction
-from django.db.models.signals import pre_save, post_save, pre_delete, post_delete
+from django.db.models.signals import post_save, pre_delete, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
 import logging
 
-from .models import Character, PlayerCharacterLink, Behaviour, CharacterNeeds
+from .models import (
+    Character,
+    CharacterRelationship,
+    CharacterRelationshipMembership,
+    PlayerCharacterLink,
+    Behaviour,
+    CharacterNeeds,
+)
 
-from gameplay.models import QuestTimer
 from progression.models import CharacterActivity
 
 logger = logging.getLogger("general")
-
-
-@receiver(post_save, sender=Character)
-def create_timer(sender, instance, created, **kwargs):
-    """Create a quest timer for a new character"""
-    if created:
-        quest_timer = QuestTimer.objects.create(character=instance)
 
 
 @receiver(post_save, sender=Character)
@@ -42,54 +40,19 @@ def unlink_before_deletion(sender, instance, **kwargs):
     instance.unlink()
 
 
-def recompute_character_flags(character_id: int) -> None:
+@receiver(post_delete, sender=CharacterRelationshipMembership)
+def delete_relationship_with_no_members(sender, instance, **kwargs):
     """
-    Recompute denormalised flags for a Character based on current links.
-    A character can_link if they have no active player links.
+    CharacterRelationshipMembership.character cascades on Character delete
+    (e.g. generate_characters wiping unlinked Characters before
+    regenerating a village's cast), but CharacterRelationship - the other
+    side of the through table - has no FK of its own for Django to cascade
+    from. Without this, a relationship whose members were all deleted
+    survives forever as an orphaned, memberless row.
     """
-    if not character_id:
-        return
-
-    # Character can link if they don't have any active player links
-    has_active_link = PlayerCharacterLink.objects.filter(
-        character_id=character_id, is_active=True
+    relationship_id = instance.relationship_id
+    still_has_members = CharacterRelationshipMembership.objects.filter(
+        relationship_id=relationship_id
     ).exists()
-
-    can_link = not has_active_link
-
-    Character.objects.filter(id=character_id).update(
-        can_link=can_link,
-    )
-
-
-@receiver(pre_save, sender=PlayerCharacterLink)
-def link_presave_track_old_character(sender, instance, **kwargs):
-    """
-    If someone edits a link and changes its character, we need to update BOTH:
-    the old character and the new character.
-    """
-    instance._old_character_id = None
-    if instance.pk:
-        try:
-            old = PlayerCharacterLink.objects.only("character_id").get(pk=instance.pk)
-            instance._old_character_id = old.character_id
-        except PlayerCharacterLink.DoesNotExist:
-            pass
-
-
-@receiver(post_save, sender=PlayerCharacterLink)
-def link_postsave_recompute(sender, instance, **kwargs):
-    def _do():
-        # update new/current character
-        recompute_character_flags(instance.character_id)
-        # update old character if link moved
-        old_id = getattr(instance, "_old_character_id", None)
-        if old_id and old_id != instance.character_id:
-            recompute_character_flags(old_id)
-
-    transaction.on_commit(_do)
-
-
-@receiver(post_delete, sender=PlayerCharacterLink)
-def link_postdelete_recompute(sender, instance, **kwargs):
-    transaction.on_commit(lambda: recompute_character_flags(instance.character_id))
+    if not still_has_members:
+        CharacterRelationship.objects.filter(id=relationship_id).delete()

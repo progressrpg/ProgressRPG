@@ -4,14 +4,12 @@ import django_filters
 
 from .models import (
     Category,
-    Role,
     PlayerSkill,
-    CharacterSkill,
     PlayerActivity,
     CharacterActivity,
-    CharacterQuest,
     Project,
     Task,
+    Note,
 )
 
 
@@ -90,13 +88,26 @@ class ProjectFilter(django_filters.FilterSet):
         ]
 
 
+class NoteFilter(django_filters.FilterSet):
+    title = django_filters.CharFilter(field_name="title", lookup_expr="icontains")
+    player = django_filters.NumberFilter(field_name="player_id")
+    task = django_filters.NumberFilter(field_name="task_id")
+    activity = django_filters.NumberFilter(field_name="activity_id")
+    created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
+    last_updated = django_filters.DateFromToRangeFilter(field_name="last_updated")
+
+    class Meta:
+        model = Note
+        fields = ["title", "player", "task", "activity", "created_at", "last_updated"]
+
+
 class TaskFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
     player = django_filters.NumberFilter(field_name="player_id")
     project = django_filters.NumberFilter(field_name="project_id")
     created_at = django_filters.DateFromToRangeFilter(field_name="created_at")
     last_updated = django_filters.DateFromToRangeFilter(field_name="last_updated")
-    due_at = django_filters.DateFromToRangeFilter(field_name="due_at")
+    due_at = django_filters.IsoDateTimeFromToRangeFilter(field_name="due_at")
     parent = django_filters.NumberFilter(field_name="parent_id")
     parent__isnull = django_filters.BooleanFilter(
         field_name="parent", lookup_expr="isnull"

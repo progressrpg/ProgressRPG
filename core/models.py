@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.storage import Storage
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.deconstruct import deconstructible
 
 
@@ -90,6 +91,33 @@ class GameSettings(models.Model):
         max_digits=5, decimal_places=2, default="1.25"
     )
     task_completion_xp = models.IntegerField(default=100)
+    daily_goals_completion_bonus_ap = models.IntegerField(
+        default=50,
+        help_text=(
+            "Lump-sum AP awarded once per day when a player clears all "
+            "three daily goals (see progression.daily_goals)."
+        ),
+    )
+    xp_mastery_scale = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default="1000.00",
+        help_text=(
+            "Skill XP needed for the Activity Points mastery multiplier to "
+            "grow by +1.0x (see progression.points.xp_mastery_multiplier)."
+        ),
+    )
+    xp_mastery_multiplier_cap = models.DecimalField(
+        max_digits=5, decimal_places=2, default="3.00"
+    )
+    activity_compaction_cutoff_days = models.IntegerField(
+        default=90,
+        help_text=(
+            "Completed CharacterActivity rows older than this are rolled "
+            "into CharacterActivityArchive monthly summaries and deleted "
+            "(see progression.tasks.compact_character_activities)."
+        ),
+    )
     activity_search_includes_tasks = models.BooleanField(default=False)
     trial_period_days = models.IntegerField(default=14)
     registration_cap = models.IntegerField(default=1_000_000_000)
@@ -142,6 +170,14 @@ class GameSettings(models.Model):
             errors["task_activity_xp_multiplier"] = "Must be > 0."
         if self.task_completion_xp < 0:
             errors["task_completion_xp"] = "Must be non-negative."
+        if self.daily_goals_completion_bonus_ap < 0:
+            errors["daily_goals_completion_bonus_ap"] = "Must be non-negative."
+        if self.xp_mastery_scale <= 0:
+            errors["xp_mastery_scale"] = "Must be > 0."
+        if self.xp_mastery_multiplier_cap < 1:
+            errors["xp_mastery_multiplier_cap"] = "Must be >= 1."
+        if self.activity_compaction_cutoff_days <= 0:
+            errors["activity_compaction_cutoff_days"] = "Must be > 0."
         if self.trial_period_days < 0:
             errors["trial_period_days"] = "Must be non-negative."
         if self.registration_cap < 0:
@@ -171,10 +207,34 @@ class AnnouncementQuerySet(models.QuerySet):
         return self.filter(is_published=True)
 
 
+class FeatureFlag(models.Model):
+    ACCESS_GROUPS = ["all", "premium", "testers"]
+
+    key = models.CharField(max_length=100, unique=True)
+    access_groups = models.JSONField(
+        default=list,
+        help_text="List of groups that can access this feature: 'all', 'premium', 'testers'.",
+    )
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("key",)
+
+    def __str__(self):
+        groups = ", ".join(self.access_groups) if self.access_groups else "no one"
+        return f"{self.key} ({groups})"
+
+    @classmethod
+    def as_dict(cls):
+        return {flag.key: flag.access_groups for flag in cls.objects.all()}
+
+
 class Announcement(models.Model):
     title = models.CharField(max_length=200)
     summary = models.CharField(max_length=300, blank=True)
-    body = models.TextField()
+    body = models.TextField(help_text="Supports Markdown (bold, links, lists, etc.).")
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -187,6 +247,35 @@ class Announcement(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        was_published = (
+            Announcement.objects.filter(pk=self.pk, is_published=True).exists()
+            if self.pk
+            else False
+        )
+        if self.is_published and self.published_at is None:
+            self.published_at = timezone.now()
+        super().save(*args, **kwargs)
+        if self.is_published and not was_published:
+            from django.db import transaction
+
+            transaction.on_commit(self._broadcast_published)
+
+    def _broadcast_published(self):
+        from asgiref.sync import async_to_sync
+
+        from gameplay.utils import send_group_message
+
+        async_to_sync(send_group_message)(
+            "online_users",
+            {
+                "type": "action",
+                "action": "announcement_published",
+                "data": {"id": self.id},
+                "success": True,
+            },
+        )
 
 
 class PlayerAnnouncementState(models.Model):

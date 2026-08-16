@@ -8,7 +8,7 @@ class InvalidBBoxError(ValueError):
 
 
 # Villages are seeded 1000-2000 units (metres, srid 3857) apart from each
-# other (see min_centre_distance/max_centre_distance in spawn_villages.py).
+# other (see min_centre_distance/max_centre_distance in generate_villages.py).
 # 10km per side comfortably covers many villages in one viewport while still
 # rejecting a request for "the entire world" in one query, since every
 # feature in the bbox gets fully serialized (no vector-tile-style paging).

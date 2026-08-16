@@ -31,7 +31,7 @@
   gap: sp.$spacing-sm;
   width: 100%;
   padding: sp.$padding-base;
-  //border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border: 1px solid transparent;
   //border-radius: sp.$border-radius;
   background: rgba(c.$color-bg, 0.4);
   transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -60,8 +60,7 @@
 }
 
 .canHover .listItem:hover {
-  background: rgba(c.$color-border-primary, 0.06);
-  border-color: rgba(c.$color-border-primary, 0.5);
+  background: rgba(c.$color-border-primary, 0.18);
   @include m.box-shadow(md);
   z-index: 1;
   cursor: default;
@@ -69,4 +68,9 @@
 
 .canSelect .listItem:hover {
   cursor: pointer;
+}
+
+.compact .listItem {
+  padding: sp.$padding-sm;
+  gap: sp.$spacing-xs;
 }

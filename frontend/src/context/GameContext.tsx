@@ -1,10 +1,14 @@
 // GameContext.tsx
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactElement, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { useBootstrapGameData } from '../hooks/useBootstrapGameData';
+import { useEventCallback } from '../hooks/useEventCallback';
 import { apiFetch } from "../utils/api";
 import useActivityTimer from '../hooks/useActivityTimer';
+import useUnloadWarning from '../hooks/useUnloadWarning';
+import { initialMapCentreQueryOptions, mapWorldBoundsQueryOptions } from '../hooks/useMap';
 import { useAuth } from './AuthContext';
 import { GameContext, type GameContextValue } from './gameContext';
 import type {
@@ -81,6 +85,10 @@ export const GameProvider = ({ children }: ProviderProps): ReactElement => {
   const activityTimer = useActivityTimer();
   const { loadFromServer } = activityTimer;
 
+  useUnloadWarning(activityTimer.status === 'active');
+
+  const queryClient = useQueryClient();
+
 
   // ----------------------------------------
   //  STABLE CALLBACKS
@@ -126,11 +134,12 @@ export const GameProvider = ({ children }: ProviderProps): ReactElement => {
 
   const { isAuthenticated, loading: authLoading } = useAuth();
 
+  const onAuthReadyFetchPlayerAndCharacter = useEventCallback(fetchPlayerAndCharacter);
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      fetchPlayerAndCharacter();
+      onAuthReadyFetchPlayerAndCharacter();
     }
-  }, [fetchPlayerAndCharacter, isAuthenticated, authLoading]);
+  }, [onAuthReadyFetchPlayerAndCharacter, isAuthenticated, authLoading]);
 
   useEffect(() => {
     if (activityTimerInfo) {
@@ -145,21 +154,47 @@ export const GameProvider = ({ children }: ProviderProps): ReactElement => {
     player?.is_premium,
   ]);
 
+  // Primes the map's two cheap, one-shot "where/how big is the world"
+  // queries as soon as fetch_info has resolved, rather than waiting for the
+  // player to navigate to the map page and pay for them there. Both use the
+  // same {queryKey, queryFn, staleTime} as useInitialMapCentre/
+  // useMapWorldBounds (see useMap.ts) so this primes exactly the cache entry
+  // those hooks read - if the player never opens the map, the prefetched
+  // data just sits unused until its gcTime expires. Deliberately doesn't
+  // prefetch /map/viewport/: that needs a bbox only the mounted map
+  // component can produce, and (unlike these two) starts a 2s poll once
+  // enabled, which would run in the background for every session whether or
+  // not the player ever opens the map.
+  useEffect(() => {
+    if (loading || !isAuthenticated) return;
+    void queryClient.prefetchQuery(initialMapCentreQueryOptions);
+    void queryClient.prefetchQuery(mapWorldBoundsQueryOptions);
+  }, [loading, isAuthenticated, queryClient]);
+
+  const onAuthReadyFetchActivities = useEventCallback(fetchActivities);
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      fetchActivities();
+      onAuthReadyFetchActivities();
     }
-  }, [fetchActivities, isAuthenticated, authLoading]);
+  }, [onAuthReadyFetchActivities, isAuthenticated, authLoading]);
 
-  useEffect(() => {
+  // Adjust local state when the bootstrap-loaded values arrive, per
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [prevXpModsOnload, setPrevXpModsOnload] = useState(xpModsOnload);
+  if (xpModsOnload !== prevXpModsOnload) {
+    setPrevXpModsOnload(xpModsOnload);
     if (xpModsOnload) {
       setXpMods(xpModsOnload);
     }
-  }, [xpModsOnload]);
+  }
 
-  useEffect(() => {
+  const [prevAnnouncementUnreadCountOnload, setPrevAnnouncementUnreadCountOnload] = useState(
+    announcementUnreadCountOnload
+  );
+  if (announcementUnreadCountOnload !== prevAnnouncementUnreadCountOnload) {
+    setPrevAnnouncementUnreadCountOnload(announcementUnreadCountOnload);
     setAnnouncementUnreadCount(announcementUnreadCountOnload);
-  }, [announcementUnreadCountOnload]);
+  }
 
 
   // ----------------------------------------

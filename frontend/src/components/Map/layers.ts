@@ -1,4 +1,4 @@
-import { type MapLibreMap } from "maplibre-gl";
+import { type FilterSpecification, type MapLibreMap } from "maplibre-gl";
 
 export const BOUNDARY_FILL_LAYER = "boundary-fill";
 export const BOUNDARY_LINE_LAYER = "boundary-line";
@@ -7,32 +7,90 @@ export const SUBZONES_FILL_LAYER = "subzones-fill";
 export const PATHS_LINE_LAYER = "paths-line";
 export const ROADS_LINE_LAYER = "roads-line";
 export const VILLAGE_LABEL_LAYER = "village-label";
-export const VILLAGE_MARKER_LAYER = "village-marker";
+// BOUNDARY_FILL_LAYER is intentionally excluded - a village boundary tooltip
+// added nothing (just repeated the village name) and, since the boundary
+// covers the whole village, its click handler collided with
+// VILLAGE_LABEL_LAYER's (see Map.tsx).
 export const CLICKABLE_LAYERS = [
-	BOUNDARY_FILL_LAYER,
 	BUILDINGS_FILL_LAYER,
 	SUBZONES_FILL_LAYER,
 ];
 
 const CHARACTERS_LAYER = "characters";
 
-// Marker colour per PopulationCentre.state (see locations/models.py) - a
-// placeholder palette (issue #673 explicitly leaves the exact icon/colour
-// set as an open design question). Mirrors ProgressBar.module.scss's own
-// danger/warning/default/success classes (rather than inventing a separate
-// palette) so a village's marker colour and its tooltip progress bar
-// (VILLAGE_STATE_PROGRESS_COLORS below) read as the same colour per state.
+// Outlines whichever building/character the detail card (DetailSurface, via
+// DetailCard) currently has open, so it's clear which map object an open
+// card refers to. Filters start matching nothing (id -1 never occurs) and
+// are updated by Map.tsx's own effect via map.setFilter as `detail` changes,
+// rather than being rebuilt as regular data layers on every selection.
+export const SELECTED_BUILDING_OUTLINE_LAYER = "selected-building-outline";
+export const SELECTED_CHARACTER_HIGHLIGHT_LAYER = "selected-character-highlight";
+
+// Lighter-weight versions of the two layers above, driven by pointer
+// hover instead of the open detail card - a preview affordance before
+// committing to a click.
+export const HOVER_BUILDING_OUTLINE_LAYER = "hover-building-outline";
+export const HOVER_CHARACTER_HIGHLIGHT_LAYER = "hover-character-highlight";
+
+// Selection/hover highlight colour - mirrors $color-accent /
+// $accent-scale(200) in styles/tokens/_colors.scss (MapLibre paint
+// expressions live in plain TS and can't import SCSS variables directly).
+// Chosen over the more literally-named $color-glowing-outline
+// ($primary-scale(500), green) because that token reads as part of the
+// map's own green terrain/fields rather than standing out against it.
+const SELECTION_HIGHLIGHT_COLOR = "#ff8800"; // c.$color-accent
+
+// A feature only enters a filtered layer's render set the instant
+// setFilter matches it, so a paint-property transition (configured via
+// the "-transition" keys below) has no prior rendered state to animate
+// from and would otherwise snap straight to its final value. Zeroing the
+// opacity in the same tick as the filter change, then restoring it a
+// frame later, gives the transition something to animate and produces a
+// fade-in instead.
+export function setFilterWithFade(
+	map: MapLibreMap,
+	layerId: string,
+	opacityProperty: "line-opacity" | "circle-stroke-opacity",
+	filter: FilterSpecification,
+	targetOpacity = 1
+): void {
+	map.setPaintProperty(layerId, opacityProperty, 0);
+	map.setFilter(layerId, filter);
+	requestAnimationFrame(() => {
+		map.setPaintProperty(layerId, opacityProperty, targetOpacity);
+	});
+}
+
+// The selected-* layers' own paint opacity (see addVillageLayers below) is
+// the "detail card open" intensity; a tooltip alone (lower rung of the
+// tooltip -> DetailCard progressive disclosure - see DetailSelection in
+// Map.tsx) uses this reduced intensity instead, via the same layers/effect.
+export const TOOLTIP_ONLY_SELECTION_OPACITY = 0.5;
+
+// Resting opacity for the HOVER_* layers below - matches their static
+// paint.*-opacity, but setFilterWithFade's zero-then-restore fade needs
+// this passed explicitly as targetOpacity, since the function's own
+// default (1) is for the SELECTED_* layers' "detail card open" case.
+export const HOVER_OPACITY = 0.5;
+
+// Village name-label colour per PopulationCentre.state (see
+// locations/models.py) - a placeholder palette (issue #673 explicitly leaves
+// the exact colour set as an open design question). Mirrors
+// ProgressBar.module.scss's own danger/warning/default/success classes
+// (rather than inventing a separate palette) so a village's label colour and
+// its tooltip progress bar (VILLAGE_STATE_PROGRESS_COLORS below) read as the
+// same colour per state.
 export const VILLAGE_STATE_COLORS: Record<string, string> = {
 	Struggling: "#c62828", // ProgressBar .danger (c.$color-error)
 	Recovering: "#ff9800", // ProgressBar .warning (c.$color-warning)
 	Stable: "#007a32", // ProgressBar .default (c.$color-progress-bar)
 	Thriving: "#00612a", // ProgressBar .success (c.$color-status-success)
 };
-const VILLAGE_STATE_DEFAULT_COLOR = "#888";
+const VILLAGE_STATE_DEFAULT_COLOR = "#333"; // matches the label's old fixed text-color
 
-// ProgressBar `color` prop values per state, for the "tap a marker" expanded
+// ProgressBar `color` prop values per state, for the "tap a label" expanded
 // tooltip - see VILLAGE_STATE_COLORS above for how these line up with the
-// marker's own fill colour.
+// label's own text colour.
 export const VILLAGE_STATE_PROGRESS_COLORS: Record<string, string> = {
 	Struggling: "danger",
 	Recovering: "warning",
@@ -40,20 +98,31 @@ export const VILLAGE_STATE_PROGRESS_COLORS: Record<string, string> = {
 	Thriving: "success",
 };
 
+// Sized to tightly bound the glyph drawn below (roughly 6x11.9 units, see
+// the shape coordinates), plus a small margin - not an arbitrary square
+// canvas. MapLibre's click hit-testing for symbol/icon layers uses the
+// full image bounding box (scaled by icon-size), not per-pixel alpha, so
+// a canvas padded much larger than the visible glyph (e.g. the previous
+// 256x256, ~85% transparent margin) made clicks well outside the drawn
+// character register as hits on it - see issue #660's tooltip-priority
+// follow-up. Shrinking the canvas doesn't change the glyph's on-screen
+// size (that's governed by pixelRatio/scale below, not canvas size), only
+// how much dead space surrounds it.
 function createCharacterIcon(): ImageData {
-    const size = 256;
+    const width = 48;
+    const height = 88;
     const scale = 6;
 
 	const canvas = document.createElement("canvas");
-    canvas.width = size;
-	canvas.height = size;
+    canvas.width = width;
+	canvas.height = height;
 
 	const context = canvas.getContext("2d");
 	if (!context) {
-		return new ImageData(size, size);
+		return new ImageData(width, height);
 	}
 
-	context.translate(size/2, size/2);
+	context.translate(width/2, height/2);
     context.scale(scale, scale);
 
 	context.fillStyle = "rgba(0,0,0,0.25)";
@@ -75,7 +144,7 @@ function createCharacterIcon(): ImageData {
 	context.fill();
 	context.stroke();
 
-	return context.getImageData(0, 0, size, size);
+	return context.getImageData(0, 0, width, height);
 }
 
 export function addVillageLayers(map: MapLibreMap): void {
@@ -108,6 +177,38 @@ export function addVillageLayers(map: MapLibreMap): void {
 		paint: { "fill-color": ["get", "fillColor"], "fill-outline-color": "#333" },
 	});
 	map.addLayer({
+		id: HOVER_BUILDING_OUTLINE_LAYER,
+		type: "line",
+		source: "village",
+		filter: [
+			"all",
+			["==", ["get", "feature_type"], "building"],
+			["==", ["get", "id"], -1],
+		],
+		paint: {
+			"line-color": SELECTION_HIGHLIGHT_COLOR,
+			"line-width": 2,
+			"line-opacity": 0.5,
+			"line-opacity-transition": { duration: 150, delay: 0 },
+		},
+	});
+	map.addLayer({
+		id: SELECTED_BUILDING_OUTLINE_LAYER,
+		type: "line",
+		source: "village",
+		filter: [
+			"all",
+			["==", ["get", "feature_type"], "building"],
+			["==", ["get", "id"], -1],
+		],
+		paint: {
+			"line-color": SELECTION_HIGHLIGHT_COLOR,
+			"line-width": 3,
+			"line-opacity": 1,
+			"line-opacity-transition": { duration: 250, delay: 0 },
+		},
+	});
+	map.addLayer({
 		id: PATHS_LINE_LAYER,
 		type: "line",
 		source: "village",
@@ -136,37 +237,6 @@ export function addVillageLayers(map: MapLibreMap): void {
 		paint: {
 			"line-color": "#8b5a2b",
 			"line-width": ["*", ["coalesce", ["get", "width"], 6], 0.5],
-		},
-	});
-	map.addLayer({
-		id: VILLAGE_MARKER_LAYER,
-		type: "circle",
-		source: "village",
-		filter: [
-			"==",
-			["get", "feature_type"],
-			"population_centre_label",
-		],
-		paint: {
-			"circle-radius": [
-				"interpolate",
-				["linear"],
-				["zoom"],
-				2, 3,
-				10, 5,
-				14, 9,
-			],
-			"circle-color": [
-				"match",
-				["get", "state"],
-				"Struggling", VILLAGE_STATE_COLORS.Struggling,
-				"Recovering", VILLAGE_STATE_COLORS.Recovering,
-				"Stable", VILLAGE_STATE_COLORS.Stable,
-				"Thriving", VILLAGE_STATE_COLORS.Thriving,
-				VILLAGE_STATE_DEFAULT_COLOR,
-			],
-			"circle-stroke-width": 1.5,
-			"circle-stroke-color": "#fff",
 		},
 	});
 	map.addLayer({
@@ -201,7 +271,18 @@ export function addVillageLayers(map: MapLibreMap): void {
 			],
 		},
 		paint: {
-			"text-color": "#333",
+			// Tapping/selecting a village label expands it into its progress
+			// bar + state label (issue #673) - the label itself is coloured
+			// by state at rest (see VILLAGE_STATE_COLORS above).
+			"text-color": [
+				"match",
+				["get", "state"],
+				"Struggling", VILLAGE_STATE_COLORS.Struggling,
+				"Recovering", VILLAGE_STATE_COLORS.Recovering,
+				"Stable", VILLAGE_STATE_COLORS.Stable,
+				"Thriving", VILLAGE_STATE_COLORS.Thriving,
+				VILLAGE_STATE_DEFAULT_COLOR,
+			],
 			"text-halo-color": "#fff",
 			"text-halo-width": 2,
 			"text-opacity": [
@@ -213,6 +294,58 @@ export function addVillageLayers(map: MapLibreMap): void {
 				15, 1,
 				16, 0,
 			],
+		},
+	});
+	map.addLayer({
+		id: HOVER_CHARACTER_HIGHLIGHT_LAYER,
+		type: "circle",
+		source: "village",
+		// Added before CHARACTERS_LAYER so the highlight ring sits beneath the
+		// character icon rather than covering it.
+		filter: [
+			"all",
+			["==", ["get", "feature_type"], "character"],
+			["==", ["get", "id"], -1],
+		],
+		paint: {
+			"circle-radius": [
+				"interpolate",
+				["linear"],
+				["zoom"],
+				12, 6,
+				16, 18,
+			],
+			"circle-color": "transparent",
+			"circle-stroke-color": SELECTION_HIGHLIGHT_COLOR,
+			"circle-stroke-width": 2,
+			"circle-stroke-opacity": 0.5,
+			"circle-stroke-opacity-transition": { duration: 150, delay: 0 },
+		},
+	});
+	map.addLayer({
+		id: SELECTED_CHARACTER_HIGHLIGHT_LAYER,
+		type: "circle",
+		source: "village",
+		// Added before CHARACTERS_LAYER so the highlight ring sits beneath the
+		// character icon rather than covering it.
+		filter: [
+			"all",
+			["==", ["get", "feature_type"], "character"],
+			["==", ["get", "id"], -1],
+		],
+		paint: {
+			"circle-radius": [
+				"interpolate",
+				["linear"],
+				["zoom"],
+				12, 6,
+				16, 18,
+			],
+			"circle-color": "transparent",
+			"circle-stroke-color": SELECTION_HIGHLIGHT_COLOR,
+			"circle-stroke-width": 3,
+			"circle-stroke-opacity": 1,
+			"circle-stroke-opacity-transition": { duration: 250, delay: 0 },
 		},
 	});
 	map.addLayer({

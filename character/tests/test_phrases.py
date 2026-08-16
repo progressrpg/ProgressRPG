@@ -11,7 +11,7 @@ class CharacterPhrasesTests(SimpleTestCase):
         load_phrases.cache_clear()
 
     def test_generate_phrase_replaces_character_placeholder(self):
-        character = SimpleNamespace(first_name="Ari", name="Ari Stone")
+        character = SimpleNamespace(name="Ari")
 
         with patch(
             "character.phrases.random.choice", return_value="{character} keeps going."
@@ -21,14 +21,14 @@ class CharacterPhrasesTests(SimpleTestCase):
         self.assertEqual(phrase, "Ari keeps going.")
 
     def test_generate_phrase_falls_back_to_default_when_state_missing(self):
-        character = SimpleNamespace(first_name="Ari", name="Ari Stone")
+        character = SimpleNamespace(name="Ari")
 
         phrase = generate_phrase("unknown_state", "work", character)
 
         self.assertEqual(phrase, "Ari completes a task.")
 
     def test_generate_phrase_falls_back_to_work_when_activity_missing(self):
-        character = SimpleNamespace(first_name="Ari", name="Ari Stone")
+        character = SimpleNamespace(name="Ari")
 
         with patch(
             "character.phrases.random.choice", return_value="{character} handles it."

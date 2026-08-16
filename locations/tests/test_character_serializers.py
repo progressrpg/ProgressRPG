@@ -1,7 +1,7 @@
 from django.contrib.gis.geos import Point
 from django.test import TestCase
 
-from locations.models import Node, Path, Journey
+from locations.models import Building, InteriorSpace, Node, Path, Journey
 from locations.serializers import (
     CharacterPointFeatureSerializer,
     JOURNEY_PATH_PREVIEW_LIMIT,
@@ -24,7 +24,7 @@ class CharacterPointFeatureSerializerJourneyTest(TestCase):
 
     def test_idle_character_has_no_path(self):
         character = Character.objects.create(
-            first_name="Idle",
+            given_name="Idle",
             location=Point(0, 0, srid=3857),
             current_node=self.node_a,
             movement_speed=2.5,
@@ -37,7 +37,7 @@ class CharacterPointFeatureSerializerJourneyTest(TestCase):
 
     def test_moving_character_exposes_remaining_path_and_speed(self):
         character = Character.objects.create(
-            first_name="Walker",
+            given_name="Walker",
             location=Point(0, 0, srid=3857),
             current_node=self.node_a,
             is_moving=True,
@@ -68,7 +68,7 @@ class CharacterPointFeatureSerializerJourneyTest(TestCase):
             Path.objects.create(from_node=nodes[-2], to_node=nodes[-1])
 
         character = Character.objects.create(
-            first_name="LongHauler",
+            given_name="LongHauler",
             location=Point(0, 0, srid=3857),
             current_node=self.node_a,
             is_moving=True,
@@ -85,3 +85,113 @@ class CharacterPointFeatureSerializerJourneyTest(TestCase):
         props = CharacterPointFeatureSerializer(character).data["properties"]
 
         self.assertEqual(len(props["path"]), JOURNEY_PATH_PREVIEW_LIMIT)
+
+
+class CharacterPointFeatureSerializerLocationTypeTest(TestCase):
+    """current_location_type/destination_location_type feed the map
+    tooltip's "[Activity] at [building]" / "Walking to [building]" copy
+    (issue: concise contextual character tooltip) - None means the node
+    isn't inside a building at all, so the tooltip reads "outside"."""
+
+    def setUp(self):
+        self.bakery = Building.objects.create(
+            name="Bakery 1", building_type="bakery", location=Point(0, 0, srid=3857)
+        )
+        self.building_node = Node.objects.create(
+            name="Bakery entrance",
+            location=Point(0, 0, srid=3857),
+            building=self.bakery,
+        )
+        self.outside_node = Node.objects.create(
+            name="Field", location=Point(50, 50, srid=3857)
+        )
+
+    def test_current_location_type_reflects_the_building_the_character_is_in(self):
+        character = Character.objects.create(
+            given_name="Baker",
+            location=Point(0, 0, srid=3857),
+            current_node=self.building_node,
+        )
+
+        props = CharacterPointFeatureSerializer(character).data["properties"]
+
+        self.assertEqual(props["current_location_type"], "bakery")
+
+    def test_current_location_type_reflects_the_building_of_an_interior_node(self):
+        # Interior nodes (kind=INTERIOR) only set interior_space, not
+        # building directly (Node.building/interior_space are mutually
+        # exclusive - see the node_building_or_interior constraint), so a
+        # character in a room deep inside the bakery still needs to resolve
+        # back to that building rather than reading as "outside".
+        kitchen = InteriorSpace.objects.create(
+            name="Kitchen", building=self.bakery, area=20, usage="kitchen"
+        )
+        interior_node = Node.objects.create(
+            name="Kitchen floor",
+            location=Point(0, 0, srid=3857),
+            interior_space=kitchen,
+        )
+        character = Character.objects.create(
+            given_name="Kneader",
+            location=Point(0, 0, srid=3857),
+            current_node=interior_node,
+        )
+
+        props = CharacterPointFeatureSerializer(character).data["properties"]
+
+        self.assertEqual(props["current_location_type"], "bakery")
+
+    def test_current_location_type_is_none_when_the_character_is_outside(self):
+        character = Character.objects.create(
+            given_name="Forager",
+            location=Point(50, 50, srid=3857),
+            current_node=self.outside_node,
+        )
+
+        props = CharacterPointFeatureSerializer(character).data["properties"]
+
+        self.assertIsNone(props["current_location_type"])
+
+    def test_destination_location_type_reflects_the_journeys_destination_building(
+        self,
+    ):
+        character = Character.objects.create(
+            given_name="Walker",
+            location=Point(50, 50, srid=3857),
+            current_node=self.outside_node,
+            is_moving=True,
+        )
+        Journey.objects.create(
+            character=character,
+            start_node=self.outside_node,
+            destination_node=self.building_node,
+            path_nodes=[self.outside_node.pk, self.building_node.pk],
+            current_index=0,
+            status="active",
+        )
+
+        props = CharacterPointFeatureSerializer(character).data["properties"]
+
+        self.assertEqual(props["destination_location_type"], "bakery")
+
+    def test_destination_location_type_is_none_when_walking_to_a_spot_with_no_building(
+        self,
+    ):
+        character = Character.objects.create(
+            given_name="Wanderer",
+            location=Point(0, 0, srid=3857),
+            current_node=self.building_node,
+            is_moving=True,
+        )
+        Journey.objects.create(
+            character=character,
+            start_node=self.building_node,
+            destination_node=self.outside_node,
+            path_nodes=[self.building_node.pk, self.outside_node.pk],
+            current_index=0,
+            status="active",
+        )
+
+        props = CharacterPointFeatureSerializer(character).data["properties"]
+
+        self.assertIsNone(props["destination_location_type"])

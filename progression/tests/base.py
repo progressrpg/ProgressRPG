@@ -15,7 +15,7 @@ class BaseTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="test@test.com", password="pass")
         self.character = Character.objects.create(
-            name="Test Character",
+            given_name="Test Character",
         )
         self.player, _ = Player.objects.get_or_create(
             user=self.user,

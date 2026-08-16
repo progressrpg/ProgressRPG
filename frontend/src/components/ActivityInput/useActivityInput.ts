@@ -4,9 +4,26 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useGame } from "../../hooks/useGame";
 import { useEntitySearchCache } from "../../hooks/useEntitySearchCache";
 import { useSupportFlow } from "../../hooks/useSupportFlow";
-import { TODAY_POINTS_QUERY_KEY } from "../../hooks/usePlayer";
+import { useFeatureFlag } from "../../hooks/useFeatureFlag";
+import { DAILY_GOALS_QUERY_KEY } from "../../hooks/usePlayer";
 import type { PlayerActivity } from "../../types";
 import { playLimitReachedSound, primeAudio } from "../../utils/sounds";
+import { formatDuration } from "../../utils/formatUtils";
+
+/** Populated on stop when `results_mode` is on, instead of opening the SupportFlow modal. */
+export interface ResultsData {
+  activityId: number | null;
+  activityName: string | null;
+  xpGained: number | null;
+  baseXp: number | null;
+  xpMultiplier: number | null;
+  taskXpMultiplier: number | null;
+  levelUps: number[];
+  isAutoStopped: boolean;
+  showUpgradePrompt: boolean;
+  elapsedSeconds: number | null;
+  taskId: number | null;
+}
 
 const WELCOME_MESSAGE_LAST_EVENT_KEY = "supportFlow_lastLoginEventAtShown";
 
@@ -98,6 +115,8 @@ function useAutoStopCompletionEffect({
   isPremium,
   openActivityReward,
   setName,
+  resultsModeEnabled,
+  setResultsData,
 }: {
   autoStopCompletion: ReturnType<typeof useGame>["activityTimer"]["autoStopCompletion"];
   clearAutoStopCompletion: ReturnType<typeof useGame>["activityTimer"]["clearAutoStopCompletion"];
@@ -105,6 +124,8 @@ function useAutoStopCompletionEffect({
   isPremium: boolean;
   openActivityReward: ReturnType<typeof useSupportFlow>["openActivityReward"];
   setName: (value: string) => void;
+  resultsModeEnabled: boolean;
+  setResultsData: (data: ResultsData) => void;
 }) {
   useEffect(() => {
     if (!autoStopCompletion) return;
@@ -122,17 +143,35 @@ function useAutoStopCompletionEffect({
 
       const isFreeLimitAutoStop = completion.stopReason === "free_limit";
 
-      openActivityReward({
-        xpGained: completion.xpGained,
-        baseXp: completion.baseXp,
-        xpMultiplier: completion.xpMultiplier,
-        taskXpMultiplier: completion.taskXpMultiplier,
-        levelUps: completion.levelUps,
-        isAutoStopped: true,
-        showUpgradePrompt: !isPremium && isFreeLimitAutoStop,
-        activityName: completion.activityName,
-        elapsedSeconds: completion.elapsedSeconds,
-      });
+      // Auto-stop completions never carry a task id (parity with the
+      // pre-existing SupportFlow reward, which also omitted it here).
+      if (resultsModeEnabled) {
+        setResultsData({
+          activityId: null,
+          activityName: completion.activityName,
+          xpGained: completion.xpGained,
+          baseXp: completion.baseXp,
+          xpMultiplier: completion.xpMultiplier,
+          taskXpMultiplier: completion.taskXpMultiplier,
+          levelUps: completion.levelUps,
+          isAutoStopped: true,
+          showUpgradePrompt: !isPremium && isFreeLimitAutoStop,
+          elapsedSeconds: completion.elapsedSeconds,
+          taskId: null,
+        });
+      } else {
+        openActivityReward({
+          xpGained: completion.xpGained,
+          baseXp: completion.baseXp,
+          xpMultiplier: completion.xpMultiplier,
+          taskXpMultiplier: completion.taskXpMultiplier,
+          levelUps: completion.levelUps,
+          isAutoStopped: true,
+          showUpgradePrompt: !isPremium && isFreeLimitAutoStop,
+          activityName: completion.activityName,
+          elapsedSeconds: completion.elapsedSeconds,
+        });
+      }
       clearAutoStopCompletion();
     }
 
@@ -148,6 +187,8 @@ function useAutoStopCompletionEffect({
     isPremium,
     openActivityReward,
     setName,
+    resultsModeEnabled,
+    setResultsData,
   ]);
 }
 
@@ -171,9 +212,13 @@ export function useActivityInput() {
   const isPremium = Boolean(player?.is_premium);
   const queryClient = useQueryClient();
   const { addEntityToCache } = useEntitySearchCache("activity");
+  const resultsModeEnabled = useFeatureFlag("results_mode");
 
   const [name, setName] = useState("");
   const [isEditingLabel, setIsEditingLabel] = useState(false);
+  const [resultsData, setResultsData] = useState<ResultsData | null>(null);
+
+  const exitResults = useCallback(() => setResultsData(null), []);
 
   // Escape-to-cancel calls `.blur()` synchronously (to move focus off the
   // input immediately), but that fires before React flushes isEditingLabel's
@@ -251,7 +296,7 @@ export function useActivityInput() {
           fetchPlayerAndCharacter(),
           fetchCharacterCurrent(),
           fetchActivities(),
-          queryClient.invalidateQueries({ queryKey: TODAY_POINTS_QUERY_KEY }),
+          queryClient.invalidateQueries({ queryKey: DAILY_GOALS_QUERY_KEY }),
           completedTaskId ? queryClient.invalidateQueries({ queryKey: ["tasks"] }) : Promise.resolve(),
         ]);
       } catch (err) {
@@ -268,6 +313,8 @@ export function useActivityInput() {
     isPremium,
     openActivityReward,
     setName,
+    resultsModeEnabled,
+    setResultsData,
   });
 
   // Starts a brand-new timer (no timer currently running). Shared by every
@@ -275,6 +322,8 @@ export function useActivityInput() {
   // entry, submitting free text, or the blank-start button.
   const startNewActivity = useCallback(
     async (text: string, options?: { taskId?: number | null; cacheEntry?: CacheEntry; allowBlank?: boolean }) => {
+      // Guards against a stale Results screen lingering into the next activity.
+      setResultsData(null);
       setName(text);
       if (options?.cacheEntry !== undefined) addEntityToCache(options.cacheEntry);
 
@@ -308,6 +357,7 @@ export function useActivityInput() {
     if (isActive) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
       const completedTaskId = currentActivity?.taskId ?? null;
+      const completedActivityId = currentActivity?.id ?? null;
       const localElapsed = elapsed;
 
       let completion: Awaited<ReturnType<typeof stop>> = null;
@@ -330,24 +380,42 @@ export function useActivityInput() {
       await refreshAfterActivityChange(completedTaskId);
 
       playLimitReachedSound();
-      openActivityReward({
-        xpGained,
-        baseXp,
-        xpMultiplier,
-        taskXpMultiplier,
-        levelUps,
-        isAutoStopped: false,
-        showUpgradePrompt: !isPremium,
-        activityName: completedActivityName || null,
-        elapsedSeconds,
-        taskId: completedTaskId,
-      });
+
+      if (resultsModeEnabled) {
+        setResultsData({
+          activityId: completedActivityId,
+          activityName: completedActivityName || null,
+          xpGained,
+          baseXp,
+          xpMultiplier,
+          taskXpMultiplier,
+          levelUps,
+          isAutoStopped: false,
+          showUpgradePrompt: !isPremium,
+          elapsedSeconds,
+          taskId: completedTaskId,
+        });
+      } else {
+        openActivityReward({
+          xpGained,
+          baseXp,
+          xpMultiplier,
+          taskXpMultiplier,
+          levelUps,
+          isAutoStopped: false,
+          showUpgradePrompt: !isPremium,
+          activityName: completedActivityName || null,
+          elapsedSeconds,
+          taskId: completedTaskId,
+        });
+      }
       return;
     }
 
     if (!name.trim()) return;
     await startNewActivity(name.trim(), { cacheEntry: name.trim() });
   }, [
+    currentActivity?.id,
     currentActivity?.name,
     currentActivity?.taskId,
     elapsed,
@@ -356,6 +424,7 @@ export function useActivityInput() {
     name,
     openActivityReward,
     refreshAfterActivityChange,
+    resultsModeEnabled,
     startNewActivity,
     stop,
   ]);
@@ -468,8 +537,8 @@ export function useActivityInput() {
     stop,
   ]);
 
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = elapsed % 60;
+  const formattedElapsed =
+  formatDuration(elapsed)
 
   const formattedLimit = useMemo(() => {
     if (typeof limitSeconds !== "number" || limitSeconds <= 0) {
@@ -493,8 +562,10 @@ export function useActivityInput() {
     isUnlabelled,
     isEditingLabel,
     inputValue,
-    minutes,
-    seconds,
+    taskId: currentActivity?.taskId ?? null,
+    activityCatalogId: currentActivity?.activity ?? null,
+    elapsed,
+    formattedElapsed,
     formattedLimit,
     showAutoStopWarning,
     flowState,
@@ -513,5 +584,7 @@ export function useActivityInput() {
     submitAndOpenSupport,
     openSupportMode,
     isPremium,
+    resultsData,
+    exitResults,
   };
 }

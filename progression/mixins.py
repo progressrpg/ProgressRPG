@@ -59,3 +59,66 @@ class PlayerOwnedMixin(models.Model):
             self.last_updated = timezone.now()
             self.save(update_fields=["last_updated"])
         return self
+
+
+class LevelProgressionMixin(models.Model):
+    """
+    Shared AP/XP behaviour for models with `xp`/`level`/`xp_next_level`/
+    `name` fields and an `xp_mods` reverse manager (Player, Character) - the
+    curve math and multiplier query live in progression.ap; this just wires
+    that up to the instance's own state and persistence.
+    """
+
+    # Declared here (not as model fields) so mypy knows the types provided
+    # by concrete subclasses (Player, Character) - this mixin is abstract
+    # and never instantiated directly.
+    level: int
+    xp: int
+    xp_next_level: int
+
+    class Meta:
+        abstract = True
+
+    @property
+    def name(self) -> str | None:
+        raise NotImplementedError
+
+    def add_xp(self, amount: int):
+        """
+        Add experience points (XP) to the instance and handle level-up logic.
+        """
+        from django.db import transaction
+
+        from progression import ap
+
+        with transaction.atomic():
+            self.level, self.xp, levelups = ap.apply_xp(self.level, self.xp, amount)
+            self.xp_next_level = self.get_xp_for_next_level()
+            self.save(update_fields=["xp", "level", "xp_next_level"])
+        return [{**event, "person": self, "name": self.name} for event in levelups]
+
+    def get_xp_for_next_level(self):
+        """
+        Calculate the XP required to reach the next level.
+        """
+        from progression import ap
+
+        return ap.threshold_for_level(self.level)
+
+    @property
+    def total_ap_earned(self):
+        """
+        Total Activity Points ever earned, reconstructed from level plus the
+        current xp-toward-next-level remainder. Level-up thresholds are
+        cumulative, so unlike `xp` (which resets on every level-up) this
+        stays monotonic - used wherever a long-term progress/prestige figure
+        is needed, e.g. village points.
+        """
+        from progression import ap
+
+        return ap.total_ap_earned(self.level, self.xp)
+
+    def get_xp_multiplier(self, now=None):
+        from progression import ap
+
+        return ap.get_multiplier(self, now=now)

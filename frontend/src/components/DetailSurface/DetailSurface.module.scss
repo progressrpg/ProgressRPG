@@ -1,0 +1,24 @@
+// components/DetailSurface/DetailSurface.module.scss
+@use '../../styles/base/variables' as v;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: v.$z-index-modal;
+}
+
+// display: contents - Radix still needs this element in the DOM (focus
+// trap, dismiss-on-outside-click), but it should generate no box of its
+// own. DetailCard (rendered as this component's children) does its own
+// fixed positioning independent of this element's layout, so the "sheet on
+// mobile, centered card on larger screens" behaviour lives entirely in
+// DetailCard.module.scss instead of leaking into this thin adapter.
+.content {
+  display: contents;
+}
+
+.content:focus,
+.content:focus-visible {
+  outline: none;
+}

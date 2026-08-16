@@ -1,7 +1,72 @@
+import re
+
+from django import forms
+from django.conf import settings
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import Announcement, GameSettings, Image, PlayerAnnouncementState
+from .models import (
+    Announcement,
+    FeatureFlag,
+    GameSettings,
+    Image,
+    PlayerAnnouncementState,
+)
+
+_FEATURE_FLAGS_TS = settings.BASE_DIR / "frontend" / "src" / "featureFlags.ts"
+_FLAG_KEY_RE = re.compile(r"^\s{2}(\w+):\s*\[", re.MULTILINE)
+
+_ACCESS_GROUP_CHOICES = [
+    ("all", "All users"),
+    ("premium", "Premium users"),
+    ("testers", "Testers"),
+]
+
+
+def _load_flag_key_choices(exclude=()):
+    try:
+        text = _FEATURE_FLAGS_TS.read_text()
+        keys = _FLAG_KEY_RE.findall(text)
+    except FileNotFoundError:
+        return []
+    return [(k, k) for k in keys if k not in exclude]
+
+
+class FeatureFlagForm(forms.ModelForm):
+    access_groups = forms.MultipleChoiceField(
+        choices=_ACCESS_GROUP_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+
+    class Meta:
+        model = FeatureFlag
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Exclude keys already assigned to another FeatureFlag row, so the
+        # dropdown only offers keys that don't have one yet. When editing an
+        # existing row, its own key stays selectable.
+        already_used = set(
+            FeatureFlag.objects.exclude(pk=self.instance.pk).values_list(
+                "key", flat=True
+            )
+        )
+        self.fields["key"] = forms.ChoiceField(
+            choices=_load_flag_key_choices(exclude=already_used)
+        )
+
+
+@admin.register(FeatureFlag)
+class FeatureFlagAdmin(admin.ModelAdmin):
+    form = FeatureFlagForm
+    list_display = ("key", "get_access_groups_display", "updated_at")
+    search_fields = ("key", "description")
+
+    @admin.display(description="Access groups")
+    def get_access_groups_display(self, obj):
+        return ", ".join(obj.access_groups) if obj.access_groups else "—"
 
 
 @admin.register(Image)
@@ -68,7 +133,12 @@ class GameSettingsAdmin(admin.ModelAdmin):
 @admin.action(description="Publish selected announcements")
 def publish_selected_announcements(_modeladmin, _request, queryset):
     now = timezone.now()
-    queryset.update(is_published=True, published_at=now)
+    # Save individually (not queryset.update()) so Announcement.save()
+    # broadcasts the "announcement_published" WebSocket event per row.
+    for announcement in queryset:
+        announcement.is_published = True
+        announcement.published_at = now
+        announcement.save()
 
 
 @admin.action(description="Unpublish selected announcements")
@@ -88,6 +158,14 @@ class AnnouncementAdmin(admin.ModelAdmin):
     list_filter = ["is_published", "published_at", "created_at"]
     search_fields = ["title", "summary", "body"]
     actions = [publish_selected_announcements, unpublish_selected_announcements]
+
+    def get_readonly_fields(self, request, obj=None):
+        # published_at is set automatically the first time an announcement is
+        # published (see Announcement.save()) - once set, edit it via
+        # unpublish/republish rather than by hand.
+        if obj is not None and obj.published_at is not None:
+            return ["published_at"]
+        return []
 
 
 @admin.register(PlayerAnnouncementState)

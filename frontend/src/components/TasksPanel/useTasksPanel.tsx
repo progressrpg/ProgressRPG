@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from "../../hooks/useTasks";
+import { useNotes, useCreateNote } from "../../hooks/useNotes";
 import { useGame } from "../../hooks/useGame";
 import type { Task } from "../../types";
 import type { SortOption } from "../PlayerItemList/PlayerItemList";
@@ -11,6 +12,32 @@ import { formatRewardDuration, formatDueAt, isOverdue } from "../../utils/format
 import { TASKS_HIDE_COMPLETED_KEY } from "../../utils/userPreferences";
 
 export type ItemRecord = Task & { [key: string]: unknown };
+
+// A client-side-only placeholder for a not-yet-created subtask. It's given a
+// negative id (real task ids are always positive) so it can share the same
+// items array, id-matching deep-link, and edit-modal machinery as real
+// tasks, without ever colliding with one or being mistaken for one.
+function makeDraftSubtask(parentId: number): ItemRecord {
+  const now = new Date().toISOString();
+  return {
+    id: -Date.now(),
+    name: "",
+    description: "",
+    player: 0,
+    project: null,
+    created_at: now,
+    last_updated: now,
+    is_complete: false,
+    completed_at: null,
+    first_completed_at: null,
+    due_at: null,
+    parent: parentId,
+    subtask_count: 0,
+    total_time: 0,
+    total_records: 0,
+    last_worked_on: null,
+  };
+}
 
 export interface TaskEditSummary {
   created: string;
@@ -94,15 +121,17 @@ function formatLastWorkedOn(task: Task): string {
   return `Last worked on ${diffWeeks} ${diffWeeks === 1 ? "week" : "weeks"} ago`;
 }
 
-export function useTasksPanel() {
+export function useTasksPanel(openTaskId?: number | null, onOpenNote?: (noteId: number) => void) {
   const navigate = useNavigate();
   const { fetchPlayerAndCharacter, activityTimer, freeTimerLimitSeconds, player } = useGame();
   const isPremium = Boolean(player?.is_premium);
 
   const { data: tasks, isLoading } = useTasks();
+  const { data: notes } = useNotes();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const createNote = useCreateNote();
 
   const [newName, setNewName] = useState("");
   const [completionReward, setCompletionReward] = useState<{ taskId: number; xp: number } | null>(null);
@@ -113,6 +142,8 @@ export function useTasksPanel() {
       return true;
     }
   });
+  const [pendingOpenTaskId, setPendingOpenTaskId] = useState<number | null>(null);
+  const [draftTask, setDraftTask] = useState<ItemRecord | null>(null);
 
   useEffect(() => {
     if (!completionReward) return;
@@ -120,9 +151,13 @@ export function useTasksPanel() {
     return () => clearTimeout(timer);
   }, [completionReward]);
 
-  const [addSubtaskParent, setAddSubtaskParent] = useState<ItemRecord | null>(null);
-
   const safeTasks = useMemo(() => asArray(tasks) as ItemRecord[], [tasks]);
+  const safeNotes = useMemo(() => asArray(notes), [notes]);
+
+  const getLinkedNoteId = useCallback(
+    (task: Task) => safeNotes.find((note) => note.task === task.id)?.id ?? null,
+    [safeNotes]
+  );
 
   const topLevelTasks = useMemo(
     () => safeTasks.filter((task) => task.parent == null),
@@ -154,20 +189,31 @@ export function useTasksPanel() {
       ? topLevel.filter((task) => !isTaskComplete(task))
       : topLevel;
 
-    const groups: ParentGroup[] = visibleTopLevel.map((parent) => {
+    if (hideCompleted && openTaskId != null && !visibleTopLevel.some((task) => task.id === openTaskId)) {
+      const deepLinkedTask = topLevel.find((task) => task.id === openTaskId);
+      if (deepLinkedTask) visibleTopLevel.push(deepLinkedTask);
+    }
+
+    return visibleTopLevel.map((parent) => {
       const children = childrenByParentId.get(parent.id) ?? [];
       return {
         parent,
         children: hideCompleted ? children.filter((child) => !isTaskComplete(child)) : children,
       };
     });
+  }, [safeTasks, hideCompleted, openTaskId]);
 
-    return groups;
-  }, [safeTasks, hideCompleted]);
+  const visibleTasks = useMemo(() => {
+    const flat = groupedTasks.flatMap((group) => [group.parent, ...group.children]);
+    // The draft only needs to be present so PlayerItemList's id-matching
+    // deep-link can find and open it; it's kept out of the rendered rows via
+    // hiddenItemIds below.
+    return draftTask ? [...flat, draftTask] : flat;
+  }, [groupedTasks, draftTask]);
 
-  const visibleTasks = useMemo(
-    () => groupedTasks.flatMap((group) => [group.parent, ...group.children]),
-    [groupedTasks]
+  const hiddenItemIds = useMemo(
+    () => (draftTask ? new Set<number>([draftTask.id]) : undefined),
+    [draftTask]
   );
 
   const childrenByGroupParentId = useMemo(
@@ -178,6 +224,16 @@ export function useTasksPanel() {
   const getChildren = useCallback(
     (task: ItemRecord): ItemRecord[] => childrenByGroupParentId.get(task.id) ?? [],
     [childrenByGroupParentId]
+  );
+
+  const handleCreateNoteForTask = useCallback(
+    (task: Task) => {
+      createNote.mutate(
+        { title: task.name, body: "", task: task.id },
+        { onSuccess: (note) => onOpenNote?.(note.id) }
+      );
+    },
+    [createNote, onOpenNote]
   );
 
   const toggleHideCompleted = useCallback(() => {
@@ -202,7 +258,6 @@ export function useTasksPanel() {
         ...(options?.due_at !== undefined ? { due_at: options.due_at } : {}),
       });
       setNewName("");
-      setAddSubtaskParent(null);
     },
     [createTask]
   );
@@ -210,35 +265,62 @@ export function useTasksPanel() {
   const handleSubmitForm = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      handleCreateTask(newName, { parent: addSubtaskParent?.id ?? undefined });
+      handleCreateTask(newName);
     },
-    [handleCreateTask, newName, addSubtaskParent]
+    [handleCreateTask, newName]
   );
 
   const startAddSubtask = useCallback((task: ItemRecord) => {
-    setAddSubtaskParent(task);
+    const draft = makeDraftSubtask(task.id);
+    setDraftTask(draft);
+    // Reuses the same one-shot open mechanism as reopening a just-created
+    // task: PlayerItemList's deep-link effect only fires while openItemId is
+    // non-null, and onOpenItemHandled clears it straight back to null once
+    // the modal's opened, so it doesn't keep re-opening (and resetting the
+    // in-progress edit) on every subsequent render/keystroke.
+    setPendingOpenTaskId(draft.id);
   }, []);
 
-  const clearAddSubtaskParent = useCallback(() => {
-    setAddSubtaskParent(null);
+  const clearPendingOpenTaskId = useCallback(() => {
+    setPendingOpenTaskId(null);
+  }, []);
+
+  // Discards the draft if its modal is what just closed, i.e. the user
+  // opened "Add subtask" and closed it again without giving it a name.
+  const discardDraftTask = useCallback((item: ItemRecord) => {
+    setDraftTask((current) => (current && current.id === item.id ? null : current));
   }, []);
 
   const handleEdit = useCallback(
-    (task: ItemRecord, name: string, options?: { parent?: number | null; due_at?: string | null }) => {
-      updateTask.mutate({
-        id: task.id,
-        data: {
-          name,
-          ...(options?.parent !== undefined ? { parent: options.parent } : {}),
-          ...(options?.due_at !== undefined ? { due_at: options.due_at } : {}),
-        },
-      });
+    (task: ItemRecord, name: string, callbacks?: { onSuccess?: () => void; onError?: () => void }) => {
+      // A draft subtask isn't persisted until it's actually given a name;
+      // commitNameEdit only calls onEdit once the name has genuinely
+      // changed, so this only fires on the user's first real edit.
+      if (task.id < 0) {
+        createTask.mutate(
+          { name, parent: task.parent },
+          {
+            onSuccess: (created) => {
+              setDraftTask(null);
+              setPendingOpenTaskId(created.id);
+              callbacks?.onSuccess?.();
+            },
+            onError: callbacks?.onError,
+          }
+        );
+        return;
+      }
+      updateTask.mutate({ id: task.id, data: { name } }, callbacks);
     },
-    [updateTask]
+    [createTask, updateTask]
   );
 
   const handleDelete = useCallback(
     (task: Task) => {
+      if (task.id < 0) {
+        setDraftTask(null);
+        return;
+      }
       deleteTask.mutate(task.id);
     },
     [deleteTask]
@@ -246,6 +328,7 @@ export function useTasksPanel() {
 
   const handleToggleComplete = useCallback(
     (task: Task) => {
+      if (task.id < 0) return;
       const completing = !isTaskComplete(task);
       updateTask.mutate(
         {
@@ -317,9 +400,12 @@ export function useTasksPanel() {
     groupedTasks,
     getChildren,
     topLevelTasks,
-    addSubtaskParent,
+    pendingOpenTaskId,
+    draftTask,
+    hiddenItemIds,
     startAddSubtask,
-    clearAddSubtaskParent,
+    clearPendingOpenTaskId,
+    discardDraftTask,
     handleCreateTask,
     handleSubmitForm,
     handleEdit,
@@ -329,6 +415,8 @@ export function useTasksPanel() {
     toggleHideCompleted,
     getTaskMeta,
     getTaskEditSummary,
+    getLinkedNoteId,
+    handleCreateNoteForTask,
     updateTask,
   };
 }

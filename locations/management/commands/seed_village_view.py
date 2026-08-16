@@ -11,7 +11,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("=== Spawning village ===")
-        call_command("spawn_villages", num_centres=1)
+        call_command("generate_villages", num_centres=1)
 
         self.stdout.write("=== Generating fields ===")
         # Must run before generate_paths, which needs the field's entrance

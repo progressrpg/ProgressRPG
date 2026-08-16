@@ -1,11 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ComponentProps } from 'react';
 import { TamaguiProvider } from 'tamagui';
 import { fromLngLat, toLngLat } from './utils';
 import { colourForCharacter } from './characters/placement';
+import { TOOLTIP_ONLY_SELECTION_OPACITY } from './layers';
 import tamaguiConfig from '../../../tamagui.config';
+
+const mockFetchMapCharacterDetail = vi.fn();
+vi.mock('../../api/map', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../api/map')>();
+  return {
+    ...actual,
+    fetchMapCharacterDetail: (...args: unknown[]) => mockFetchMapCharacterDetail(...args),
+  };
+});
 
 // MapLibre needs a real WebGL context, which jsdom doesn't provide - these
 // fakes stand in for just enough of the maplibre-gl API surface for Map.tsx
@@ -60,6 +71,16 @@ class FakeMap {
     this.layers.push(layer);
   }
 
+  setFilterCalls: { layerId: string; filter: unknown }[] = [];
+  setFilter(layerId: string, filter: unknown) {
+    this.setFilterCalls.push({ layerId, filter });
+  }
+
+  setPaintPropertyCalls: { layerId: string; name: string; value: unknown }[] = [];
+  setPaintProperty(layerId: string, name: string, value: unknown) {
+    this.setPaintPropertyCalls.push({ layerId, name, value });
+  }
+
   on(event: string, a: string | ((e?: unknown) => void), b?: (e?: unknown) => void) {
     const layerId = typeof a === 'string' ? a : undefined;
     const handler = typeof a === 'string' ? (b as (e?: unknown) => void) : a;
@@ -105,8 +126,12 @@ class FakeMap {
     return { style: {} as CSSStyleDeclaration };
   }
 
+  // Tests that need queryRenderedFeatures to report a hit (e.g. simulating
+  // the cursor being over a character standing inside a building) set this
+  // directly rather than modelling real spatial hit-testing.
+  queryRenderedFeaturesResult: unknown[] = [];
   queryRenderedFeatures() {
-    return [];
+    return this.queryRenderedFeaturesResult;
   }
 
   project([lng, lat]: [number, number]) {
@@ -175,12 +200,14 @@ function currentMap(): FakeMap {
   return FakeMap.instances[FakeMap.instances.length - 1];
 }
 
-function villageSourceFeatures(): {
-  properties: Record<string, unknown>;
+type VillageSourceFeature = {
   geometry: { coordinates: unknown };
-}[] {
+  properties: Record<string, unknown>;
+};
+
+function villageSourceFeatures(): VillageSourceFeature[] {
   const data = currentMap().getSource('village')?.data as
-    | { features?: { properties: Record<string, unknown>; geometry: { coordinates: unknown } }[] }
+    | { features?: VillageSourceFeature[] }
     | undefined;
   return data?.features ?? [];
 }
@@ -235,18 +262,36 @@ function positionAlongPathForTest(
 // primitive (#580) - the app root (src/main.tsx) provides this in
 // production, tests need their own.
 function renderMap(props: ComponentProps<typeof PopulationCentreMap>) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
-      <TooltipProvider>
-        <PopulationCentreMap {...props} />
-      </TooltipProvider>
-    </TamaguiProvider>
+    <QueryClientProvider client={queryClient}>
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        <TooltipProvider>
+          <PopulationCentreMap {...props} />
+        </TooltipProvider>
+      </TamaguiProvider>
+    </QueryClientProvider>
   );
 }
 
 beforeEach(() => {
   FakeMap.instances = [];
   FakeMarker.instances = [];
+  mockFetchMapCharacterDetail.mockReset();
+  mockFetchMapCharacterDetail.mockResolvedValue({
+    id: 1,
+    name: 'Alice',
+    age: 32,
+    sex: 'Female',
+    home_type: null,
+    home_id: null,
+    work_type: null,
+    current_activity: null,
+    is_moving: false,
+    relationships: [],
+  });
 });
 
 const baseGeojson = {
@@ -431,6 +476,85 @@ describe('PopulationCentreMap', () => {
     expect(exactlyAtDoor.length).toBe(0);
   });
 
+  it("scatters a field_shelter worker across its linked crops Subzone, not the shelter's own tiny footprint", () => {
+    const geojsonWithFieldWorker = {
+      bbox: [0, 0, 100, 100] as [number, number, number, number],
+      features: [
+        {
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[[0, 0], [0, 5], [5, 5], [5, 0], [0, 0]]], // tiny shelter
+          },
+          properties: {
+            feature_type: 'building',
+            id: 1,
+            name: 'Field Shelter',
+            building_type: 'field_shelter',
+          },
+        },
+        {
+          geometry: {
+            // the field itself - far from the shelter, so a shelter-footprint
+            // placement and a field placement land in disjoint regions
+            type: 'Polygon',
+            coordinates: [[[50, 50], [50, 90], [90, 90], [90, 50], [50, 50]]],
+          },
+          properties: {
+            feature_type: 'subzone',
+            id: 2,
+            name: 'Field',
+            usage: 'crops',
+            shelter_building_id: 1,
+          },
+        },
+        {
+          geometry: { type: 'Point', coordinates: [2, 2] }, // at the shelter's entrance
+          properties: { feature_type: 'character', id: 40, name: 'Farmhand' },
+        },
+      ],
+    };
+
+    renderMap({ geojson: geojsonWithFieldWorker });
+    const [farmhand] = characterMarkers();
+
+    expect(farmhand.gisPosition?.[0]).toBeGreaterThan(50);
+    expect(farmhand.gisPosition?.[0]).toBeLessThan(90);
+    expect(farmhand.gisPosition?.[1]).toBeGreaterThan(50);
+    expect(farmhand.gisPosition?.[1]).toBeLessThan(90);
+  });
+
+  it("falls back to the field_shelter's own footprint when no linked crops Subzone is loaded", () => {
+    const geojsonWithUnlinkedShelter = {
+      bbox: [0, 0, 20, 20] as [number, number, number, number],
+      features: [
+        {
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[[0, 0], [0, 20], [20, 20], [20, 0], [0, 0]]],
+          },
+          properties: {
+            feature_type: 'building',
+            id: 1,
+            name: 'Field Shelter',
+            building_type: 'field_shelter',
+          },
+        },
+        {
+          geometry: { type: 'Point', coordinates: [10, 0] },
+          properties: { feature_type: 'character', id: 41, name: 'Farmhand' },
+        },
+      ],
+    };
+
+    renderMap({ geojson: geojsonWithUnlinkedShelter });
+    const [farmhand] = characterMarkers();
+
+    expect(farmhand.gisPosition?.[0]).toBeGreaterThan(0);
+    expect(farmhand.gisPosition?.[0]).toBeLessThan(20);
+    expect(farmhand.gisPosition?.[1]).toBeGreaterThan(0);
+    expect(farmhand.gisPosition?.[1]).toBeLessThan(20);
+  });
+
   it('assigns a ready-to-harvest crops subzone a gold fill, distinct from the default grey building fill', () => {
     const geojsonWithCropSubzone = {
       ...baseGeojson,
@@ -440,7 +564,7 @@ describe('PopulationCentreMap', () => {
           geometry: { type: 'Polygon', coordinates: [[[50, 50], [50, 60], [60, 60], [60, 50], [50, 50]]] },
           properties: {
             feature_type: 'building',
-            name: 'House 2 of (Driftmoor village)',
+            name: 'House 2',
             building_type: 'residential',
           },
         },
@@ -545,7 +669,7 @@ describe('PopulationCentreMap', () => {
           geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
           properties: {
             feature_type: 'building',
-            name: 'House 2 of (Driftmoor village)',
+            name: 'House 2',
             building_type: 'residential',
           },
         },
@@ -579,7 +703,7 @@ describe('PopulationCentreMap', () => {
           geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
           properties: {
             feature_type: 'building',
-            name: 'House 2 of (Driftmoor village)',
+            name: 'House 2',
             building_type: 'residential',
           },
         },
@@ -640,7 +764,7 @@ describe('PopulationCentreMap', () => {
           geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
           properties: {
             feature_type: 'building',
-            name: 'House 2 of (Driftmoor village)',
+            name: 'House 2',
             building_type: 'residential',
             workers: 0,
             residents: 3,
@@ -660,7 +784,7 @@ describe('PopulationCentreMap', () => {
     expect(tooltip).not.toHaveTextContent('Workers');
   });
 
-  it('shows home, workplace, and hunger in a character tooltip', async () => {
+  it('shows the current activity and location in a character tooltip', async () => {
     const geojsonWithCharacter = {
       ...baseGeojson,
       features: [
@@ -670,9 +794,8 @@ describe('PopulationCentreMap', () => {
             feature_type: 'character',
             id: 1,
             name: 'Alice',
-            home: 'Rose Cottage',
-            work: 'Village Bakery',
-            hunger_label: 'Well fed',
+            current_activity: 'delivering goods to neighbours',
+            current_location_type: 'bakery',
           },
         },
       ],
@@ -686,9 +809,149 @@ describe('PopulationCentreMap', () => {
 
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toHaveTextContent('Alice');
-    expect(tooltip).toHaveTextContent('Lives at: Rose Cottage');
-    expect(tooltip).toHaveTextContent('Works at: Village Bakery');
-    expect(tooltip).toHaveTextContent('Well fed');
+    // current_location_type is the building_type ("bakery"), resolved to
+    // the plain label used elsewhere ("Bakery") - the activity gets an
+    // initial capital, the location word stays lower-case.
+    expect(tooltip).toHaveTextContent('Delivering goods to neighbours at bakery');
+  });
+
+  it('shows "outside" in a character tooltip when their current location has no building', async () => {
+    const geojsonWithCharacter = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Point', coordinates: [10, 10] },
+          properties: {
+            feature_type: 'character',
+            id: 1,
+            name: 'Alice',
+            current_activity: 'foraging',
+            current_location_type: null,
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Foraging outside');
+  });
+
+  it('shows "Walking to [destination]" in a character tooltip when the character is moving, instead of their scheduled activity', async () => {
+    const geojsonWithMovingCharacter = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Point', coordinates: [10, 10] },
+          properties: {
+            feature_type: 'character',
+            id: 1,
+            name: 'Alice',
+            current_activity: 'delivering goods to neighbours',
+            is_moving: true,
+            destination_location_type: 'bakery',
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithMovingCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Walking to bakery');
+    expect(tooltip).not.toHaveTextContent('delivering goods to neighbours');
+  });
+
+  it('shows "home" instead of "house" when a character is at or walking to their residence', async () => {
+    const geojsonWithCharacter = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Point', coordinates: [10, 10] },
+          properties: {
+            feature_type: 'character',
+            id: 1,
+            name: 'Alice',
+            current_activity: 'sleeping',
+            current_location_type: 'residential',
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Sleeping at home');
+    expect(tooltip).not.toHaveTextContent('house');
+  });
+
+  it('shows "Walking outside" when a moving character\'s destination has no building', async () => {
+    const geojsonWithMovingCharacter = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Point', coordinates: [10, 10] },
+          properties: {
+            feature_type: 'character',
+            id: 1,
+            name: 'Alice',
+            is_moving: true,
+            destination_location_type: null,
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithMovingCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Walking outside');
+  });
+
+  it('omits the status line when a character has no activity or destination', async () => {
+    const geojsonWithCharacter = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Point', coordinates: [10, 10] },
+          properties: {
+            feature_type: 'character',
+            id: 1,
+            name: 'Alice',
+            current_activity: null,
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Alice');
+    expect(tooltip).not.toHaveTextContent(' at ');
+    expect(tooltip).not.toHaveTextContent('Walking to');
   });
 
   it('shows the crop stage in a field tooltip instead of the literal word "Crops"', async () => {
@@ -747,8 +1010,8 @@ describe('PopulationCentreMap', () => {
     expect(uniquePoints.size).toBe(3);
   });
 
-  it('colours each village marker by its state, not by a shared default', () => {
-    const geojsonWithVillageMarker = {
+  it('colours each village label by its state, not by a shared default', () => {
+    const geojsonWithVillageLabel = {
       ...baseGeojson,
       features: [
         ...baseGeojson.features,
@@ -764,14 +1027,14 @@ describe('PopulationCentreMap', () => {
         },
       ],
     };
-    renderMap({ geojson: geojsonWithVillageMarker });
+    renderMap({ geojson: geojsonWithVillageLabel });
 
-    const markerLayer = currentMap().layers.find((l) => l.id === 'village-marker') as
-      | { paint?: { 'circle-color'?: unknown } }
+    const labelLayer = currentMap().layers.find((l) => l.id === 'village-label') as
+      | { paint?: { 'text-color'?: unknown } }
       | undefined;
     // A ["match", ["get", "state"], ...] expression, not a single flat colour
     // - every state needs its own colour, not one shared default.
-    expect(markerLayer?.paint?.['circle-color']).toEqual(
+    expect(labelLayer?.paint?.['text-color']).toEqual(
       expect.arrayContaining(['match', ['get', 'state']])
     );
 
@@ -781,8 +1044,8 @@ describe('PopulationCentreMap', () => {
     expect(feature?.properties.state).toBe('Thriving');
   });
 
-  it('expands a tapped village marker into its progress bar and state label', async () => {
-    const geojsonWithVillageMarker = {
+  it('expands a tapped village label into its progress bar and state label', async () => {
+    const geojsonWithVillageLabel = {
       ...baseGeojson,
       features: [
         ...baseGeojson.features,
@@ -798,7 +1061,7 @@ describe('PopulationCentreMap', () => {
         },
       ],
     };
-    renderMap({ geojson: geojsonWithVillageMarker });
+    renderMap({ geojson: geojsonWithVillageLabel });
     const feature = villageSourceFeatures().find(
       (f) => f.properties.feature_type === 'population_centre_label'
     );
@@ -807,7 +1070,7 @@ describe('PopulationCentreMap', () => {
       currentMap().trigger(
         'click',
         { features: [feature], lngLat: { lng: 30, lat: 30 } },
-        'village-marker'
+        'village-label'
       );
     });
 
@@ -837,6 +1100,300 @@ describe('PopulationCentreMap', () => {
 
     const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'path');
     expect(feature).toBeDefined();
+  });
+});
+
+describe('PopulationCentreMap entity detail card', () => {
+  it('opens a character detail card when "View details" is clicked in its tooltip', async () => {
+    const user = userEvent.setup();
+    const geojsonWithCharacter = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Point', coordinates: [10, 10] },
+          properties: { feature_type: 'character', id: 1, name: 'Alice' },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
+    await screen.findByRole('tooltip');
+
+    await user.click(screen.getByRole('button', { name: 'View details' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Alice' })).toBeInTheDocument();
+    expect(mockFetchMapCharacterDetail).toHaveBeenCalledWith(1);
+    // The tooltip is obscured behind the detail card's overlay - closed
+    // rather than left lingering underneath it.
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('opens a building detail card showing its residents when "View details" is clicked', async () => {
+    const user = userEvent.setup();
+    const geojsonWithHouse = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
+          properties: {
+            feature_type: 'building',
+            id: 42,
+            name: 'House 2',
+            building_type: 'residential',
+            residents: 1,
+            residential_capacity: 4,
+          },
+        },
+        {
+          geometry: { type: 'Point', coordinates: [7, 7] },
+          properties: {
+            feature_type: 'character',
+            id: 1,
+            name: 'Alice',
+            home_id: 42,
+            current_activity: 'idle',
+          },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithHouse });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'building');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 0, lat: 0 } }, 'buildings-fill');
+    });
+    await screen.findByRole('tooltip');
+
+    await user.click(screen.getByRole('button', { name: 'View details' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'House 2' });
+    expect(dialog).toHaveTextContent('1 / 4');
+    expect(dialog).toHaveTextContent('Alice');
+  });
+
+  it('switches to a resident\'s own detail card when clicked inside the building detail card', async () => {
+    const user = userEvent.setup();
+    const geojsonWithHouse = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
+          properties: {
+            feature_type: 'building',
+            id: 42,
+            name: 'House 2',
+            building_type: 'residential',
+            residents: 1,
+          },
+        },
+        {
+          geometry: { type: 'Point', coordinates: [7, 7] },
+          properties: { feature_type: 'character', id: 1, name: 'Alice', home_id: 42 },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithHouse });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'building');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 0, lat: 0 } }, 'buildings-fill');
+    });
+    await screen.findByRole('tooltip');
+    await user.click(screen.getByRole('button', { name: 'View details' }));
+    await screen.findByRole('dialog', { name: 'House 2' });
+
+    await user.click(screen.getByText('Alice'));
+
+    expect(await screen.findByRole('dialog', { name: 'Alice' })).toBeInTheDocument();
+    expect(mockFetchMapCharacterDetail).toHaveBeenCalledWith(1);
+  });
+
+  it('closes the detail card via its close button', async () => {
+    const user = userEvent.setup();
+    const geojsonWithCharacter = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Point', coordinates: [10, 10] },
+          properties: { feature_type: 'character', id: 1, name: 'Alice' },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
+    await screen.findByRole('tooltip');
+    await user.click(screen.getByRole('button', { name: 'View details' }));
+    await screen.findByRole('dialog', { name: 'Alice' });
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('outlines the selected building on the map while its detail card is open', async () => {
+    const user = userEvent.setup();
+    const geojsonWithHouse = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
+          properties: { feature_type: 'building', id: 42, name: 'House', building_type: 'residential' },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithHouse });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'building');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 0, lat: 0 } }, 'buildings-fill');
+    });
+    await screen.findByRole('tooltip');
+    await user.click(screen.getByRole('button', { name: 'View details' }));
+    await screen.findByRole('dialog', { name: 'House' });
+
+    const buildingCalls = currentMap().setFilterCalls.filter(
+      (c) => c.layerId === 'selected-building-outline'
+    );
+    expect(buildingCalls.at(-1)?.filter).toEqual([
+      'all',
+      ['==', ['get', 'feature_type'], 'building'],
+      ['==', ['get', 'id'], 42],
+    ]);
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+
+    const afterClose = currentMap().setFilterCalls.filter(
+      (c) => c.layerId === 'selected-building-outline'
+    );
+    expect(afterClose.at(-1)?.filter).toEqual([
+      'all',
+      ['==', ['get', 'feature_type'], 'building'],
+      ['==', ['get', 'id'], -1],
+    ]);
+  });
+
+  it('outlines a building at reduced opacity while just its tooltip is open, then at full opacity once its detail card opens', async () => {
+    const user = userEvent.setup();
+    const geojsonWithHouse = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
+          properties: { feature_type: 'building', id: 42, name: 'House', building_type: 'residential' },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithHouse });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'building');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 0, lat: 0 } }, 'buildings-fill');
+    });
+    await screen.findByRole('tooltip');
+
+    const buildingCalls = currentMap().setFilterCalls.filter(
+      (c) => c.layerId === 'selected-building-outline'
+    );
+    expect(buildingCalls.at(-1)?.filter).toEqual([
+      'all',
+      ['==', ['get', 'feature_type'], 'building'],
+      ['==', ['get', 'id'], 42],
+    ]);
+    await waitFor(() => {
+      const opacityCalls = currentMap().setPaintPropertyCalls.filter(
+        (c) => c.layerId === 'selected-building-outline' && c.name === 'line-opacity'
+      );
+      expect(opacityCalls.at(-1)?.value).toBe(TOOLTIP_ONLY_SELECTION_OPACITY);
+    });
+
+    await user.click(screen.getByRole('button', { name: 'View details' }));
+    await screen.findByRole('dialog', { name: 'House' });
+
+    await waitFor(() => {
+      const opacityCalls = currentMap().setPaintPropertyCalls.filter(
+        (c) => c.layerId === 'selected-building-outline' && c.name === 'line-opacity'
+      );
+      expect(opacityCalls.at(-1)?.value).toBe(1);
+    });
+  });
+
+  it('does not show the building hover outline when the cursor is over a character standing inside it', async () => {
+    const geojsonWithHouse = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Polygon', coordinates: [[[5, 5], [5, 10], [10, 10], [10, 5], [5, 5]]] },
+          properties: { feature_type: 'building', id: 42, name: 'House', building_type: 'residential' },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithHouse });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'building');
+
+    // First move over the building with nothing else under the cursor, so
+    // its hover outline is showing (establishes a non-null baseline).
+    act(() => {
+      currentMap().trigger('mousemove', { features: [feature], point: { x: 0, y: 0 } }, 'buildings-fill');
+    });
+    const hoverCalls = () =>
+      currentMap().setFilterCalls.filter((c) => c.layerId === 'hover-building-outline');
+    expect(hoverCalls().at(-1)?.filter).toEqual([
+      'all',
+      ['==', ['get', 'feature_type'], 'building'],
+      ['==', ['get', 'id'], 42],
+    ]);
+
+    // Now simulate the cursor also hitting the "characters" layer at this
+    // point, as it would when a character is standing inside the building.
+    currentMap().queryRenderedFeaturesResult = [{ properties: { id: 7 } }];
+    act(() => {
+      currentMap().trigger('mousemove', { features: [feature], point: { x: 0, y: 0 } }, 'buildings-fill');
+    });
+
+    expect(hoverCalls().at(-1)?.filter).toEqual([
+      'all',
+      ['==', ['get', 'feature_type'], 'building'],
+      ['==', ['get', 'id'], -1],
+    ]);
+  });
+
+  it('highlights the selected character on the map while its detail card is open', async () => {
+    const user = userEvent.setup();
+    const geojsonWithCharacter = {
+      ...baseGeojson,
+      features: [
+        {
+          geometry: { type: 'Point', coordinates: [10, 10] },
+          properties: { feature_type: 'character', id: 1, name: 'Alice' },
+        },
+      ],
+    };
+    renderMap({ geojson: geojsonWithCharacter });
+    const feature = villageSourceFeatures().find((f) => f.properties.feature_type === 'character');
+
+    act(() => {
+      currentMap().trigger('click', { features: [feature], lngLat: { lng: 10, lat: 10 } }, 'characters');
+    });
+    await screen.findByRole('tooltip');
+    await user.click(screen.getByRole('button', { name: 'View details' }));
+    await screen.findByRole('dialog', { name: 'Alice' });
+
+    const characterCalls = currentMap().setFilterCalls.filter(
+      (c) => c.layerId === 'selected-character-highlight'
+    );
+    expect(characterCalls.at(-1)?.filter).toEqual([
+      'all',
+      ['==', ['get', 'feature_type'], 'character'],
+      ['==', ['get', 'id'], 1],
+    ]);
   });
 });
 

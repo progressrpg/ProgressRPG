@@ -36,11 +36,14 @@ export function useBootstrapGameData() {
     if (authLoading) return;
 
     if (!isAuthenticated) {
-      setLoginState("none");
-      setLoginStreak(0);
-      setLoginEventAt(null);
-      setLoginRewardXp(0);
-      setLoading(false);
+      const resetToLoggedOutDefaults = () => {
+        setLoginState("none");
+        setLoginStreak(0);
+        setLoginEventAt(null);
+        setLoginRewardXp(0);
+        setLoading(false);
+      };
+      resetToLoggedOutDefaults();
       return;
     }
 

@@ -177,15 +177,35 @@ export interface PositionedCharacter {
   isWalking?: boolean;
 }
 
+export interface BuildingFootprint {
+  id: number;
+  buildingType: string | undefined;
+  ring: Ring;
+}
+
 // Groups characters by (rounded) coordinate - several residents idle in the
 // same house share one point - then places each one at a random spot inside
 // that house's footprint. Falls back to a small scatter around the shared
 // point for characters not inside any building (e.g. mid-journey). Sorting
 // each group by id keeps every character's spot stable from one poll to the
 // next instead of jumping around.
+//
+// Field workers are the one exception: their entrance point sits at a
+// "field_shelter" Building - a small standalone work-site, not the crops
+// Subzone itself (CharacterLocation can only target a Building - see
+// economy/models.py's FieldCrop docstring) - so matching them to that
+// building's own tiny footprint would cluster every farmhand inside a shed
+// instead of the fields around it. cropSubzoneRingsByShelterBuilding maps a
+// shelter's building id to the crops Subzone footprint(s) it services (a
+// shelter is shared by every crops Subzone in its population centre - see
+// generate_fields.py); when the matched footprint is a field_shelter with
+// fields on record, those fields replace it as the placement target(s), one
+// picked deterministically per character so a village's farmhands read as
+// spread across its farmland rather than piled in one field.
 export function scatterCharacters(
   characterFeatures: GeoJSONFeature[],
-  buildingFootprints: Ring[]
+  buildingFootprints: BuildingFootprint[],
+  cropSubzoneRingsByShelterBuilding: Map<number, Ring[]> = new Map()
 ): PositionedCharacter[] {
   const groups = new Map<string, GeoJSONFeature[]>();
   for (const feature of characterFeatures) {
@@ -206,17 +226,23 @@ export function scatterCharacters(
       (a, b) => (Number(a.properties?.id) || 0) - (Number(b.properties?.id) || 0)
     );
     const [baseX, baseY] = group[0].geometry.coordinates as number[];
-    const footprint = buildingFootprints.find((ring) =>
-      pointNearFootprint([baseX, baseY], ring)
+    const footprint = buildingFootprints.find((fp) =>
+      pointNearFootprint([baseX, baseY], fp.ring)
     );
+
+    let targetRings: Ring[] = footprint ? [footprint.ring] : [];
+    if (footprint?.buildingType === "field_shelter") {
+      const fieldRings = cropSubzoneRingsByShelterBuilding.get(footprint.id);
+      if (fieldRings?.length) targetRings = fieldRings;
+    }
+
     const placedInGroup: [number, number][] = [];
 
     group.forEach((feature, index) => {
       const id = Number(feature.properties?.id);
       const seed = Number.isFinite(id) ? id : index;
-      const randomPoint = footprint
-        ? randomPointInPolygon(footprint, seed, placedInGroup)
-        : null;
+      const ring = targetRings.length ? targetRings[seed % targetRings.length] : null;
+      const randomPoint = ring ? randomPointInPolygon(ring, seed, placedInGroup) : null;
 
       if (randomPoint) {
         placedInGroup.push(randomPoint);

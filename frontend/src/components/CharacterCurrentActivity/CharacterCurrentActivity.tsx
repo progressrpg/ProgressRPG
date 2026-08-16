@@ -50,7 +50,7 @@ export default function CharacterCurrentActivity() {
   return (
     <div className={styles.line}>
       <p>
-        <strong>{character.first_name}</strong> is{" "}
+        <strong>{character.name}</strong> is{" "}
         <span className={styles.activity}>{activityName}</span>
         {timeRemaining && (
           <span className={styles.remaining}> ({timeRemaining})</span>

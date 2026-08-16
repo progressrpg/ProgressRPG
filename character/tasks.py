@@ -3,6 +3,8 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import datetime
 
+from character.models import Character
+
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=5)
 def generate_character_days(self, date_iso: str | None = None) -> dict:
@@ -20,22 +22,22 @@ def generate_character_days(self, date_iso: str | None = None) -> dict:
     generated = 0
     skipped_no_behaviour = 0
 
-    # CharacterActivity generation is intentionally disabled for now.
-    # batch_size = 100
-    #
-    # # Use iterator() to process characters in batches instead of loading all at once
-    # for character in Character.objects.select_related("behaviour").iterator(
-    #     chunk_size=batch_size
-    # ):
-    #     behaviour = getattr(character, "behaviour", None)
-    #     if not behaviour:
-    #         skipped_no_behaviour += 1
-    #         continue
-    #
-    #     behaviour.sync_to_now()  # Ensure behaviour is up to date before generating the day
-    #     # Your Behaviour.generate_day should be idempotent for that date
-    #     behaviour.generate_day(target_date)
-    #     generated += 1
+    batch_size = 100
+
+    # Use iterator() to process characters in batches instead of loading all at once
+    for character in Character.objects.select_related("behaviour").iterator(
+        chunk_size=batch_size
+    ):
+        behaviour = getattr(character, "behaviour", None)
+        if not behaviour:
+            skipped_no_behaviour += 1
+            continue
+
+        behaviour.sync_to_now()  # Ensure behaviour is up to date before generating the day
+        # Behaviour.generate_day is idempotent for that date (see
+        # generate_day's replace_future handling in behaviour_services.py)
+        behaviour.generate_day(target_date)
+        generated += 1
 
     return {
         "date": str(target_date),

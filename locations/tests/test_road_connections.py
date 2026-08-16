@@ -32,10 +32,17 @@ class ConnectNearestVillageRoadsTest(TestCase):
         connector = connect_nearest_village_roads(near)
 
         self.assertIsNotNone(connector)
+        # The connector is a cosmetic curve (see curved_connector), not a
+        # straight 2-point line - only its first/last coords are pinned to
+        # the closest endpoint pair; the intermediate points are an
+        # arbitrary (deterministically seeded) bow between them. Approximate
+        # equality since the curve's perpendicular offset - sin(progress *
+        # pi) * offset - isn't exactly zero at progress=1 in floating point.
         coords = connector.geom.coords
-        self.assertEqual(len(coords), 2)
-        self.assertIn((10.0, 0.0), coords)
-        self.assertIn((990.0, 0.0), coords)
+        for actual, expected in zip(coords[0], (10.0, 0.0)):
+            self.assertAlmostEqual(actual, expected)
+        for actual, expected in zip(coords[-1], (990.0, 0.0)):
+            self.assertAlmostEqual(actual, expected)
 
     def test_returns_none_when_village_has_no_roads(self):
         empty = _centre("Empty", 0, 0)

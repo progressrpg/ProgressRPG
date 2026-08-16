@@ -91,19 +91,13 @@ class AutoCompleteTimerTaskTests(TransactionTestCase):
 
     # supersede guard
 
-    def test_returns_superseded_when_task_id_does_not_match(self):
-        cache.set(self._cache_key(), "different-task-id")
-
-        result = _run_task(self.player.id, self.TASK_ID)
-
-        self.assertEqual(result, "superseded")
-
-    def test_does_not_touch_timer_when_superseded(self):
+    def test_superseded_task_returns_superseded_and_does_not_touch_timer(self):
         cache.set(self._cache_key(), "different-task-id")
 
         with patch.object(ActivityTimer, "complete") as mock_complete:
-            _run_task(self.player.id, self.TASK_ID)
+            result = _run_task(self.player.id, self.TASK_ID)
 
+        self.assertEqual(result, "superseded")
         mock_complete.assert_not_called()
 
     # missing timer
@@ -118,42 +112,28 @@ class AutoCompleteTimerTaskTests(TransactionTestCase):
 
     # timer not active — skipped cases
 
-    def test_returns_skipped_when_timer_is_empty(self):
+    def test_returns_skipped_and_clears_cache_when_timer_is_empty(self):
         # Default status after player creation is "empty"
         self._prime_cache()
 
         result = _run_task(self.player.id, self.TASK_ID)
 
         self.assertEqual(result, "skipped:empty")
-
-    def test_returns_skipped_when_timer_is_paused(self):
-        self.timer.status = "paused"
-        self.timer.save(update_fields=["status"])
-        self._prime_cache()
-
-        result = _run_task(self.player.id, self.TASK_ID)
-
-        self.assertEqual(result, "skipped:paused")
-
-    def test_returns_skipped_when_timer_is_completed(self):
-        self.timer.status = "completed"
-        self.timer.save(update_fields=["status"])
-        self._prime_cache()
-
-        result = _run_task(self.player.id, self.TASK_ID)
-
-        self.assertEqual(result, "skipped:completed")
-
-    def test_clears_cache_key_when_skipped(self):
-        self._prime_cache()
-
-        _run_task(self.player.id, self.TASK_ID)
-
         self.assertIsNone(cache.get(self._cache_key()))
+
+    def test_returns_skipped_for_paused_and_completed_timers(self):
+        for status in ["paused", "completed"]:
+            self.timer.status = status
+            self.timer.save(update_fields=["status"])
+            self._prime_cache()
+
+            result = _run_task(self.player.id, self.TASK_ID)
+
+            self.assertEqual(result, f"skipped:{status}")
 
     # active timer — completion path
 
-    def test_calls_complete_and_returns_completed_when_timer_is_active(self):
+    def test_completes_active_timer_and_clears_cache(self):
         self.timer.status = "active"
         self.timer.start_time = timezone.now()
         self.timer.save(update_fields=["status", "start_time"])
@@ -161,22 +141,18 @@ class AutoCompleteTimerTaskTests(TransactionTestCase):
 
         with patch.object(
             ActivityTimer, "complete", return_value={"xp_gained": 50}
-        ) as mock_complete:
+        ) as mock_complete, patch(
+            "gameplay.tasks.broadcast_activity_timer"
+        ) as mock_broadcast:
             result = _run_task(self.player.id, self.TASK_ID)
 
         self.assertEqual(result, "completed")
         mock_complete.assert_called_once_with(completion_source="auto")
-
-    def test_clears_cache_key_after_completion(self):
-        self.timer.status = "active"
-        self.timer.start_time = timezone.now()
-        self.timer.save(update_fields=["status", "start_time"])
-        self._prime_cache()
-
-        with patch.object(ActivityTimer, "complete", return_value={}):
-            _run_task(self.player.id, self.TASK_ID)
-
         self.assertIsNone(cache.get(self._cache_key()))
+        # Any other open session (tabs/devices) for this player should be
+        # told the timer was auto-completed, so it stops ticking a timer
+        # the server has already closed out.
+        mock_broadcast.assert_called_once_with(self.timer)
 
 
 # ── consumer disconnect tests ──────────────────────────────────────────────────
@@ -220,58 +196,35 @@ class TimerConsumerDisconnectGraceTests(TransactionTestCase):
 
     # active timer → task scheduled
 
-    def test_schedules_celery_task_when_timer_is_active(self):
+    def test_active_timer_schedules_task_stores_cache_and_skips_pause(self):
         consumer = self._make_consumer(timer_status="active")
-
-        mock_task = self._disconnect_with_mock_task(consumer)
-
-        mock_task.apply_async.assert_called_once_with(
-            kwargs={"player_id": self.player.id},
-            countdown=DISCONNECT_GRACE_SECONDS,
-        )
-
-    def test_stores_task_id_in_cache_when_timer_is_active(self):
-        consumer = self._make_consumer(timer_status="active")
-
-        self._disconnect_with_mock_task(consumer)
-
-        self.assertEqual(cache.get(self._cache_key()), "scheduled-task-id")
-
-    def test_does_not_immediately_pause_when_timer_is_active(self):
-        consumer = self._make_consumer(timer_status="active")
+        mock_result = MagicMock()
+        mock_result.id = "scheduled-task-id"
 
         with patch("gameplay.tasks.auto_complete_timer_on_disconnect") as mock_task:
-            mock_task.apply_async.return_value = MagicMock(id="x")
+            mock_task.apply_async.return_value = mock_result
             with patch(
                 "gameplay.consumers.control_timers", new_callable=AsyncMock
             ) as mock_control:
                 async_to_sync(consumer.disconnect)(1000)
 
+        mock_task.apply_async.assert_called_once_with(
+            kwargs={"player_id": self.player.id},
+            countdown=DISCONNECT_GRACE_SECONDS,
+        )
+        self.assertEqual(cache.get(self._cache_key()), "scheduled-task-id")
         mock_control.assert_not_called()
 
     # non-active timers → no task scheduled
 
-    def test_does_not_schedule_task_when_timer_is_empty(self):
-        consumer = self._make_consumer(timer_status="empty")
+    def test_does_not_schedule_task_for_empty_paused_or_completed_timers(self):
+        for status in ["empty", "paused", "completed"]:
+            consumer = self._make_consumer(timer_status=status)
 
-        mock_task = self._disconnect_with_mock_task(consumer)
+            mock_task = self._disconnect_with_mock_task(consumer)
 
-        mock_task.apply_async.assert_not_called()
-        self.assertIsNone(cache.get(self._cache_key()))
-
-    def test_does_not_schedule_task_when_timer_is_paused(self):
-        consumer = self._make_consumer(timer_status="paused")
-
-        mock_task = self._disconnect_with_mock_task(consumer)
-
-        mock_task.apply_async.assert_not_called()
-
-    def test_does_not_schedule_task_when_timer_is_completed(self):
-        consumer = self._make_consumer(timer_status="completed")
-
-        mock_task = self._disconnect_with_mock_task(consumer)
-
-        mock_task.apply_async.assert_not_called()
+            mock_task.apply_async.assert_not_called()
+            self.assertIsNone(cache.get(self._cache_key()))
 
     # waiting timer → immediate pause (preserved existing behaviour)
 
@@ -319,7 +272,7 @@ class TimerConsumerReconnectTests(TransactionTestCase):
         consumer.get_activity_timer = AsyncCallRecorder(return_value=None)
         return consumer
 
-    def test_revokes_pending_task_on_reconnect(self):
+    def test_reconnect_revokes_pending_task_and_clears_cache(self):
         cache.set(self._cache_key(), "pending-task-id")
         consumer = self._make_consumer()
 
@@ -327,14 +280,6 @@ class TimerConsumerReconnectTests(TransactionTestCase):
             async_to_sync(consumer.connect)()
 
         mock_celery.control.revoke.assert_called_once_with("pending-task-id")
-
-    def test_clears_cache_key_on_reconnect(self):
-        cache.set(self._cache_key(), "pending-task-id")
-        consumer = self._make_consumer()
-
-        with patch("gameplay.consumers.current_app"):
-            async_to_sync(consumer.connect)()
-
         self.assertIsNone(cache.get(self._cache_key()))
 
     def test_does_not_revoke_when_no_pending_task(self):

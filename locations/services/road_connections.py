@@ -112,6 +112,7 @@ def connect_nearest_village_roads(population_centre: PopulationCentre) -> Road |
     )
 
     return Road.objects.create(
+        population_centre=population_centre,
         geom=curved_connector(closest_pair[0], closest_pair[1]),
         width=CONNECTOR_ROAD_WIDTH,
     )

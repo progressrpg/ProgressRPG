@@ -6,6 +6,7 @@ import { useActivityInput } from './useActivityInput';
 const mockUseGame = vi.fn();
 const mockUseSupportFlow = vi.fn();
 const mockUseEntitySearchCache = vi.fn();
+const mockUseFeatureFlag = vi.fn();
 const fetchPlayerAndCharacter = vi.fn();
 const fetchCharacterCurrent = vi.fn();
 const fetchActivities = vi.fn();
@@ -25,6 +26,10 @@ vi.mock('../../hooks/useSupportFlow', () => ({
 
 vi.mock('../../hooks/useEntitySearchCache', () => ({
   useEntitySearchCache: (...args: unknown[]) => mockUseEntitySearchCache(...args),
+}));
+
+vi.mock('../../hooks/useFeatureFlag', () => ({
+  useFeatureFlag: (flag: string) => mockUseFeatureFlag(flag),
 }));
 
 vi.mock('../../utils/sounds', () => ({
@@ -73,6 +78,7 @@ describe('useActivityInput unified handlers', () => {
   beforeEach(() => {
     mockUseSupportFlow.mockReset();
     mockUseEntitySearchCache.mockReset();
+    mockUseFeatureFlag.mockReset().mockReturnValue(false);
     fetchPlayerAndCharacter.mockReset().mockResolvedValue(null);
     fetchCharacterCurrent.mockReset().mockResolvedValue(null);
     fetchActivities.mockReset().mockResolvedValue(null);
@@ -259,7 +265,86 @@ describe('useActivityInput unified handlers', () => {
     expect(result.current.isEditingLabel).toBe(false);
   });
 
-  it('invalidates the today-points query after completing an activity, so the map badge updates immediately (#673)', async () => {
+  describe('results_mode', () => {
+    it('opens the SupportFlow modal on manual stop when the flag is off', async () => {
+      const openActivityReward = vi.fn();
+      mockUseSupportFlow.mockReturnValue({
+        openWelcomeMessage: vi.fn(),
+        openActivityReward,
+        openSupportMode: vi.fn(),
+        flowState: { isOpen: false },
+        flowDispatch: vi.fn(),
+        handleConfirmActivity: vi.fn(),
+      });
+      mockUseFeatureFlag.mockReturnValue(false);
+      mockGame({ status: 'active', currentActivity: { id: 1, name: 'Deep work' } });
+      stop.mockResolvedValue({ xp_gained: 10, base_xp: 10, xp_multiplier: 1, level_ups: [], duration_seconds: 30 });
+
+      const { result } = renderHook(() => useActivityInput());
+
+      await act(async () => {
+        await result.current.handleToggle();
+      });
+
+      expect(openActivityReward).toHaveBeenCalledWith(
+        expect.objectContaining({ activityName: 'Deep work', xpGained: 10 })
+      );
+      expect(result.current.resultsData).toBeNull();
+    });
+
+    it('populates resultsData instead of opening the modal on manual stop when the flag is on', async () => {
+      const openActivityReward = vi.fn();
+      mockUseSupportFlow.mockReturnValue({
+        openWelcomeMessage: vi.fn(),
+        openActivityReward,
+        openSupportMode: vi.fn(),
+        flowState: { isOpen: false },
+        flowDispatch: vi.fn(),
+        handleConfirmActivity: vi.fn(),
+      });
+      mockUseFeatureFlag.mockReturnValue(true);
+      mockGame({ status: 'active', currentActivity: { id: 1, name: 'Deep work', taskId: 7 } });
+      stop.mockResolvedValue({ xp_gained: 10, base_xp: 10, xp_multiplier: 1, level_ups: [], duration_seconds: 30 });
+
+      const { result } = renderHook(() => useActivityInput());
+
+      await act(async () => {
+        await result.current.handleToggle();
+      });
+
+      expect(openActivityReward).not.toHaveBeenCalled();
+      expect(result.current.resultsData).toEqual(
+        expect.objectContaining({
+          activityId: 1,
+          activityName: 'Deep work',
+          xpGained: 10,
+          taskId: 7,
+        })
+      );
+    });
+
+    it('exitResults clears resultsData', async () => {
+      mockUseFeatureFlag.mockReturnValue(true);
+      mockGame({ status: 'active', currentActivity: { id: 1, name: 'Deep work' } });
+      stop.mockResolvedValue({ xp_gained: 10, base_xp: 10, xp_multiplier: 1, level_ups: [], duration_seconds: 30 });
+
+      const { result } = renderHook(() => useActivityInput());
+
+      await act(async () => {
+        await result.current.handleToggle();
+      });
+
+      expect(result.current.resultsData).not.toBeNull();
+
+      act(() => {
+        result.current.exitResults();
+      });
+
+      expect(result.current.resultsData).toBeNull();
+    });
+  });
+
+  it('invalidates the daily-goals query after completing an activity, so the map badge updates immediately (#673, #751)', async () => {
     mockGame({ status: 'active', currentActivity: { name: 'Deep work' } });
     stop.mockResolvedValue({ xp_gained: 10 });
 
@@ -270,7 +355,7 @@ describe('useActivityInput unified handlers', () => {
     });
 
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['me', 'today-points'],
+      queryKey: ['me', 'daily-goals'],
     });
   });
 });

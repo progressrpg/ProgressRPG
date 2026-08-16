@@ -29,7 +29,6 @@ import logging, sys
 
 from .tasks import send_email_to_users_task
 from character.models import Character, PlayerCharacterLink
-from gameplay.models import QuestTimer, Quest
 
 logger = logging.getLogger("general")
 
@@ -37,30 +36,16 @@ logger = logging.getLogger("general")
 def assign_character_to_player(player):
     """
     Assign a default Character (non-player character) to the given Player. Deactivates
-    any currently active character and associates a new NPC with the Player. If the
-    Player is recent, assigns a tutorial quest to the newly linked character.
+    any currently active character and associates a new NPC with the Player.
     """
 
-    character = (
-        Character.objects.filter(can_link=True, death_date__isnull=True)
-        .exclude(links__is_active=True)
-        .first()
-    )
+    character = Character.objects.linkable().filter(death_date__isnull=True).first()
 
     if not character:
         logger.warning(f"No available NPC character to assign to player {player.id}")
         return None
 
     PlayerCharacterLink.assign_character(player=player, character=character)
-
-    qt, created = QuestTimer.objects.get_or_create(character=character)
-
-    if not ("test" in sys.argv):
-        tut_quest = Quest.objects.filter(name="[TUTORIAL] Getting started").first()
-        if not tut_quest:
-            logger.warning(f"Tutorial quest '[TUTORIAL] Getting started' not found!")
-        elif created or player.created_at > (timezone.now() - timedelta(days=14)):
-            qt.change_quest(tut_quest, 60)
 
     return character
 

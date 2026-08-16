@@ -7,7 +7,7 @@ from character.models import Character
 
 class HungerLabelTest(TestCase):
     def setUp(self):
-        self.character = Character.objects.create(first_name="Alice", last_name="Smith")
+        self.character = Character.objects.create(given_name="Alice")
 
     def test_below_midpoint_is_well_fed(self):
         self.character.needs.hunger = (HUNGER_MAX / 2) - 1

@@ -97,3 +97,22 @@
 .fullWidth {
   width: 100%;
 }
+
+.small {
+  padding: 0.125rem sp.$spacing-sm;
+  font-size: 0.75rem;
+  gap: sp.$spacing-xs;
+
+  .icon svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+}
+
+.icon {
+  display: flex;
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}

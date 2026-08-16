@@ -19,12 +19,6 @@ $text-body: (
     letter-spacing: token(t.$letter-spacing, normal),
     text-transform: token(t.$text-transform, none)
   ),
-  md: (
-    font-size: 1.125rem
-  ),
-  lg: (
-    //font-size: 1.25rem
-  ),
 );
 
 // Body text styles
@@ -37,9 +31,6 @@ $text-list: (
     letter-spacing: token(t.$letter-spacing, normal),
     text-transform: token(t.$text-transform, none)
   ),
-  md: (
-    font-size: token(t.$font-size, base)
-  )
 );
 
 // Heading 1 styles
@@ -52,12 +43,6 @@ $text-heading-1: (
     letter-spacing: token(t.$letter-spacing, tight),
     text-transform: token(t.$text-transform, none)
   ),
-  md: (
-    font-size: 2.25rem
-  ),
-  lg: (
-    font-size: 2.5rem
-  )
 );
 
 // Heading 2 styles
@@ -70,12 +55,6 @@ $text-heading-2: (
     letter-spacing: token(t.$letter-spacing, tight),
     text-transform: token(t.$text-transform, none)
   ),
-  md: (
-    font-size: 1.75rem
-  ),
-  lg: (
-    font-size: 2rem
-  )
 );
 
 $text-heading-3: (
@@ -87,12 +66,6 @@ $text-heading-3: (
     letter-spacing: token(t.$letter-spacing, normal),
     text-transform: token(t.$text-transform, none)
   ),
-  md: (
-    font-size: 1.5rem
-  ),
-  lg: (
-    font-size: 1.75rem
-  )
 );
 
 
@@ -106,9 +79,6 @@ $text-button: (
     letter-spacing: token(t.$letter-spacing, normal),
     text-transform: token(t.$text-transform, none)
   ),
-  md: (
-    font-size: 1.125rem
-  )
 );
 
 // Link styles
@@ -121,9 +91,6 @@ $text-link : (
     letter-spacing: token(t.$letter-spacing, normal),
     text-transform: token(t.$text-transform, none),
   ),
-  md: (
-    font-size: 1.125rem
-  )
 );
 
 // Caption styles
@@ -135,9 +102,6 @@ $text-caption: (
     line-height: token(t.$line-height, base),
     letter-spacing: token(t.$letter-spacing, normal),
     text-transform: token(t.$text-transform, none),
-  ),
-  md: (
-    font-size: 0.75rem
   ),
 );
 

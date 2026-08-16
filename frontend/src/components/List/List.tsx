@@ -26,6 +26,8 @@ interface ListProps<T extends ListItem> {
   /** Also exposed as selectable for legacy callers */
   selectable?: boolean;
   canHover?: boolean;
+  /** Tighter item padding/gap - for lists nested inside an already-dense panel (e.g. BuildingDetail's residents/workers). */
+  compact?: boolean;
   itemTone?: 'neutral' | 'player' | 'character';
   className?: string;
   sectionClass?: string;
@@ -43,6 +45,7 @@ export default function List<T extends ListItem>({
   canSelect = false,
   selectable = false,
   canHover = false,
+  compact = false,
   itemTone = 'neutral',
   className,
   sectionClass,
@@ -75,6 +78,7 @@ export default function List<T extends ListItem>({
         className={classNames(styles.list, {
           [styles.canSelect]: isSelectable,
           [styles.canHover]: canHover,
+          [styles.compact]: compact,
         }, className)}
         role={isSelectable ? 'listbox' : 'list'}
         aria-label={ariaLabel}

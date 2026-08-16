@@ -1,5 +1,13 @@
 [
   {
+    "model": "auth.group",
+    "pk": 1,
+    "fields": {
+      "name": "Testers",
+      "permissions": []
+    }
+  },
+  {
     "model": "payments.subscriptionplan",
     "pk": 2,
     "fields": {
@@ -25,7 +33,6 @@
     "model": "character.character",
     "pk": 1,
     "fields": {
-      "name": "Elrond",
       "xp": 0,
       "xp_next_level": 100,
       "xp_modifier": 1.0,
@@ -39,22 +46,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Elrond",
-      "last_name": "Bob",
       "backstory": "This is the story of Elrond.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        23
-      ]
+      "given_name": "Elrond"
     }
   },
   {
     "model": "character.character",
     "pk": 2,
     "fields": {
-      "name": "Gareth Holloway",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -68,20 +70,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Gareth",
-      "last_name": "Holloway",
       "backstory": "Farmer, former mercenary, settled into rural life.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Gareth"
     }
   },
   {
     "model": "character.character",
     "pk": 3,
     "fields": {
-      "name": "Agnes Holloway",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -95,20 +94,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Agnes",
-      "last_name": "Holloway",
       "backstory": "Gareth’s wife, keeps the household running.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Agnes"
     }
   },
   {
     "model": "character.character",
     "pk": 4,
     "fields": {
-      "name": "Tristan Holloway",
       "xp": 18,
       "xp_next_level": 200,
       "xp_modifier": 1.0,
@@ -122,23 +118,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Tristan",
-      "last_name": "Holloway",
       "backstory": "Agnes and Gareth's son, dreams of something beyond farming.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        2,
-        3
-      ]
+      "given_name": "Tristan"
     }
   },
   {
     "model": "character.character",
     "pk": 5,
     "fields": {
-      "name": "Mira Holloway",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -152,23 +142,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Mira",
-      "last_name": "Holloway",
       "backstory": "Helps with the animals, dislikes farm work.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        2,
-        3
-      ]
+      "given_name": "Mira"
     }
   },
   {
     "model": "character.character",
     "pk": 6,
     "fields": {
-      "name": "Oswin Holloway",
       "xp": 18,
       "xp_next_level": 200,
       "xp_modifier": 1.0,
@@ -182,23 +166,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Oswin",
-      "last_name": "Holloway",
       "backstory": "Youngest child, eager to learn his father’s trade.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        2,
-        3
-      ]
+      "given_name": "Oswin"
     }
   },
   {
     "model": "character.character",
     "pk": 7,
     "fields": {
-      "name": "Callum Drake",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -212,20 +190,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Callum",
-      "last_name": "Drake",
       "backstory": "Shepherd, spends most of his time in the hills.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Callum"
     }
   },
   {
     "model": "character.character",
     "pk": 8,
     "fields": {
-      "name": "Eda Drake",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -239,20 +214,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Eda",
-      "last_name": "Drake",
       "backstory": "Dairy and spinner. Callum's wife.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Eda"
     }
   },
   {
     "model": "character.character",
     "pk": 9,
     "fields": {
-      "name": "Nico Drake",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -266,23 +238,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Nico",
-      "last_name": "Drake",
       "backstory": "Callum and Eda's son, recently discovered as illegitimate.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        8,
-        7
-      ]
+      "given_name": "Nico"
     }
   },
   {
     "model": "character.character",
     "pk": 10,
     "fields": {
-      "name": "Aldwin Weaver",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -296,20 +262,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Aldwin",
-      "last_name": "Weaver",
       "backstory": "Tavern owner, grew up as a farmer before changing trade.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Aldwin"
     }
   },
   {
     "model": "character.character",
     "pk": 11,
     "fields": {
-      "name": "Rosalind Weaver",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -323,22 +286,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Rosalind",
-      "last_name": "Weaver",
       "backstory": "Aldwin’s daughter, newlywed to a soldier, currently pregnant.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        10
-      ]
+      "given_name": "Rosalind"
     }
   },
   {
     "model": "character.character",
     "pk": 12,
     "fields": {
-      "name": "Edric Thornbrook",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -352,20 +310,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Edric",
-      "last_name": "Thornbrook",
       "backstory": "Retired blacksmith, owns a small farm.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Edric"
     }
   },
   {
     "model": "character.character",
     "pk": 13,
     "fields": {
-      "name": "Elias Thornbrook",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -379,22 +334,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Elias",
-      "last_name": "Thornbrook",
       "backstory": "Freya and Edric's son; runs the forge but helps on the farm.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        12
-      ]
+      "given_name": "Elias"
     }
   },
   {
     "model": "character.character",
     "pk": 14,
     "fields": {
-      "name": "Freya Thornbrook",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -408,22 +358,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Freya",
-      "last_name": "Thornbrook",
       "backstory": "Edric's daughter, more interested in farming than smithing.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        12
-      ]
+      "given_name": "Freya"
     }
   },
   {
     "model": "character.character",
     "pk": 15,
     "fields": {
-      "name": "Viggo Stormvale",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -437,20 +382,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Viggo",
-      "last_name": "Stormvale",
       "backstory": "Former soldier, now working land for a noble.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Viggo"
     }
   },
   {
     "model": "character.character",
     "pk": 16,
     "fields": {
-      "name": "Ella Stormvale",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -464,20 +406,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Ella",
-      "last_name": "Stormvale",
       "backstory": "Viggo’s orphaned niece, raised by him.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Ella"
     }
   },
   {
     "model": "character.character",
     "pk": 17,
     "fields": {
-      "name": "Dain Mossgrove",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -491,20 +430,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Dain",
-      "last_name": "Mossgrove",
       "backstory": "Goatherd, known for his stubbornness. Anwen's husband.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Dain"
     }
   },
   {
     "model": "character.character",
     "pk": 18,
     "fields": {
-      "name": "Anwen Mossgrove",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -518,20 +454,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Anwen",
-      "last_name": "Mossgrove",
       "backstory": "Cheesemaker. Dain's wife.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Anwen"
     }
   },
   {
     "model": "character.character",
     "pk": 19,
     "fields": {
-      "name": "Ronan Mossgrove",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -545,23 +478,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Ronan",
-      "last_name": "Mossgrove",
       "backstory": "Their son, a struggling market trader",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        17,
-        18
-      ]
+      "given_name": "Ronan"
     }
   },
   {
     "model": "character.character",
     "pk": 20,
     "fields": {
-      "name": "Elena Fenwick",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -575,20 +502,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Elena",
-      "last_name": "Fenwick",
       "backstory": "Widow, struggling to raise crops on a poor strip of land",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Elena"
     }
   },
   {
     "model": "character.character",
     "pk": 21,
     "fields": {
-      "name": "Ivy Fenwick",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -602,22 +526,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Ivy",
-      "last_name": "Fenwick",
       "backstory": "Elena's daughter, more interested in plants than farmwork.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        20
-      ]
+      "given_name": "Ivy"
     }
   },
   {
     "model": "character.character",
     "pk": 22,
     "fields": {
-      "name": "Ysabet Ashford",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -631,20 +550,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Ysabet",
-      "last_name": "Ashford",
       "backstory": "Seamstress, formerly a noble worker, now living with farmers.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Ysabet"
     }
   },
   {
     "model": "character.character",
     "pk": 23,
     "fields": {
-      "name": "Rowenna Ashford",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -658,22 +574,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Rowenna",
-      "last_name": "Ashford",
       "backstory": "Ysabet's daughter, works fields for a local landowner.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": [
-        22
-      ]
+      "given_name": "Rowenna"
     }
   },
   {
     "model": "character.character",
     "pk": 24,
     "fields": {
-      "name": "Loralei Dewhurst",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -687,20 +598,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Loralei",
-      "last_name": "Dewhurst",
       "backstory": "Ranger, hunts for game and protects woodland.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Loralei"
     }
   },
   {
     "model": "character.character",
     "pk": 25,
     "fields": {
-      "name": "Ronan Blackthorne",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -714,20 +622,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Ronan",
-      "last_name": "Blackthorne",
       "backstory": "Former rogue, now a merchant.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Ronan"
     }
   },
   {
     "model": "character.character",
     "pk": 26,
     "fields": {
-      "name": "Marwen Brightwater",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -741,20 +646,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Marwen",
-      "last_name": "Brightwater",
       "backstory": "Herbalist, grows medicinal plants.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Marwen"
     }
   },
   {
     "model": "character.character",
     "pk": 27,
     "fields": {
-      "name": "Theo Brightwater",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -768,20 +670,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Theo",
-      "last_name": "Brightwater",
       "backstory": "Marwen's grandson, helps with the chickens.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Theo"
     }
   },
   {
     "model": "character.character",
     "pk": 28,
     "fields": {
-      "name": "Dain Ironhand",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -795,20 +694,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Dain",
-      "last_name": "Ironhand",
       "backstory": "Stonemason, lives in a farming village.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Dain"
     }
   },
   {
     "model": "character.character",
     "pk": 29,
     "fields": {
-      "name": "Sylvie Briarwood",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -822,20 +718,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Sylvie",
-      "last_name": "Briarwood",
       "backstory": "Orphan raised by monks, training as a scribe.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Sylvie"
     }
   },
   {
     "model": "character.character",
     "pk": 30,
     "fields": {
-      "name": "Baldric Holt",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -849,20 +742,17 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Baldric",
-      "last_name": "Holt",
       "backstory": "Aspiring knight, former farmhand.",
       "sex": "Male",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Baldric"
     }
   },
   {
     "model": "character.character",
     "pk": 31,
     "fields": {
-      "name": "Thea Lockwood",
       "xp": 0,
       "xp_next_level": 0,
       "xp_modifier": 1.0,
@@ -876,13 +766,258 @@
       "is_pregnant": false,
       "pregnancy_start_date": null,
       "pregnancy_due_date": null,
-      "first_name": "Thea",
-      "last_name": "Lockwood",
       "backstory": "Tavern owner, daughter of farmers.",
       "sex": "Female",
       "reputation": 0,
       "can_link": true,
-      "parents": []
+      "given_name": "Thea"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 1,
+    "fields": {
+      "relationship_type": "marriage",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "",
+      "created_at": "2026-08-06T21:13:54.234Z",
+      "last_updated": "2026-08-06T22:01:09.414Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 2,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.030Z",
+      "last_updated": "2026-08-06T21:59:20.030Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 3,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.033Z",
+      "last_updated": "2026-08-06T21:59:20.033Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 4,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.034Z",
+      "last_updated": "2026-08-06T21:59:20.034Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 5,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.035Z",
+      "last_updated": "2026-08-06T21:59:20.035Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 6,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.036Z",
+      "last_updated": "2026-08-06T21:59:20.036Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 7,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.037Z",
+      "last_updated": "2026-08-06T21:59:20.037Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 8,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.038Z",
+      "last_updated": "2026-08-06T21:59:20.038Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 9,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.039Z",
+      "last_updated": "2026-08-06T21:59:20.039Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 10,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.040Z",
+      "last_updated": "2026-08-06T21:59:20.040Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 11,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.042Z",
+      "last_updated": "2026-08-06T21:59:20.042Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 12,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.043Z",
+      "last_updated": "2026-08-06T21:59:20.043Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 13,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.044Z",
+      "last_updated": "2026-08-06T21:59:20.044Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 14,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.045Z",
+      "last_updated": "2026-08-06T21:59:20.045Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 15,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "biological",
+      "created_at": "2026-08-06T21:59:20.046Z",
+      "last_updated": "2026-08-06T21:59:20.046Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 16,
+    "fields": {
+      "relationship_type": "romantic",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "",
+      "created_at": "2026-08-06T21:59:20.047Z",
+      "last_updated": "2026-08-07T10:44:51.447Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 18,
+    "fields": {
+      "relationship_type": "marriage",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "",
+      "created_at": "2026-08-07T10:36:14.943Z",
+      "last_updated": "2026-08-07T10:36:14.943Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 19,
+    "fields": {
+      "relationship_type": "marriage",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "",
+      "created_at": "2026-08-07T10:39:14.666Z",
+      "last_updated": "2026-08-07T10:39:14.667Z"
+    }
+  },
+  {
+    "model": "character.characterrelationship",
+    "pk": 20,
+    "fields": {
+      "relationship_type": "parent_child",
+      "is_exclusive": false,
+      "strength": 0,
+      "history": {},
+      "variant": "",
+      "created_at": "2026-08-07T10:41:32.638Z",
+      "last_updated": "2026-08-07T10:41:32.638Z"
     }
   },
   {
@@ -927,6 +1062,449 @@
       "body": "Your completed sessions appear in recent activity. You can hover over individual activities and click the 'play' button to repeat them.",
       "order": 4,
       "youtube_url": ""
+    }
+  },
+  {
+    "model": "progression.activitydefinition",
+    "pk": 1,
+    "fields": {
+      "name": "General labour",
+      "present_tense": "doing odd jobs around the village",
+      "description": "Odd jobs and errands - a fallback work block for characters without an assigned role yet.",
+      "kind": "work",
+      "skill": null,
+      "created_at": "2026-08-06T00:00:00.000Z",
+      "last_updated": "2026-08-06T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.activitydefinition",
+    "pk": 2,
+    "fields": {
+      "name": "Helping around the village",
+      "present_tense": "helping around the village",
+      "description": "Pitching in on whatever chores need doing - a second fallback so generate_day always has at least two work options to sample from.",
+      "kind": "work",
+      "skill": null,
+      "created_at": "2026-08-06T00:00:00.000Z",
+      "last_updated": "2026-08-06T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.activitydefinition",
+    "pk": 3,
+    "fields": {
+      "name": "Sleeping",
+      "present_tense": "sleeping",
+      "description": "The night's rest.",
+      "kind": "sleep",
+      "skill": null,
+      "created_at": "2026-08-06T00:00:00.000Z",
+      "last_updated": "2026-08-06T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.activitydefinition",
+    "pk": 4,
+    "fields": {
+      "name": "Morning routine",
+      "present_tense": "going through their morning routine",
+      "description": "Washing, dressing, and getting ready for the day.",
+      "kind": "morning",
+      "skill": null,
+      "created_at": "2026-08-06T00:00:00.000Z",
+      "last_updated": "2026-08-06T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.activitydefinition",
+    "pk": 5,
+    "fields": {
+      "name": "Mealtime",
+      "present_tense": "eating",
+      "description": "Sitting down to eat.",
+      "kind": "meal",
+      "skill": null,
+      "created_at": "2026-08-06T00:00:00.000Z",
+      "last_updated": "2026-08-06T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.activitydefinition",
+    "pk": 6,
+    "fields": {
+      "name": "Leisure time",
+      "present_tense": "relaxing",
+      "description": "Resting, socialising, or otherwise unwinding.",
+      "kind": "leisure",
+      "skill": null,
+      "created_at": "2026-08-06T00:00:00.000Z",
+      "last_updated": "2026-08-06T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.activitydefinition",
+    "pk": 7,
+    "fields": {
+      "name": "Winding down",
+      "present_tense": "winding down for the night",
+      "description": "Settling in for the night before sleep.",
+      "kind": "wind_down",
+      "skill": null,
+      "created_at": "2026-08-06T00:00:00.000Z",
+      "last_updated": "2026-08-06T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.role",
+    "pk": 1,
+    "fields": {
+      "name": "Farmer",
+      "description": "Works the fields - sowing, harvesting, and tending crops.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.role",
+    "pk": 2,
+    "fields": {
+      "name": "Miller",
+      "description": "Grinds harvested grain into flour at the mill.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.role",
+    "pk": 3,
+    "fields": {
+      "name": "Baker",
+      "description": "Turns flour into bread at the bakery.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.role",
+    "pk": 4,
+    "fields": {
+      "name": "Innkeeper",
+      "description": "Runs the inn - hosting guests and keeping the place running.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.role",
+    "pk": 5,
+    "fields": {
+      "name": "Merchant",
+      "description": "Buys, sells, and trades goods at the market.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skillgroup",
+    "pk": 1,
+    "fields": {
+      "role": 1,
+      "name": "Fieldwork",
+      "description": "Core farming skills.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skillgroup",
+    "pk": 2,
+    "fields": {
+      "role": 2,
+      "name": "Milling",
+      "description": "Core milling skills.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skillgroup",
+    "pk": 3,
+    "fields": {
+      "role": 3,
+      "name": "Baking",
+      "description": "Core baking skills.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skillgroup",
+    "pk": 4,
+    "fields": {
+      "role": 4,
+      "name": "Hospitality",
+      "description": "Core innkeeping skills.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skillgroup",
+    "pk": 5,
+    "fields": {
+      "role": 5,
+      "name": "Trade",
+      "description": "Core trading skills.",
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 1,
+    "fields": {
+      "name": "Sowing",
+      "description": "Planting seed for the season's crop.",
+      "role": 1,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 2,
+    "fields": {
+      "name": "Harvesting",
+      "description": "Bringing in the ripened crop.",
+      "role": 1,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 3,
+    "fields": {
+      "name": "Crop Rotation",
+      "description": "Planning which crops go where, and when, to keep the soil productive.",
+      "role": 1,
+      "gate_group": 1,
+      "min_proficiency": 25,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 4,
+    "fields": {
+      "name": "Soil Management",
+      "description": "Reading and improving soil condition over multiple seasons.",
+      "role": 1,
+      "gate_group": 1,
+      "min_proficiency": 50,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 5,
+    "fields": {
+      "name": "Grinding Grain",
+      "description": "Turning wheat into flour at the millstone.",
+      "role": 2,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 6,
+    "fields": {
+      "name": "Sifting Flour",
+      "description": "Separating fine flour from coarser bran.",
+      "role": 2,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 7,
+    "fields": {
+      "name": "Millstone Maintenance",
+      "description": "Dressing and maintaining the millstones for efficient grinding.",
+      "role": 2,
+      "gate_group": 2,
+      "min_proficiency": 30,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 8,
+    "fields": {
+      "name": "Kneading Dough",
+      "description": "Working dough to the right consistency before proving.",
+      "role": 3,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 9,
+    "fields": {
+      "name": "Bread Baking",
+      "description": "Baking loaves to a consistent, reliable standard.",
+      "role": 3,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 10,
+    "fields": {
+      "name": "Pastry Making",
+      "description": "Laminated and enriched doughs beyond a plain loaf.",
+      "role": 3,
+      "gate_group": 3,
+      "min_proficiency": 30,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 11,
+    "fields": {
+      "name": "Recipe Development",
+      "description": "Creating and refining new bakes.",
+      "role": 3,
+      "gate_group": 3,
+      "min_proficiency": 60,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 12,
+    "fields": {
+      "name": "Serving Guests",
+      "description": "Waiting on guests at the inn.",
+      "role": 4,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 13,
+    "fields": {
+      "name": "Room Upkeep",
+      "description": "Keeping guest rooms clean and ready.",
+      "role": 4,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 14,
+    "fields": {
+      "name": "Brewing",
+      "description": "Brewing ale and other drinks for the inn.",
+      "role": 4,
+      "gate_group": 4,
+      "min_proficiency": 25,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 15,
+    "fields": {
+      "name": "Hosting Events",
+      "description": "Organising gatherings and events at the inn.",
+      "role": 4,
+      "gate_group": 4,
+      "min_proficiency": 50,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 16,
+    "fields": {
+      "name": "Haggling",
+      "description": "Negotiating a better price, buying or selling.",
+      "role": 5,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 17,
+    "fields": {
+      "name": "Bookkeeping",
+      "description": "Tracking stock, prices, and takings.",
+      "role": 5,
+      "gate_group": null,
+      "min_proficiency": null,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 18,
+    "fields": {
+      "name": "Market Analysis",
+      "description": "Reading demand and price trends across the market.",
+      "role": 5,
+      "gate_group": 5,
+      "min_proficiency": 30,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
+    }
+  },
+  {
+    "model": "progression.skilldefinition",
+    "pk": 19,
+    "fields": {
+      "name": "Long-Distance Trading",
+      "description": "Running trade routes beyond the local market.",
+      "role": 5,
+      "gate_group": 5,
+      "min_proficiency": 60,
+      "created_at": "2026-08-07T00:00:00.000Z",
+      "last_updated": "2026-08-07T00:00:00.000Z"
     }
   }
 ]

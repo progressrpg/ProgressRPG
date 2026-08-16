@@ -19,6 +19,7 @@ export type {
   AnnouncementListResponse,
   AnnouncementUnreadCountResponse,
   AnnouncementReadMutationResponse,
+  OfflineActivityLogResponse,
 } from "./api";
 
 // Enums and literal union types
@@ -33,8 +34,6 @@ export type {
   ClientWebSocketAction,
   ServerWebSocketAction,
   XpModifierScope,
-  QuestCategory,
-  QuestFrequency,
   SubscriptionPlan,
 } from "./enums";
 
@@ -52,9 +51,7 @@ export type {
   CharacterActivity,
   Project,
   Task,
-  Quest,
-  QuestResults,
-  CharacterQuest,
+  Note,
   XpModifier,
   PopulationCentre,
   Building,
@@ -65,7 +62,6 @@ export type {
 export type {
   ActivityTimerApiData,
   ActivityCompleteResponse,
-  QuestTimerApiData,
   CurrentActivity,
   StartActivityInput,
   AutoStopCompletion,

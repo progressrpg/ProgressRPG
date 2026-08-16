@@ -1,7 +1,7 @@
 // src/hooks/useActivities.ts
 
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { updateActivity, deleteActivity, fetchActivities, createActivity } from "../api/activities";
+import { updateActivity, deleteActivity, fetchActivities, createActivity, logOfflineActivity } from "../api/activities";
 import type { PlayerActivity } from "../types";
 
 
@@ -21,6 +21,20 @@ export function useCreateActivity() {
     mutationFn: createActivity,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["activities"] });
+    },
+  });
+}
+
+
+export function useLogOfflineActivity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: logOfflineActivity,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
+      // A task may have been auto-created (or its total time updated) by the log.
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 }

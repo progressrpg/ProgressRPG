@@ -1,6 +1,4 @@
 import json
-import random
-from math import sqrt
 
 from django.contrib.gis.geos import Point
 from django.core.management import call_command
@@ -11,11 +9,8 @@ from locations.models import PopulationCentre
 from locations.services.population_centre_admin import delete_population_centre
 from locations.services.road_connections import connect_nearest_village_roads
 from locations.services.watabou_import import import_watabou_village
+from locations.village_layout import VILLAGE_LAYOUT
 from locations.village_names import VILLAGE_NAMES
-
-
-def _distance(p1: Point, p2: Point) -> float:
-    return sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
 
 
 class Command(BaseCommand):
@@ -25,21 +20,25 @@ class Command(BaseCommand):
         parser.add_argument("file", help="Path to the exported watabou .json file")
         parser.add_argument(
             "--name",
-            help="Name to give the new PopulationCentre (defaults to a random "
+            help="Name to give the new PopulationCentre (defaults to the first "
             "unused name from village_names.VILLAGE_NAMES, e.g. 'Driftmoor "
             "village')",
         )
         parser.add_argument(
-            "--min-distance",
+            "--x",
             type=int,
-            default=1000,
-            help="Minimum distance (metres) to keep from every existing PopulationCentre",
+            help="Origin X coordinate (metres, SRID 3857) to centre the village on. "
+            "Pass both --x and --y together, or omit both to auto-pick the "
+            "first unoccupied village_layout.VILLAGE_LAYOUT slot (ignored if "
+            "--overwrite ends up reusing an existing centre's location).",
         )
         parser.add_argument(
-            "--grid-size",
+            "--y",
             type=int,
-            default=10000,
-            help="Half-width (metres) of the square region to search for a free spot",
+            help="Origin Y coordinate (metres, SRID 3857) to centre the village on. "
+            "Pass both --x and --y together, or omit both to auto-pick the "
+            "first unoccupied village_layout.VILLAGE_LAYOUT slot (ignored if "
+            "--overwrite ends up reusing an existing centre's location).",
         )
         parser.add_argument(
             "--overwrite",
@@ -74,14 +73,7 @@ class Command(BaseCommand):
         if overwrite:
             reimport_origin = self._delete_existing(name, options["interactive"])
 
-        existing_locations = list(
-            PopulationCentre.objects.exclude(name=name).values_list(
-                "location", flat=True
-            )
-        )
-        origin = reimport_origin or self._pick_origin(
-            existing_locations, options["min_distance"], options["grid_size"]
-        )
+        origin = reimport_origin or self._resolve_origin(options["x"], options["y"])
 
         try:
             population_centre = import_watabou_village(data, name=name, origin=origin)
@@ -114,6 +106,13 @@ class Command(BaseCommand):
                 f"{population_centre.roads.count()} roads)"
             )
         )
+
+        # Watabou exports carry their own "crops" Subzone geometry (see
+        # watabou_import._import_fields), but not a field_shelter Building or
+        # FieldCrop - generate_fields attaches those. Must run before
+        # generate_paths, which needs the shelter's entrance node to exist.
+        call_command("generate_fields")
+        self.stdout.write(self.style.SUCCESS("Generated fields for the new centre"))
 
         call_command("generate_paths", centre=population_centre.id)
         self.stdout.write(self.style.SUCCESS("Generated paths for the new centre"))
@@ -150,32 +149,49 @@ class Command(BaseCommand):
 
     def _pick_village_name(self) -> str:
         used_names = set(PopulationCentre.objects.values_list("name", flat=True))
-        available = [
-            f"{village_name} village"
-            for village_name in VILLAGE_NAMES
-            if f"{village_name} village" not in used_names
-        ]
-        if not available:
-            raise CommandError(
-                "Every name in village_names.VILLAGE_NAMES is already taken - "
-                "pass --name explicitly."
-            )
-        return random.choice(available)
-
-    def _pick_origin(
-        self, existing_locations: list[Point], min_distance: int, grid_size: int
-    ) -> Point:
-        for _ in range(200):
-            candidate = Point(
-                random.randint(-grid_size, grid_size),
-                random.randint(-grid_size, grid_size),
-                srid=3857,
-            )
-            if all(
-                _distance(candidate, loc) >= min_distance for loc in existing_locations
-            ):
+        for village_name in VILLAGE_NAMES:
+            candidate = f"{village_name} village"
+            if candidate not in used_names:
                 return candidate
         raise CommandError(
-            "Could not find a free spot for the new village after 200 attempts - "
-            "try a larger --grid-size or a smaller --min-distance."
+            "Every name in village_names.VILLAGE_NAMES is already taken - "
+            "pass --name explicitly."
+        )
+
+    def _resolve_origin(self, x: int | None, y: int | None) -> Point:
+        if x is None and y is None:
+            return self._pick_unused_layout_slot()
+        if x is None or y is None:
+            raise CommandError(
+                "Pass both --x and --y together for the village's origin, or "
+                "neither to auto-pick an unoccupied village_layout.VILLAGE_LAYOUT "
+                "slot."
+            )
+        return Point(x, y, srid=3857)
+
+    def _pick_unused_layout_slot(self) -> Point:
+        """
+        First VILLAGE_LAYOUT slot with no existing PopulationCentre already
+        sitting on it - lets an ad-hoc import (e.g. trying out a village file
+        outside locations/data/, so outside the setup_world/import_villages
+        pipeline) claim spare grid space without hand-picking coordinates.
+
+        Not persistent across a setup_world rerun: that command deletes every
+        existing PopulationCentre before reimporting only locations/data/'s
+        files (see setup_world.py), so an ad-hoc import placed here will need
+        to be redone afterwards - and may land on a different free slot next
+        time, since which slots are "unoccupied" depends on whatever other
+        centres exist at that moment.
+        """
+        occupied = {
+            (round(centre.location.x), round(centre.location.y))
+            for centre in PopulationCentre.objects.only("location")
+        }
+        for x, y in VILLAGE_LAYOUT:
+            if (x, y) not in occupied:
+                return Point(x, y, srid=3857)
+        raise CommandError(
+            f"Every village_layout.VILLAGE_LAYOUT slot ({len(VILLAGE_LAYOUT)}) is "
+            "already occupied by a PopulationCentre - pass --x/--y explicitly, "
+            "or add more slots (GRID_COLUMNS/GRID_ROWS)."
         )

@@ -4,10 +4,8 @@ from django.db.models import Q
 
 class CharacterLocation(models.Model):
     """
-    Where a character's home or work is. Distinct from Character.building
-    (a single legacy home FK still used by assign_home/residents listings) -
-    this is the source of truth for commute scheduling (see
-    locations/services/schedule.py).
+    Where a character's home or work is - the source of truth for commute
+    scheduling (see locations/services/schedule.py).
     """
 
     class Role(models.TextChoices):

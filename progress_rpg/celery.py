@@ -53,11 +53,15 @@ app.conf.beat_schedule = {
         "task": "users.tasks.send_waitlist_nudges",
         "schedule": 7200.0,  # every 2 hours
     },
-    # "generate_character_days_1am": {
-    #     "task": "character.tasks.generate_character_days",
-    #     "schedule": crontab(hour=1, minute=0),
-    #     "args": (),
-    # },
+    "generate_character_days_1am": {
+        "task": "character.tasks.generate_character_days",
+        "schedule": crontab(hour=1, minute=0),
+        "args": (),
+    },
+    "compact_character_activities_3am": {
+        "task": "progression.tasks.compact_character_activities",
+        "schedule": crontab(hour=3, minute=0),
+    },
     "calculate-daily-metrics": {
         "task": "metrics.tasks.calculate_daily_metrics",
         "schedule": crontab(hour=1, minute=0),  # Daily at 1 AM
@@ -76,19 +80,19 @@ app.conf.beat_schedule = {
     },
     "advance_field_economy": {
         "task": "economy.tasks.advance_field_economy_tick",
-        "schedule": crontab(hour=18, minute=5),  # 5 min after WORK_END
+        "schedule": crontab(hour=22, minute=5),
     },
     "advance_mill_economy": {
         "task": "economy.tasks.advance_mill_economy_tick",
-        "schedule": crontab(hour=18, minute=10),  # after advance_field_economy
+        "schedule": crontab(hour=22, minute=10),  # after advance_field_economy
     },
     "advance_bakery_economy": {
         "task": "economy.tasks.advance_bakery_economy_tick",
-        "schedule": crontab(hour=18, minute=15),  # after advance_mill_economy
+        "schedule": crontab(hour=22, minute=15),  # after advance_mill_economy
     },
     "advance_bread_consumption": {
         "task": "economy.tasks.advance_bread_consumption_tick",
-        "schedule": crontab(hour=18, minute=20),  # after advance_bakery_economy
+        "schedule": crontab(hour=22, minute=20),  # after advance_bakery_economy
     },
     # "precompute-sun-times-daily": {
     #     "task": "gameworld.tasks.precompute_sun_times",

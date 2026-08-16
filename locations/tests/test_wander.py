@@ -22,7 +22,7 @@ class WanderServiceTest(TestCase):
             boundary=VILLAGE_BOUNDARY,
         )
         self.character = Character.objects.create(
-            first_name="Wanderer",
+            given_name="Wanderer",
             location=Point(0, 0, srid=3857),
             population_centre=self.centre,
         )
@@ -43,7 +43,7 @@ class WanderServiceTest(TestCase):
 
     def test_wander_without_population_centre_is_a_noop(self):
         orphan = Character.objects.create(
-            first_name="Orphan", location=Point(0, 0, srid=3857)
+            given_name="Orphan", location=Point(0, 0, srid=3857)
         )
         moved = wander(orphan, radius=15)
         self.assertFalse(moved)
@@ -80,19 +80,19 @@ class WanderTickTaskTest(TestCase):
             boundary=VILLAGE_BOUNDARY,
         )
         self.idle_npc = Character.objects.create(
-            first_name="Idle",
+            given_name="Idle",
             location=Point(0, 0, srid=3857),
             population_centre=self.centre,
             is_moving=False,
         )
         self.moving_npc = Character.objects.create(
-            first_name="Moving",
+            given_name="Moving",
             location=Point(0, 0, srid=3857),
             population_centre=self.centre,
             is_moving=True,
         )
         self.linked_character = Character.objects.create(
-            first_name="Linked",
+            given_name="Linked",
             location=Point(0, 0, srid=3857),
             population_centre=self.centre,
             is_moving=False,

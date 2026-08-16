@@ -1,6 +1,7 @@
 # progression/views.py
 from typing import TYPE_CHECKING
 from datetime import timedelta
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
@@ -14,29 +15,43 @@ if TYPE_CHECKING:
 else:
     _RequestMixinBase = object
 
-from api.views import IsOwnerPlayer
+from api.views import IsAdminOrReadOnly, IsOwnerPlayer
 from .models import (
     Category,
     Role,
+    SkillGroup,
+    SkillDefinition,
+    CharacterRole,
     PlayerSkill,
     CharacterSkill,
+    Activity,
+    SuggestedActivity,
     PlayerActivity,
+    ActivityDefinition,
     CharacterActivity,
-    CharacterQuest,
     Project,
     Task,
+    Note,
 )
 from .serializers import (
     CategorySerializer,
     RoleSerializer,
+    SkillGroupSerializer,
+    SkillDefinitionSerializer,
+    CharacterRoleSerializer,
     PlayerSkillSerializer,
     CharacterSkillSerializer,
+    ActivitySerializer,
+    SuggestedActivitySerializer,
     PlayerActivitySerializer,
+    OfflineActivityLogSerializer,
+    ActivityDefinitionSerializer,
     CharacterActivitySerializer,
-    CharacterQuestSerializer,
     ProjectSerializer,
     TaskSerializer,
+    NoteSerializer,
 )
+from .services import log_offline_activity
 from .filters import (
     CategoryFilter,
     PlayerSkillFilter,
@@ -44,6 +59,7 @@ from .filters import (
     CharacterActivityFilter,
     ProjectFilter,
     TaskFilter,
+    NoteFilter,
 )
 
 #########################################
@@ -97,10 +113,37 @@ class CategoryViewSet(PlayerScopedQuerysetMixin, viewsets.ModelViewSet):
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["created_at", "last_updated"]
+
+
+class SkillGroupViewSet(viewsets.ModelViewSet):
+    queryset = SkillGroup.objects.all()
+    serializer_class = SkillGroupSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description", "role__name"]
+    ordering_fields = ["created_at", "last_updated"]
+
+
+class SkillDefinitionViewSet(viewsets.ModelViewSet):
+    queryset = SkillDefinition.objects.all()
+    serializer_class = SkillDefinitionSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description", "role__name"]
+    ordering_fields = ["created_at", "last_updated"]
+
+
+class CharacterRoleViewSet(viewsets.ModelViewSet):
+    queryset = CharacterRole.objects.all()
+    serializer_class = CharacterRoleSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["name", "description", "character__name"]
-    ordering_fields = ["created_at", "last_updated"]
+    search_fields = ["character__name", "role__name"]
+    ordering_fields = ["assigned_at"]
 
 
 #########################################
@@ -127,8 +170,31 @@ class CharacterSkillViewSet(viewsets.ModelViewSet):
     serializer_class = CharacterSkillSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["name", "description", "character__name"]
-    ordering_fields = ["level", "created_at", "last_updated"]
+    search_fields = ["skill_definition__name", "character__name"]
+    ordering_fields = ["created_at", "last_updated"]
+
+
+#########################################
+#####      Activity viewsets
+#########################################
+
+
+class ActivityViewSet(PlayerScopedQuerysetMixin, viewsets.ModelViewSet):
+    model = Activity
+    serializer_class = ActivitySerializer
+    permission_classes = [IsAuthenticated, IsOwnerPlayer]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "created_at", "last_updated"]
+
+
+class SuggestedActivityViewSet(viewsets.ModelViewSet):
+    queryset = SuggestedActivity.objects.all()
+    serializer_class = SuggestedActivitySerializer
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "created_at", "last_updated"]
 
 
 #########################################
@@ -202,6 +268,51 @@ class PlayerActivityViewSet(PlayerScopedQuerysetMixin, viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="log_offline",
+        permission_classes=[IsAuthenticated],
+    )
+    def log_offline(self, request):
+        player = request.user.player
+        serializer = OfflineActivityLogSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        task = data.get("task")
+        name = data.get("name") or task.name
+
+        try:
+            result = log_offline_activity(
+                player,
+                name=name,
+                description=data.get("description", ""),
+                skill=data.get("skill"),
+                task=task,
+                started_at=data["started_at"],
+                completed_at=data["completed_at"],
+            )
+        except DjangoValidationError as exc:
+            return Response(
+                {"success": False, "message": "; ".join(exc.messages)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "message": "Activity logged",
+                "activity": PlayerActivitySerializer(result.activity).data,
+                "xp_gained": result.reward_summary["xp_gained"],
+                "xp_eligible_seconds": result.xp_eligible_seconds,
+                "level_ups": result.level_ups,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
     @action(detail=True, methods=["patch"])
     def change_skill(self, request, pk=None):
         activity = self.get_object()
@@ -236,6 +347,15 @@ class CurrentCharacterScopedQuerysetMixin(_RequestMixinBase):
         return self.model._default_manager.filter(character=character)
 
 
+class ActivityDefinitionViewSet(viewsets.ModelViewSet):
+    queryset = ActivityDefinition.objects.all()
+    serializer_class = ActivityDefinitionSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description", "kind"]
+    ordering_fields = ["created_at", "last_updated"]
+
+
 class CharacterActivityViewSet(
     CurrentCharacterScopedQuerysetMixin, viewsets.ModelViewSet
 ):
@@ -248,7 +368,7 @@ class CharacterActivityViewSet(
         filters.OrderingFilter,
     ]
     filterset_class = CharacterActivityFilter
-    search_fields = ["name", "description", "character__name"]
+    search_fields = ["activity_definition__name", "character__name"]
     ordering_fields = [
         "duration",
         "created_at",
@@ -276,15 +396,6 @@ class CharacterActivityViewSet(
         current = behaviour.sync_to_now()
         data = self.get_serializer(current).data if current else None
         return Response({"current": data})
-
-
-class CharacterQuestViewSet(CurrentCharacterScopedQuerysetMixin, viewsets.ModelViewSet):
-    model = CharacterQuest
-    serializer_class = CharacterQuestSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["name", "description", "character__name"]
-    ordering_fields = ["duration", "target_duration", "created_at", "last_updated"]
 
 
 #########################################
@@ -351,3 +462,17 @@ class TaskViewSet(PlayerScopedQuerysetMixin, viewsets.ModelViewSet):
                 "level_ups": level_ups,
             }
         )
+
+
+class NoteViewSet(PlayerScopedQuerysetMixin, viewsets.ModelViewSet):
+    model = Note
+    serializer_class = NoteSerializer
+    permission_classes = [IsAuthenticated, IsOwnerPlayer]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_class = NoteFilter
+    search_fields = ["title", "body", "task__name"]
+    ordering_fields = ["created_at", "last_updated"]

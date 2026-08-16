@@ -1,7 +1,7 @@
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.test import SimpleTestCase, TransactionTestCase, TestCase
+from django.test import SimpleTestCase, TransactionTestCase
 
 from character.models import PlayerCharacterLink
 from gameplay.consumers import TimerConsumer
@@ -51,19 +51,18 @@ class TimerConsumerNoCharacterTests(TransactionTestCase):
             is_active=False
         )
 
-    def test_set_player_and_character_handles_missing_link(self):
+    def test_connect_accepts_without_active_character(self):
         consumer = TimerConsumer()
 
+        # set_player_and_character in isolation, before exercising the full
+        # connect() flow below.
         player, character, link = async_to_sync(consumer.set_player_and_character)(
             self.user
         )
-
         self.assertEqual(player, self.player)
         self.assertIsNone(character)
         self.assertIsNone(link)
 
-    def test_connect_accepts_without_active_character(self):
-        consumer = TimerConsumer()
         consumer.scope = {"user": self.user}
         consumer.channel_layer = DummyChannelLayer()
         consumer.channel_name = "test.channel.no.character"
@@ -183,25 +182,20 @@ class TimerConsumerDisconnectTests(TransactionTestCase):
 
         self.assertEqual(len(consumer.channel_layer.groups), 0)
 
-    def test_disconnect_removes_player_from_groups(self):
+    def test_disconnect_removes_player_from_groups_and_broadcasts_online_count(self):
         consumer = self._make_connected_consumer()
 
         self.assertIn(consumer.player_group, consumer.channel_layer.groups)
         self.assertIn("online_users", consumer.channel_layer.groups)
-
-        async_to_sync(consumer.disconnect)(1000)
-
-        self.assertNotIn(consumer.player_group, consumer.channel_layer.groups)
-        self.assertNotIn("online_users", consumer.channel_layer.groups)
-
-    def test_disconnect_broadcasts_online_count(self):
-        consumer = self._make_connected_consumer()
 
         self.player.active_connections = 1
         self.player.is_online = True
         self.player.save(update_fields=["active_connections", "is_online"])
 
         async_to_sync(consumer.disconnect)(1000)
+
+        self.assertNotIn(consumer.player_group, consumer.channel_layer.groups)
+        self.assertNotIn("online_users", consumer.channel_layer.groups)
 
         group_messages = consumer.channel_layer.group_messages
         self.assertEqual(len(group_messages), 1)
@@ -232,7 +226,7 @@ class TimerConsumerDisconnectTests(TransactionTestCase):
         async_to_sync(consumer.disconnect)(1000)
 
 
-class TimerConsumerOnlineCountEventTests(TestCase):
+class TimerConsumerOnlineCountEventTests(SimpleTestCase):
     def test_online_count_event_sends_payload(self):
         consumer = TimerConsumer()
         consumer.send_json = AsyncCallRecorder()

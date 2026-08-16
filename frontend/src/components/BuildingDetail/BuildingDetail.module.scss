@@ -1,0 +1,48 @@
+@use 'sass:map';
+@use '../../styles/semantic/spacing' as sp;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/typography' as t;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-md;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-sm;
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: 0.95rem;
+  @include c.apply-text-tone(map.get(c.$text-tone, muted));
+}
+
+.sectionHeadingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: sp.$spacing-gap;
+}
+
+.sectionCount {
+  text-align: right;
+}
+
+.goodsList {
+  @include t.apply-text-style(t.$text-body);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-xs;
+}
+
+.residentsList {
+  max-height: 200px;
+  overflow-y: auto;
+}

@@ -70,10 +70,10 @@ describe("useFeatureFlag", () => {
   });
 
   it("falls back to the bundled defaults when the remote config omits the flag", () => {
-    // No appConfig at all -> uses local featureFlags (activityList: ['all']).
-    setup();
+    // No appConfig at all -> uses local featureFlags (tasksFeature: ['testers']).
+    setup({ player: { is_tester: true } });
 
-    expect(renderHook(() => useFeatureFlag("activityList")).result.current).toBe(true);
+    expect(renderHook(() => useFeatureFlag("tasksFeature")).result.current).toBe(true);
   });
 
   it("prefers the remote config over the bundled default", () => {

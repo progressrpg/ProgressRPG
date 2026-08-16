@@ -1,0 +1,57 @@
+name: Announce release on Discord
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post release to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_AUTHOR: ${{ github.event.release.author.login }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+          import urllib.request
+
+          webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
+          title = os.environ.get("RELEASE_NAME") or os.environ["RELEASE_TAG"]
+          body = os.environ.get("RELEASE_BODY") or ""
+
+          # Discord embed descriptions are capped at 4096 characters.
+          max_len = 4000
+          if len(body) > max_len:
+              body = body[:max_len].rsplit("\n", 1)[0] + "\n…"
+
+          payload = {
+              "embeds": [
+                  {
+                      "title": f"🚀 New release: {title}",
+                      "url": os.environ["RELEASE_URL"],
+                      "description": body,
+                      "color": 0x5865F2,
+                      "footer": {"text": f"Published by {os.environ.get('RELEASE_AUTHOR', 'unknown')}"},
+                  }
+              ]
+          }
+
+          req = urllib.request.Request(
+              webhook_url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as resp:
+              print(resp.status)
+          PYEOF

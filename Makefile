@@ -1,4 +1,7 @@
-.PHONY: t shell
+.PHONY: \
+	ddu ddub drub dr \
+	ddown dup dbuild dreset \
+	ps ds dt vt shell dc stripelistener
 
 ddu: ddown dup
 ddub: ddown dbuild
@@ -23,6 +26,12 @@ ds:
 
 t:
 	docker compose exec web python manage.py test $(t) --keepdb --buffer
+tnk:
+	docker compose exec web python manage.py test $(t) --buffer
+
+vt:
+	cd ./frontend
+	npm test
 
 shell:
 	docker compose exec web python manage.py shell_plus

@@ -18,7 +18,12 @@ from economy.constants import (
     WHEAT_TO_FLOUR_RATIO,
     YIELD_PER_AREA,
 )
-from economy.models import FieldCrop, GoodsConversionState, GoodsStock
+from economy.models import (
+    BuildingCapability,
+    FieldCrop,
+    GoodsConversionState,
+    GoodsStock,
+)
 from economy.tasks import (
     advance_bakery_economy_tick,
     advance_bread_consumption_tick,
@@ -131,6 +136,7 @@ def _make_mill(centre, grain_area=1000.0, flour_area=1000.0):
         footprint=_square(80, 0, 5),
         population_centre=centre,
     )
+    BuildingCapability.objects.create(building=mill, activity="milling")
     mill_node = Node.objects.create(
         name=f"Node for {mill.name}",
         location=mill.location,
@@ -156,6 +162,7 @@ def _make_bakery(centre, storage_area=1000.0):
         footprint=_square(60, 0, 5),
         population_centre=centre,
     )
+    BuildingCapability.objects.create(building=bakery, activity="baking")
     bakery_node = Node.objects.create(
         name=f"Node for {bakery.name}",
         location=bakery.location,
@@ -171,7 +178,7 @@ def _make_bakery(centre, storage_area=1000.0):
 
 def _make_resident(centre, home_building, name, hunger=0.0):
     character = Character.objects.create(
-        first_name=name, location=home_building.location
+        given_name=name, location=home_building.location
     )
     CharacterLocation.objects.create(
         character=character,
@@ -243,13 +250,13 @@ class GenerateFieldsEconomyTickTests(TestCase):
         _make_granary(centre, storage_area=10000.0)
 
         Character.objects.create(
-            first_name="Worker1",
+            given_name="Worker1",
             location=shelter.location,
             current_node=shelter_node,
             is_moving=False,
         )
         Character.objects.create(
-            first_name="Worker2",
+            given_name="Worker2",
             location=shelter.location,
             current_node=shelter_node,
             is_moving=False,
@@ -275,7 +282,7 @@ class GenerateFieldsEconomyTickTests(TestCase):
 
         for i in range(5):
             Character.objects.create(
-                first_name=f"Worker{i}",
+                given_name=f"Worker{i}",
                 location=shelter.location,
                 current_node=shelter_node,
                 is_moving=False,
@@ -303,7 +310,7 @@ class GenerateFieldsEconomyTickTests(TestCase):
         granary = _make_granary(centre, storage_area=0.1)
 
         Character.objects.create(
-            first_name="Worker1",
+            given_name="Worker1",
             location=shelter.location,
             current_node=shelter_node,
             is_moving=False,
@@ -324,7 +331,7 @@ class GenerateFieldsEconomyTickTests(TestCase):
         crop.save(update_fields=["ready_yield", "harvested_amount"])
 
         Character.objects.create(
-            first_name="Worker1",
+            given_name="Worker1",
             location=shelter.location,
             current_node=shelter_node,
             is_moving=False,
@@ -346,7 +353,7 @@ class GenerateFieldsEconomyTickTests(TestCase):
         _make_granary(centre, storage_area=10000.0)
 
         Character.objects.create(
-            first_name="Worker1",
+            given_name="Worker1",
             location=shelter.location,
             current_node=shelter_node,
             is_moving=False,
@@ -381,13 +388,13 @@ class AdvanceMillEconomyTickTests(TestCase):
         mill, mill_node = _make_mill(centre)
 
         Character.objects.create(
-            first_name="Miller1",
+            given_name="Miller1",
             location=mill.location,
             current_node=mill_node,
             is_moving=False,
         )
         Character.objects.create(
-            first_name="Miller2",
+            given_name="Miller2",
             location=mill.location,
             current_node=mill_node,
             is_moving=False,
@@ -413,7 +420,7 @@ class AdvanceMillEconomyTickTests(TestCase):
         )
         mill, mill_node = _make_mill(centre)
         Character.objects.create(
-            first_name="Miller1",
+            given_name="Miller1",
             location=mill.location,
             current_node=mill_node,
             is_moving=False,
@@ -429,7 +436,7 @@ class AdvanceMillEconomyTickTests(TestCase):
         centre, granary = self._make_centre_with_wheat()
         mill, mill_node = _make_mill(centre)
         Character.objects.create(
-            first_name="Miller1",
+            given_name="Miller1",
             location=mill.location,
             current_node=mill_node,
             is_moving=False,
@@ -453,6 +460,7 @@ class AdvanceMillEconomyTickTests(TestCase):
             footprint=_square(70, 0, 5),
             population_centre=centre,
         )
+        BuildingCapability.objects.create(building=mill_b_building, activity="milling")
         node_b = Node.objects.create(
             name="Node for Second Mill",
             location=mill_b_building.location,
@@ -473,13 +481,13 @@ class AdvanceMillEconomyTickTests(TestCase):
         )
 
         Character.objects.create(
-            first_name="MillerA",
+            given_name="MillerA",
             location=mill_a.location,
             current_node=node_a,
             is_moving=False,
         )
         Character.objects.create(
-            first_name="MillerB",
+            given_name="MillerB",
             location=mill_b_building.location,
             current_node=node_b,
             is_moving=False,
@@ -519,13 +527,13 @@ class AdvanceBakeryEconomyTickTests(TestCase):
         bakery, bakery_node = _make_bakery(centre)
 
         Character.objects.create(
-            first_name="Baker1",
+            given_name="Baker1",
             location=bakery.location,
             current_node=bakery_node,
             is_moving=False,
         )
         Character.objects.create(
-            first_name="Baker2",
+            given_name="Baker2",
             location=bakery.location,
             current_node=bakery_node,
             is_moving=False,
@@ -551,7 +559,7 @@ class AdvanceBakeryEconomyTickTests(TestCase):
         )
         bakery, bakery_node = _make_bakery(centre)
         Character.objects.create(
-            first_name="Baker1",
+            given_name="Baker1",
             location=bakery.location,
             current_node=bakery_node,
             is_moving=False,
@@ -567,7 +575,7 @@ class AdvanceBakeryEconomyTickTests(TestCase):
         centre, mill = self._make_centre_with_flour()
         bakery, bakery_node = _make_bakery(centre)
         Character.objects.create(
-            first_name="Baker1",
+            given_name="Baker1",
             location=bakery.location,
             current_node=bakery_node,
             is_moving=False,
@@ -591,6 +599,7 @@ class AdvanceBakeryEconomyTickTests(TestCase):
             footprint=_square(50, 0, 5),
             population_centre=centre,
         )
+        BuildingCapability.objects.create(building=bakery_b, activity="baking")
         node_b = Node.objects.create(
             name="Node for Second Bakery",
             location=bakery_b.location,
@@ -602,13 +611,13 @@ class AdvanceBakeryEconomyTickTests(TestCase):
         )
 
         Character.objects.create(
-            first_name="BakerA",
+            given_name="BakerA",
             location=bakery_a.location,
             current_node=node_a,
             is_moving=False,
         )
         Character.objects.create(
-            first_name="BakerB",
+            given_name="BakerB",
             location=bakery_b.location,
             current_node=node_b,
             is_moving=False,
@@ -627,6 +636,82 @@ class AdvanceBakeryEconomyTickTests(TestCase):
                 building=bakery_b, good_type="bread", quantity__gt=0
             ).exists()
         )
+
+
+class MultiCapabilityBuildingTests(TestCase):
+    """
+    A building holding more than one capability (e.g. a communal building
+    that both mills and bakes) must be ticked for every one of them on the
+    same day. Regression coverage for the GoodsConversionState collision
+    described in .claude/plans/building-capabilities-plan.md: before
+    GoodsConversionState was keyed by (building, activity), the first tick
+    to run would mark the building "processed today" and the second would
+    silently skip it.
+    """
+
+    def test_milling_and_baking_both_run_on_the_same_day_for_one_building(self):
+        centre = PopulationCentre.objects.create(
+            name="Communalville",
+            location=Point(0, 0, srid=3857),
+            boundary=_square(0, 0, 50),
+        )
+        granary = _make_granary(centre)
+        GoodsStock.objects.create(
+            building=granary,
+            good_type=GoodsStock.GoodType.WHEAT,
+            quantity=500_000.0,
+        )
+
+        communal = Building.objects.create(
+            name="Communal Hall",
+            building_type="communal",
+            location=Point(80, 0, srid=3857),
+            footprint=_square(80, 0, 5),
+            population_centre=centre,
+        )
+        BuildingCapability.objects.create(building=communal, activity="milling")
+        BuildingCapability.objects.create(building=communal, activity="baking")
+        InteriorSpace.objects.create(
+            building=communal, name="Flour store", usage="flour_storage", area=1000.0
+        )
+        InteriorSpace.objects.create(
+            building=communal, name="Bread store", usage="storage", area=1000.0
+        )
+        node = Node.objects.create(
+            name="Node for Communal Hall",
+            location=communal.location,
+            kind=Node.Kind.BUILDING,
+            building=communal,
+        )
+        Character.objects.create(
+            given_name="Worker1",
+            location=communal.location,
+            current_node=node,
+            is_moving=False,
+        )
+
+        with _unlimited_demand():
+            advance_mill_economy_tick()
+            advance_bakery_economy_tick()
+
+        # Bread can only exist if baking found flour to consume - and the
+        # only source of flour is the same building's milling tick having
+        # already run today, so a positive bread quantity is proof both
+        # ticks actually ran rather than the second silently no-opping.
+        # (Flour itself may end up fully consumed here, since milling and
+        # baking share one building with no minimum retention between
+        # them - that's expected, not asserted on directly.)
+        bread = GoodsStock.objects.get(building=communal, good_type="bread")
+        self.assertGreater(bread.quantity, 0)
+
+        milling_state = GoodsConversionState.objects.get(
+            building=communal, activity="milling"
+        )
+        baking_state = GoodsConversionState.objects.get(
+            building=communal, activity="baking"
+        )
+        self.assertEqual(milling_state.last_processed_on, timezone.localdate())
+        self.assertEqual(baking_state.last_processed_on, timezone.localdate())
 
 
 class AdvanceBreadConsumptionTickTests(TestCase):

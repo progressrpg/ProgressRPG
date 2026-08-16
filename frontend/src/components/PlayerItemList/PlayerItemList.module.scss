@@ -156,19 +156,12 @@
   }
 }
 
-.childList {
-  list-style: none;
-  margin: sp.$spacing-xs 0 0;
-  padding: 0 0 0 sp.$spacing-lg;
-  display: flex;
-  flex-direction: column;
-  gap: sp.$spacing-xs;
-}
-
 .childItem {
-  background: transparent;
-  border-color: rgba(c.$color-border-primary, 0.12);
-  opacity: 0.9;
+  // Shrink width by the indent instead of just shifting it, so the right
+  // edge still lines up with the parent's — .listItem's width: 100% would
+  // otherwise push the box that far past the parent's right edge.
+  width: calc(100% - #{sp.$spacing-lg});
+  margin-left: sp.$spacing-lg;
 }
 
 .itemCompleted {
@@ -180,9 +173,6 @@
     opacity: 0.72;
   }
 
-  .itemMeta {
-    opacity: 0.68;
-  }
 }
 
 .completeCheckboxLabel {
@@ -222,7 +212,11 @@
 }
 
 .itemMeta {
-  color: rgba(0, 0, 0, 0.6);
+  // Opaque color-text-muted, not a translucent black: the latter's ~60%
+  // opacity, further dimmed to ~2.89:1 by the completed-item state's
+  // opacity: 0.68 (see .itemCompleted above), fell under WCAG AA's 4.5:1
+  // minimum for normal-weight text.
+  color: c.$color-text-muted;
   @include t.apply-text-style(t.$text-caption);
 }
 
@@ -235,9 +229,10 @@
 .editInput {
   flex: 1;
   min-width: 0;
+  height: sp.$form-control-height;
   padding: sp.$spacing-xs sp.$spacing-sm;
   border: 2px solid rgba(c.$color-status-success, 0.45);
-  border-radius: sp.$border-radius;
+  border-radius: sp.$form-control-radius;
   font-size: 1em;
   font-family: inherit;
   transition: border-color 0.2s ease;
@@ -259,6 +254,7 @@
 }
 
 .editConfirmActions {
+  position: relative;
   display: flex;
   justify-content: flex-start;
   align-items: center;
@@ -289,4 +285,46 @@
   margin: 0;
   color: rgba(0, 0, 0, 0.65);
   @include t.apply-text-style(t.$text-caption);
+}
+
+.saveStatus {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: sp.$spacing-xs sp.$spacing-sm;
+  border-radius: sp.$border-radius;
+  border: 1px solid rgba(c.$color-border-primary, 0.4);
+  background: rgba(c.$color-bg, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 1;
+  font-weight: 600;
+  @include t.apply-text-style(t.$text-caption);
+  animation: saveStatusFadeIn 0.15s ease;
+}
+
+.saveStatus-saving {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.saveStatus-saved {
+  color: c.$color-status-success;
+  animation: saveStatusFadeInOut #{2500ms} ease forwards;
+}
+
+.saveStatus-error {
+  color: c.$color-status-danger;
+}
+
+@keyframes saveStatusFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes saveStatusFadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
 }

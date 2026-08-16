@@ -3,12 +3,7 @@
  * the DRF serializers. Field names match the serializer output exactly.
  */
 
-import type {
-  CharacterActivityStatus,
-  XpModifierScope,
-  QuestCategory,
-  QuestFrequency,
-} from "./enums";
+import type { CharacterActivityStatus, XpModifierScope } from "./enums";
 
 // ---------------------------------------------------------------------------
 // User (api/serializers.py — UserSerializer)
@@ -81,8 +76,7 @@ export interface GeoJSONPoint {
 
 export interface Character {
   id: number;
-  first_name: string;
-  last_name: string;
+  name: string;
   backstory: string;
   age: number;
   sex: string;
@@ -157,6 +151,8 @@ export interface PlayerActivity {
   skill: number | null;
   project: number | null;
   task: number | null;
+  /** FK to the reusable Activity "type" (catalog entry), not this session's own id. */
+  activity: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -222,48 +218,18 @@ export interface Task {
 }
 
 // ---------------------------------------------------------------------------
-// Quest (gameplay/serializers.py — QuestSerializer)
+// Note (progression/serializers.py — NoteSerializer)
 // ---------------------------------------------------------------------------
 
-export interface QuestResults {
-  dynamic_rewards: Record<string, unknown> | null;
-  xp_rate: number;
-  coin_reward: number;
-}
-
-export interface Quest {
+export interface Note {
   id: number;
-  name: string;
-  description: string;
-  intro_text: string;
-  outro_text: string;
-  duration_choices: number[];
-  stages: unknown[];
-  results: QuestResults | null;
-}
-
-// ---------------------------------------------------------------------------
-// CharacterQuest (progression/serializers.py — CharacterQuestSerializer)
-// ---------------------------------------------------------------------------
-
-export interface CharacterQuest {
-  id: number;
-  name: string;
-  description: string;
-  duration: number;
-  started_at: string | null;
-  is_complete: boolean;
-  completed_at: string | null;
-  xp_gained: number | null;
+  title: string;
+  body: string;
+  player: number;
+  task: number | null;
+  activity: number | null;
   created_at: string;
   last_updated: string;
-  character: number;
-  skill: number | null;
-  intro_text: string;
-  outro_text: string;
-  target_duration: number;
-  stages: unknown[];
-  stages_fixed: boolean;
 }
 
 // ---------------------------------------------------------------------------

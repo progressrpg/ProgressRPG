@@ -10,6 +10,7 @@ mypy<3
 pip-review
 pip-tools
 pipdeptree
+pygraphviz
 pre_commit
 types-PyYAML
 websocket-client

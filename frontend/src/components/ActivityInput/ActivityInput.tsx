@@ -7,6 +7,7 @@ import EntitySearchInput from "../EntitySearchInput/EntitySearchInput";
 import styles from "./ActivityInput.module.scss";
 import { useActivityInput } from "./useActivityInput";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
+import { formatDuration } from "../../utils/formatUtils";
 
 export default function ActivityInput() {
   const {
@@ -14,8 +15,7 @@ export default function ActivityInput() {
     setName,
     isActive,
     inputValue,
-    minutes,
-    seconds,
+    elapsed,
     formattedLimit,
     showAutoStopWarning,
     flowState,
@@ -63,7 +63,7 @@ export default function ActivityInput() {
             </div>
 
             <div className={classNames(styles.timerPill, styles.control)}>
-              {minutes}:{seconds.toString().padStart(2, "0")}
+              {formatDuration(elapsed)}
             </div>
 
             <Button

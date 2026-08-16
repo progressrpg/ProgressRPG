@@ -1,0 +1,72 @@
+@use 'sass:map';
+@use '../../styles/semantic/spacing' as sp;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/typography' as t;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-md;
+}
+
+.status {
+  @include t.apply-text-style(t.$text-body);
+  @include c.apply-text-tone(map.get(c.$text-tone, muted));
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-sm;
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  justify-content: space-between;
+  gap: sp.$spacing-gap;
+
+  dt {
+    @include c.apply-text-tone(map.get(c.$text-tone, muted));
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+  }
+}
+
+// Home/work, when navigable (onSelectBuilding given) - styled to read as a
+// link inline within the <dd>, rather than pulling in Button for a single
+// word of interactive text.
+.linkButton {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    @include c.apply-text-tone(map.get(c.$text-tone, muted));
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-sm;
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: 0.95rem;
+  @include c.apply-text-tone(map.get(c.$text-tone, muted));
+}
+
+.relationshipsList {
+  max-height: 200px;
+  overflow-y: auto;
+}

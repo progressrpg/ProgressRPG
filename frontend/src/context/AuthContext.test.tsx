@@ -1,8 +1,8 @@
-import { act, render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider } from "./AuthContext";
-import { setUnauthorizedHandler } from "../utils/api";
+import { apiFetch, setUnauthorizedHandler } from "../utils/api";
 import { clearAuthStorage, storeAuthTokens } from "../utils/authStorage";
 
 vi.mock("../utils/api", () => ({
@@ -44,14 +44,19 @@ describe("AuthProvider unauthorized-handler registration", () => {
     expect(setUnauthorizedHandler).toHaveBeenLastCalledWith(null);
   });
 
-  it("registers a handler that logs the session out", () => {
+  it("registers a handler that logs the session out", async () => {
     storeAuthTokens("access-token", "refresh-token", true);
+    vi.mocked(apiFetch).mockResolvedValueOnce({ id: 1, email: "test@example.com" });
 
     render(
       <AuthProvider>
         <div />
       </AuthProvider>,
     );
+
+    await waitFor(() => {
+      expect(apiFetch).toHaveBeenCalledWith("/me/");
+    });
 
     const registeredHandler = vi.mocked(setUnauthorizedHandler).mock.calls[0][0];
     expect(registeredHandler).toBeInstanceOf(Function);

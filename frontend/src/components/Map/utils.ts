@@ -51,6 +51,30 @@ export function coordsFromLngLat(coords: CoordTree): CoordTree {
   return mapCoordTree(coords, fromLngLat);
 }
 
+// Backend hard-caps the queryable bbox at MAX_BBOX_AREA_SQ_M = 100 km²
+// (locations/utils.py) and 400s past it - keeping each padded side under
+// this leaves headroom under that cap even after padding
+// (9500m * 9500m ~= 90.25 km² < 100 km²).
+const MAX_PADDED_BBOX_SIDE_M = 9500;
+
+// Widens a camera-derived bbox by `ratio` on every side before it's sent to
+// the backend, so the fetched (and therefore rendered) area is bigger than
+// what's immediately on screen - panning a little reveals already-loaded
+// content at the edges instead of a blank gap while the next poll catches
+// up. Clamped so padding never pushes a side past the backend's area cap;
+// if the unpadded bbox is already at/over that limit (very zoomed out), no
+// padding is added and the bbox passes through unchanged - same as before.
+export function padBbox(
+  [minx, miny, maxx, maxy]: [number, number, number, number],
+  ratio = 0.5
+): [number, number, number, number] {
+  const width = maxx - minx;
+  const height = maxy - miny;
+  const padX = Math.max(0, Math.min(width * ratio, (MAX_PADDED_BBOX_SIDE_M - width) / 2));
+  const padY = Math.max(0, Math.min(height * ratio, (MAX_PADDED_BBOX_SIDE_M - height) / 2));
+  return [minx - padX, miny - padY, maxx + padX, maxy + padY];
+}
+
 // Rounds a camera-derived bbox (raw 3857 metres) to the nearest `step` so
 // that sub-pixel camera jitter during a drag/zoom doesn't mint a new
 // TanStack Query key - and therefore a new network request - on every

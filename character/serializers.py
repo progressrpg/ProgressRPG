@@ -5,6 +5,7 @@ from .models import Character
 
 
 class CharacterSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField()
     age = serializers.SerializerMethodField()
     coins = serializers.SerializerMethodField()
     total_activities = serializers.IntegerField(read_only=True)
@@ -19,8 +20,7 @@ class CharacterSerializer(serializers.ModelSerializer):
         model = Character
         fields = [
             "id",
-            "first_name",
-            "last_name",
+            "name",
             "backstory",
             "age",
             "sex",
@@ -37,6 +37,7 @@ class CharacterSerializer(serializers.ModelSerializer):
             "location",
             "current_node",
             "target_node",
+            "is_moving",
         ]
 
         read_only_fields = fields
@@ -46,7 +47,7 @@ class CharacterSerializer(serializers.ModelSerializer):
 
     def get_current_activity(self, obj) -> str | None:
         activity = obj.behaviour.get_current_activity()
-        return activity.name if activity else None
+        return activity.narrative if activity else None
 
     def get_coins(self, obj) -> int:
         return obj.get_currency("coins").balance

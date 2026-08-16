@@ -13,22 +13,31 @@ same "just metres, no real georeferencing" convention the rest of
 locations/ already uses (see MAX_BBOX_AREA_SQ_M in locations/utils.py).
 
 This only creates static geometry - PopulationCentre, Building, Road, the
-Node graph's CENTRE/BUILDING/BUILDING_ENTRANCE points, and (if the export
-has a "fields" feature) a LandArea/Subzone pair per field polygon. It
-deliberately does not generate Path edges: Path is the movement/pathfinding
+Node graph's CENTRE/BUILDING points plus BUILDING_ENTRANCE for non-granary
+buildings, and (if the export has a "fields" and/or "squares" feature) a
+LandArea/Subzone pair per field/square polygon (see _import_polygon_subzones).
+It deliberately does not generate Path edges: Path is the movement/pathfinding
 graph and Road is just the drawn street, so wiring the graph is left to the
 existing `generate_paths` command (see the `--generate-paths` flag on
 import_watabou_village's management command) rather than trying to derive
 walkable edges from arbitrary imported road geometry.
 """
 
+import logging
+from typing import cast
+
 from django.contrib.gis.geos import LineString, Point, Polygon
 from django.db import transaction
 
-from locations.management.commands.spawn_villages import (
+from economy.models import BuildingCapability
+from economy.services.planning_services import settlement_plan
+from locations.management.commands.generate_villages import (
     compute_building_entrance_point,
 )
 from locations.models import Building, LandArea, Node, PopulationCentre, Road, Subzone
+from locations.services import population_estimation
+
+logger = logging.getLogger("general")
 
 # GEOS areas in this module are in SRID 3857 coordinates, which - per the
 # "just metres, no real georeferencing" convention described above - are
@@ -42,28 +51,123 @@ SQUARE_METRES_PER_HECTARE = 10_000
 DEFAULT_ROAD_WIDTH = 6.0
 
 # watabou doesn't tag buildings with a structured type, so one is assigned
-# per import: ~75% of buildings become "residential", then one each of the
-# "special" (work) types below is assigned from the remainder, in this
-# fixed order. There's no catch-all type for anything left over once every
-# special type has its one instance - those buildings become "residential"
+# per import: ~75% of buildings become "residential"; the remainder is
+# split between the always-present economy chain (granary, milling,
+# baking - see _assign_building_types_and_capabilities) and these purely
+# decorative types, which fill any slots left over after the economy chain
+# is satisfied. There's no catch-all type for anything left over once every
+# type here has its one instance - those buildings become "residential"
 # too.
 RESIDENTIAL_BUILDING_RATIO = 0.75
-SPECIAL_BUILDING_TYPES = ["granary", "inn", "mill", "bakery", "market", "hall"]
+OPTIONAL_BUILDING_TYPES = ["inn", "market", "hall"]
 
 
-def _assign_building_types(count: int) -> list[str]:
+def _polygon_area(polygon_coords) -> float:
+    """
+    Area of a raw (untranslated) watabou building polygon - translation
+    doesn't affect area, so this works ahead of picking an origin/offset,
+    unlike _translate_polygon.
+    """
+    return Polygon(*(_close_ring(ring) for ring in polygon_coords)).area
+
+
+def _assign_building_types_and_capabilities(
+    building_coordinates: list,
+) -> tuple[list[str], dict[int, list[BuildingCapability.Activity]]]:
+    """
+    Decide each imported building's building_type, and which
+    BuildingCapability activities (if any) it should get - driven by
+    settlement_plan instead of a fixed one-of-each-special-type list (see
+    .claude/plans/village-capacity-sizing-plan.md step 4). Returns
+    (building_types, capabilities_by_index), the second a map from index
+    in building_types/building_coordinates to a list of
+    economy.models.BuildingCapability.Activity values to attach.
+
+    Granary/milling/baking are guaranteed a slot ahead of the purely
+    decorative OPTIONAL_BUILDING_TYPES, since they're the always_present
+    economy chain (see planning_services._recommended_buildings). Milling
+    and baking are packed onto a single shared "communal" building
+    whenever the settlement is small (plan.combine_milling_and_baking -
+    see SMALL_SETTLEMENT_POPULATION_THRESHOLD) even if there'd be enough
+    slots for two dedicated buildings, and as a fallback whenever there
+    genuinely isn't room for two regardless of population - this is what
+    actually fixes the original Ashenford bug (a small village silently
+    missing a bakery because the old fixed-order allocation ran out of
+    slots before reaching it).
+
+    The population figure fed to settlement_plan is a rough pre-creation
+    estimate (from the footprint areas of whichever buildings this same
+    ratio split would leave residential), not the more accurate post-
+    creation estimate logged at the end of import_watabou_village - good
+    enough here since it only ever changes *how many* buildings each role
+    recommends (always exactly 1 today - see _recommended_buildings' "no
+    per-building labor cap yet" note), not whether it's needed at all.
+    """
+    count = len(building_coordinates)
     residential_count = round(count * RESIDENTIAL_BUILDING_RATIO)
-
     remaining = count - residential_count
-    types = []
-    for building_type in SPECIAL_BUILDING_TYPES:
+
+    residential_areas = [
+        _polygon_area(coords)
+        for coords in (
+            building_coordinates[-residential_count:] if residential_count else []
+        )
+    ]
+    estimated_population = (
+        population_estimation.estimate_population_from_footprint_areas(
+            residential_areas
+        )
+    )
+    plan = settlement_plan(population=estimated_population)
+
+    building_types: list[str] = []
+    capabilities_by_index: dict[int, list[BuildingCapability.Activity]] = {}
+
+    if remaining > 0 and plan.recommended_granaries > 0:
+        building_types.append("granary")
+        remaining -= 1
+
+    needs_milling = plan.milling.recommended_buildings > 0
+    needs_baking = plan.baking.recommended_buildings > 0
+    if needs_milling and needs_baking:
+        combine = plan.combine_milling_and_baking or remaining < 2
+        if combine and remaining >= 1:
+            capabilities_by_index[len(building_types)] = [
+                BuildingCapability.Activity.MILLING,
+                BuildingCapability.Activity.BAKING,
+            ]
+            building_types.append("communal")
+            remaining -= 1
+        elif remaining >= 2:
+            capabilities_by_index[len(building_types)] = [
+                BuildingCapability.Activity.MILLING
+            ]
+            building_types.append("mill")
+            remaining -= 1
+            capabilities_by_index[len(building_types)] = [
+                BuildingCapability.Activity.BAKING
+            ]
+            building_types.append("bakery")
+            remaining -= 1
+    elif remaining >= 1 and (needs_milling or needs_baking):
+        activities = []
+        if needs_milling:
+            activities.append(BuildingCapability.Activity.MILLING)
+        if needs_baking:
+            activities.append(BuildingCapability.Activity.BAKING)
+        capabilities_by_index[len(building_types)] = activities
+        building_types.append("communal")
+        remaining -= 1
+
+    for building_type in OPTIONAL_BUILDING_TYPES:
         if remaining <= 0:
             break
-        types.append(building_type)
+        building_types.append(building_type)
         remaining -= 1
-    types.extend(["residential"] * (residential_count + remaining))
 
-    return types
+    building_types.extend(["residential"] * (residential_count + remaining))
+
+    return building_types, capabilities_by_index
 
 
 def _feature_by_id(data: dict, feature_id: str) -> dict | None:
@@ -94,30 +198,43 @@ def _translate_linestring(coordinates, offset, srid=3857) -> LineString:
     return LineString(points, srid=srid)
 
 
-def _import_fields(
-    fields_feature: dict, population_centre: PopulationCentre, offset
+def _import_polygon_subzones(
+    feature: dict,
+    population_centre: PopulationCentre,
+    offset,
+    *,
+    land_area_name: str,
+    subzone_name: str,
+    usage: str,
 ) -> None:
     """
-    Create one LandArea (wrapping the whole imported field area) and one
-    "crops" Subzone per polygon in the "fields" MultiPolygon - unlike
+    Create one LandArea (wrapping the whole imported area) and one Subzone
+    per polygon in a watabou MultiPolygon feature - unlike
     generate_landarea's procedurally-synthesized Subzone geometry, these
     polygons are real imported shapes, so they're used directly rather than
-    derived from a size fraction.
+    derived from a size fraction. Shared by _import_fields (usage="crops")
+    and _import_squares (usage="square") below - the only difference
+    between them is naming and the usage tag, since neither FieldCrop
+    growth nor any other economy behaviour is usage-specific here.
     """
     polygons = [
         _translate_polygon(polygon_coords, offset)
-        for polygon_coords in fields_feature.get("coordinates", [])
+        for polygon_coords in feature.get("coordinates", [])
     ]
     if not polygons:
         return
 
     combined = polygons[0]
     for polygon in polygons[1:]:
-        combined = combined.union(polygon)
-    boundary = combined if combined.geom_type == "Polygon" else combined.convex_hull
+        combined = cast(Polygon, combined.union(polygon))
+    boundary = (
+        combined
+        if combined.geom_type == "Polygon"
+        else cast(Polygon, combined.convex_hull)
+    )
 
     land_area = LandArea.objects.create(
-        name=f"Fields of ({population_centre.name})",
+        name=land_area_name,
         population_centre=population_centre,
         location=boundary.centroid,
         boundary=boundary,
@@ -127,12 +244,48 @@ def _import_fields(
     for i, polygon in enumerate(polygons):
         Subzone.objects.create(
             land_area=land_area,
-            name=f"Field {i + 1} of ({population_centre.name})",
+            name=f"{subzone_name} {i + 1} of ({population_centre.name})",
             location=polygon.centroid,
             boundary=polygon,
             size=polygon.area / SQUARE_METRES_PER_HECTARE,
-            usage="crops",
+            usage=usage,
         )
+
+
+def _import_fields(
+    fields_feature: dict, population_centre: PopulationCentre, offset
+) -> None:
+    _import_polygon_subzones(
+        fields_feature,
+        population_centre,
+        offset,
+        land_area_name=f"Fields of ({population_centre.name})",
+        subzone_name="Field",
+        usage="crops",
+    )
+
+
+def _import_squares(
+    squares_feature: dict, population_centre: PopulationCentre, offset
+) -> None:
+    """
+    Import watabou's "squares" feature - open communal outdoor space (a
+    market square/plaza) rather than property. Modelled the same way as a
+    crops Subzone (see _import_polygon_subzones) since LandArea is already
+    documented as "not property... a communal or functional area", but
+    tagged usage="square" instead of "crops": squares have no FieldCrop
+    growth cycle or other economy behaviour attached, they're purely a map
+    feature (see SubzoneFeatureSerializer, which already returns None for
+    every crop_* property when there's no attached FieldCrop).
+    """
+    _import_polygon_subzones(
+        squares_feature,
+        population_centre,
+        offset,
+        land_area_name=f"Squares of ({population_centre.name})",
+        subzone_name="Square",
+        usage="square",
+    )
 
 
 @transaction.atomic
@@ -150,6 +303,7 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
     districts_feature = _feature_by_id(data, "districts")
     earth_feature = _feature_by_id(data, "earth")
     fields_feature = _feature_by_id(data, "fields")
+    squares_feature = _feature_by_id(data, "squares")
 
     # Districts are the actual town/village extent, each a named ward -
     # prefer their union over the "earth" feature, which is just the
@@ -162,11 +316,11 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
     if district_polygons:
         raw_boundary = district_polygons[0]
         for polygon in district_polygons[1:]:
-            raw_boundary = raw_boundary.union(polygon)
+            raw_boundary = cast(Polygon, raw_boundary.union(polygon))
         if raw_boundary.geom_type != "Polygon":
             # Districts aren't guaranteed to touch - fall back to their
             # convex hull so the boundary stays a single Polygon.
-            raw_boundary = raw_boundary.convex_hull
+            raw_boundary = cast(Polygon, raw_boundary.convex_hull)
     elif earth_feature:
         raw_boundary = Polygon(_close_ring(earth_feature["coordinates"][0]))
     else:
@@ -189,20 +343,36 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
     )
 
     building_coordinates = buildings_feature.get("coordinates", [])
-    building_types = _assign_building_types(len(building_coordinates))
+    building_types, capabilities_by_index = _assign_building_types_and_capabilities(
+        building_coordinates
+    )
 
+    residential_index = 0
     for i, (polygon_coords, building_type) in enumerate(
         zip(building_coordinates, building_types)
     ):
         footprint = _translate_polygon(polygon_coords, offset)
 
+        # Mirrors generate_villages' naming (residential buildings numbered,
+        # every other type unique per village so its capitalized type name
+        # alone is unambiguous) - see BUILDING_TYPE_LABELS in geojson.tsx,
+        # which the frontend used to derive this same label from
+        # building_type before this became the stored name directly.
+        if building_type == "residential":
+            residential_index += 1
+            building_name = f"House {residential_index}"
+        else:
+            building_name = building_type.capitalize()
+
         building = Building.objects.create(
-            name=f"Building {i + 1} of ({name})",
+            name=building_name,
             building_type=building_type,
             location=footprint.centroid,
             footprint=footprint,
             population_centre=population_centre,
         )
+        for activity in capabilities_by_index.get(i, []):
+            BuildingCapability.objects.create(building=building, activity=activity)
         Node.objects.get_or_create(
             building=building,
             kind=Node.Kind.BUILDING,
@@ -211,17 +381,18 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
                 "location": building.location,
             },
         )
-        entrance_point = compute_building_entrance_point(
-            building.footprint, building.location
-        )
-        Node.objects.get_or_create(
-            building=building,
-            kind=Node.Kind.BUILDING_ENTRANCE,
-            defaults={
-                "name": f"Entrance for {building.name}",
-                "location": entrance_point,
-            },
-        )
+        if building.building_type != "granary":
+            entrance_point = compute_building_entrance_point(
+                building.footprint, building.location
+            )
+            Node.objects.get_or_create(
+                building=building,
+                kind=Node.Kind.BUILDING_ENTRANCE,
+                defaults={
+                    "name": f"Entrance for {building.name}",
+                    "location": entrance_point,
+                },
+            )
 
     for geometry in roads_feature.get("geometries", []):
         if geometry.get("type") != "LineString":
@@ -234,5 +405,27 @@ def import_watabou_village(data: dict, *, name: str, origin: Point) -> Populatio
 
     if fields_feature and fields_feature.get("type") == "MultiPolygon":
         _import_fields(fields_feature, population_centre, offset)
+
+    if squares_feature and squares_feature.get("type") == "MultiPolygon":
+        _import_squares(squares_feature, population_centre, offset)
+
+    # Compute-and-log only for now (see population_estimation's module
+    # docstring and .claude/plans/village-capacity-sizing-plan.md step 3) -
+    # this doesn't yet change which buildings get created. It's here to
+    # validate the recommended plan against real imported village files
+    # before generation behaviour changes in a later step.
+    estimated_population = population_estimation.starting_population(population_centre)
+    recommended_plan = settlement_plan(population=estimated_population)
+    logger.info(
+        "%s: estimated starting population %s -> recommended plan "
+        "(granaries=%s, milling buildings=%s, baking buildings=%s, "
+        "farming buildings=%s)",
+        population_centre.name,
+        estimated_population,
+        recommended_plan.recommended_granaries,
+        recommended_plan.milling.recommended_buildings,
+        recommended_plan.baking.recommended_buildings,
+        recommended_plan.farming.recommended_buildings,
+    )
 
     return population_centre

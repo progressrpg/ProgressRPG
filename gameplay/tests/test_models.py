@@ -85,6 +85,44 @@ class TestActivityTimer(TestCase):
         self.assertIsNone(self.timer.activity)
         self.assertEqual(result["base_xp"], 15)
 
+    def test_complete_reports_no_daily_goals_bonus_when_goals_unmet(self):
+        # No UserLogin recorded for today, so the "logged in today" goal
+        # isn't met and the completion bonus shouldn't fire.
+        self.timer.new_activity("Test activity")
+        self.timer.elapsed_time = 15
+        self.timer.start_time = now()
+
+        result = self.timer.complete()
+
+        self.assertEqual(result["daily_goals_bonus_ap"], 0)
+
+    def test_complete_awards_daily_goals_bonus_when_goals_met(self):
+        from core.models import GameSettings
+        from users.models import UserLogin
+
+        GameSettings.current()
+        settings = GameSettings.objects.get(pk=1)
+        settings.daily_goals_completion_bonus_ap = 25
+        settings.save(update_fields=["daily_goals_completion_bonus_ap"])
+        UserLogin.objects.create(user=self.user)
+
+        self.timer.new_activity("Test activity")
+        self.timer.elapsed_time = 3 * 60
+        self.timer.start_time = now()
+
+        from progression.ap import total_ap_earned
+
+        ap_before = total_ap_earned(self.player.level, self.player.xp)
+        result = self.timer.complete()
+
+        self.assertEqual(result["daily_goals_bonus_ap"], 25)
+        self.player.refresh_from_db()
+        ap_after = total_ap_earned(self.player.level, self.player.xp)
+        # Lifetime AP total (level-up-proof, unlike the raw xp field, which
+        # resets on level-up) went up by both the activity's own reward and
+        # the daily-goals bonus.
+        self.assertEqual(ap_after, ap_before + result["xp_gained"] + 25)
+
 
 class TestServerMessageModel(TestCase):
     @classmethod

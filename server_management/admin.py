@@ -1,11 +1,9 @@
 from django.contrib import admin
 from django.utils.timezone import now
-from .models import FeatureFlag, MaintenanceWindow
-import re
+
+from .models import MaintenanceWindow
 import subprocess
 from pathlib import Path
-from django import forms
-from django.conf import settings
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
 from django.urls import path
@@ -13,51 +11,6 @@ from asgiref.sync import async_to_sync
 import logging
 from gameplay.utils import send_group_message
 from django.utils.html import format_html
-
-_FEATURE_FLAGS_TS = settings.BASE_DIR / "frontend" / "src" / "featureFlags.ts"
-_FLAG_KEY_RE = re.compile(r"^\s{2}(\w+):\s*\[", re.MULTILINE)
-
-_ACCESS_GROUP_CHOICES = [
-    ("all", "All users"),
-    ("premium", "Premium users"),
-    ("testers", "Testers"),
-]
-
-
-def _load_flag_key_choices(exclude=()):
-    try:
-        text = _FEATURE_FLAGS_TS.read_text()
-        keys = _FLAG_KEY_RE.findall(text)
-    except FileNotFoundError:
-        return []
-    return [(k, k) for k in keys if k not in exclude]
-
-
-class FeatureFlagForm(forms.ModelForm):
-    access_groups = forms.MultipleChoiceField(
-        choices=_ACCESS_GROUP_CHOICES,
-        widget=forms.CheckboxSelectMultiple,
-        required=False,
-    )
-
-    class Meta:
-        model = FeatureFlag
-        fields = "__all__"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Exclude keys already assigned to another FeatureFlag row, so the
-        # dropdown only offers keys that don't have one yet. When editing an
-        # existing row, its own key stays selectable.
-        already_used = set(
-            FeatureFlag.objects.exclude(pk=self.instance.pk).values_list(
-                "key", flat=True
-            )
-        )
-        self.fields["key"] = forms.ChoiceField(
-            choices=_load_flag_key_choices(exclude=already_used)
-        )
-
 
 logger = logging.getLogger("general")
 
@@ -199,14 +152,3 @@ class MaintenanceWindowAdmin(admin.ModelAdmin):
             f"/admin/server_management/maintenancewindow/{object_id}/deactivate/"  # Add this line
         )
         return super().change_view(request, object_id, form_url, extra_context)
-
-
-@admin.register(FeatureFlag)
-class FeatureFlagAdmin(admin.ModelAdmin):
-    form = FeatureFlagForm
-    list_display = ("key", "get_access_groups_display", "updated_at")
-    search_fields = ("key", "description")
-
-    @admin.display(description="Access groups")
-    def get_access_groups_display(self, obj):
-        return ", ".join(obj.access_groups) if obj.access_groups else "—"

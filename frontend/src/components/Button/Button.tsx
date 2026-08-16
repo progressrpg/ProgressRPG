@@ -5,6 +5,7 @@ import styles from './Button.module.scss';
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children?: React.ReactNode;
   variant?: string;
+  size?: 'default' | 'small';
   icon?: React.ReactNode;
   as?: 'button' | 'a';
   href?: string;
@@ -21,6 +22,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 export default function Button({
   children,
   variant = 'primary',
+  size = 'default',
   icon = null,
   as = 'button',
   href,
@@ -39,6 +41,7 @@ export default function Button({
       className={classNames(
         styles.button,
         styles[variant],
+        { [styles.small]: size === 'small' },
         { [styles.disabled]: disabled },
         className
       )}

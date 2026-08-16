@@ -15,10 +15,10 @@ changelog:
       labels:
         - bug
         - known-issue
-        - Severity: critical
-        - Severity: high
-        - Severity: medium
-        - Severity: low
+        - "Severity: critical"
+        - "Severity: high"
+        - "Severity: medium"
+        - "Severity: low"
 
     - title: Developer experience and quality
       labels:

@@ -8,7 +8,6 @@ Covers:
 
 from datetime import timedelta
 
-from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -17,16 +16,14 @@ from rest_framework.test import APITestCase
 from core.models import GameSettings
 from progression.models import PlayerActivity, Task
 
-User = get_user_model()
+from users.tests import user_factory
 
 
 class TaskXpMultiplierTests(APITestCase):
     """``get_xp_reward_summary`` applies the task multiplier only when linked."""
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            email="task-xp@example.com", password="pass"
-        )
+        self.user = user_factory(with_player=True)
         self.player = self.user.player
         self.task = Task.objects.create(player=self.player, name="Write docs")
         # Pin the relevant GameSettings so the expected numbers are explicit.
@@ -69,13 +66,9 @@ class TaskViewSetTests(APITestCase):
     """CRUD, ownership scoping and filtering on the tasks endpoint."""
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            email="task-owner@example.com", password="pass"
-        )
+        self.user = user_factory(with_player=True)
         self.player = self.user.player
-        self.other_user = User.objects.create_user(
-            email="task-intruder@example.com", password="pass"
-        )
+        self.other_user = user_factory(with_player=True)
         self.client.force_authenticate(user=self.user)
 
     def test_create_assigns_requesting_player(self):
@@ -228,9 +221,7 @@ class TaskCompletionBonusTests(APITestCase):
     """First mark-complete awards the bonus exactly once (issue #432)."""
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            email="task-bonus@example.com", password="pass"
-        )
+        self.user = user_factory(with_player=True)
         self.player = self.user.player
         self.task = Task.objects.create(player=self.player, name="Ship it")
         self.client.force_authenticate(user=self.user)

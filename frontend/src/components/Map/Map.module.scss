@@ -65,7 +65,17 @@
 }
 
 .floatingTooltip {
-  transform: translate(-50%, calc(-100% - 12px));
+  // .tooltipHost above is pointer-events: none so empty space around the
+  // tooltip doesn't block map drags/clicks - re-enable it here so its own
+  // content (e.g. the "View details" button opening the entity detail
+  // card) is actually clickable.
+  pointer-events: auto;
+  // 32px clears the tallest character icon (interpolates up to ~44px on
+  // screen at max zoom - see the icon-size expression in layers.ts - so
+  // half above its center-anchored point is ~22px) plus a small gap; for
+  // polygon features the anchor is already the shape's own top edge (see
+  // polygonAnchorLngLat in geojson.tsx), so this is pure breathing room.
+  transform: translate(-50%, calc(-100% - 32px));
   background: white;
   border: 1px solid #888;
   border-radius: 4px;

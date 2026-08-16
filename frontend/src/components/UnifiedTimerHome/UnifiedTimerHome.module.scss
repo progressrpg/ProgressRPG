@@ -4,7 +4,7 @@
 @use '../../styles/semantic/spacing' as sp;
 @use 'sass:map';
 
-$row-control-height: 44px;
+$row-control-height: sp.$form-control-height;
 
 .wrapper {
   position: relative;
@@ -121,6 +121,26 @@ $row-control-height: 44px;
   align-items: center;
 }
 
+.noteField {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: sp.$spacing-sm;
+  padding: sp.$padding-sm;
+  border: 1px solid rgba(c.$color-border-primary, 0.3);
+  border-radius: sp.$border-radius;
+  background: rgba(255, 255, 255, 0.6);
+  color: c.$color-text-body;
+  font: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+
+  &::placeholder {
+    color: rgba(c.$color-text-body, 0.6);
+  }
+
+  @include m.focus-outline(c.$color-border-accent);
+}
+
 .modeSwitcher {
   margin-top: sp.$spacing-md;
   justify-content: center;
@@ -160,25 +180,13 @@ $row-control-height: 44px;
 }
 
 @include m.respond-to(md, down) {
-  .timerPill,
-  .ctaButton {
-    height: 40px;
-  }
-
   .inputText {
-    height: 40px;
     font-size: 1rem;
   }
 }
 
 @include m.respond-to(sm, down) {
-  .timerPill,
-  .ctaButton {
-    height: 38px;
-  }
-
   .inputText {
-    height: 38px;
     font-size: 0.9rem;
   }
 }

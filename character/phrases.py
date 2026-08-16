@@ -28,11 +28,8 @@ def load_phrases():
 
 
 def _character_name(character):
-    if getattr(character, "first_name", None):
-        return character.first_name
-    if getattr(character, "name", None):
-        return character.name
-    return "Your companion"
+    name = getattr(character, "name", None)
+    return name or "Your companion"
 
 
 def generate_phrase(state, activity_type, character):

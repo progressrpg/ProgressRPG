@@ -1,15 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { AnimatePresence, motion } from "framer-motion";
+import { formatDuration } from "../../utils/formatUtils";
 
 import Button from "../Button/Button";
 import AlertDialog from "../AlertDialog/AlertDialog";
 import EntitySearchInput from "../EntitySearchInput/EntitySearchInput";
 import SupportFlowModal from "../SupportFlow/SupportFlowModal";
+import TimerResultsPanel from "./TimerResultsPanel";
 import ModeSwitcher from "../ModeSwitcher/ModeSwitcher";
 import TasksPanel from "../TasksPanel/TasksPanel";
+import TimerNoteField from "./TimerNoteField";
 import { useActivityInput } from "../ActivityInput/useActivityInput";
 import { useDefaultActivityEntries } from "../../hooks/useDefaultActivityEntries";
+import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import styles from "./UnifiedTimerHome.module.scss";
 
 type TimerMode = "doing" | "planning";
@@ -35,8 +39,9 @@ export default function UnifiedTimerHome() {
     isUnlabelled,
     isEditingLabel,
     inputValue,
-    minutes,
-    seconds,
+    taskId,
+    activityCatalogId,
+    elapsed,
     formattedLimit,
     showAutoStopWarning,
     flowState,
@@ -52,9 +57,12 @@ export default function UnifiedTimerHome() {
     consumeJustCancelledLabelEdit,
     submitAndOpenSupport,
     openSupportMode,
+    resultsData,
+    exitResults,
   } = useActivityInput();
 
   const defaultResults = useDefaultActivityEntries();
+  const notesFeatureEnabled = useFeatureFlag("notesFeature");
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const [mode, setMode] = useState<TimerMode>("doing");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -122,6 +130,27 @@ export default function UnifiedTimerHome() {
     handleLabelBlur();
   };
 
+  if (resultsData) {
+    return (
+      <>
+        <section className={styles.wrapper}>
+          <h2 className="sr-only">Activity results</h2>
+          <TimerResultsPanel
+            key={resultsData.activityId ?? `${resultsData.activityName ?? ""}-${resultsData.elapsedSeconds ?? 0}`}
+            results={resultsData}
+            onExit={exitResults}
+          />
+        </section>
+
+        <SupportFlowModal
+          state={flowState}
+          dispatch={flowDispatch}
+          onConfirmActivity={handleConfirmActivity}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <section className={classNames(styles.wrapper, { [styles.isActive]: isActive })}>
@@ -162,7 +191,7 @@ export default function UnifiedTimerHome() {
             <AnimatePresence mode="popLayout" initial={false}>
               {isActive && (
                 <motion.div key="timer" layout {...fadeProps} className={styles.timerPill}>
-                  {minutes}:{seconds.toString().padStart(2, "0")}
+                  {formatDuration(elapsed)}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -215,6 +244,10 @@ export default function UnifiedTimerHome() {
 
         {isActive && (
           <>
+            {notesFeatureEnabled && mode === "doing" && (taskId !== null || activityCatalogId !== null) && (
+              <TimerNoteField taskId={taskId} activityId={activityCatalogId} />
+            )}
+
             <ModeSwitcher
               modes={TIMER_MODES}
               activeKey={mode}

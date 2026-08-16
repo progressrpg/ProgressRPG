@@ -1,4 +1,5 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import classNames from "classnames";
 
 import { useEntitySearchInput, type SearchEntity } from "./useEntitySearchInput";
@@ -44,7 +45,6 @@ export default function EntitySearchInput({
   emptyMessage,
 }: EntitySearchInputProps) {
   const {
-    rootRef,
     canSearch,
     taskItems,
     activityItems,
@@ -53,8 +53,11 @@ export default function EntitySearchInput({
     activeHighlightedIndex,
     handleInputFocus,
     handleInputChange,
-    handleKeyDown,
     commitSelection,
+    onSelectNext,
+    onSelectPrevious,
+    onDismiss,
+    onCommit,
   } = useEntitySearchInput({
     type,
     value,
@@ -68,14 +71,59 @@ export default function EntitySearchInput({
     maxVisibleRows,
   });
 
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Dismiss on outside click — the hook exposes the semantic action, this
+  // component owns the DOM listener that detects the gesture.
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        onDismiss();
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onDismiss]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return;
+
+    switch (event.key) {
+      case "ArrowDown":
+        if (isDropdownOpen) event.preventDefault();
+        onSelectNext();
+        return;
+      case "ArrowUp":
+        if (isDropdownOpen) event.preventDefault();
+        onSelectPrevious();
+        return;
+      case "Escape":
+        if (isDropdownOpen) event.preventDefault();
+        onDismiss();
+        return;
+      case "Enter":
+        if (onCommit()) event.preventDefault();
+        return;
+      default:
+        return;
+    }
+  };
+
   const renderOption = (entity: SearchEntity, index: number) => {
     const isHighlighted = index === activeHighlightedIndex;
     return (
-      <li key={`${entity.id}-${entity.name}`} className={styles.optionItem}>
-        <button
-          type="button"
-          role="option"
-          aria-selected={isHighlighted}
+      // role="option" lives on the <li> itself, not a nested button: a
+      // listbox's immediate children must carry the option role directly
+      // (axe's aria-required-children), so an <option> role one level
+      // deeper (on a button inside the <li>) doesn't satisfy it.
+      <li
+        key={`${entity.id}-${entity.name}`}
+        role="option"
+        aria-selected={isHighlighted}
+        className={styles.optionItem}
+      >
+        <div
           className={classNames(styles.optionButton, {
             [styles.optionButtonActive]: isHighlighted,
           })}
@@ -83,7 +131,7 @@ export default function EntitySearchInput({
           onClick={() => commitSelection(entity)}
         >
           {entity.name}
-        </button>
+        </div>
       </li>
     );
   };

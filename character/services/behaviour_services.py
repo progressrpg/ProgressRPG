@@ -6,8 +6,28 @@ from datetime import datetime, time, timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from character.utils import work_activities_for
-from progression.models import CharacterActivity
+from character.utils import window_for_date, work_activities_for
+from locations.services.schedule import work_hours_for
+from progression.models import ActivityDefinition, CharacterActivity
+
+_FIXED_KINDS = [
+    ActivityDefinition.Kind.SLEEP,
+    ActivityDefinition.Kind.MORNING,
+    ActivityDefinition.Kind.MEAL,
+    ActivityDefinition.Kind.LEISURE,
+    ActivityDefinition.Kind.WIND_DOWN,
+]
+
+
+def _fixed_activity_definitions():
+    """
+    The single canonical, skill-less ActivityDefinition for each of the
+    day's fixed (non-work) blocks.
+    """
+    definitions = ActivityDefinition.objects.filter(
+        kind__in=_FIXED_KINDS, skill__isnull=True
+    )
+    return {definition.kind: definition for definition in definitions}
 
 
 def day_window(behaviour, date):
@@ -35,32 +55,39 @@ def generate_day(behaviour, date, replace_future=True):
     def jitter_minutes(base_dt, minutes):
         return base_dt + timedelta(minutes=rng.randint(-minutes, minutes))
 
-    sleep_start = aware(date, time(23, 0))
     wake = aware(date, time(7, 0))
     wake = jitter_minutes(wake, 15)
 
     morning_start = wake
     morning_end = morning_start + timedelta(hours=1)
 
-    work1_start = morning_end
-    work1_end = aware(date, time(12, 0))
+    # The work window comes from the character's actual assigned work
+    # building's hours (same source movement uses - see
+    # locations.services.schedule.target_role_for) rather than a fixed
+    # 8-17 assumption, so e.g. an inn open until 23:00 keeps its workers'
+    # scheduled activity as "working" that late instead of falling through
+    # to the fixed evening leisure block.
+    default_work_start, default_work_end = work_hours_for(behaviour.character)
+    work_start = max(morning_end, aware(date, default_work_start))
+    work_end = aware(date, default_work_end)
 
-    lunch_start = work1_end
-    lunch_start = jitter_minutes(lunch_start, 10)
+    lunch_midpoint = work_start + (work_end - work_start) / 2
+    lunch_start = jitter_minutes(lunch_midpoint, 10)
     lunch_end = lunch_start + timedelta(hours=1)
 
+    work1_start = work_start
+    work1_end = lunch_start
     work2_start = lunch_end
-    work2_end = aware(date, time(17, 0))
+    work2_end = work_end
 
-    dinner_start = aware(date, time(17, 30))
-    dinner_start = jitter_minutes(dinner_start, 10)
+    dinner_start = jitter_minutes(max(work_end, aware(date, time(17, 30))), 10)
     dinner_end = dinner_start + timedelta(hours=1)
 
     leisure_start = dinner_end
-    leisure_end = aware(date, time(22, 30))
+    leisure_end = max(leisure_start, aware(date, time(22, 30)))
 
     wind_start = leisure_end
-    wind_end = aware(date, time(23, 0))
+    wind_end = max(wind_start, aware(date, time(23, 0)))
 
     day_window(behaviour, date)
 
@@ -68,32 +95,33 @@ def generate_day(behaviour, date, replace_future=True):
     next_wake = aware(next_day, time(7, 0))
     next_wake = jitter_minutes(next_wake, 15)
 
-    sleep_start = aware(date, time(23, 0))
+    sleep_start = wind_end
     sleep_end = next_wake
 
-    activities = rng.sample(work_activities_for(behaviour.character), 2)
+    fixed = _fixed_activity_definitions()
+    work_activities = rng.sample(work_activities_for(behaviour.character), 2)
     blocks = [
-        ("sleep", "Sleeping", aware(date, time(0, 0)), morning_start),
-        ("morning", "Waking up", morning_start, morning_end),
-        ("work", activities[0], work1_start, work1_end),
-        ("meal", "Eating lunch", lunch_start, lunch_end),
-        ("work", activities[1], work2_start, work2_end),
-        ("meal", "Eating dinner", dinner_start, dinner_end),
-        ("leisure", "Relaxing", leisure_start, leisure_end),
-        ("wind_down", "Winding down", wind_start, wind_end),
-        ("sleep", "Sleeping", sleep_start, sleep_end),
+        (fixed[ActivityDefinition.Kind.SLEEP], aware(date, time(0, 0)), morning_start),
+        (fixed[ActivityDefinition.Kind.MORNING], morning_start, morning_end),
+        (work_activities[0], work1_start, work1_end),
+        (fixed[ActivityDefinition.Kind.MEAL], lunch_start, lunch_end),
+        (work_activities[1], work2_start, work2_end),
+        (fixed[ActivityDefinition.Kind.MEAL], dinner_start, dinner_end),
+        (fixed[ActivityDefinition.Kind.LEISURE], leisure_start, leisure_end),
+        (fixed[ActivityDefinition.Kind.WIND_DOWN], wind_start, wind_end),
+        (fixed[ActivityDefinition.Kind.SLEEP], sleep_start, sleep_end),
     ]
 
     cleaned = []
     last_end = None
-    for kind, name, start, end in blocks:
+    for activity_definition, start, end in blocks:
         if end <= start:
             continue
         if last_end and start < last_end:
             start = last_end
             if end <= start:
                 continue
-        cleaned.append((kind, name, start, end))
+        cleaned.append((activity_definition, start, end))
         last_end = end
 
     qs = CharacterActivity.objects.select_for_update().filter(
@@ -123,11 +151,10 @@ def generate_day(behaviour, date, replace_future=True):
 
     created = []
 
-    for kind, name, start, end in cleaned:
+    for activity_definition, start, end in cleaned:
         activity_kwargs = {
             "character": behaviour.character,
-            "kind": kind,
-            "name": name,
+            "activity_definition": activity_definition,
             "scheduled_start": start,
             "scheduled_end": end,
         }
@@ -190,23 +217,10 @@ def advance(behaviour, now=None):
         return sync_to_now(behaviour, now=now)
 
     if not current.is_complete:
-        if current.started_at is None:
-            current.started_at = current.scheduled_start
-
-        duration = max(0, int((now - current.started_at).total_seconds()))
-        behaviour.duration = duration
-        current.xp_gained = current.calculate_base_xp(duration)
-        current.completed_at = now
-        current.is_complete = True
-        current.save(
-            update_fields=[
-                "started_at",
-                "duration",
-                "xp_gained",
-                "completed_at",
-                "is_complete",
-            ]
-        )
+        # Same "complete right now, from wherever started_at is" semantics
+        # as complete_now() - force-advancing early is just an early
+        # completion, so reuse it rather than duplicating the AP/XP logic.
+        current.complete_now()
 
     nxt = qs.filter(scheduled_start__gte=current.scheduled_end).first()
     if nxt and nxt.started_at is None and nxt.scheduled_start <= now:
@@ -217,11 +231,18 @@ def advance(behaviour, now=None):
 
 
 def delete_day(behaviour, date):
-    day = behaviour.days.filter(date=date).first()
-    if not day:
-        return
-    day.delete_all()
-    day.delete()
+    """
+    Delete the character's scheduled CharacterActivity rows covering the
+    given date, using the same date-window definition as
+    character.utils.activities_exist_for_date.
+    """
+    window_start, window_end = window_for_date(date, behaviour)
+
+    CharacterActivity.objects.filter(
+        character=behaviour.character,
+        scheduled_start__lt=window_end,
+        scheduled_end__gt=window_start,
+    ).delete()
 
 
 def get_current_activity(behaviour):
@@ -249,8 +270,7 @@ def interrupt_current_activity(behaviour, boost_ended=False):
 
     new_activity = CharacterActivity.objects.create(
         character=behaviour.character,
-        kind=activity.kind,
-        name=activity.name,
+        activity_definition=activity.activity_definition,
         scheduled_end=activity.scheduled_end,
     )
     activity.complete_now()

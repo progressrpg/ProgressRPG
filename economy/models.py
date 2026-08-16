@@ -127,18 +127,74 @@ class GoodsStock(models.Model):
         return round(storage_area * STORAGE_CAPACITY_PER_AREA_WEIGHT)
 
 
-class GoodsConversionState(models.Model):
+class BuildingCapability(models.Model):
     """
-    Per-building idempotency guard for a daily goods-conversion task (e.g.
-    milling). Deliberately thin - unlike FieldCrop, conversion has no growth
-    stages, just a daily "did we already process this building today" check
-    - kept generic so bakery can reuse it unmodified later.
+    A production activity a `Building` is capable of - e.g. a `mill`
+    building has a `milling` capability, but a `communal` building could
+    hold both `milling` and `baking`. Additive alongside
+    `Building.building_type`, which keeps driving unrelated concerns
+    (working hours, flavor text, map/UI display) - see
+    .claude/plans/building-capabilities-plan.md.
+
+    Deliberately excludes storage (`granary`) and farming presence
+    (`field_shelter`, which already tracks its crop via
+    `FieldCrop.shelter_building` rather than a type lookup) - neither is a
+    labor-capped production activity a capability would add anything to.
     """
 
-    building = models.OneToOneField(
-        "locations.Building", on_delete=models.CASCADE, related_name="conversion_state"
+    class Activity(models.TextChoices):
+        MILLING = "milling", "Milling"
+        BAKING = "baking", "Baking"
+        FARMING = "farming", "Farming"
+
+    building = models.ForeignKey(
+        "locations.Building", on_delete=models.CASCADE, related_name="capabilities"
+    )
+    activity = models.CharField(max_length=20, choices=Activity.choices)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["building", "activity"], name="uniq_capability_per_building"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.activity} @ {self.building_id}"
+
+
+class GoodsConversionState(models.Model):
+    """
+    Per-(building, activity) idempotency guard for a daily goods-conversion
+    task (e.g. milling). Keyed by activity, not just building, because a
+    single building can hold multiple capabilities (e.g. a communal
+    building that both mills and bakes) - each needs its own "did we
+    already process this today" flag, or the first tick to run would mark
+    the building processed and the second would silently skip (see
+    .claude/plans/building-capabilities-plan.md). Deliberately thin -
+    unlike FieldCrop, conversion has no growth stages, just the daily flag.
+    """
+
+    building = models.ForeignKey(
+        "locations.Building",
+        on_delete=models.CASCADE,
+        related_name="conversion_states",
+    )
+    activity = models.CharField(
+        max_length=20, choices=BuildingCapability.Activity.choices
     )
     last_processed_on = models.DateField(null=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["building", "activity"],
+                name="uniq_conversion_state_per_activity",
+            ),
+        ]
+
     def __str__(self):
-        return f"GoodsConversionState({self.building_id}, {self.last_processed_on})"
+        return (
+            f"GoodsConversionState({self.building_id}, {self.activity}, "
+            f"{self.last_processed_on})"
+        )

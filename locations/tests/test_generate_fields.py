@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from locations.management.commands.generate_fields import SHELTER_MIN_SPACING
-from locations.management.commands.spawn_villages import create_building_footprint
+from locations.management.commands.generate_villages import create_building_footprint
 from locations.models import Node, Building, LandArea, Subzone
 from locations.tests.factories import make_centre_with_building
 from economy.models import FieldCrop

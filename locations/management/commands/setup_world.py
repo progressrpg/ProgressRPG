@@ -27,18 +27,20 @@ class Command(BaseCommand):
 
         if village_files:
             self.stdout.write("=== Importing villages ===")
-            for village_file in village_files:
-                # No --name: import_village auto-picks an unused name from
-                # village_names.VILLAGE_NAMES, same as spawn_villages does.
-                call_command(
-                    "import_village",
-                    str(village_file),
-                    overwrite=True,
-                    interactive=False,
-                )
+            # Places each file at a fixed village_layout.VILLAGE_LAYOUT slot
+            # and names it from village_names.VILLAGE_NAMES, both in sorted
+            # filename order - deterministic across runs.
+            call_command("import_villages")
         else:
             self.stdout.write("=== Spawning villages ===")
-            call_command("spawn_villages", num_centres=1)
+            call_command("generate_villages", num_centres=1)
+
+        self.stdout.write("=== Generating characters ===")
+        # Must run after buildings exist (residential capacity drives how
+        # many characters get generated) and before place_characters below,
+        # which also handles linked player characters and any characters
+        # left unhoused here.
+        call_command("generate_characters")
 
         self.stdout.write("=== Placing characters ===")
         call_command("place_characters")
@@ -52,13 +54,20 @@ class Command(BaseCommand):
             self.stdout.write("=== Generating land areas ===")
             # Must run before generate_fields, which attaches each FieldCrop to
             # the "crops" Subzone this creates - only needs boundary/location/
-            # residents, all already set by spawn_villages.
+            # residents, all already set by generate_villages.
             call_command("generate_landarea")
 
-            self.stdout.write("=== Generating fields ===")
-            # Must run before generate_paths, which needs the field shelter's
-            # entrance node to exist.
-            call_command("generate_fields")
+        # Unlike generate_landarea, generate_fields is safe (and needed) for
+        # both paths: it only attaches a FieldCrop/shared shelter to "crops"
+        # Subzones that don't have one yet - it doesn't regenerate geometry,
+        # so it won't touch imported villages' real field data. Imported
+        # villages get their crops Subzones from watabou_import._import_fields
+        # instead of generate_landarea, but still need this step to get a
+        # field_shelter Building at all.
+        self.stdout.write("=== Generating fields ===")
+        # Must run before generate_paths, which needs the field shelter's
+        # entrance node to exist.
+        call_command("generate_fields")
 
         self.stdout.write("=== Generating points ===")
         call_command("generate_points")
@@ -75,5 +84,13 @@ class Command(BaseCommand):
 
         self.stdout.write("=== Assigning workers ===")
         call_command("assign_workers")
+
+        self.stdout.write("=== Generating character days ===")
+        try:
+            from character.tasks import generate_character_days
+
+            generate_character_days()
+        except ImportError as e:
+            self.stderr.write(f"Could not generate character days: {e}")
 
         self.stdout.write(self.style.SUCCESS("All setup tasks completed!"))

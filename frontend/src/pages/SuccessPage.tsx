@@ -51,6 +51,10 @@ export default function SuccessPage(): React.ReactElement {
         setStatus(resolved);
       })
       .catch(() => setStatus("error"));
+    // Intentionally runs once on mount only, against the session_id present
+    // in the landing URL — re-running on navigate/searchParams identity
+    // changes would re-sync the subscription outside of that initial load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isSuccess = status === "active" || status === "trialing";

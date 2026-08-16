@@ -18,7 +18,7 @@ LANDAREA_BUFFER = 5
 MIN_MARGIN_BEYOND_BOUNDARY = 10
 MAX_MARGIN_BEYOND_BOUNDARY = 40
 
-# Same jitter magnitude used for building footprints (spawn_villages.py's
+# Same jitter magnitude used for building footprints (generate_villages.py's
 # create_building_footprint irregularity param) - reused as-is for v1 rather
 # than tuning a separate constant, per issue #656.
 FIELD_IRREGULARITY = 0.15

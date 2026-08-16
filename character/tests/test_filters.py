@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from character.models import Character, PlayerCharacterLink
 from character.filters import CharacterFilter
-from users.models import CustomUser
+from users.tests import user_factory
 
 
 class CharacterFilterTests(TestCase):
@@ -14,29 +14,23 @@ class CharacterFilterTests(TestCase):
     def setUp(self):
         # Create NPCs that are available for linking
         self.npc1 = Character.objects.create(
-            first_name="NPC1",
-            last_name="Character",
+            given_name="NPC1",
             birth_date=date(2000, 1, 1),
             sex="Male",
-            can_link=True,
             level=5,
             xp=100,
         )
         self.npc2 = Character.objects.create(
-            first_name="NPC2",
-            last_name="Character",
+            given_name="NPC2",
             birth_date=date(2000, 1, 1),
             sex="Female",
-            can_link=True,
             level=10,
             xp=500,
         )
 
         # Create player characters
         # User creation auto-assigns characters, so we need to handle that
-        self.user1 = CustomUser.objects.create_user(
-            email="user1@example.com", password="testpass123"
-        )
+        self.user1 = user_factory(with_player=True)
         # Deactivate auto-assigned character
         auto_links = PlayerCharacterLink.objects.filter(
             player=self.user1.player, is_active=True
@@ -46,11 +40,9 @@ class CharacterFilterTests(TestCase):
 
         # Create and link our test character
         self.player_char1 = Character.objects.create(
-            first_name="Player1",
-            last_name="Character",
+            given_name="Player1",
             birth_date=date(2000, 1, 1),
             sex="Male",
-            can_link=False,
             level=3,
             xp=75,
         )
@@ -58,9 +50,7 @@ class CharacterFilterTests(TestCase):
             player=self.user1.player, character=self.player_char1, is_active=True
         )
 
-        self.user2 = CustomUser.objects.create_user(
-            email="user2@example.com", password="testpass123"
-        )
+        self.user2 = user_factory(with_player=True)
         # Deactivate auto-assigned character
         auto_links = PlayerCharacterLink.objects.filter(
             player=self.user2.player, is_active=True
@@ -70,11 +60,9 @@ class CharacterFilterTests(TestCase):
 
         # Create and link our test character
         self.player_char2 = Character.objects.create(
-            first_name="Player2",
-            last_name="Character",
+            given_name="Player2",
             birth_date=date(2000, 1, 1),
             sex="Female",
-            can_link=False,
             level=7,
             xp=200,
         )

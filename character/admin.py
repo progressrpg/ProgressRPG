@@ -1,3 +1,5 @@
+from typing import Dict
+
 from django.contrib import admin
 from .models import (
     Character,
@@ -5,7 +7,11 @@ from .models import (
     CharacterLocation,
     PlayerCharacterLink,
     CharacterRelationship,
+    CharacterRelationshipMembership,
     Behaviour,
+    RELATIONSHIP_SPECS,
+    RelationshipRole,
+    RelationshipType,
 )
 
 from django.contrib import messages
@@ -32,6 +38,49 @@ class CharacterCurrencyInline(admin.TabularInline):
     readonly_fields = ("balance",)
 
 
+class CharacterRelationshipMembershipInline(admin.TabularInline):
+    model = CharacterRelationshipMembership
+    fk_name = "character"
+    extra = 0
+    fields = ("get_relationship_type", "relationship", "role", "get_other_members")
+    readonly_fields = ("get_relationship_type", "get_other_members")
+    ordering = ("relationship__relationship_type",)
+
+    @admin.display(description="Type")
+    def get_relationship_type(self, obj):
+        if not obj.pk:
+            return "-"
+        return obj.relationship.get_relationship_type_display()
+
+    @admin.display(description="With")
+    def get_other_members(self, obj):
+        if not obj.pk:
+            return "-"
+        others = obj.relationship.characters.exclude(pk=obj.character_id)
+        return ", ".join(str(c) for c in others)
+
+
+class CanLinkListFilter(admin.SimpleListFilter):
+    """
+    can_link is a derived property, not a DB column, so it can't be listed
+    in list_filter directly - filter via Character.objects.linkable()
+    (the queryset-level equivalent) instead.
+    """
+
+    title = "can link"
+    parameter_name = "can_link"
+
+    def lookups(self, request, model_admin):
+        return (("yes", "Yes"), ("no", "No"))
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return queryset.filter(pk__in=Character.objects.linkable())
+        if self.value() == "no":
+            return queryset.exclude(pk__in=Character.objects.linkable())
+        return queryset
+
+
 @admin.action(description="Mark selected characters as NPCs and unlink from players")
 def mark_as_npc(modeladmin, request, queryset):
     for character in queryset:
@@ -45,17 +94,6 @@ def mark_as_npc(modeladmin, request, queryset):
     )
 
 
-@admin.action(description="Mark selected characters as available to link")
-def mark_as_canlink(modeladmin, request, queryset):
-    for character in queryset:
-        character.can_link = True
-        character.save(update_fields=["can_link"])
-
-    messages.success(
-        request, f"{queryset.count()} character(s) marked as available to link."
-    )
-
-
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
     fieldsets = (
@@ -63,8 +101,9 @@ class CharacterAdmin(admin.ModelAdmin):
             None,
             {
                 "fields": (
-                    ("first_name", "last_name"),
+                    "given_name",
                     "can_link",
+                    "is_reserved",
                     "sex",
                 )
             },
@@ -74,17 +113,22 @@ class CharacterAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "current_node",
-                    "building",
                     "population_centre",
                 )
             },
         ),
         ("Dates", {"fields": (("birth_date", "death_date", "get_age"),)}),
         (
+            "Family",
+            {
+                "fields": ("get_family_summary",),
+            },
+        ),
+        (
             "Life & Story",
             {
                 "classes": ("collapse",),
-                "fields": ("backstory", "parents", "cause_of_death"),
+                "fields": ("backstory", "cause_of_death"),
             },
         ),
         (
@@ -106,34 +150,38 @@ class CharacterAdmin(admin.ModelAdmin):
     )
 
     list_display = [
-        "first_name",
-        "last_name",
+        "name",
         "get_player",
         "can_link",
         "birth_date",
     ]
     list_filter = [
-        "can_link",
+        CanLinkListFilter,
+        "is_reserved",
         "birth_date",
         "death_date",
         "sex",
         "population_centre",
     ]
     search_fields = [
-        "first_name",
-        "last_name",
+        "given_name",
         "links__player__name",
     ]
     readonly_fields = [
+        "can_link",
         "get_player",
         "get_age",
-        "parents",
         "created_at",
+        "get_family_summary",
     ]
 
-    ordering = ["last_name", "first_name"]
-    inlines = [LinkInline, CharacterCurrencyInline]
-    actions = [mark_as_npc, mark_as_canlink]
+    ordering = ["given_name"]
+    inlines = [
+        LinkInline,
+        CharacterRelationshipMembershipInline,
+        CharacterCurrencyInline,
+    ]
+    actions = [mark_as_npc]
 
     @admin.display(description="Player")
     def get_player(self, obj):
@@ -174,6 +222,21 @@ class CharacterAdmin(admin.ModelAdmin):
         except Exception:
             return "-"
 
+    @admin.display(description="Family")
+    def get_family_summary(self, obj):
+        if not obj.pk:
+            return "-"
+
+        def names(characters):
+            return ", ".join(str(c) for c in characters) or "-"
+
+        parts = [
+            f"Parents: {names(obj.parents)}",
+            f"Children: {names(obj.children)}",
+            f"Siblings: {names(obj.siblings)}",
+        ]
+        return " · ".join(parts)
+
 
 @admin.register(PlayerCharacterLink)
 class PlayerCharacterLinkAdmin(admin.ModelAdmin):
@@ -189,7 +252,7 @@ class PlayerCharacterLinkAdmin(admin.ModelAdmin):
 class CharacterLocationAdmin(admin.ModelAdmin):
     list_display = ["character", "role", "location", "is_primary"]
     list_filter = ["role", "is_primary"]
-    search_fields = ["character__first_name", "character__last_name", "location__name"]
+    search_fields = ["character__given_name", "location__name"]
 
 
 @admin.register(CharacterCurrency)
@@ -197,8 +260,7 @@ class CharacterCurrencyAdmin(admin.ModelAdmin):
     list_display = ["character", "currency", "balance", "earned", "spent"]
     list_filter = ["currency"]
     search_fields = [
-        "character__first_name",
-        "character__last_name",
+        "character__given_name",
         "currency__code",
         "currency__name",
     ]
@@ -212,7 +274,7 @@ class CharacterInline(admin.TabularInline):
     extra = 1
 
 
-# @admin.register(CharacterRelationship)
+@admin.register(CharacterRelationship)
 class CharacterRelationshipAdmin(admin.ModelAdmin):
     list_display = [
         "relationship_type",
@@ -223,7 +285,7 @@ class CharacterRelationshipAdmin(admin.ModelAdmin):
         "relationship_type",
         "strength",
         "history",
-        "biological",
+        "variant",
         ("created_at", "last_updated"),
     ]
     inlines = [CharacterInline]
@@ -232,3 +294,34 @@ class CharacterRelationshipAdmin(admin.ModelAdmin):
     @admin.display(description="Characters")
     def get_linked_characters(self, obj):
         return ", ".join([str(char) for char in obj.get_members()])
+
+    def save_related(self, request, form, formsets, change):
+        # Membership inlines save one row at a time, so a relationship can
+        # be left transiently incomplete (e.g. a PARENT_CHILD relationship
+        # with only its PARENT role filled in) - that's allowed (see
+        # CharacterRelationshipMembership.clean()), but warn staff here
+        # rather than silently leaving it incomplete.
+        super().save_related(request, form, formsets, change)
+        relationship = form.instance
+        spec = RELATIONSHIP_SPECS.get(RelationshipType(relationship.relationship_type))
+        if spec is None:
+            return
+
+        counts: Dict[RelationshipRole, int] = {}
+        for membership in relationship.characterrelationshipmembership_set.all():
+            if not membership.role:
+                continue
+            role = RelationshipRole(membership.role)
+            counts[role] = counts.get(role, 0) + 1
+
+        missing = [
+            role.value
+            for role, (min_count, _max_count) in spec.roles.items()
+            if counts.get(role, 0) < min_count
+        ]
+        if missing:
+            messages.warning(
+                request,
+                f"This {relationship.relationship_type} relationship is missing "
+                f"required role(s): {', '.join(missing)}.",
+            )

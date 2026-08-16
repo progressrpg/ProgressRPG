@@ -1,6 +1,6 @@
 # progression/models.py
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -34,7 +34,7 @@ class Group(models.Model):
     last_updated = models.DateTimeField(auto_now=True)
 
     if TYPE_CHECKING:
-        # Reverse FK added by concrete subclasses (Category, Role) via each
+        # Reverse FK added by concrete subclasses (Category) via each
         # Skill subclass's `related_name="skills"`.
         skills: "Manager[Any]"
 
@@ -58,12 +58,15 @@ class Group(models.Model):
 
     @property
     def total_xp(self):
-        return (
+        from .points import xp_for_duration
+
+        total_duration = (
             self.skills.filter(records__is_complete=True).aggregate(
-                total=Sum("records__xp_gained")
+                total=Sum("records__duration")
             )["total"]
             or 0
         )
+        return xp_for_duration(total_duration)
 
     class Meta:
         abstract = True
@@ -78,13 +81,185 @@ class Category(Group, PlayerOwnedMixin):
         return self.name
 
 
-class Role(Group):
-    character = models.ForeignKey(
-        "character.Character", on_delete=models.CASCADE, related_name="roles"
+#########################################
+#####      Role / skill taxonomy models
+#########################################
+
+
+def _character_skill_duration(character, **skill_definition_filter):
+    """
+    Sum completed duration for a character across CharacterActivity records
+    whose ActivityDefinition.skill matches the given SkillDefinition filter
+    (e.g. role=<Role> or gate_group=<SkillGroup>; no filter = every skill).
+
+    Includes both the live CharacterActivity table (recent history) and
+    CharacterActivityArchive (older history rolled up by
+    progression.tasks.compact_character_activities) - the archive holds the
+    same duration total under a coarser (character, activity_definition,
+    month) grouping, so summing both keeps this the single source of truth
+    proficiency/mastery calculations rely on regardless of what's been
+    compacted.
+    """
+    filter_kwargs = {
+        f"activity_definition__skill__{lookup}": value
+        for lookup, value in skill_definition_filter.items()
+    }
+    live_total = (
+        CharacterActivity.objects.filter(
+            character=character, is_complete=True, **filter_kwargs
+        ).aggregate(total=Sum("duration"))["total"]
+        or 0
     )
+    archived_total = (
+        CharacterActivityArchive.objects.filter(
+            character=character, **filter_kwargs
+        ).aggregate(total=Sum("total_duration"))["total"]
+        or 0
+    )
+    return live_total + archived_total
+
+
+def _character_skill_proficiency(character, **skill_definition_filter):
+    """
+    XP earned by a character within the given SkillDefinition scope (see
+    `_character_skill_duration`). Shared by `Role.proficiency_for` and
+    `SkillGroup.proficiency_for` so both scopes use the same aggregation.
+    """
+    from .points import xp_for_duration
+
+    return xp_for_duration(
+        _character_skill_duration(character, **skill_definition_filter)
+    )
+
+
+def character_total_skill_xp(character) -> int:
+    """
+    A character's total skill XP across every skill - the "total XP" input
+    to the AP mastery multiplier (see progression.points.xp_mastery_multiplier).
+    """
+    from .points import xp_for_duration
+
+    return xp_for_duration(_character_skill_duration(character))
+
+
+def player_total_skill_xp(player) -> int:
+    """
+    A player's total skill XP across every skill - the "total XP" input to
+    the AP mastery multiplier (see progression.points.xp_mastery_multiplier).
+    Mirrors character_total_skill_xp; player skills (PlayerSkill) have no
+    Role/SkillGroup gating to scope by, so this is always the flat,
+    unfiltered total.
+    """
+    from .points import xp_for_duration
+
+    total_duration = (
+        PlayerActivity.objects.filter(
+            player=player, is_complete=True, skill__isnull=False
+        ).aggregate(total=Sum("duration"))["total"]
+        or 0
+    )
+    return xp_for_duration(total_duration)
+
+
+class Role(models.Model):
+    """
+    Authored role definition (e.g. "Farmer", "Guard") - not owned by any one
+    character. Characters hold roles via `CharacterRole`; `SkillGroup` and
+    `SkillDefinition` scope to a `Role` to build the skill taxonomy.
+    """
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+    def proficiency_for(self, character) -> int:
+        return _character_skill_proficiency(character, role=self)
+
+
+class SkillGroup(models.Model):
+    """
+    A named grouping of SkillDefinitions within a single Role, used as a
+    gating scope (see `SkillDefinition.gate_group`).
+    """
+
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name="skill_groups"
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.role.name})"
+
+    def proficiency_for(self, character) -> int:
+        return _character_skill_proficiency(character, gate_group=self)
+
+
+class SkillDefinition(models.Model):
+    """
+    Authored definition of a skill a character can practice. `role` is
+    nullable to allow general skills that aren't tied to any one role.
+    `gate_group` + `min_proficiency` gate the skill on a SkillGroup's
+    aggregate proficiency rather than on any specific prerequisite skill.
+    """
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.CASCADE,
+        related_name="skill_definitions",
+        null=True,
+        blank=True,
+    )
+    gate_group = models.ForeignKey(
+        SkillGroup,
+        on_delete=models.SET_NULL,
+        related_name="gated_skill_definitions",
+        null=True,
+        blank=True,
+    )
+    min_proficiency = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    def is_unlocked_for(self, character) -> bool:
+        if self.gate_group is None or self.min_proficiency is None:
+            return True
+        return self.gate_group.proficiency_for(character) >= self.min_proficiency
+
+
+class CharacterRole(models.Model):
+    """
+    Through model letting a character hold multiple Roles.
+    """
+
+    character = models.ForeignKey(
+        "character.Character", on_delete=models.CASCADE, related_name="character_roles"
+    )
+    role = models.ForeignKey(
+        Role, on_delete=models.CASCADE, related_name="character_roles"
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["character", "role"], name="unique_character_role"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.character} - {self.role}"
 
 
 #########################################
@@ -104,8 +279,8 @@ class Skill(models.Model):
     last_updated = models.DateTimeField(auto_now=True)
 
     if TYPE_CHECKING:
-        # Reverse FK added by concrete subclasses (PlayerSkill, CharacterSkill)
-        # via each TimeRecord subclass's `related_name="records"`.
+        # Reverse FK added by concrete subclasses (PlayerSkill) via each
+        # TimeRecord subclass's `related_name="records"`.
         records: "Manager[Any]"
 
     @property
@@ -123,12 +298,9 @@ class Skill(models.Model):
 
     @property
     def total_xp(self):
-        return (
-            self.records.filter(is_complete=True).aggregate(total=Sum("xp_gained"))[
-                "total"
-            ]
-            or 0
-        )
+        from .points import xp_for_duration
+
+        return xp_for_duration(self.total_time)
 
     class Meta:
         abstract = True
@@ -156,14 +328,69 @@ class PlayerSkill(Skill, PlayerOwnedMixin):
         return f"{self.name} ({self.player.name})"
 
 
-class CharacterSkill(Skill):
+class CharacterSkill(models.Model):
+    """
+    A character's progress in a SkillDefinition. Time/XP totals are derived
+    from the character's completed CharacterActivity records for this skill
+    (via ActivityDefinition.skill) - the same source Role/SkillGroup
+    proficiency aggregates over - rather than owning any TimeRecord of its
+    own.
+    """
+
     character = models.ForeignKey(
         "character.Character", on_delete=models.CASCADE, related_name="skills"
     )
-    roles = models.ManyToManyField(Role, related_name="skills")
+    skill_definition = models.ForeignKey(
+        SkillDefinition, on_delete=models.CASCADE, related_name="character_skills"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["character", "skill_definition"],
+                name="unique_character_skill_definition",
+            )
+        ]
 
     def __str__(self):
-        return self.name
+        return f"{self.skill_definition.name} ({self.character})"
+
+    def _matching_activities(self):
+        return CharacterActivity.objects.filter(
+            character=self.character,
+            activity_definition__skill=self.skill_definition,
+            is_complete=True,
+        )
+
+    def _matching_archive(self):
+        return CharacterActivityArchive.objects.filter(
+            character=self.character,
+            activity_definition__skill=self.skill_definition,
+        )
+
+    @property
+    def total_time(self):
+        # Reuses _character_skill_duration (rather than aggregating
+        # _matching_activities() directly) so this stays in sync with
+        # CharacterActivityArchive once compaction rolls older rows up -
+        # see progression.tasks.compact_character_activities.
+        return _character_skill_duration(self.character, pk=self.skill_definition_id)
+
+    @property
+    def total_records(self):
+        live_count = self._matching_activities().count()
+        archived_count = (
+            self._matching_archive().aggregate(total=Sum("record_count"))["total"] or 0
+        )
+        return live_count + archived_count
+
+    @property
+    def total_xp(self):
+        from .points import xp_for_duration
+
+        return xp_for_duration(self.total_time)
 
 
 #########################################
@@ -173,20 +400,36 @@ class CharacterSkill(Skill):
 
 class TimeRecord(models.Model):
     """
-    Abstract base model for tracking time-based records, such as quests or activities.
+    Abstract base model for tracking time-based records, such as activities.
 
-    Stores metadata about start, completion, duration, and XP rewards.
+    Stores metadata about start, completion, and duration. Does not carry
+    name/description - subclasses that need an editable label own that
+    themselves (e.g. PlayerActivity); CharacterActivity instead points at an
+    ActivityDefinition for its name.
+
+    `duration` is the sole source of truth for Activity Points (AP) / skill
+    Experience Points (XP) - see progression.points. `reward_breakdown` is a
+    snapshot of the multiplier breakdown computed at completion time, kept
+    for historical display only; it is never summed/read back to derive
+    balances, so AP/XP stay recalculable if the formula changes later.
     """
 
-    name = models.CharField(max_length=255, blank=True)
-    description = models.TextField(max_length=2000, blank=True)
     duration = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField(null=True, blank=True)
     is_complete = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
-    xp_gained = models.IntegerField(null=True, blank=True)
+    reward_breakdown = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
+
+    @property
+    def xp_gained(self):
+        """
+        Kept for API/frontend compatibility with the old frozen column - the
+        AP amount from this record's `reward_breakdown` snapshot, or None
+        for a record that hasn't been completed yet.
+        """
+        return self.reward_breakdown.get("xp_gained")
 
     def add_time(self, num: int):
         """
@@ -231,19 +474,89 @@ class TimeRecord(models.Model):
         abstract = True
 
 
-class PlayerActivity(TimeRecord, PlayerOwnedMixin):
+class Activity(PlayerOwnedMixin):
     """
-    Represents an activity tracked by a user.
-
-    Inherits common time tracking fields and behaviour from ``TimeRecord``.
-    Activities may be linked to a skill or project, and can be private.
+    A player's reusable activity "type" (e.g. "Write tests"). PlayerActivity
+    sessions FK this explicitly rather than each owning a free-standing
+    name, replacing the old fuzzy name-matching (group_key/infer_group_key).
     """
 
     player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="activity_catalog"
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # progression_activity is already claimed by PlayerActivity's legacy
+        # explicit db_table.
+        db_table = "progression_activity_catalog"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["player", "name"], name="unique_player_activity_name"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.player.name})"
+
+    @classmethod
+    def get_or_create_for_player(cls, player, name: str) -> "Activity":
+        normalized_name = name.strip()
+        existing = cls.objects.filter(
+            player=player, name__iexact=normalized_name
+        ).first()
+        if existing:
+            return existing
+        return cls.objects.create(player=player, name=normalized_name)
+
+
+class SuggestedActivity(models.Model):
+    """
+    Authored, curated catalog for activity-name autocomplete - no FK to any
+    player's data, so player-typed activity names (see Activity) stay
+    private.
+    """
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(max_length=2000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class PlayerActivity(TimeRecord, PlayerOwnedMixin):
+    """
+    Represents an activity session tracked by a user.
+
+    Inherits common time tracking fields and behaviour from ``TimeRecord``.
+    Sessions may be linked to a skill or project, and can be private.
+    """
+
+    class Origin(models.TextChoices):
+        TIMER = "timer", "Timer"
+        MANUAL = "manual", "Manual"
+
+    name = models.CharField(max_length=255, blank=True)
+    description = models.TextField(max_length=2000, blank=True)
+    player = models.ForeignKey(
         "users.Player", on_delete=models.CASCADE, related_name="activities"
     )
-    group_key = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    activity = models.ForeignKey(
+        Activity,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sessions",
+    )
     is_private = models.BooleanField(default=False)
+    origin = models.CharField(
+        max_length=10, choices=Origin.choices, default=Origin.TIMER
+    )
     skill = models.ForeignKey(
         "progression.PlayerSkill",
         on_delete=models.SET_NULL,
@@ -282,148 +595,45 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         """
         return "Private activity" if self.is_private else f"activity {self.name}"
 
-    @staticmethod
-    def _normalized_grouping_name(name: str | None) -> str:
-        return (name or "").strip().casefold()
-
-    @staticmethod
-    def _history_last_seen(activity: "PlayerActivity"):
-        return activity.completed_at or activity.last_updated or activity.created_at
-
-    def _grouped_history(self):
-        if not self.player_id:
-            return []
-
-        queryset = (
-            self.__class__.objects.filter(player_id=self.player_id)
-            .exclude(group_key__isnull=True)
-            .exclude(group_key="")
-            .only(
-                "id", "name", "group_key", "completed_at", "last_updated", "created_at"
-            )
-        )
-
-        if self.pk:
-            queryset = queryset.exclude(pk=self.pk)
-
-        return list(queryset)
-
-    def infer_group_key(self) -> str | None:
-        normalized_name = self._normalized_grouping_name(self.name)
-        if not normalized_name:
-            return None
-
-        history = self._grouped_history()
-        if not history:
-            return None
-
-        overall_stats: dict[str, dict[str, Any]] = {}
-        exact_stats: dict[str, dict[str, Any]] = {}
-        similar_stats: dict[str, dict[str, Any]] = {}
-
-        for activity in history:
-            if not activity.group_key:
-                continue
-
-            last_seen = self._history_last_seen(activity)
-            group_key = activity.group_key
-            existing_name = self._normalized_grouping_name(activity.name)
-
-            overall_entry = overall_stats.setdefault(
-                group_key,
-                {"count": 0, "last_seen": last_seen},
-            )
-            overall_entry["count"] += 1
-            if last_seen > overall_entry["last_seen"]:
-                overall_entry["last_seen"] = last_seen
-
-            if existing_name == normalized_name:
-                exact_entry = exact_stats.setdefault(
-                    group_key,
-                    {"count": 0, "last_seen": last_seen},
-                )
-                exact_entry["count"] += 1
-                if last_seen > exact_entry["last_seen"]:
-                    exact_entry["last_seen"] = last_seen
-                continue
-
-            if existing_name and (
-                normalized_name in existing_name or existing_name in normalized_name
-            ):
-                similar_entry = similar_stats.setdefault(
-                    group_key,
-                    {"count": 0, "last_seen": last_seen},
-                )
-                similar_entry["count"] += 1
-                if last_seen > similar_entry["last_seen"]:
-                    similar_entry["last_seen"] = last_seen
-
-        def ranked_candidates(stats: dict[str, dict[str, Any]]):
-            return sorted(
-                (
-                    {
-                        "group_key": group_key,
-                        "count": values["count"],
-                        "overall_count": overall_stats[group_key]["count"],
-                        "last_seen": values["last_seen"],
-                    }
-                    for group_key, values in stats.items()
-                ),
-                key=lambda candidate: (
-                    -candidate["count"],
-                    -candidate["overall_count"],
-                    -candidate["last_seen"].timestamp(),
-                ),
-            )
-
-        exact_candidates = ranked_candidates(exact_stats)
-        if exact_candidates:
-            return cast(str, exact_candidates[0]["group_key"])
-
-        similar_candidates = ranked_candidates(similar_stats)
-        if not similar_candidates:
-            return None
-
-        top_candidate = similar_candidates[0]
-        top_last_seen = cast(datetime, top_candidate["last_seen"])
-        if top_candidate["count"] < 3 or timezone.now() - top_last_seen > timedelta(
-            days=120
-        ):
-            return None
-
-        if len(similar_candidates) > 1:
-            second_candidate = similar_candidates[1]
-            if (
-                top_candidate["count"] < second_candidate["count"] * 2
-                or top_candidate["count"] - second_candidate["count"] < 2
-            ):
-                return None
-
-        return cast(str, top_candidate["group_key"])
-
     def save(self, *args, **kwargs):
-        if not self.group_key:
-            inferred_group_key = self.infer_group_key()
-            if inferred_group_key:
-                self.group_key = inferred_group_key
-                update_fields = kwargs.get("update_fields")
-                if update_fields is not None:
-                    kwargs["update_fields"] = set(update_fields) | {"group_key"}
+        if not self.activity_id and self.player_id and self.name.strip():
+            self.activity = Activity.get_or_create_for_player(self.player, self.name)
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"activity"}
 
         super().save(*args, **kwargs)
 
     def rename(self, newName):
         self.name = newName
-        self.save(update_fields=["name"])
+        update_fields = ["name"]
+        if newName.strip() and self.player_id:
+            self.activity = Activity.get_or_create_for_player(self.player, newName)
+            update_fields.append("activity")
+        self.save(update_fields=update_fields)
 
     def calculate_base_xp(self, duration: int) -> int:
-        from core.models import GameSettings
+        from .points import base_rate
 
-        xp_per_second = GameSettings.current().default_activity_xp_per_second
-        return int(Decimal(duration) * xp_per_second)
+        return int(Decimal(duration) * base_rate())
 
-    def get_xp_reward_summary(self) -> Dict[str, Any]:
-        base_xp = self.calculate_base_xp(self.duration)
+    def get_xp_reward_summary(self, duration: int | None = None) -> Dict[str, Any]:
+        """
+        Compute this activity's Activity Points (AP, still keyed "xp_gained"
+        for API/frontend compatibility) and skill XP (if `skill` is set)
+        breakdown - live-derived from duration + the current formula/settings
+        (see TimeRecord docs).
+
+        ``duration`` defaults to ``self.duration`` but can be overridden to
+        compute a reward for only part of the recorded time (e.g. the
+        XP-eligible portion of a manually-logged activity).
+        """
+        from .points import xp_for_duration, xp_mastery_multiplier
+
+        if duration is None:
+            duration = self.duration
+
+        base_xp = self.calculate_base_xp(duration)
         player = self.player
         multiplier = player.get_activity_xp_multiplier()
         task_xp_multiplier = Decimal("1.0")
@@ -432,32 +642,162 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
 
             task_xp_multiplier = GameSettings.current().task_activity_xp_multiplier
             multiplier *= task_xp_multiplier
+        mastery_multiplier = xp_mastery_multiplier(player_total_skill_xp(player))
+        multiplier *= mastery_multiplier
 
         def _fmt(d: Decimal) -> int | float:
             return int(d) if d == d.to_integral_value() else float(d)
 
         return {
-            "duration_seconds": self.duration,
+            "duration_seconds": duration,
             "base_xp": base_xp,
             "xp_multiplier": _fmt(multiplier),
             "task_xp_multiplier": _fmt(task_xp_multiplier),
+            "mastery_multiplier": _fmt(mastery_multiplier),
             "xp_gained": int(Decimal(base_xp) * multiplier),
+            "skill_xp_gained": (xp_for_duration(duration) if self.skill_id else 0),
         }
 
-    def complete(self, reward_summary: Dict[str, Any] | None = None):
+    def complete(
+        self,
+        reward_summary: Dict[str, Any] | None = None,
+        completed_at: datetime | None = None,
+    ):
         """
         Mark the record as completed if not already complete.
+
+        ``completed_at`` defaults to now, but can be overridden to backdate
+        completion (e.g. for a manually-logged activity).
         """
         if getattr(self, "is_complete", False):
             return self.xp_gained
 
-        self.completed_at = timezone.now()
+        self.completed_at = completed_at or timezone.now()
         self.is_complete = True
         reward_summary = reward_summary or self.get_xp_reward_summary()
-        self.xp_gained = cast(int, reward_summary["xp_gained"])
-        self.save(update_fields=["completed_at", "is_complete", "xp_gained"])
+        self.reward_breakdown = reward_summary
+        self.save(update_fields=["completed_at", "is_complete", "reward_breakdown"])
 
-        return self.xp_gained
+        return cast(int, reward_summary["xp_gained"])
+
+
+class ActivityDefinition(models.Model):
+    """
+    Authored definition of a scheduled block a character's day can be made
+    of. Fully uniform: every CharacterActivity - work as well as sleep,
+    meals, and other routine blocks - points at one of these rather than
+    owning its own name/kind.
+    """
+
+    class Kind(models.TextChoices):
+        SLEEP = "sleep", "Sleeping"
+        MORNING = "morning", "Morning routine"
+        WORK = "work", "Working"
+        MEAL = "meal", "Meal"
+        LEISURE = "leisure", "Leisure"
+        WIND_DOWN = "wind_down", "Wind down"
+        REST = "rest", "Resting"
+        IDLE = "idle", "Idling"
+
+    name = models.CharField(max_length=255)
+    present_tense = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text=(
+            "Narrative verb phrase for 'X is ___' sentences, e.g. "
+            "'delivering goods to neighbours' for the label 'Deliver goods "
+            "to neighbours'. Falls back to a lowercased name when blank."
+        ),
+    )
+    description = models.TextField(max_length=2000, blank=True)
+    kind = models.CharField(max_length=50, choices=Kind.choices)
+    skill = models.ForeignKey(
+        SkillDefinition,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activity_definitions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def narrative(self) -> str:
+        """The verb-phrase form used in "X is ___" sentences - see
+        present_tense's help_text. Falls back to a lowercased name so
+        definitions authored before this field existed still read
+        sensibly, just less naturally (e.g. "is general labour")."""
+        return self.present_tense or (self.name[:1].lower() + self.name[1:])
+
+
+class OfflineActivityLedger(models.Model):
+    """
+    Append-only per-player-per-day ledger of manually-logged (offline)
+    activity time.
+
+    Tracks cumulative logged and XP-eligible seconds for each calendar day
+    so the daily duration/XP caps on offline logging (see
+    ``progression.services``) can be enforced. Rows are only ever
+    incremented, never decremented, so deleting a logged
+    ``PlayerActivity`` can't be used to "refund" the day's cap and
+    double-dip on XP by re-logging.
+    """
+
+    player = models.ForeignKey(
+        "users.Player",
+        on_delete=models.CASCADE,
+        related_name="offline_activity_ledgers",
+    )
+    date = models.DateField()
+    logged_seconds = models.PositiveIntegerField(default=0)
+    xp_eligible_seconds = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["player", "date"], name="unique_offline_ledger_player_date"
+            )
+        ]
+
+    def __str__(self):
+        return f"OfflineActivityLedger(player={self.player_id}, date={self.date})"
+
+
+class DailyGoalAward(models.Model):
+    """
+    Records that a player's daily-goals completion bonus (issue #751) has
+    already been paid out for a given calendar day.
+
+    The unique constraint is what makes
+    ``progression.daily_goals.check_and_award_daily_goals`` idempotent under
+    concurrent activity completions - the row is only ever created once per
+    player per day, so a second completion in the same day can tell the
+    bonus has already been claimed instead of re-awarding it.
+    """
+
+    player = models.ForeignKey(
+        "users.Player",
+        on_delete=models.CASCADE,
+        related_name="daily_goal_awards",
+    )
+    date = models.DateField()
+    bonus_ap = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["player", "date"], name="unique_daily_goal_award_player_date"
+            )
+        ]
+
+    def __str__(self):
+        return f"DailyGoalAward(player={self.player_id}, date={self.date})"
 
 
 class CharacterActivity(TimeRecord):
@@ -474,33 +814,85 @@ class CharacterActivity(TimeRecord):
         on_delete=models.CASCADE,
         related_name="activities",
     )
-    kind = models.CharField(
-        max_length=50,
-        choices=[
-            ("sleep", "Sleeping"),
-            ("morning", "Morning routine"),
-            ("work", "Working"),
-            ("meal", "Meal"),
-            ("leisure", "Leisure"),
-            ("wind_down", "Wind down"),
-            ("rest", "Resting"),
-            ("idle", "Idling"),
-        ],
+    activity_definition = models.ForeignKey(
+        ActivityDefinition,
+        on_delete=models.PROTECT,
+        related_name="character_activities",
     )
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"character_activity {self.name}"
+        return f"character_activity {self.activity_definition.name}"
 
-    def calculate_base_xp(self, duration: int) -> int:
+    @property
+    def name(self) -> str:
+        return self.activity_definition.name
+
+    @property
+    def narrative(self) -> str:
+        return self.activity_definition.narrative
+
+    @property
+    def kind(self) -> str:
+        return self.activity_definition.kind
+
+    def get_xp_reward_summary(self) -> Dict[str, Any]:
         """
-        Calculate and store the XP gained based on duration.
+        Compute this activity's Activity Points (AP, still keyed "xp_gained"
+        for API/frontend compatibility) and skill XP (if activity_definition.skill
+        is set) breakdown for the current `duration` - live-derived from
+        duration + the current formula/settings, never read back to derive
+        balances (see TimeRecord docs).
         """
-        base_xp = duration // 60
-        multiplier = 0.25 if self.kind == "rest" else 1
-        return int(base_xp * multiplier)
+        from .points import base_rate, xp_for_duration, xp_mastery_multiplier
+
+        rate = base_rate()
+        kind_multiplier = (
+            Decimal("0.25")
+            if self.kind == ActivityDefinition.Kind.REST
+            else Decimal("1")
+        )
+        boost_multiplier = self.character.get_xp_multiplier()
+        mastery_multiplier = xp_mastery_multiplier(
+            character_total_skill_xp(self.character)
+        )
+        base_xp = Decimal(self.duration) * rate
+        multiplier = kind_multiplier * boost_multiplier * mastery_multiplier
+
+        def _fmt(d: Decimal) -> int | float:
+            return int(d) if d == d.to_integral_value() else float(d)
+
+        return {
+            "duration_seconds": self.duration,
+            "base_xp": _fmt(base_xp),
+            "xp_multiplier": _fmt(multiplier),
+            "kind_multiplier": _fmt(kind_multiplier),
+            "boost_multiplier": _fmt(boost_multiplier),
+            "mastery_multiplier": _fmt(mastery_multiplier),
+            "xp_gained": int(base_xp * multiplier),
+            "skill_xp_gained": (
+                xp_for_duration(self.duration)
+                if self.activity_definition.skill_id is not None
+                else 0
+            ),
+        }
+
+    def _finish(self, reward_summary: Dict[str, Any]) -> int:
+        self.reward_breakdown = reward_summary
+        self.save(
+            update_fields=[
+                "completed_at",
+                "is_complete",
+                "duration",
+                "started_at",
+                "reward_breakdown",
+            ]
+        )
+        ap_gained = cast(int, reward_summary["xp_gained"])
+        self.character.add_xp(ap_gained)
+        return ap_gained
 
     def complete_now(self):
         """
@@ -512,22 +904,9 @@ class CharacterActivity(TimeRecord):
 
         self.completed_at = now
         self.is_complete = True
+        self.duration = int((now - self.started_at).total_seconds())
 
-        duration = int((now - self.started_at).total_seconds())
-        base_xp = self.calculate_base_xp(duration)
-        multiplier = self.character.get_xp_multiplier()
-        self.xp_gained = int(Decimal(base_xp) * multiplier)
-
-        self.duration = duration
-        self.save(
-            update_fields=[
-                "completed_at",
-                "is_complete",
-                "duration",
-                "started_at",
-                "xp_gained",
-            ]
-        )
+        ap_gained = self._finish(self.get_xp_reward_summary())
 
         try:
             player = self.character.current_player
@@ -538,7 +917,7 @@ class CharacterActivity(TimeRecord):
             village_state = getattr(self.character.population_centre, "state", "Stable")
             phrase = generate_phrase(village_state, self.kind, self.character)
             activity_name = (self.name or "activity").lower()
-            message = f"{self.character.first_name} completed {activity_name}. {phrase}"
+            message = f"{self.character.name} completed {activity_name}. {phrase}"
 
             ServerMessage = apps.get_model("gameplay", "ServerMessage")
             ServerMessage.objects.create(
@@ -550,7 +929,7 @@ class CharacterActivity(TimeRecord):
                 is_draft=False,
             )
 
-        return self.xp_gained
+        return ap_gained
 
     def complete_past(self):
         """
@@ -562,62 +941,56 @@ class CharacterActivity(TimeRecord):
 
         self.completed_at = self.scheduled_end or now
         self.is_complete = True
-        duration = max(0, int((self.completed_at - self.started_at).total_seconds()))
-        self.duration = duration
-        self.xp_gained = self.calculate_base_xp(duration)
-        self.save(
-            update_fields=[
-                "completed_at",
-                "is_complete",
-                "duration",
-                "started_at",
-                "xp_gained",
-            ]
+        self.duration = max(
+            0, int((self.completed_at - self.started_at).total_seconds())
         )
+
+        self._finish(self.get_xp_reward_summary())
         return self.completed_at
 
 
-class CharacterQuest(TimeRecord):
+class CharacterActivityArchive(models.Model):
     """
-    Represents a quest assigned to a character.
+    Monthly rollup of a character's completed CharacterActivity history -
+    see progression.tasks.compact_character_activities. Once a
+    CharacterActivity row ages past GameSettings.activity_compaction_cutoff_days,
+    its duration/count are folded into the matching (character,
+    activity_definition, month) row here and the original row is deleted.
 
-    Inherits common time tracking fields and behaviour from ``TimeRecord``.
-    Includes extra narrative fields (intro/outro text), user-selected
-    duration, and stage progression data.
+    Grouped by activity_definition rather than pre-aggregated to skill so
+    `_character_skill_duration` can still join through
+    `activity_definition__skill` at query time - archived rows don't need
+    rewriting if a definition's skill is reassigned later.
     """
 
     character = models.ForeignKey(
-        "character.Character", on_delete=models.CASCADE, related_name="character_quests"
+        "character.Character",
+        on_delete=models.CASCADE,
+        related_name="activity_archive",
     )
-    skill = models.ForeignKey(
-        "progression.CharacterSkill",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="records",
+    activity_definition = models.ForeignKey(
+        ActivityDefinition,
+        on_delete=models.PROTECT,
+        related_name="character_activity_archive",
     )
-    intro_text = models.TextField(max_length=2000, blank=True)
-    outro_text = models.TextField(max_length=2000, blank=True)
-    target_duration = models.PositiveIntegerField(default=0)
-    stages = models.JSONField(
-        default=list
-    )  # use this to add stage: self.stages = self.stages + [new_stage]
-    stages_fixed = models.BooleanField(default=False)
+    month = models.DateField(help_text="First day of the archived month.")
+    total_duration = models.PositiveIntegerField(default=0)
+    record_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["character", "activity_definition", "month"],
+                name="unique_character_activity_archive_month",
+            )
+        ]
 
     def __str__(self):
-        return f"character_quest {self.name}"
-
-    def calculate_base_xp(self) -> int:
-        """
-        Calculate and store the XP reward based on duration.
-
-        Currently, XP gained equals total duration in seconds.
-        """
-        xp = self.duration
-        return xp
+        return (
+            f"{self.character} / {self.activity_definition.name} / {self.month:%Y-%m}"
+        )
 
 
 #########################################
@@ -660,6 +1033,46 @@ class Project(PlayerOwnedMixin):
         return self.name
 
 
+class Note(PlayerOwnedMixin):
+    player = models.ForeignKey(
+        "users.Player", on_delete=models.CASCADE, related_name="notes"
+    )
+    task = models.OneToOneField(
+        "progression.Task",
+        on_delete=models.SET_NULL,
+        related_name="note",
+        null=True,
+        blank=True,
+    )
+    # Links a note to a reusable activity "type" (see Activity) rather than
+    # a single timed session, so the note persists across separate
+    # start/stop cycles of the same ad-hoc/unlabelled activity.
+    activity = models.OneToOneField(
+        "progression.Activity",
+        on_delete=models.SET_NULL,
+        related_name="note",
+        null=True,
+        blank=True,
+    )
+    title = models.CharField(max_length=255, blank=True)
+    body = models.TextField(max_length=10000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(task__isnull=True) | models.Q(activity__isnull=True)
+                ),
+                name="note_task_or_activity_not_both",
+            )
+        ]
+
+    def __str__(self):
+        return self.title or f"Note ({self.player.name})"
+
+
 class Task(PlayerOwnedMixin):
     player = models.ForeignKey(
         "users.Player", on_delete=models.CASCADE, related_name="tasks"
@@ -693,6 +1106,8 @@ class Task(PlayerOwnedMixin):
             return
         if self.parent_id == self.id:
             raise ValidationError({"parent": "A task cannot be its own parent."})
+        if self.parent is None:
+            return
         if self.parent.parent_id is not None:
             raise ValidationError({"parent": "Cannot nest more than one level deep."})
         if self.parent.player_id != self.player_id:

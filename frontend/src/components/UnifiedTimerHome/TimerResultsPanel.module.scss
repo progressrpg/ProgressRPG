@@ -1,0 +1,93 @@
+// UnifiedTimerHome/TimerResultsPanel.module.scss
+@use '../../styles/semantic/spacing' as sp;
+@use '../../styles/semantic/colors' as c;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-md;
+  width: 100%;
+}
+
+.labelPrompt {
+  display: flex;
+  justify-content: center;
+}
+
+.labelSearch {
+  width: 100%;
+}
+
+.taskCompletionPanel {
+  width: 100%;
+  padding: sp.$spacing-xs sp.$spacing-md;
+  border: 1px solid rgba(c.$color-border-primary, 0.5);
+  border-radius: sp.$border-radius;
+  background: rgba(c.$color-bg, 0.45);
+}
+
+.taskCompletionTitle {
+  margin: 0 0 sp.$spacing-xs;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.taskCompletionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp.$spacing-md;
+}
+
+.taskCompletionTime {
+  margin: 0;
+  color: c.$color-text-muted;
+  font-size: 0.9rem;
+}
+
+.taskCompletionCheck {
+  display: flex;
+  align-items: center;
+  gap: sp.$spacing-xs;
+  font-size: 0.9rem;
+  color: c.$color-text-muted;
+  cursor: pointer;
+  white-space: nowrap;
+  margin: 0;
+
+  input[type="checkbox"] {
+    cursor: pointer;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.taskCompletionXp {
+  margin: sp.$spacing-xs 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: c.$color-text-body;
+}
+
+.upgradePanel {
+  width: 100%;
+  padding: sp.$spacing-sm sp.$spacing-md;
+  border: 1px solid rgba(c.$color-border-primary, 0.5);
+  border-radius: sp.$border-radius;
+  background: rgba(c.$color-bg, 0.45);
+
+  p {
+    margin-top: 0;
+    margin-bottom: sp.$spacing-sm;
+    color: c.$color-text-muted;
+  }
+
+  a {
+    text-decoration: none;
+  }
+}
+
+.exitRow {
+  display: flex;
+  justify-content: center;
+}

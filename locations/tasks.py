@@ -150,15 +150,32 @@ def commute_tick():
     if not characters:
         return
 
+    # Batch every character's primary locations (home + work) in one query,
+    # rather than letting target_role_for's work_hours_for lookup issue its
+    # own per-character CharacterLocation query in the loop below (was an
+    # N+1 flagged by Sentry).
+    primary_locations = list(
+        CharacterLocation.objects.filter(
+            character_id__in=[character.id for character in characters],
+            is_primary=True,
+        ).select_related("location")
+    )
+    work_locations_by_character = {
+        char_location.character_id: char_location
+        for char_location in primary_locations
+        if char_location.role == CharacterLocation.Role.WORK
+    }
+
     target_roles = {
-        character.id: target_role_for(character) for character in characters
+        character.id: target_role_for(
+            character, work_location=work_locations_by_character.get(character.id)
+        )
+        for character in characters
     }
 
     target_locations = {
         char_location.character_id: char_location
-        for char_location in CharacterLocation.objects.filter(
-            character_id__in=target_roles, is_primary=True
-        ).select_related("location")
+        for char_location in primary_locations
         if char_location.role == target_roles[char_location.character_id]
     }
 
@@ -181,19 +198,20 @@ def commute_tick():
         )
         sync_character_location(
             character,
+            target_role=target_roles[character.id],
             target_location=target_location,
             entrance_node=entrance_node,
         )
 
 
 @shared_task
-def spawn_villages_task():
-    call_command("spawn_villages")
+def generate_villages_task():
+    call_command("generate_villages")
 
 
 @shared_task
-def spawn_characters_task():
-    call_command("spawn_characters")
+def generate_characters_task():
+    call_command("generate_characters")
 
 
 @shared_task

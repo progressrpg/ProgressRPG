@@ -1,0 +1,123 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/utilities/list-pages' as lp;
+@use '../../styles/semantic/spacing' as sp;
+@use '../../styles/semantic/colors' as c;
+
+.page {
+  @include m.page-layout();
+}
+
+.content {
+  width: min(100%, 720px);
+  display: flex;
+  flex-direction: column;
+}
+
+.addNoteForm {
+  @include lp.list-page-add-form;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.addNoteTitleInput {
+  @include lp.list-page-add-input;
+}
+
+.addNoteBodyInput,
+.editBodyInput {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid c.$color-border-primary;
+  border-radius: sp.$border-radius;
+  padding: sp.$spacing-sm;
+  font: inherit;
+}
+
+.taskSelect {
+  width: 100%;
+  border: 1px solid c.$color-border-primary;
+  border-radius: sp.$border-radius;
+  padding: sp.$spacing-xs sp.$spacing-sm;
+  font: inherit;
+}
+
+.notesList {
+  @include lp.list-page-list;
+}
+
+.list {
+  width: 100%;
+}
+
+.noteButton {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: sp.$spacing-sm;
+}
+
+.noteDetails {
+  @include lp.list-page-details;
+}
+
+.noteTitle {
+  font-weight: 600;
+}
+
+.noteMeta {
+  color: rgba(c.$color-text-body, 0.7);
+  font-size: 0.9em;
+}
+
+.linkedTaskLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: c.$color-status-info;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: none;
+  }
+}
+
+.emptyState {
+  @include lp.list-page-empty-state;
+}
+
+.editContent {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-sm;
+}
+
+.bodyLabel {
+  font-weight: 600;
+}
+
+.editActions {
+  @include lp.list-page-actions;
+}
+
+.deleteConfirmContent {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-sm;
+}
+
+.deleteConfirmActions {
+  @include lp.list-page-actions;
+}
+
+@include m.respond-to(md, down) {
+  @include lp.list-page-mobile;
+
+  .addNoteForm {
+    flex-direction: column;
+  }
+}

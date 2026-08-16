@@ -2,23 +2,22 @@
 Gameplay Utility Functions
 
 This module provides a variety of utility functions to support the gameplay application.
-It handles tasks such as checking quest eligibility, managing timers, and sending WebSocket
-messages to clients. These functions enhance core gameplay logic and enable real-time
-communication between the server and users.
+It handles tasks such as managing timers and sending WebSocket messages to clients.
+These functions enhance core gameplay logic and enable real-time communication
+between the server and users.
 
 Functions:
-    - check_quest_eligibility(character, player): Checks which quests a character is eligible for based on their player and quest history.
-    - start_server_timers(act_timer, quest_timer): Asynchronously starts the server-side activity and quest timers.
-    - pause_server_timers(act_timer, quest_timer): Asynchronously pauses the server-side activity and quest timers.
-    - control_timers(player, act_timer, quest_timer, mode): Asynchronously starts or pauses both server and client timers, with WebSocket feedback.
-    - process_initiation(player, character, action): Create activity or choose quest, handling timers and WebSocket updates.
-    - process_completion(player, character, action): Submits activity or completes quest, handling timers and WebSocket updates.
+    - start_server_timers(act_timer): Asynchronously starts the server-side activity timer.
+    - pause_server_timers(act_timer): Asynchronously pauses the server-side activity timer.
+    - control_timers(player, act_timer, mode): Asynchronously starts or pauses both server and client timers, with WebSocket feedback.
+    - process_initiation(player, character, action): Create an activity, handling timers and WebSocket updates.
+    - process_completion(player, character, action): Submits an activity, handling timers and WebSocket updates.
     - send_group_message(group_name, message): Sends a message to a WebSocket group.
 
 Usage:
-These utilities support core gameplay mechanics, such as managing quest eligibility,
-handling timers, and enabling asynchronous communication via Django Channels.
-They also improve the user experience by integrating real-time features and sending user notifications.
+These utilities support core gameplay mechanics, such as handling timers and
+enabling asynchronous communication via Django Channels. They also improve the
+user experience by integrating real-time features and sending user notifications.
 
 Author:
     Duncan Appleby
@@ -29,61 +28,27 @@ from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
 
-from .models import QuestCompletion, Quest, ActivityTimer, QuestTimer
-from .serializers import QuestTimerSerializer
+from .models import ActivityTimer
 
 from character.models import Character
 from users.models import Player
-from gameplay.services.xp_modifiers import set_activity_active_modifiers
 
 import logging
-
-from progress_rpg.exceptions import QuestError, CharacterError, TimerError
 
 logger = logging.getLogger("general")
 
 
-def check_quest_eligibility(character: Character, player: Player) -> list:
-    """
-    Checks the eligibility of quests for a specific character and player.
-    """
-    logger.info(
-        f"[CHECK QUEST ELIGIBILITY] Checking eligibility for character {character.id} and player {player.id}"
-    )
-    char_quests = QuestCompletion.objects.filter(character=character)
-    quests_done = {}
-    for completion in char_quests:
-        quests_done[completion.quest] = completion.times_completed
-        # logger.debug(f"[CHECK QUEST ELIGIBILITY] Quest {completion.quest} completed {completion.times_completed} times")
-
-    return [
-        quest
-        for quest in Quest.objects.all()
-        if check_individual_quest(quest, character, player, quests_done)
-    ]
-
-
-def check_individual_quest(
-    quest: Quest, character: Character, player: Player, quests_done
-):
-    # logger.debug(f"[CHECK QUEST ELIGIBILITY] Evaluating quest: {quest}")
-
-    return (
-        quest.checkEligible(character, player)
-        and quest.not_repeating(character)
-        and quest.requirements_met(quests_done)
-    )
-
-
 def start_server_timers(act_timer: ActivityTimer):
     """
-    Attempts to start server-side activity and quest timers.
+    Attempts to start the server-side activity timer.
     """
     logger.info("[START SERVER TIMERS] Attempting to start server timers")
     logger.debug(f"[START SERVER TIMERS] Timers status: activity={act_timer.status}")
 
     if act_timer.status in ["active", "paused", "waiting"]:
         try:
+            from gameplay.services.xp_modifiers import set_activity_active_modifiers
+
             act_timer.start()
             set_activity_active_modifiers(act_timer.player, is_active=True)
             result_text = "[START SERVER TIMERS] Timers successfully started"
@@ -101,13 +66,15 @@ def start_server_timers(act_timer: ActivityTimer):
 
 def pause_server_timers(act_timer: ActivityTimer):
     """
-    Pauses server-side activity and quest timers.
+    Pauses the server-side activity timer.
     """
     logger.info("[PAUSE SERVER TIMERS] Pausing server timers")
     logger.debug(f"[PAUSE SERVER TIMERS] Timers status before: {act_timer.status}")
 
     try:
         if act_timer.status not in ["completed", "empty"]:
+            from gameplay.services.xp_modifiers import set_activity_active_modifiers
+
             act_timer.pause()
             set_activity_active_modifiers(act_timer.player, is_active=False)
             logger.debug("[PAUSE SERVER TIMERS] Activity timer successfully paused")
@@ -176,19 +143,15 @@ async def control_timers(player: Player, act_timer: ActivityTimer, mode: str) ->
 
 def process_initiation(player: Player, character: Character, action: str) -> bool:
     """
-    Processes the initiation of an activity or quest, starting timers if possible.
+    Processes the initiation of an activity, starting timers if possible.
     """
     player.refresh_from_db()
     player_id = player.id
     act_timer = player.activity_timer
     character.refresh_from_db()
-    quest_timer = character.quest_timer
     logger.info(
         f"[PROCESS INITIATION] Initiating {action} for player {player_id}, character {character.id}"
     )
-    # logger.debug(f"[PROCESS INITIATION] Timers status: {act_timer.status}/{quest_timer.status}")
-    qt = quest_timer
-    # logger.debug(f"[PROCESS INITIATION] Quest timer after refresh status/duration/elapsed/remaining: {qt.status}/{qt.duration}/{qt.get_elapsed_time()}/{qt.get_remaining_time()}")
 
     start_success, result_text = start_server_timers(act_timer)
     if not start_success:
@@ -201,15 +164,11 @@ def process_initiation(player: Player, character: Character, action: str) -> boo
         )
         return False
     else:  # Success
-        # act_timer.refresh_from_db()
-        # quest_timer.refresh_from_db()
         async_to_sync(send_group_message)(
             f"player_{player_id}",
             {
                 "type": "action",
-                "action": (
-                    "create_activity" if action == "create_activity" else "choose_quest"
-                ),
+                "action": "create_activity",
             },
         )
         return True
@@ -217,7 +176,7 @@ def process_initiation(player: Player, character: Character, action: str) -> boo
 
 def process_completion(player: Player, character: Character, action: str) -> bool:
     """
-    Processes the completion of an activity or quest, pausing timers.
+    Processes the completion of an activity, pausing timers.
     """
     player.refresh_from_db()
     character.refresh_from_db()
@@ -242,14 +201,30 @@ def process_completion(player: Player, character: Character, action: str) -> boo
             f"player_{player_id}",
             {
                 "type": "action",
-                "action": (
-                    "quest_complete"
-                    if action == "complete_quest"
-                    else "submit_activity"
-                ),
+                "action": "submit_activity",
             },
         )
         return True
+
+
+def broadcast_activity_timer(timer: ActivityTimer) -> None:
+    """
+    Push `timer`'s current state to every other open session (tabs, devices)
+    this player has connected, so they can reconcile via useActivityTimer's
+    loadFromServer instead of drifting until their next manual fetch.
+    Reuses the per-player `player_{id}` group that TimerConsumer already
+    joins on connect. Safe to call from sync contexts (views, Celery tasks).
+    """
+    from .serializers import ActivityTimerSerializer
+
+    async_to_sync(send_group_message)(
+        f"player_{timer.player_id}",
+        {
+            "type": "action",
+            "action": "activity_timer_update",
+            "data": {"activity_timer": ActivityTimerSerializer(timer).data},
+        },
+    )
 
 
 async def send_group_message(group_name: str, message: dict) -> bool:

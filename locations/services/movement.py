@@ -27,21 +27,22 @@ def find_path(start_node, end_node):
 
 
 def go_home(movable) -> bool:
-    if not movable.building:
+    home_building = movable.home
+    if not home_building:
         print(f"{movable.name} has no home to go to!")
         return False
 
     from locations.models import Node
 
     destination_node = Node.objects.filter(
-        building=movable.building, kind=Node.Kind.BUILDING_ENTRANCE
+        building=home_building, kind=Node.Kind.BUILDING_ENTRANCE
     ).first()
 
     if not destination_node:
         print(f"{movable.name} has no node! Skipping.")
         return False
 
-    rooms = list(movable.building.interiorspaces.all())
+    rooms = list(home_building.interiorspaces.all())
     room_node = None
     if rooms:
         room = random.choice(rooms)

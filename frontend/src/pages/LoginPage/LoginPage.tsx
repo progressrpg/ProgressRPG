@@ -79,13 +79,13 @@ export default function LoginPage(): React.ReactElement {
           className={styles.rememberMeField}
           inputClassName={styles.rememberMeInput}
         />
-        <p className={styles.footer}>
-          New here? <Link to="/register">Create an account</Link>
-        </p>
-        <p className={styles.footer}>
-          <Link to="/forgot-password">Forgot your password?</Link>
-        </p>
       </Form>
+      <p className={styles.footer}>
+        New here? <Link to="/register">Create an account</Link>
+      </p>
+      <p className={styles.footer}>
+        <Link to="/forgot-password">Forgot your password?</Link>
+      </p>
     </div>
   );
 }

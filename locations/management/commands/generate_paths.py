@@ -151,11 +151,13 @@ class Command(BaseCommand):
         Not full pathfinding - a light heuristic, since character movement
         doesn't use these paths (visual only, issue #656).
         """
-        footprints = list(
-            Building.objects.filter(
+        footprints = [
+            fp
+            for fp in Building.objects.filter(
                 population_centre=centre, footprint__isnull=False
             ).values_list("footprint", flat=True)
-        )
+            if fp is not None
+        ]
         if not footprints:
             return
 

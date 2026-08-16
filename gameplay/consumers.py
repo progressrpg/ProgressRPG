@@ -290,16 +290,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         logger.info(f"[HANDLE CLIENT REQUEST] Handling client request: {message}")
         action = message.get("action")
 
-        if (
-            action
-            in [
-                "create_activity",
-                "choose_quest",
-                "complete_quest",
-                "submit_activity",
-            ]
-            and self.character is None
-        ):
+        if action in ["create_activity", "submit_activity"] and self.character is None:
             logger.info(
                 f"[HANDLE CLIENT REQUEST] Ignoring '{action}' for player {self.player.id}: no active character linked."
             )
@@ -316,13 +307,13 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             await control_timers(self.player, self.activity_timer, "start")
         elif action == "pause_timers":
             await control_timers(self.player, self.activity_timer, "pause")
-        elif action in ["create_activity", "choose_quest"]:
+        elif action == "create_activity":
             success = await database_sync_to_async(process_initiation)(
                 self.player, self.character, action
             )
             if not success:
                 logger.warning(f"[HANDLE CLIENT REQUEST] Failed to initiate {action}.")
-        elif action in ["complete_quest", "submit_activity"]:
+        elif action == "submit_activity":
             success = await database_sync_to_async(process_completion)(
                 self.player, self.character, action
             )

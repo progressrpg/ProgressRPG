@@ -1,19 +1,26 @@
 # progression/admin.py
 
 from django.contrib import admin
-from django.contrib import admin
 from .models import (
     Category,
     Role,
+    SkillGroup,
+    SkillDefinition,
+    CharacterRole,
     PlayerSkill,
     CharacterSkill,
+    Activity,
+    SuggestedActivity,
     PlayerActivity,
+    ActivityDefinition,
     CharacterActivity,
-    CharacterQuest,
+    OfflineActivityLedger,
+    DailyGoalAward,
+    CharacterActivityArchive,
     Project,
     Task,
+    Note,
 )
-
 
 #########################################
 #####      Group admins
@@ -36,20 +43,31 @@ class CategoryAdmin(admin.ModelAdmin):
     readonly_fields = ("total_time", "total_records", "total_xp")
 
 
-# @admin.register(Role)
+@admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "name",
-        "character",
-        "total_time",
-        "total_records",
-        "total_xp",
-        "created_at",
-    )
-    search_fields = ("name", "description", "character__name")
-    list_filter = ("character",)
-    readonly_fields = ("total_time", "total_records", "total_xp")
+    list_display = ("id", "name", "created_at")
+    search_fields = ("name", "description")
+
+
+@admin.register(SkillGroup)
+class SkillGroupAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "role", "created_at")
+    search_fields = ("name", "description", "role__name")
+    list_filter = ("role",)
+
+
+@admin.register(SkillDefinition)
+class SkillDefinitionAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "role", "gate_group", "min_proficiency", "created_at")
+    search_fields = ("name", "description", "role__name")
+    list_filter = ("role", "gate_group")
+
+
+@admin.register(CharacterRole)
+class CharacterRoleAdmin(admin.ModelAdmin):
+    list_display = ("id", "character", "role", "assigned_at")
+    search_fields = ("character__name", "role__name")
+    list_filter = ("role",)
 
 
 #########################################
@@ -75,20 +93,37 @@ class PlayerSkillAdmin(admin.ModelAdmin):
     readonly_fields = ("total_time", "total_records", "total_xp")
 
 
-# @admin.register(CharacterSkill)
+@admin.register(CharacterSkill)
 class CharacterSkillAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "name",
+        "skill_definition",
         "character",
-        "level",
         "total_time",
         "total_records",
         "total_xp",
     )
-    search_fields = ("name", "description", "character__name")
-    list_filter = ("character", "roles")
+    search_fields = ("skill_definition__name", "character__name")
+    list_filter = ("character",)
     readonly_fields = ("total_time", "total_records", "total_xp")
+
+
+#########################################
+#####      Activity admins
+#########################################
+
+
+# @admin.register(Activity)
+class ActivityAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "player", "created_at")
+    search_fields = ("name", "description", "player__name")
+    list_filter = ("player",)
+
+
+@admin.register(SuggestedActivity)
+class SuggestedActivityAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "created_at")
+    search_fields = ("name", "description")
 
 
 #########################################
@@ -101,17 +136,82 @@ class PlayerActivityAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "group_key",
+        "activity",
         "player",
+        "origin",
         "duration",
+        "xp_gained",
         "created_at",
         "started_at",
         "completed_at",
     )
-    search_fields = ("name", "group_key", "description", "player__name")
-    list_filter = ("player", "is_private", "is_complete", "skill", "project", "task")
+    search_fields = ("name", "activity__name", "description", "player__name")
+    list_filter = (
+        "player",
+        "origin",
+        "is_private",
+        "is_complete",
+        "skill",
+        "project",
+        "task",
+    )
     date_hierarchy = "created_at"
     readonly_fields = ("created_at",)
+
+
+@admin.register(ActivityDefinition)
+class ActivityDefinitionAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "present_tense", "kind", "skill", "created_at")
+    search_fields = ("name", "present_tense", "description")
+    list_filter = ("kind", "skill")
+
+
+@admin.register(OfflineActivityLedger)
+class OfflineActivityLedgerAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "player",
+        "date",
+        "logged_seconds",
+        "xp_eligible_seconds",
+        "last_updated",
+    )
+    search_fields = ("player__name",)
+    list_filter = ("date",)
+    date_hierarchy = "date"
+    readonly_fields = (
+        "player",
+        "date",
+        "logged_seconds",
+        "xp_eligible_seconds",
+        "created_at",
+        "last_updated",
+    )
+
+    def has_add_permission(self, request):
+        # Append-only ledger — rows are only ever written by
+        # progression.services.log_offline_activity.
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DailyGoalAward)
+class DailyGoalAwardAdmin(admin.ModelAdmin):
+    list_display = ("id", "player", "date", "bonus_ap", "created_at")
+    search_fields = ("player__name",)
+    list_filter = ("date",)
+    date_hierarchy = "date"
+    readonly_fields = ("player", "date", "bonus_ap", "created_at")
+
+    def has_add_permission(self, request):
+        # Rows are only ever written by
+        # progression.daily_goals.check_and_award_daily_goals.
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(CharacterActivity)
@@ -126,13 +226,13 @@ class CharacterActivityAdmin(admin.ModelAdmin):
         "scheduled_start",
         "scheduled_end",
     )
-    search_fields = ("name", "description", "character__name")
-    list_filter = ("created_at", "is_complete", "kind")
+    search_fields = ("activity_definition__name", "character__name")
+    list_filter = ("created_at", "is_complete", "activity_definition__kind")
     date_hierarchy = "completed_at"
     readonly_fields = ("created_at",)
     fields = (
         "character",
-        ("name", "kind"),
+        "activity_definition",
         "duration",
         ("scheduled_start", "scheduled_end"),
         ("started_at", "completed_at"),
@@ -150,21 +250,32 @@ class CharacterActivityAdmin(admin.ModelAdmin):
         self.message_user(request, "Activities have been completed.")
 
 
-# @admin.register(CharacterQuest)
-class CharacterQuestAdmin(admin.ModelAdmin):
+@admin.register(CharacterActivityArchive)
+class CharacterActivityArchiveAdmin(admin.ModelAdmin):
+    """
+    Read-only - rows are written exclusively by
+    progression.tasks.compact_character_activities.
+    """
+
     list_display = (
-        "id",
-        "name",
         "character",
-        "skill",
-        "duration",
-        "target_duration",
-        "is_complete",
-        "created_at",
+        "activity_definition",
+        "month",
+        "total_duration",
+        "record_count",
     )
-    search_fields = ("name", "description", "character__name")
-    list_filter = ("character", "is_complete", "stages_fixed")
-    date_hierarchy = "created_at"
+    search_fields = ("character__name", "activity_definition__name")
+    list_filter = ("month", "activity_definition")
+    date_hierarchy = "month"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 #########################################
@@ -206,4 +317,18 @@ class TaskAdmin(admin.ModelAdmin):
     search_fields = ("name", "description", "player__name", "project__name")
     list_filter = ("player", "project", "is_complete", "completed_at")
     readonly_fields = ("total_time", "total_records", "created_at", "completed_at")
+    date_hierarchy = "created_at"
+
+
+@admin.register(Note)
+class NoteAdmin(admin.ModelAdmin):
+    """
+    Notes are private-by-default: title/body are excluded from both the
+    list display and the detail view here, showing only metadata.
+    """
+
+    list_display = ("id", "player", "task", "activity", "created_at", "last_updated")
+    exclude = ("title", "body")
+    list_filter = ("player", "task")
+    readonly_fields = ("player", "task", "activity", "created_at", "last_updated")
     date_hierarchy = "created_at"

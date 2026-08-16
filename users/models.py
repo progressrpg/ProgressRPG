@@ -2,14 +2,13 @@
 User Management Models
 
 This module contains the models and custom manager for handling user-related data in the application.
-It includes a custom user model for email-based authentication, an abstract base model for shared
-attributes, and a player model for tracking gameplay-specific details.
+It includes a custom user model for email-based authentication and a player model for tracking
+gameplay-specific details.
 
 Classes:
     - CustomUserManager: A custom manager to handle the creation of users and superusers.
     - CustomUser: A custom user model extending Django's AbstractUser with email-based login.
-    - Person: An abstract base model for characters or players, tracking levels and XP.
-    - Player: A concrete model for user players, extending the Person model to add gameplay-specific
+    - Player: A concrete model for user players, tracking levels, XP, and gameplay-specific
       attributes like activities and streaks.
 
 Usage:
@@ -34,12 +33,10 @@ import logging
 from timezone_field import TimeZoneField
 
 from gameplay.models import Currency, CurrencyAccountBase, ServerMessage
+from progression.mixins import LevelProgressionMixin
 
 if TYPE_CHECKING:
-    from django.db.models import Manager
-
-    from character.models import Character, PlayerCharacterLink
-    from gameplay.models import XpModifier
+    from character.models import Character
 
 logger = logging.getLogger("general")
 
@@ -300,9 +297,10 @@ class UserLogin(models.Model):
         return f"{self.user.email} @ {self.timestamp.isoformat()}"
 
 
-class Person(models.Model):
+class Player(LevelProgressionMixin, models.Model):
     """
-    An abstract base model representing a generic person with levels and XP.
+    Represents a user's gameplay player.
+    Tracks user-specific gameplay data such as total activities and characters.
     """
 
     name = models.CharField(max_length=100, blank=True, null=True)
@@ -312,76 +310,6 @@ class Person(models.Model):
     level = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    if TYPE_CHECKING:
-        # Provided by concrete subclasses (Player, Character): `active_link`
-        # is a property on each, `xp_mods` is a reverse FK from XpModifier.
-        @property
-        def active_link(self) -> "PlayerCharacterLink | None": ...
-
-        xp_mods: "Manager[XpModifier]"
-
-    class Meta:
-        abstract = True
-
-    @transaction.atomic
-    def add_xp(self, amount: int):
-        """
-        Add experience points (XP) to the person and handle level-up logic.
-        """
-        self.xp += amount
-        levelups = []
-
-        while True:
-            xp_needed = self.get_xp_for_next_level()
-            if self.xp < xp_needed:
-                break
-
-            old_level = self.level
-            self.xp -= xp_needed
-            self.level += 1
-            levelups.append(
-                {
-                    "old_level": old_level,
-                    "new_level": self.level,
-                    "person": self,
-                    "name": self.name,
-                }
-            )
-
-        self.xp = max(0, self.xp)
-        self.xp_next_level = self.get_xp_for_next_level()
-
-        self.save(update_fields=["xp", "level", "xp_next_level"])
-        return levelups
-
-    def get_xp_for_next_level(self):
-        """
-        Calculate the XP required to reach the next level.
-        """
-        return 100 * (self.level + 1) if self.level >= 1 else 100
-
-    def get_xp_multiplier(self, now=None):
-        now = now or timezone.now()
-
-        link = self.active_link
-
-        mods = self.xp_mods.filter(
-            is_active=True,
-            starts_at__lte=now,
-        ).filter(models.Q(ends_at__isnull=True) | models.Q(ends_at__gt=now))
-        mult = Decimal("1.0")
-        for m in mods:
-            mult *= m.multiplier
-
-        return mult
-
-
-class Player(Person):
-    """
-    Represents a user's gameplay player, extending the abstract Person model.
-    Tracks user-specific gameplay data such as total activities and characters.
-    """
-
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     bio = models.TextField(max_length=1000, blank=True)
     is_online = models.BooleanField(default=False)
@@ -389,6 +317,9 @@ class Player(Person):
     last_seen = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    link_points_multiplier = models.DecimalField(
+        max_digits=5, decimal_places=2, default="1.00"
+    )
 
     ONBOARDING_STEPS = [
         (0, "Not started"),
@@ -503,6 +434,17 @@ class Player(Person):
     @property
     def total_activities(self):
         return self.activities.filter(is_complete=True).count()
+
+    @property
+    def total_link_points(self):
+        """
+        Sum of link_points across every character link this player has ever
+        had (past and current) - the player-side symmetric counterpart to
+        how link_points already factors into a resident character's village.
+        """
+        from character.models import PlayerCharacterLink
+
+        return PlayerCharacterLink.total_link_points(self.links.all())
 
     def add_activity(self, time: int = 0, num: int = 1, xp: int = 0):
         """
