@@ -1,7 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { TamaguiProvider } from 'tamagui';
 import Tooltip, { TooltipProvider } from './Tooltip';
+import tamaguiConfig from '../../../tamagui.config';
+
+// Tamagui's Tooltip (#583) needs a TamaguiProvider ancestor - unlike Radix's
+// Tooltip.Root, it isn't usable standalone. The app root (src/main.tsx)
+// provides this in production; tests need their own.
+function render(...args: Parameters<typeof rtlRender>) {
+  const [ui, options] = args;
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        {children}
+      </TamaguiProvider>
+    ),
+    ...options,
+  });
+}
 
 function renderTooltip() {
   render(
