@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useLocation, Link } from "react-router";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import DropdownMenu from "../../components/DropdownMenu/DropdownMenu";
 import styles from "./Navbar.module.scss";
 import Button from "../../components/Button/Button";
 import { AnnouncementsBell, MobileAnnouncements } from "./Announcements";
@@ -191,30 +191,24 @@ export default function Navbar({ onMenuClick, onHelpClick }: NavbarProps) {
                 </svg>
               </Link>
               <div className={styles.accountMenu}>
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger asChild>
-                    <button
-                      className={styles.accountTrigger}
-                      aria-label="Account menu"
+                <DropdownMenu.Root align="end" sideOffset={4}>
+                  <DropdownMenu.Trigger
+                    className={styles.accountTrigger}
+                    aria-label="Account menu"
+                  >
+                    <svg
+                      className={styles.personIcon}
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
                     >
-                      <svg
-                        className={styles.personIcon}
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                        focusable="false"
-                      >
-                        <circle cx="12" cy="8" r="4" />
-                        <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-                      </svg>
-                    </button>
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+                    </svg>
                   </DropdownMenu.Trigger>
 
                   <DropdownMenu.Portal>
-                    <DropdownMenu.Content
-                      className={styles.accountDropdownContent}
-                      align="end"
-                      sideOffset={4}
-                    >
+                    <DropdownMenu.Content className={styles.accountDropdownContent}>
                       {onHelpClick && (
                         <DropdownMenu.Item
                           className={styles.accountDropdownItem}

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import * as Popover from "@radix-ui/react-popover";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import * as Accordion from "@radix-ui/react-accordion";
+import Popover from "../../components/Popover/Popover";
+import DropdownMenu from "../../components/DropdownMenu/DropdownMenu";
+import Accordion from "../../components/Accordion/Accordion";
 import ReactMarkdown from "react-markdown";
 import Button from "../../components/Button/Button";
 import styles from "./Announcements.module.scss";
@@ -110,7 +110,7 @@ interface AnnouncementsBellProps extends AnnouncementsData {
 /** Desktop bell icon + unread badge that opens the announcements list in a popover. */
 export function AnnouncementsBell({ triggerClassName, ...data }: AnnouncementsBellProps) {
   return (
-    <Popover.Root>
+    <Popover.Root side="bottom" align="end" sideOffset={6}>
       <Popover.Trigger asChild>
         <Button
           className={`${triggerClassName} ${styles.trigger}`}
@@ -125,17 +125,9 @@ export function AnnouncementsBell({ triggerClassName, ...data }: AnnouncementsBe
           )}
         </Button>
       </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          className={styles.popoverContent}
-          side="bottom"
-          align="end"
-          sideOffset={6}
-          aria-label="Announcements"
-        >
-          <AnnouncementsListContent {...data} idPrefix="announcement-" />
-        </Popover.Content>
-      </Popover.Portal>
+      <Popover.Content className={styles.popoverContent} aria-label="Announcements">
+        <AnnouncementsListContent {...data} idPrefix="announcement-" />
+      </Popover.Content>
     </Popover.Root>
   );
 }

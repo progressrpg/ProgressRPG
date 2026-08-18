@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
+import { TamaguiProvider } from "tamagui";
 
 import Navbar from "./Navbar";
+import tamaguiConfig from "../../../tamagui.config";
 
 const mockUseAuth = vi.fn();
 const mockUseGame = vi.fn();
@@ -36,14 +38,19 @@ vi.mock("../../hooks/useAnnouncements", () => ({
   }),
 }));
 
+// Navbar's DropdownMenu/Popover/Accordion (#586) are backed by Tamagui,
+// which needs a TamaguiProvider ancestor - the app root (src/main.tsx)
+// provides this in production; tests need their own.
 function renderNavbar(
   props: Partial<React.ComponentProps<typeof Navbar>> = {},
   initialPath = "/"
 ) {
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Navbar {...props} />
-    </MemoryRouter>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Navbar {...props} />
+      </MemoryRouter>
+    </TamaguiProvider>
   );
 }
 
@@ -233,6 +240,51 @@ describe("Navbar", () => {
     await user.click(screen.getByRole("button", { name: "Mark read" }));
 
     expect(markOneMutate).toHaveBeenCalledWith(42);
+  });
+
+  it("allows multiple announcement sections to be expanded at once", async () => {
+    const user = userEvent.setup();
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    mockUseFeatureFlag.mockReturnValue(true);
+    mockUseAnnouncements.mockReturnValue({
+      data: {
+        results: [
+          { id: 1, title: "First", summary: "", body: "First body", is_read: true },
+          { id: 2, title: "Second", summary: "", body: "Second body", is_read: true },
+        ],
+        unread_count: 0,
+      },
+      isLoading: false,
+    });
+    renderNavbar();
+
+    await user.click(screen.getByRole("button", { name: "Announcements" }));
+    await user.click(screen.getByText("First"));
+    await user.click(screen.getByText("Second"));
+
+    expect(screen.getByText("First body")).toBeInTheDocument();
+    expect(screen.getByText("Second body")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /First/ })).toHaveAttribute(
+      "aria-expanded",
+      "true"
+    );
+    expect(screen.getByRole("button", { name: /Second/ })).toHaveAttribute(
+      "aria-expanded",
+      "true"
+    );
+  });
+
+  it("opens the mobile account menu and navigates via the account/logout links", async () => {
+    const user = userEvent.setup();
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    renderNavbar();
+
+    await user.click(screen.getByRole("button", { name: "Account menu", hidden: true }));
+
+    const accountLink = await screen.findByRole("menuitem", { name: /Account/ });
+    const logoutLink = screen.getByRole("menuitem", { name: /Log out/ });
+    expect(accountLink).toHaveAttribute("href", "/account");
+    expect(logoutLink).toHaveAttribute("href", "/logout");
   });
 
   it("highlights the timer button as primary on the timer page", () => {

@@ -120,6 +120,7 @@ function Trigger({ children, className }: PopoverTriggerProps): React.ReactEleme
 interface PopoverContentProps {
   children: React.ReactNode;
   className?: string;
+  'aria-label'?: string;
 }
 
 // Tamagui already assigns `role="dialog"` to the floating wrapper itself
@@ -127,11 +128,11 @@ interface PopoverContentProps {
 // setting it again here would just duplicate the landmark. `id` still needs
 // setting explicitly so Trigger's `aria-controls` below has something
 // stable to point at.
-function Content({ children, className }: PopoverContentProps): React.ReactElement {
+function Content({ children, ...rest }: PopoverContentProps): React.ReactElement {
   const { contentId } = usePopoverContext('Content');
 
   return (
-    <PopoverPrimitive.Content id={contentId} unstyled className={className}>
+    <PopoverPrimitive.Content id={contentId} unstyled {...rest}>
       {children}
     </PopoverPrimitive.Content>
   );
