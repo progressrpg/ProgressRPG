@@ -1,8 +1,25 @@
-import { render, screen } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TamaguiProvider } from "tamagui";
 
 import LibraryPage from "./LibraryPage";
+import tamaguiConfig from "../../../tamagui.config";
+
+// LibraryPage renders Tabs (#584), which needs a TamaguiProvider ancestor -
+// unlike Radix's Tabs.Root, it isn't usable standalone. The app root
+// (src/main.tsx) provides this in production; tests need their own.
+function render(...args: Parameters<typeof rtlRender>) {
+  const [ui, options] = args;
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        {children}
+      </TamaguiProvider>
+    ),
+    ...options,
+  });
+}
 
 const mockUseFeatureFlag = vi.fn();
 
