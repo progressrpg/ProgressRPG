@@ -12,7 +12,17 @@ from django.core.cache import cache
 from gameplay.services.xp_modifiers import schedule_online_end
 from users.models import Player
 
-DISCONNECT_GRACE_SECONDS = 30
+# How long a player has to reconnect before their running activity timer is
+# auto-completed. Sized for the reconnects that happen in normal use rather
+# than for a fast cleanup: a phone locking, a laptop lid closing, wi-fi
+# switching to cellular and mobile browsers tearing down the socket when the
+# tab is backgrounded all close the websocket while the player is still
+# working, and the client waits 3s before its first reconnect attempt. The
+# previous 30s left almost no room for those and stopped live timers. Nothing
+# is lost by waiting: tasks.truncate_to_last_heartbeat only credits time up to
+# the last confirmed heartbeat, so a longer grace period doesn't award XP for
+# the wait itself.
+DISCONNECT_GRACE_SECONDS = 120
 DISCONNECT_TASK_CACHE_KEY = "disconnect_task:{player_id}"
 ONLINE_COUNT_CACHE_KEY = "online_count"
 ONLINE_COUNT_CACHE_SECONDS = 2
@@ -49,10 +59,14 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def record_heartbeat(self):
         """
-        Refresh `last_seen` so `reconcile_stale_online_players` knows this
-        connection is still alive. Without this, a player whose worker
-        process dies without running disconnect() would stay marked
-        online forever.
+        Refresh `last_seen` so the server knows this connection is still
+        alive. Without this, a player whose worker process dies without
+        running disconnect() would stay marked online forever.
+
+        This is also the only signal keeping a running activity timer alive:
+        gameplay.tasks.auto_complete_timers_for_stale_players auto-completes
+        the timers of players whose `last_seen` has gone stale, so a lapsed
+        heartbeat costs the player their session, not just an online badge.
         """
         type(self.player).objects.filter(pk=self.player.pk).update(
             last_seen=timezone.now()

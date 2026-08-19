@@ -1,11 +1,13 @@
 """
-Tests for the 30-second disconnect grace period.
+Tests for the disconnect grace period.
 
 On disconnect with an active timer the consumer schedules
 auto_complete_timer_on_disconnect via Celery and stores the task ID in
 Redis.  On reconnect the consumer revokes that task.  If the player
 never comes back the task calls ActivityTimer.complete(), awarding XP.
 """
+
+from datetime import timedelta
 
 from asgiref.sync import async_to_sync
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -132,6 +134,47 @@ class AutoCompleteTimerTaskTests(TransactionTestCase):
             self.assertEqual(result, f"skipped:{status}")
 
     # active timer — completion path
+
+    def test_does_not_complete_when_player_still_has_a_live_connection(self):
+        """
+        A player with two tabs open who closes one, or whose reconnect raced
+        ahead of the old socket's disconnect, still has an active connection
+        and a running timer — nothing runs connect() again to revoke this
+        task, so the task itself has to stand down.
+        """
+        self.timer.status = "active"
+        self.timer.start_time = timezone.now()
+        self.timer.save(update_fields=["status", "start_time"])
+        self.player.active_connections = 1
+        self.player.save(update_fields=["active_connections"])
+        self._prime_cache()
+
+        with patch.object(ActivityTimer, "complete") as mock_complete, patch(
+            "gameplay.tasks.broadcast_activity_timer"
+        ) as mock_broadcast:
+            result = _run_task(self.player.id, self.TASK_ID)
+
+        self.assertEqual(result, "still_connected")
+        mock_complete.assert_not_called()
+        mock_broadcast.assert_not_called()
+        self.assertIsNone(cache.get(self._cache_key()))
+
+    def test_credits_only_time_up_to_the_last_heartbeat(self):
+        now = timezone.now()
+        self.timer.status = "active"
+        self.timer.start_time = now - timedelta(minutes=10)
+        self.timer.save(update_fields=["status", "start_time"])
+        self.player.active_connections = 0
+        self.player.last_seen = now - timedelta(minutes=2)
+        self.player.save(update_fields=["active_connections", "last_seen"])
+        self._prime_cache()
+
+        with patch("gameplay.tasks.broadcast_activity_timer"):
+            result = _run_task(self.player.id, self.TASK_ID)
+
+        self.assertEqual(result, "completed")
+        self.timer.refresh_from_db()
+        self.assertAlmostEqual(self.timer.elapsed_time, 8 * 60, delta=2)
 
     def test_completes_active_timer_and_clears_cache(self):
         self.timer.status = "active"
