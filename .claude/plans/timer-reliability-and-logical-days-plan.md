@@ -146,7 +146,9 @@ Consequences:
 - **It fixes a live bug.** Both `loadFromServer` call sites rebuild the limit as `is_premium ? null : freeTimerLimitSeconds`, so a premium player's custom 45-minute duration silently vanishes on any reload or websocket reconciliation, and a free player's shorter chosen duration resets to the full 30 minutes. The client already collects a duration (`useSupportFlow`'s `durationSeconds`) and already has the whole `limitSeconds` / `limitReason` / `limitReached` / `autoStopCompletion` pipeline — the missing half is entirely server-side.
 - **Scope.** This plan owns *persisting the limit and having the server honour it*. The feature proper — count-up vs count-down display, presets, editing mid-session — is separate work that builds on it.
 
-**n. `limit_seconds` is a hard stop, not a soft target.** Reaching it completes the session, which is what the free tier already needs and what `tickMain` already does. A "count up to a target but keep going" mode is a different thing and should be a separate nullable field if it is ever wanted — overloading one field with both meanings is how the hard cap stops being reliable.
+**n. `limit_seconds` is a hard stop in both display modes.** Confirmed: counting up to a target stops at the target just as counting down does. So count-up vs count-down is purely a presentation choice over a single field — no second `target_seconds`, no soft-target semantics, and no way for the two to drift apart. This is also what the free tier needs and what `tickMain` already does.
+
+It keeps phase D's surface minimal: the server needs `limit_seconds` and nothing else. The display preference never has to reach the backend or the timer payload, so it stays a client concern belonging to the feature work rather than to this plan.
 
 ## 5. Edge cases
 
