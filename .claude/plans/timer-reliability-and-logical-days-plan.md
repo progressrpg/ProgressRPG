@@ -20,7 +20,9 @@ Three changes, in dependency order, each independently useful:
 
 **C. Give the player a logical day.** One session belongs to exactly one day, chosen by when it *started*, where a day runs from the player's configurable `day_start_time` (default 02:00) in their own timezone. This is what makes B safe for streaks, and it fixes a class of existing bugs on its own.
 
-Order: **C → B → A.** C is a prerequisite for B not breaking streaks. B removes the sharp edge. A removes the false positives that make the sharp edge get hit.
+**D. Persist the session limit, so a bounded session doesn't need a verdict at all.** A session with a declared duration has a knowable end, so a disconnect requires no guess about the player: it runs to its declared end and completes there. Today limits exist only in the browser, so the server can't do this. Persisting them is also what a bounded/countdown timer needs as a feature in its own right (see 4m).
+
+Order: **C → B → D → A.** C is a prerequisite for B not breaking streaks. B removes the sharp edge. D removes the need to guess for any session that declared its own end. A removes the false positives behind the remaining guesses. D and A are independent of each other and can run in parallel.
 
 ## 2. The day-boundary design (the substantive decision)
 
@@ -88,6 +90,14 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 - `progression/serializers.py`, frontend activity-timeline grouping (exist) — group by `logical_date`.
 - Account/settings UI (exists) — expose `day_start_time`.
 
+**Phase D — persisted session limits**
+- `gameplay/models.py` (exists) — `limit_seconds` (positive int, null/0 = unbounded) and `limit_reason` on `ActivityTimer`. **Not** `duration`: `TimeRecord.duration` already means *elapsed* time, and the deleted `QuestTimer` used `duration` for the bound — the collision would be a silently wrong number, not a type error.
+- `gameplay/migrations/00XX_*` (new) — the fields.
+- `gameplay/serializers.py` (exists) — expose both, so the client stops reconstructing the limit from `is_premium`.
+- `gameplay/views.py` (exists) — accept a limit on `set_activity`/`start`, clamped server-side to `GameSettings.free_timer_limit_seconds` for non-premium players rather than trusting the client's clamp.
+- `gameplay/tasks.py` (exists) — the sweep completes bounded sessions whose declared end has passed, and skips them in the pause path.
+- `frontend/src/hooks/useActivityTimer.ts`, `context/GameContext.tsx`, `context/WebSocketContext.tsx` (exist) — read `limit_seconds` from the server payload instead of deriving it at both `loadFromServer` call sites.
+
 **Phase B — auto-pause** (unchanged from the superseded plan; summarised)
 - `frontend/src/hooks/useActivityTimer.ts`, `components/ActivityInput/useActivityInput.ts`, `components/UnifiedTimerHome/UnifiedTimerHome.tsx`, `types/timers.ts` — make `paused` a first-class state with Resume / Submit / Discard.
 - `gameplay/tasks.py`, `gameplay/consumers.py` — pause via `pause_server_timers()` instead of completing; rename the tasks.
@@ -126,6 +136,18 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 
 **k. Login streaks move to logical dates too.** Not optional: `get_daily_goals_state` already queries `UserLogin` with `timestamp__date`, so once `today` is a logical date that comparison is logical-vs-calendar and the "logged in today" goal silently breaks for anyone active before the cutoff. Once that query moves, leaving the standalone streak on calendar dates would let the badge and the streak disagree about the same day. Logins are the easier half: they are only created in `users/signals.py` and `api/serializers.py`, both HTTP paths where the middleware has already activated the user's timezone.
 
+**l. `DailyGoalAward.date` changes meaning without a migration.** Logical date equals calendar date outside the cutoff window, so at 02:00 only players active between midnight and 02:00 on changeover day can see a discontinuity, and `unique_daily_goal_award_player_date` bounds it to one extra award. A backfill would cost more scrutiny than the outcome is worth. Deploy the changeover at a low-traffic hour.
+
+**m. A declared duration is the answer to "keep running while I'm away" — not a pause/continue setting.** An unbounded "never stop" toggle is an XP hole: opt in, close the laptop, accrue for days. A declared duration is bounded *by construction* — the server knows the end before the disconnect happens, so there is nothing to guess and nothing to cap after the fact. It is also a feature that was going to be built anyway (set a limit, count up or down to it), so the disconnect question is answered as a side-effect rather than by a setting that exists only to serve it.
+
+Consequences:
+- **Crediting forks, principledly.** An unbounded session credits to the last confirmed heartbeat (`truncate_to_last_heartbeat`). A bounded one credits `min(elapsed, limit_seconds)` — you declared 45 minutes, you get at most 45 minutes. That fork is the reason the limit has to be server-side; it cannot be derived from a heartbeat.
+- **It closes an existing hole.** `GameSettings.free_timer_limit_seconds` is enforced only in `tickMain`, in the browser. Under phase B a free player who closes the tab has their session *paused* rather than capped, so the free-tier limit stops being enforced at all. Persisting the limit fixes that.
+- **It fixes a live bug.** Both `loadFromServer` call sites rebuild the limit as `is_premium ? null : freeTimerLimitSeconds`, so a premium player's custom 45-minute duration silently vanishes on any reload or websocket reconciliation, and a free player's shorter chosen duration resets to the full 30 minutes. The client already collects a duration (`useSupportFlow`'s `durationSeconds`) and already has the whole `limitSeconds` / `limitReason` / `limitReached` / `autoStopCompletion` pipeline — the missing half is entirely server-side.
+- **Scope.** This plan owns *persisting the limit and having the server honour it*. The feature proper — count-up vs count-down display, presets, editing mid-session — is separate work that builds on it.
+
+**n. `limit_seconds` is a hard stop, not a soft target.** Reaching it completes the session, which is what the free tier already needs and what `tickMain` already does. A "count up to a target but keep going" mode is a different thing and should be a separate nullable field if it is ever wanted — overloading one field with both meanings is how the hard cap stops being reliable.
+
 ## 5. Edge cases
 
 - **A session spanning the cutoff itself** (01:00 → 03:00 at a 02:00 cutoff). Attributed wholly to the day it started — no split, per section 2.
@@ -135,6 +157,9 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 - **A paused session whose logical day has ended.** Resume is withdrawn (h) and only Submit/Discard remain, so a session can never mix time from two logical days under one date. The paused card has to explain *why* Resume is gone, or its absence reads as a bug.
 - **A paused session resolved days later** still credits its original `logical_date`, including that day's goals — retroactively, after the day has ended. Intended: the work happened when it happened. Bounded by the janitor (i) at ~7 days.
 - **Manual/offline activities** (`Origin.MANUAL`) carry a user-supplied `started_at`; stamp `logical_date` from it, not from `now()`.
+- **A bounded session that ran to its declared end while the player was away** is completed, not paused, so the resume horizon (h) never applies to it. The two auto paths must agree on which sessions are bounded, or a bounded session gets paused and then completed twice.
+- **A bounded session paused and resumed** still counts banked time toward its own limit, server-side as well as in `tickMain` — otherwise pause/resume becomes a way to extend a free-tier session indefinitely.
+- **A limit arriving from the client** is a claim, not a fact: clamp to `free_timer_limit_seconds` server-side for non-premium players rather than trusting the client's clamp.
 - **`set_activity` on a paused timer** — `new_activity()` resets `elapsed_time` to 0, so without the 409 guard, pausing *destroys* banked time instead of preserving it. The single most important test in phase B.
 - **Backfill.** Existing rows need `logical_date` derived from `started_at` (falling back to `completed_at` where null) at the default cutoff and the user's stored timezone. Some historical rows will shift day versus what the UI showed yesterday.
 - **Leaking the heartbeat task** (phase A) — a consumer that fails to cancel its loop keeps a departed player looking present forever, so their timer is never swept. Worse than the bug being fixed, and silent.
@@ -152,6 +177,13 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 - The janitor completes paused sessions past the horizon against their original `logical_date`, and leaves newer ones alone.
 - Backfill migration produces the expected dates for representative existing rows.
 
+**Persisted limits**
+- A custom duration survives a reload and a websocket reconciliation (the current bug: it is rebuilt from `is_premium` and lost).
+- A bounded session whose end passes while disconnected is completed at its declared end, crediting `min(elapsed, limit_seconds)` — not credited to the last heartbeat, and not paused.
+- An unbounded session in the same circumstances is paused, not completed.
+- A non-premium player's oversized limit is clamped server-side, not just in the client.
+- Pause/resume cycles do not let a bounded session exceed its limit.
+
 **Auto-pause**
 - Both auto paths pause rather than complete; elapsed banked to the last confirmed heartbeat (`truncate_to_last_heartbeat` from #804); no XP awarded, no `PlayerActivity` completed.
 - `pause()` → `start()` → `complete()` credits the sum of both segments.
@@ -167,6 +199,7 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 
 ## 7. Risks
 
+- **Naming the new field `duration`.** `TimeRecord.duration` means *elapsed*; the deleted `QuestTimer.duration` meant *the bound*. Reusing the name gives two fields with opposite meanings one attribute lookup apart, and the failure mode is a plausible-looking wrong number rather than an error. `loadFromServer` already reads a stray `duration` off the timer payload, left over from that era — clean it up rather than build on it.
 - **Shipping phase B's backend before its frontend** — turns a recoverable interruption into silent data loss via `set_activity`. The phase order and the server-side 409 both exist for this; they must not be collapsed into one PR.
 - **Treating `isActive` as one concept.** `useActivityInput` derives `isActive = status === "active"` and uses it for two different questions ("is a session in progress" vs "is it ticking"). The likeliest frontend bug is a missed call site.
 - **Leaving one day computation on the old convention.** A single stray `localdate()` or `completed_at__date` and the badge disagrees with the streak. Grep for all of them; there are at least four today, and one is already wrong (UTC).
@@ -178,14 +211,11 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 
 ## 8. Open questions
 
-Q1 (day naming), the resume horizon, the abandoned-session janitor, login streaks and the manual Pause button are resolved — see 4g-4j and section 2. What remains:
+Day naming, the cutoff value, the resume horizon, the abandoned-session janitor, login streaks, the manual Pause button, the `DailyGoalAward` discontinuity and the shape of "keep running while away" are all resolved — see section 2 and 4g-4n. One remains:
 
-1. **Migrate `DailyGoalAward.date` to logical dates, or accept a one-off discontinuity?** Recommendation: accept it. Logical date equals calendar date for everything outside the cutoff window, so at 02:00 only players active between midnight and 02:00 on changeover day are affected, and `unique_daily_goal_award_player_date` bounds the damage to one extra award. Deploy the changeover at a low-traffic hour.
+1. **Should the disconnect grace period survive phase B?** Its purpose was delaying an irreversible action; pausing is cheap and reversible, and phase D removes the question entirely for bounded sessions. Pausing immediately would delete the countdown task, its cache key, the revoke in `connect()`, the supersede guard and the `still_connected` guard — replaced by a `paused_by` flag with bounded auto-resume on reconnect, which undoes a brief blip without presuming on a long absence. Larger refactor than shortening the grace period, and the same flag is what a manual Pause button (j) would need, so there is a case for doing it while that code is already open.
 
-2. **Should there be a "keep running while I'm away" mode, and in what shape?** An unbounded pause/continue toggle is an XP hole — opting in to "never stop" means a closed laptop accrues for days. Two bounded shapes serve the same need:
-   - *Declared duration* — optionally state how long at start ("45 min run"); a disconnect doesn't pause, the timer runs to its declared end. Bounded by construction, and a target is a motivational feature in its own right.
-   - *Bounded unattended time* — "keep running for up to N minutes after I disconnect", with a system cap.
+Two things are noted rather than asked, since they are scoping calls rather than design ones:
 
-   Two costs if either ships: it must be honoured in **both** auto paths (exempting the disconnect handler alone leaves the sweep to pause the session anyway, so the setting silently does nothing), and it **forks the crediting logic** — `truncate_to_last_heartbeat` credits to the last heartbeat, which is exactly wrong for a keep-running session, where the cap is the right end point. Note `free_timer_limit_seconds` already caps free users at 30 minutes, so the unbounded risk is premium-only.
-
-3. **Should the disconnect grace period survive phase B?** Its purpose was delaying an irreversible action; pausing is cheap and reversible. Pausing immediately would delete the countdown task, its cache key, the revoke in `connect()`, the supersede guard and the `still_connected` guard — replaced by a `paused_by` flag with bounded auto-resume on reconnect, which undoes a brief blip without presuming on a long absence. Larger refactor than shortening the grace period, and the same flag is what a manual Pause button (j) would need. Partly contingent on question 2.
+- The bounded-timer **feature** (count-up vs count-down display, duration presets, editing a limit mid-session) is separate work. This plan owns only the persistence and server enforcement it rests on.
+- Phase D's fields are small, but they change what `set_activity` and `start` accept. Worth confirming no other client depends on the current shapes before the serializer changes.
