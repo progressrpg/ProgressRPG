@@ -140,6 +140,10 @@ export default function useActivityTimer(): ActivityTimerReturn {
           activityName: trimmedText,
           task_id: taskId ?? null,
           duration: 0,
+          // Sent so the server can honour the bound while the tab is away;
+          // it clamps this to the free-tier ceiling for non-premium players.
+          limitSeconds: resolvedLimit,
+          limitReason: autoStopReasonRef.current,
         }),
       });
 
@@ -353,10 +357,15 @@ export default function useActivityTimer(): ActivityTimerReturn {
     if (!serverData) return;
     //console.log("timer from server:", serverData);
     const { id, status, elapsed_time, activity } = serverData;
+    // The server owns the limit. Callers may still pass one as a fallback
+    // for older payloads, but a session's declared duration must survive a
+    // reload — deriving it from is_premium here is what used to drop a
+    // custom duration on every reconnect.
+    const serverLimit = serverData.limit_seconds ?? undefined;
     // ActivityTimerApiData doesn't declare duration but the server may return it;
     // cast to access it safely and fall back to 0.
     const duration = (serverData as ActivityTimerApiData & { duration?: number }).duration ?? 0;
-    const resolvedLimit = normalizeLimitSeconds(incomingLimit);
+    const resolvedLimit = normalizeLimitSeconds(serverLimit ?? incomingLimit);
     const nextElapsed = elapsed_time || 0;
     const nextStatus: TimerStatus = status || 'empty';
 

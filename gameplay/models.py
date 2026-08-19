@@ -209,6 +209,17 @@ class ActivityTimer(Timer):
         null=True,
         blank=True,
     )
+    # A declared duration for this session, in seconds. Null means
+    # unbounded. Deliberately not called `duration`: TimeRecord.duration
+    # means elapsed time, and having two adjacent fields with opposite
+    # meanings would fail as a plausible wrong number rather than an error.
+    #
+    # Persisted rather than held in the browser so the server can honour it:
+    # a bounded session has a knowable end, so when the connection drops
+    # there is nothing to guess - it runs to that end and completes there,
+    # instead of needing a verdict about whether the player is still around.
+    limit_seconds = models.PositiveIntegerField(null=True, blank=True)
+    limit_reason = models.CharField(max_length=32, blank=True, default="")
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -237,8 +248,21 @@ class ActivityTimer(Timer):
         self.start_time = None
         self.elapsed_time = 0
         self.status = "waiting"
+        # A new session inherits nothing from the previous one's declared
+        # duration; set_limit() applies the new one (or the free ceiling).
+        self.limit_seconds = None
+        self.limit_reason = ""
 
-        self.save(update_fields=["activity", "start_time", "elapsed_time", "status"])
+        self.save(
+            update_fields=[
+                "activity",
+                "start_time",
+                "elapsed_time",
+                "status",
+                "limit_seconds",
+                "limit_reason",
+            ]
+        )
         logger.debug(
             f"ActivityTimer after save: {self.pk}, activity: {self.activity}, "
             f"status: {self.status}"
@@ -250,6 +274,48 @@ class ActivityTimer(Timer):
         self.activity.task = new_task
         self.activity.save(update_fields=["task"])
         return self
+
+    def is_bounded(self) -> bool:
+        """Whether this session declared its own end."""
+        return bool(self.limit_seconds)
+
+    def limit_remaining(self) -> int | None:
+        """Seconds left before the declared limit, or None if unbounded."""
+        if not self.is_bounded():
+            return None
+        assert self.limit_seconds is not None
+        return max(0, self.limit_seconds - self.get_elapsed_time())
+
+    def limit_reached(self) -> bool:
+        """Whether a bounded session has run out its declared duration."""
+        remaining = self.limit_remaining()
+        return remaining is not None and remaining <= 0
+
+    def set_limit(self, limit_seconds, reason: str = "") -> None:
+        """
+        Apply a declared duration, clamped to the free-tier ceiling for
+        non-premium players. The client clamps too, but a limit arriving
+        from a client is a claim rather than a fact.
+        """
+        from core.models import GameSettings
+
+        try:
+            parsed = int(limit_seconds)
+        except (TypeError, ValueError):
+            parsed = 0
+
+        resolved = parsed if parsed > 0 else None
+        resolved_reason = reason or ("preset_limit" if resolved else "")
+
+        if not self.player.is_premium:
+            ceiling = int(GameSettings.current().free_timer_limit_seconds)
+            if ceiling > 0 and (resolved is None or resolved > ceiling):
+                resolved = ceiling
+                resolved_reason = "free_limit"
+
+        self.limit_seconds = resolved
+        self.limit_reason = resolved_reason
+        self.save(update_fields=["limit_seconds", "limit_reason"])
 
     def start(self):
         """
@@ -386,6 +452,8 @@ class ActivityTimer(Timer):
 
     def _reset_hook(self):
         self.activity = None
+        self.limit_seconds = None
+        self.limit_reason = ""
 
     def reset(self):
         """

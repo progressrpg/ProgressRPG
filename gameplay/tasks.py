@@ -76,6 +76,13 @@ def auto_complete_timer_on_disconnect(self, player_id: int):
         cache.delete(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
         return f"skipped:{timer.status}"
 
+    if timer.is_bounded():
+        # A declared duration answers the question this task exists to ask.
+        # The session has a knowable end; let it run to that end rather than
+        # closing it early because the player's socket went away.
+        cache.delete(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
+        return "bounded"
+
     if timer.player.active_connections > 0:
         # The player still has a live socket, so this disconnect didn't end
         # their session and their timer is very much still running.
@@ -113,12 +120,53 @@ def auto_complete_timers_for_stale_players():
     stale_timers = (
         ActivityTimer.objects.select_related("player", "activity")
         .filter(status="active")
+        # Bounded sessions are excluded: they declared their own end, so
+        # complete_expired_bounded_timers closes them out at that end
+        # instead of this sweep guessing from a heartbeat.
+        .filter(Q(limit_seconds__isnull=True) | Q(limit_seconds=0))
         .filter(Q(player__last_seen__isnull=True) | Q(player__last_seen__lt=cutoff))
     )
 
     completed_count = 0
     for timer in stale_timers:
         truncate_to_last_heartbeat(timer)
+        timer.complete(completion_source="auto")
+        broadcast_activity_timer(timer)
+        completed_count += 1
+
+    return completed_count
+
+
+@shared_task
+def complete_expired_bounded_timers():
+    """
+    Complete sessions that have run out their declared duration.
+
+    This is what lets a bounded session keep running while the player is
+    away from the device: because the end was declared up front, no verdict
+    about their presence is needed - the session simply completes when it
+    reaches the duration they asked for.
+
+    Crediting differs from the unbounded paths deliberately. There we bank
+    time up to the last confirmed heartbeat, because that is the last
+    moment we know the player was there. Here the player declared 45
+    minutes, so they get 45 minutes.
+    """
+    completed_count = 0
+
+    bounded_timers = (
+        ActivityTimer.objects.select_related("player", "activity")
+        .filter(status="active", limit_seconds__isnull=False)
+        .exclude(limit_seconds=0)
+    )
+    for timer in bounded_timers:
+        if not timer.limit_reached():
+            continue
+
+        timer.elapsed_time = timer.limit_seconds
+        timer.start_time = None
+        timer.save(update_fields=["elapsed_time", "start_time"])
+
         timer.complete(completion_source="auto")
         broadcast_activity_timer(timer)
         completed_count += 1

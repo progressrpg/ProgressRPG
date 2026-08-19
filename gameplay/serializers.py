@@ -24,6 +24,10 @@ class ActivityTimerSerializer(serializers.ModelSerializer):
             # Activity timer specific fields
             "activity",
             "player",
+            # The session's declared duration, so the client stops
+            # reconstructing it from is_premium and losing it on reload.
+            "limit_seconds",
+            "limit_reason",
         ]
         read_only_fields = [
             "id",

@@ -116,6 +116,13 @@ class ActivityTimerViewSet(BaseTimerViewSet):
             task = get_object_or_404(Task, pk=task_id, player=request.user.player)
 
         updated = timer.new_activity(name=name, task=task)
+        # A declared duration makes the session bounded: the server knows
+        # when it ends, so a dropped connection needs no verdict about the
+        # player. Clamped inside set_limit for non-premium players.
+        updated.set_limit(
+            request.data.get("limitSeconds"),
+            reason=request.data.get("limitReason") or "",
+        )
         updated.refresh_from_db()
         self.broadcast_timer_update(updated)
         return Response({"success": True, "activity_timer": self.serialize(updated)})

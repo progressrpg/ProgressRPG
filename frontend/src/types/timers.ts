@@ -19,6 +19,15 @@ export interface ActivityTimerApiData {
   last_updated: string;
   activity: PlayerActivity | null;
   player: number;
+  /**
+   * The session's declared duration in seconds, or null when unbounded.
+   * Authoritative: the server clamps it to the free-tier ceiling and
+   * completes the session when it runs out, so the client must not
+   * re-derive it from is_premium.
+   */
+  limit_seconds: number | null;
+  /** Why the limit is what it is — "free_limit", "preset_limit", or "". */
+  limit_reason: string;
 }
 
 /** Response from POST /activity_timers/complete/ */
