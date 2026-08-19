@@ -8,18 +8,16 @@ table structure and re-run the same passes.
 
 ## Status
 
-**Not fully closed.** Two things block full closure, both explained below
-rather than silently absorbed:
+**Dependency removal is complete** - all nine `@radix-ui/*` packages are
+gone, including `react-dialog` (`DetailSurface.tsx`, per the plan at
+`.claude/plans/issue-799-detailsurface-tamagui-plan.md` and
+[#799](https://github.com/progressrpg/ProgressRPG/issues/799)).
 
-1. `DetailSurface.tsx` (Map entity detail cards) still imports
-   `@radix-ui/react-dialog` directly - out of scope for this pass, tracked
-   in [#799](https://github.com/progressrpg/ProgressRPG/issues/799) (see
-   [Remaining Radix usage](#remaining-radix-usage)).
-2. Several verification steps this checklist calls for need infrastructure
-   this sandbox doesn't have (a running Django backend, a real touch
-   device, a screen reader, a matching Playwright browser build for
-   Storybook's a11y addon) - marked **Not run here** below, with what *was*
-   possible run in its place.
+**Still not fully closed** on the verification half: several steps this
+checklist calls for need infrastructure this sandbox doesn't have (a
+running Django backend, a real touch device, a screen reader, a matching
+Playwright browser build for Storybook's a11y addon) - marked **Not run
+here** below, with what *was* possible run in its place.
 
 ## Dependency removal
 
@@ -32,27 +30,35 @@ Nine `@radix-ui/*` packages before this migration started. Current state:
 | `@radix-ui/react-tooltip` | Removed (#583) |
 | `@radix-ui/react-tabs` | Removed (#584) |
 | `@radix-ui/react-progress` | Removed (prior to this migration's sub-issues, per `package.json` history) |
-| `@radix-ui/react-accordion` | Removed (this PR - unused since #586) |
-| `@radix-ui/react-dropdown-menu` | Removed (this PR - unused since #586) |
-| `@radix-ui/react-popover` | Removed (this PR - unused since #585/#586) |
-| `@radix-ui/react-dialog` | **Still installed** - `DetailSurface.tsx` only, see below |
+| `@radix-ui/react-accordion` | Removed (#587 - unused since #586) |
+| `@radix-ui/react-dropdown-menu` | Removed (#587 - unused since #586) |
+| `@radix-ui/react-popover` | Removed (#587 - unused since #585/#586) |
+| `@radix-ui/react-dialog` | Removed (#799 - `DetailSurface.tsx` ported to Tamagui's `Dialog`) |
 
-`grep -rn "@radix-ui" frontend/src` returns exactly two hits: a comment in
-`Tabs.tsx` (documents what shape it mirrors, not an import) and the real
-import in `DetailSurface.tsx`.
+`grep -rn "@radix-ui" frontend/src` now returns exactly one hit: a comment
+in `Tabs.tsx` that documents what shape it mirrors, not an import.
 
 ### Bundle-size delta
 
-Removing the three unused packages (`react-accordion`, `react-dropdown-menu`,
-`react-popover`) changed `npm run build:production`'s output by **0 bytes**
-(`dist/` total and gzip size identical before/after, measured directly).
-Expected: none of the three were imported by any code after #585/#586, so
-Vite's bundler was already excluding them from the shipped bundle - removing
-them from `package.json` is a dependency-hygiene and `npm ci` cleanliness
-win, not a bundle-size one. The real bundle cost of the Tamagui migration
-was already measured and recorded in #629 (+383 kB raw / +102 kB gzip fixed
-cost from wiring in the provider, before any primitive was ported) - nothing
-in this PR changes that number.
+Two separate measurements, both direct (`dist/` total + gzip size,
+before/after, same build):
+
+- **#587** (removing `react-accordion`, `react-dropdown-menu`,
+  `react-popover`): **0 bytes**. Expected - none of the three were imported
+  by any code after #585/#586, so Vite's bundler was already excluding them
+  from the shipped bundle; removing them from `package.json` was a
+  dependency-hygiene and `npm ci` cleanliness win, not a bundle-size one.
+- **#799** (removing `react-dialog`, the last of the nine, after porting
+  `DetailSurface.tsx` to Tamagui's `Dialog`): **-36,496 bytes raw / -12,180
+  bytes gzip**. This one *was* actually bundled (it was genuinely imported),
+  so removing it produced a real, reproducible reduction - unlike #587's
+  zero-byte result.
+
+The real bundle cost of the Tamagui migration itself was already measured
+and recorded in #629 (+383 kB raw / +102 kB gzip fixed cost from wiring in
+the provider, before any primitive was ported) - neither of the
+measurements above changes that number; they're just the Radix-removal
+side of the ledger.
 
 ## Toolchain
 
@@ -75,24 +81,30 @@ Final Tamagui dependency set, confirmed present in `package.json`:
 
 ## Remaining Radix usage
 
-**`frontend/src/components/DetailSurface/DetailSurface.tsx`** - the Map
-entity detail card's dialog primitive (`Root`/`Portal`/`Overlay`/`Content`/
-`Title`), used by both `MapDetailCard` call sites in `Map.tsx`. Its own
-header comment already anticipated this exact migration reaching it.
+None. `frontend/src/components/DetailSurface/DetailSurface.tsx` - the Map
+entity detail card's dialog primitive, used by both `MapDetailCard` call
+sites in `Map.tsx` - was the last one, resolved in #799.
 
-**Why it's deferred rather than migrated here:** both call sites always pass
-a `container` prop (an arbitrary `HTMLElement`) so the detail panel portals
-into the map's own wrapper instead of `document.body` - needed so the
-non-modal docked panel positions relative to the map, not the viewport.
-Tamagui's web `Portal` (`@tamagui/portal`) hardcodes
-`createPortal(children, document.body)` with no per-instance override, and
-`Dialog.Portal`'s frame carries exit-animation timing, z-index stacking, and
-native-`<dialog>` `show()`/`close()` wiring that a hand-rolled replacement
-portal would need to reproduce correctly - on a component that renders
-inside MapLibre and can't be meaningfully verified in this sandbox (no map
-tiles/API access). Filed as
-[#799](https://github.com/progressrpg/ProgressRPG/issues/799) rather than
-risking a live map feature on an unverified custom-portal reimplementation.
+**What made it harder than the other eight**: both `MapDetailCard` call
+sites always pass a `container` prop (the map's own wrapper element) so the
+detail panel portals there instead of `document.body` - needed for the
+non-modal docked panel to position relative to the map (`position: absolute`
+against `.mapWrapper`'s `position: relative`), not the viewport. Tamagui's
+web `Portal` hardcodes `createPortal(children, document.body)` with no
+per-instance override, unlike Radix's `Dialog.Portal`. Resolved by bypassing
+`Dialog.Portal` only when a `container` is supplied, portaling
+`Dialog.Content` there directly via `ReactDOM.createPortal` (still a React
+context descendant of `<Dialog>`, so open/close/dismiss wiring keeps
+working), gated on `open` in `DetailSurface`'s own code - `Dialog.Content`
+doesn't gate its own mounting on `open` (that's `Dialog.Portal`'s job
+internally), so skipping `Portal` without adding that gate back would have
+left the docked panel sitting in the DOM at all times, non-interactive but
+still visible. Caught and fixed before merging, not after - see the plan
+doc (`.claude/plans/issue-799-detailsurface-tamagui-plan.md`) for the full
+reasoning and alternatives considered, and #799's own PR for the real-browser
+verification (DOM containment, correct docked positioning, and correct
+unmount-on-close, confirmed against a harness reproducing `.mapWrapper`'s
+actual CSS).
 
 ## Known, recorded gaps
 
@@ -130,6 +142,7 @@ inspection (see linked PR/component for detail) · ⛔ not runnable here, see
 | Popover/FeedbackWidget (#585) | ✅ `Popover.test.tsx` | ✅ tested | ⛔ | ✅ real-browser harness, PR #797 | |
 | Popover/Accordion/DropdownMenu in Navbar (#586) | ✅ `DropdownMenu.test.tsx`, `Navbar.test.tsx` (arrow keys, Escape, multi-open accordion) | ✅ tested | ⛔ | ✅ real-browser touch-emulated harness, PR #798 - found and fixed a real tap-to-open bug (`asChild` + coarse pointer) | Flagged in PR #798 for a real-phone check given the bug found there |
 | ProgressBar | 📝 no interactive semantics to trap/restore | n/a | ⛔ | n/a | |
+| DetailSurface/DetailCard/MapDetailCard (#799) | ✅ `DetailSurface.test.tsx`, `DetailCard.test.tsx` (Escape, outside-click gating by `modal`) | ✅ tested (`useReturnFocusOnClose`, reused from Modal/AlertDialog) | ⛔ | n/a (no touch-specific behaviour; container-portal positioning verified in a real browser instead, see below) | Real-browser harness confirmed the docked panel renders as a DOM descendant of a `.mapWrapper`-equivalent container, docks at the expected position (not the viewport), and correctly unmounts (not just goes non-interactive) on close - MapLibre itself still not renderable in this sandbox, so this used a harness reproducing the real CSS/positioning contract rather than the live Map page |
 
 ## What couldn't be verified here
 
