@@ -21,7 +21,7 @@ Author:
 
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
@@ -93,6 +93,10 @@ class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     timezone = TimeZoneField(default="UTC")
+    # When this user's day rolls over, in their own timezone. Late-evening
+    # work should count for the day it feels like, not the calendar day the
+    # clock has already ticked into - see progression.day_boundaries.
+    day_start_time = models.TimeField(default=time(2, 0))
     created_at = models.DateTimeField(auto_now_add=True)
     objects = CustomUserManager()  # type: ignore[assignment,misc]
     pending_delete = models.BooleanField(default=False)
@@ -170,19 +174,44 @@ class UserLogin(models.Model):
         related_name="logins",
     )
     timestamp = models.DateTimeField(auto_now_add=True)
+    # Stamped on save from `timestamp` and the user's day settings. Stored
+    # rather than derived so that changing your cutoff or timezone can't
+    # retroactively rewrite a streak you already earned, and so streak
+    # queries stay a plain indexed column read.
+    logical_date = models.DateField(null=True, blank=True, db_index=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        # `timestamp` is auto_now_add, so it only exists after the first
+        # save - hence stamping here rather than in a pre-save hook.
+        if self.logical_date is None and self.timestamp is not None:
+            from progression.day_boundaries import logical_date_for
+
+            self.logical_date = logical_date_for(self.user, self.timestamp)
+            super().save(update_fields=["logical_date"])
 
     def local_date(self):
-        return timezone.localtime(self.timestamp).date()
+        """
+        The logical day this login belongs to (see
+        progression.day_boundaries). Falls back to computing it for rows
+        saved before the column existed.
+        """
+        if self.logical_date is not None:
+            return self.logical_date
+
+        from progression.day_boundaries import logical_date_for
+
+        return logical_date_for(self.user, self.timestamp)
 
     def is_first_login_of_day(self):
         cached = getattr(self, "_is_first_of_day", None)
         if cached is not None:
             return cached
 
-        today = self.local_date()
         previous_logins_today = UserLogin.objects.filter(
             user=self.user,
-            timestamp__date=today,
+            logical_date=self.local_date(),
             timestamp__lt=self.timestamp,
         )
         return not previous_logins_today.exists()
@@ -203,12 +232,11 @@ class UserLogin(models.Model):
         user = logins[0].user
         dates = {login.local_date() for login in logins}
         first_by_date: dict[date, datetime] = {}
-        for ts in (
-            cls.objects.filter(user=user, timestamp__date__in=dates)
+        for day, ts in (
+            cls.objects.filter(user=user, logical_date__in=dates)
             .order_by("timestamp")
-            .values_list("timestamp", flat=True)
+            .values_list("logical_date", "timestamp")
         ):
-            day = timezone.localtime(ts).date()
             first_by_date.setdefault(day, ts)
 
         for login in logins:
@@ -236,7 +264,11 @@ class UserLogin(models.Model):
         logins = getattr(user, "prefetched_logins", None)
         if logins is None:
             logins = list(
-                cls.objects.filter(user=user).only("timestamp").order_by("-timestamp")
+                cls.objects.filter(user=user)
+                # logical_date as well as timestamp: local_date() reads it
+                # for every login, and deferring it would cost a query per
+                # row to load back (Sentry issue 118909761 all over again).
+                .only("timestamp", "logical_date").order_by("-timestamp")
             )
         user._ordered_logins_cache = logins
         return logins
@@ -267,8 +299,10 @@ class UserLogin(models.Model):
         if not login_dates:
             return 0
 
+        from progression.day_boundaries import current_logical_date
+
         streak = 0
-        day = timezone.localdate()
+        day = current_logical_date(user)
         login_dates_set = set(login_dates)
         while day in login_dates_set:
             streak += 1

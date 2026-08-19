@@ -258,8 +258,15 @@ class ActivityTimer(Timer):
         super().start()
 
         if self.activity and self.activity.started_at is None:
+            from progression.day_boundaries import logical_date_for
+
             self.activity.started_at = self.start_time or timezone.now()
-            self.activity.save(update_fields=["started_at"])
+            # Stamped here, once, so the session keeps the day it began on
+            # however many times it is later paused and resumed.
+            self.activity.logical_date = logical_date_for(
+                self.player, self.activity.started_at
+            )
+            self.activity.save(update_fields=["started_at", "logical_date"])
 
         return self
 
@@ -337,6 +344,8 @@ class ActivityTimer(Timer):
         self.update_activity_time()
 
         if self.activity.started_at is None:
+            from progression.day_boundaries import logical_date_for
+
             if pre_complete_start_time is not None:
                 backfilled_started_at = pre_complete_start_time
             else:
@@ -345,7 +354,10 @@ class ActivityTimer(Timer):
                 )
 
             self.activity.started_at = backfilled_started_at
-            self.activity.save(update_fields=["started_at"])
+            self.activity.logical_date = logical_date_for(
+                self.player, backfilled_started_at
+            )
+            self.activity.save(update_fields=["started_at", "logical_date"])
 
         reward_summary = self.activity.get_xp_reward_summary()
         xp_gained = self.activity.complete(reward_summary=reward_summary)
@@ -353,7 +365,12 @@ class ActivityTimer(Timer):
 
         from progression.daily_goals import check_and_award_daily_goals
 
-        goals_state, bonus_level_ups = check_and_award_daily_goals(self.player)
+        # Against the session's own logical day rather than the current one:
+        # a session started before the day rolled over completes the goals
+        # for the day it was worked, however late it is submitted.
+        goals_state, bonus_level_ups = check_and_award_daily_goals(
+            self.player, today=self.activity.logical_date
+        )
         level_ups = level_ups + bonus_level_ups
 
         reward_summary["level_ups"] = level_ups

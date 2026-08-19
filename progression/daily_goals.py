@@ -14,19 +14,24 @@ Clearing all three once in a day awards a one-off lump-sum AP bonus via the
 existing AP system (``Player.add_activity``) - see ``DailyGoalAward`` for
 the idempotency record that keeps a day's bonus from being paid twice.
 
-"Today" is the current local calendar day (``timezone.localdate()``), the
-same convention already used for login streaks (see
-``users.models.UserLogin.local_date``) - there's no per-player timezone
-stored, so this is the server's configured local timezone, not literally
-the player's own.
+"Today" is the player's current *logical* day - see
+``progression.day_boundaries``. That is their own timezone and their own
+``day_start_time`` cutoff, not the server's calendar day, so late-evening
+work counts for the day it feels like. Login streaks use the same
+definition (``users.models.UserLogin.local_date``).
+
+Activities are attributed by ``logical_date``, which is stamped when the
+session starts. A session begun before midnight and submitted after it
+therefore completes *yesterday's* goals, which is intended: the work
+happened when it happened.
 """
 
 from dataclasses import dataclass
 
 from django.db import transaction
 from django.db.models import Sum
-from django.utils import timezone
 
+from .day_boundaries import current_logical_date
 from .models import DailyGoalAward
 
 MINUTES_GOAL_THRESHOLD = 3
@@ -51,15 +56,13 @@ def get_daily_goals_state(player, *, today=None) -> DailyGoalsState:
     """
     from users.models import UserLogin
 
-    today = today or timezone.localdate()
+    today = today or current_logical_date(player)
 
     logged_in_today = UserLogin.objects.filter(
-        user=player.user_id, timestamp__date=today
+        user=player.user_id, logical_date=today
     ).exists()
 
-    activities_today = player.activities.filter(
-        is_complete=True, completed_at__date=today
-    )
+    activities_today = player.activities.filter(is_complete=True, logical_date=today)
     completed_activity_today = activities_today.exists()
 
     total_seconds = activities_today.aggregate(total=Sum("duration"))["total"] or 0
@@ -94,7 +97,7 @@ def check_and_award_daily_goals(player, *, today=None):
     """
     from core.models import GameSettings
 
-    today = today or timezone.localdate()
+    today = today or current_logical_date(player)
     state = get_daily_goals_state(player, today=today)
 
     if not state.all_goals_met or state.bonus_awarded_today:

@@ -213,8 +213,11 @@ class CustomUserAdmin(UserAdmin):
             Prefetch(
                 "logins",
                 queryset=UserLogin.objects.select_related("user")
-                .only("id", "user_id", "timestamp")
-                .order_by("-timestamp"),
+                # logical_date too: local_date() reads it per login, and a
+                # deferred load here would be one query per row.
+                .only("id", "user_id", "timestamp", "logical_date").order_by(
+                    "-timestamp"
+                ),
                 to_attr="prefetched_logins",
             ),
             Prefetch(
