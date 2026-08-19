@@ -18,7 +18,7 @@ Three changes, in dependency order, each independently useful:
 
 **B. Pause instead of complete.** Bank the elapsed time, stop accruing, let the player resolve it on return. A wrong verdict now costs a resume click. This is the highest safety-per-unit-of-risk change here, and it substantially lowers the stakes of A — which is why A is no longer urgent enough to go first.
 
-**C. Give the player a logical day.** One session belongs to exactly one day, chosen by when it *started*, where a day runs from the player's configurable `day_start_time` (default 04:00) in their own timezone. This is what makes B safe for streaks, and it fixes a class of existing bugs on its own.
+**C. Give the player a logical day.** One session belongs to exactly one day, chosen by when it *started*, where a day runs from the player's configurable `day_start_time` (default 02:00) in their own timezone. This is what makes B safe for streaks, and it fixes a class of existing bugs on its own.
 
 Order: **C → B → A.** C is a prerequisite for B not breaking streaks. B removes the sharp edge. A removes the false positives that make the sharp edge get hit.
 
@@ -30,7 +30,7 @@ Splitting is superficially tidier for streaks and worse in every other respect:
 
 - It breaks the one-session-one-record invariant. `duration` on `PlayerActivity` is the sole source of truth for AP/XP (`progression/points.py`), so splitting means either two rows (doubling timeline entries, halving what reads as one achievement) or one row plus split-aware arithmetic in *every* aggregation — daily goals, streaks, timeline, metrics.
 - It is less accurate in the way that matters. For an ADHD-focused app, "one 2-hour deep work session" is the achievement; rendering it as two 1-hour sessions actively undercuts the product.
-- With a 04:00 cutoff, boundary crossings become rare — almost nobody is working *through* 4am. **That is the real prize of the cutoff: it doesn't just relabel the edge case, it mostly eliminates it.**
+- Because attribution is by `started_at`, no cutoff value causes a split — the cutoff only decides *which* day late-night work lands on. A later cutoff captures more of it as "last night": at 02:00 a session started at 02:30 counts as the new day, where at 04:00 it would have counted as the night before. That is the whole trade.
 
 ### Key on `started_at`, not `completed_at`
 
@@ -52,18 +52,16 @@ Store `logical_date` (a `DateField`) on `PlayerActivity`, written when `started_
 
 The alternative — deriving ranges at query time from the current setting — is more "correct" in the sense that it always reflects the present configuration, but that is the wrong kind of correct here, and it makes every grouped query expensive. Recommend storing.
 
-### Naming the logical day — one thing to confirm
+### Naming the logical day
 
-A logical day with a 04:00 cutoff spans e.g. Tue 04:00 → Wed 04:00. The convention question is what that day is *called*, and the plan assumes **it is named for the calendar date it starts on** (that span is "Tuesday").
+**Decided: a logical day is named for the calendar date it starts on.** A day with a 02:00 cutoff spans e.g. Tue 02:00 → Wed 02:00, and is called Tuesday.
 
-Under that convention, your example resolves differently from how you stated it:
+This is what makes late-night work keep the right streak alive. The alternative — naming a day for the date it ends on — shifts every ordinary daytime session a day forward, which is the tell:
 
-| Session | Cutoff 04:00, named by start | Named by end |
+| Session | Cutoff 02:00, named by start (decided) | Named by end (rejected) |
 |---|---|---|
 | Tue 23:00 → Wed 01:00 | **Tuesday** | Wednesday |
 | Wed 10:00 → Wed 11:00 | **Wednesday** | Thursday |
-
-Named-by-start is what actually solves the night-owl problem: your late Tuesday work keeps *Tuesday's* streak alive, which is the point. Named-by-end shifts every ordinary daytime session a day forward — Wednesday morning's work would count as Thursday — which is almost certainly not intended. **Assumption: named by start.** If you did mean the span to be called Wednesday, it is a one-line change in the helper, but check the second row of that table first.
 
 ### One definition, one helper
 
@@ -78,7 +76,7 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 ## 3. Files likely to change
 
 **Phase C — logical days**
-- `users/models.py` (exists) — `day_start_time = TimeField(default=time(4, 0))` on `CustomUser`, next to the existing `timezone` field.
+- `users/models.py` (exists) — `day_start_time = TimeField(default=time(2, 0))` on `CustomUser`, next to the existing `timezone` field.
 - `users/migrations/00XX_*` (new) — the field.
 - `progression/day_boundaries.py` (new) — the three helpers above. The one new module in this plan; justified because three apps need one shared answer.
 - `progression/models.py` (exists) — `logical_date` on `TimeRecord` (nullable, indexed with `player`); stamped from `started_at`.
@@ -118,15 +116,24 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 **f. Day computation takes the player explicitly, never ambient state.**
 `CustomUser.timezone` exists, but `timezone.activate()` only happens in `UserTimezoneMiddleware` — i.e. only during HTTP requests. Celery tasks and websocket consumers run under `TIME_ZONE = "UTC"`. `ActivityTimer.complete()` calls `check_and_award_daily_goals` and runs in **both** contexts, so *the same player already gets different day boundaries depending on whether they pressed Submit or the server completed them for them.* This is a live bug today, independent of everything else here, and the cutoff cannot be trusted until it is fixed. Hence helpers that take `player` and read `player.user.timezone` directly rather than relying on whatever is activated.
 
-**g. Default cutoff 04:00, per-user override.** 04:00 is late enough to catch essentially all night-owl work and early enough that almost nobody is mid-session. Users who want strict midnight can set it.
+**g. Default cutoff 02:00, per-user override.** Late enough to keep most evening-into-night work on the day it belongs to, without pushing genuinely early-morning sessions onto the previous day. Per-user, so night owls can push it later and early risers can set strict midnight.
+
+**h. Resume is offered only while the session's own logical day is current.** Past that, the paused card offers Submit or Discard. This is what stops a session started Tuesday and resumed three weeks later from crediting three weeks-old work to Tuesday — the distortion is in *resuming*, not in attributing time already banked, so attribution never needs a horizon. It also reads correctly: you don't resume yesterday's session, you finish it.
+
+**i. A janitor completes paused sessions older than ~7 days**, crediting their original `logical_date`. `ActivityTimer` is `OneToOne` with `Player` and `set_activity` will 409 against a paused timer holding banked time, so an unresolved session hard-blocks starting a new one — the janitor is the safety valve if the UI ever regresses. Completing rather than discarding also softens (d): a player who never returns has their XP *delayed by up to a week*, not lost.
+
+**j. A manual Pause button is deferred, but not designed out.** The state and endpoints already exist, and once Resume is in the UI a Pause button is one step away — but this plan is about interrupted sessions, not deliberate ones. Keep the paused card's Resume/Submit/Discard wording generic rather than "we interrupted you", so adding it later is a button rather than a rewrite. The resume horizon in (h) works unchanged for a manual pause.
+
+**k. Login streaks move to logical dates too.** Not optional: `get_daily_goals_state` already queries `UserLogin` with `timestamp__date`, so once `today` is a logical date that comparison is logical-vs-calendar and the "logged in today" goal silently breaks for anyone active before the cutoff. Once that query moves, leaving the standalone streak on calendar dates would let the badge and the streak disagree about the same day. Logins are the easier half: they are only created in `users/signals.py` and `api/serializers.py`, both HTTP paths where the middleware has already activated the user's timezone.
 
 ## 5. Edge cases
 
-- **A session spanning the cutoff itself** (03:00 → 05:00). Attributed wholly to the day it started. Rare by construction, and the alternative is splitting.
+- **A session spanning the cutoff itself** (01:00 → 03:00 at a 02:00 cutoff). Attributed wholly to the day it started — no split, per section 2.
 - **A cutoff or timezone change** with sessions already recorded. Storing `logical_date` means history is untouched; only future sessions use the new setting. Worth saying so in the settings UI, since "my streak didn't change" could otherwise read as a bug.
 - **A session started before a cutoff change and completed after.** `logical_date` is stamped at start, so it keeps the old day. Correct and unambiguous.
 - **Retroactive goal completion.** A Tuesday session submitted Wednesday can complete Tuesday's goals after Tuesday ended. Bounded to that session's own logical day. `DailyGoalAward`'s unique constraint already makes it idempotent, but the badge query and the award path must agree on *which* day is being awarded.
-- **Very old paused sessions.** A session started three weeks ago and resumed today still carries its original `logical_date`. Awarding a three-week-old day's goals is odd. Consider a horizon beyond which a paused session's resolution counts for the current day, or simply doesn't count for goals — see 8.
+- **A paused session whose logical day has ended.** Resume is withdrawn (h) and only Submit/Discard remain, so a session can never mix time from two logical days under one date. The paused card has to explain *why* Resume is gone, or its absence reads as a bug.
+- **A paused session resolved days later** still credits its original `logical_date`, including that day's goals — retroactively, after the day has ended. Intended: the work happened when it happened. Bounded by the janitor (i) at ~7 days.
 - **Manual/offline activities** (`Origin.MANUAL`) carry a user-supplied `started_at`; stamp `logical_date` from it, not from `now()`.
 - **`set_activity` on a paused timer** — `new_activity()` resets `elapsed_time` to 0, so without the 409 guard, pausing *destroys* banked time instead of preserving it. The single most important test in phase B.
 - **Backfill.** Existing rows need `logical_date` derived from `started_at` (falling back to `completed_at` where null) at the default cutoff and the user's stored timezone. Some historical rows will shift day versus what the UI showed yesterday.
@@ -141,6 +148,8 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 - DST transitions in the player's timezone (a 23:00 → 01:00 session on the night the clock changes).
 - `logical_date` is stamped at start and unchanged by pause/resume/complete.
 - Daily goals and login streaks computed on logical dates: a 23:00 Tuesday session keeps Tuesday's streak alive; it does not also credit Wednesday.
+- Resume is offered while the session's logical day is current and withdrawn once it has passed; Submit still credits the original day.
+- The janitor completes paused sessions past the horizon against their original `logical_date`, and leaves newer ones alone.
 - Backfill migration produces the expected dates for representative existing rows.
 
 **Auto-pause**
@@ -169,10 +178,14 @@ Every day-based query routes through it. **This is the actual deliverable of pha
 
 ## 8. Open questions
 
-1. **Day naming.** Confirm the table in section 2 — a 04:00-cutoff day spanning Tue 04:00 → Wed 04:00 is called Tuesday. Your example described it as Wednesday, which the second row suggests isn't what you want.
-2. **Is there a horizon past which a resumed session stops counting for its original day?** A three-week-old paused session awarding three-week-old daily goals is strange, but so is silently discarding real work.
-3. **Should very old paused timers be closed out at all** — and if so, completed (awarding XP) or discarded?
-4. **Migrate `DailyGoalAward.date` to logical dates, or accept a one-off discontinuity** at the changeover?
-5. **Should the login streak also move to logical dates?** Consistency says yes (a 01:00 login is "last night"), but it widens the change beyond timers.
-6. **Should a manual Pause button be exposed?** Once Resume exists in the UI it is one step away, and it is arguably the feature players would ask for. Out of scope, but the UI should be built so adding it isn't a rewrite.
-7. **Should the disconnect grace period survive phase B?** Its purpose was delaying an irreversible action; pausing is cheap and reversible, so pausing immediately on disconnect may be simpler than a revocable countdown task plus its cache key and supersede guard.
+Q1 (day naming), the resume horizon, the abandoned-session janitor, login streaks and the manual Pause button are resolved — see 4g-4j and section 2. What remains:
+
+1. **Migrate `DailyGoalAward.date` to logical dates, or accept a one-off discontinuity?** Recommendation: accept it. Logical date equals calendar date for everything outside the cutoff window, so at 02:00 only players active between midnight and 02:00 on changeover day are affected, and `unique_daily_goal_award_player_date` bounds the damage to one extra award. Deploy the changeover at a low-traffic hour.
+
+2. **Should there be a "keep running while I'm away" mode, and in what shape?** An unbounded pause/continue toggle is an XP hole — opting in to "never stop" means a closed laptop accrues for days. Two bounded shapes serve the same need:
+   - *Declared duration* — optionally state how long at start ("45 min run"); a disconnect doesn't pause, the timer runs to its declared end. Bounded by construction, and a target is a motivational feature in its own right.
+   - *Bounded unattended time* — "keep running for up to N minutes after I disconnect", with a system cap.
+
+   Two costs if either ships: it must be honoured in **both** auto paths (exempting the disconnect handler alone leaves the sweep to pause the session anyway, so the setting silently does nothing), and it **forks the crediting logic** — `truncate_to_last_heartbeat` credits to the last heartbeat, which is exactly wrong for a keep-running session, where the cap is the right end point. Note `free_timer_limit_seconds` already caps free users at 30 minutes, so the unbounded risk is premium-only.
+
+3. **Should the disconnect grace period survive phase B?** Its purpose was delaying an irreversible action; pausing is cheap and reversible. Pausing immediately would delete the countdown task, its cache key, the revoke in `connect()`, the supersede guard and the `still_connected` guard — replaced by a `paused_by` flag with bounded auto-resume on reconnect, which undoes a brief blip without presuming on a long absence. Larger refactor than shortening the grace period, and the same flag is what a manual Pause button (j) would need. Partly contingent on question 2.
