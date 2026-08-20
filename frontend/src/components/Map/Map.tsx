@@ -8,8 +8,7 @@ import {
   useState,
   type Ref,
 } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { TamaguiProvider } from "tamagui";
+import { createPortal } from "react-dom";
 import {
   Map as MapLibreMap,
   NavigationControl,
@@ -20,7 +19,6 @@ import {
   type MapMouseEvent,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import tamaguiConfig from "../../../tamagui.config";
 import { fromLngLat, padBbox, quantizeBbox, toLngLat } from "./utils";
 import { CharacterTooltipContent, PopulationCentreTooltipContent } from "./MapTooltips";
 import { scatterCharacters } from "./characters/placement";
@@ -202,8 +200,8 @@ export default function PopulationCentreMap({
   );
 
   const [tooltip, setTooltip] = useState<TooltipOverlayState | null>(null);
-  const tooltipRootRef = useRef<Root | null>(null);
   const tooltipHostRef = useRef<HTMLDivElement | null>(null);
+  const [tooltipHostEl, setTooltipHostEl] = useState<HTMLDivElement | null>(null);
 
   const [detail, setDetail] = useState<DetailSelection | null>(null);
   // Opening the richer detail card obscures the (unreachable, once the
@@ -608,40 +606,6 @@ export default function PopulationCentreMap({
     };
   }, [tooltip]);
 
-  // Renders into a React root mounted on the tooltip host div imperatively,
-  // since the host itself lives outside React's tree (positioned by the
-  // MapLibre `move` handler above, not by React re-render). The host div is
-  // always present in the JSX below (never conditionally rendered) so this
-  // effect can rely on the ref and the root it creates staying valid across
-  // every open/close cycle - conditionally rendering the host would let
-  // React null out the ref (and detach the div) before this effect's next
-  // run saw `tooltip` go falsy, leaving a stale root pointed at a removed
-  // DOM node that every later tooltip would silently render into instead of
-  // the real (new) host div.
-  //
-  // This root is a separate React tree from the one main.tsx mounts, so it
-  // doesn't inherit that tree's <TamaguiProvider> context (React context
-  // follows the component tree, not DOM nesting) - PopulationCentreTooltipContent's
-  // ProgressBar (#673, #580) would otherwise throw ("Missing tamagui config")
-  // the moment a village marker is tapped. Re-providing it here, right at
-  // this second root, is the fix.
-  useEffect(() => {
-    const host = tooltipHostRef.current;
-    if (!host) return;
-    if (!tooltipRootRef.current) {
-      tooltipRootRef.current = createRoot(host);
-    }
-    tooltipRootRef.current.render(
-      tooltip ? (
-        <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
-          <div role="tooltip" className={styles.floatingTooltip}>
-            {tooltip.content}
-          </div>
-        </TamaguiProvider>
-      ) : null
-    );
-  }, [tooltip]);
-
   // Feeds the current geojson into the map's GeoJSON source whenever it
   // changes.
   useEffect(() => {
@@ -768,16 +732,8 @@ export default function PopulationCentreMap({
     );
   }, [detail, tooltip, mapReady]);
 
-  // Unmount cleanup for the tooltip root when the whole component goes away.
   useEffect(() => {
     return () => {
-      const tooltipRoot = tooltipRootRef.current;
-      tooltipRootRef.current = null;
-      // Defer nested-root unmount so it does not run during parent-root
-      // teardown, which can trigger React's unmount-during-render warning.
-      queueMicrotask(() => {
-        tooltipRoot?.unmount();
-      });
       sourceRef.current = null;
     };
   }, []);
@@ -863,7 +819,21 @@ export default function PopulationCentreMap({
   return (
     <div ref={setMapWrapperEl} className={styles.mapWrapper}>
       <div ref={containerRef} className={styles.mapContainer} />
-      <div ref={tooltipHostRef} className={styles.tooltipHost} />
+      <div
+        ref={(el) => {
+          tooltipHostRef.current = el;
+          setTooltipHostEl(el);
+        }}
+        className={styles.tooltipHost}
+      />
+      {tooltip &&
+        tooltipHostEl &&
+        createPortal(
+          <div role="tooltip" className={styles.floatingTooltip}>
+            {tooltip.content}
+          </div>,
+          tooltipHostEl
+        )}
       {children && <div className={styles.controlsOverlay}>{children}</div>}
       {detail?.type === "character" && (
         <MapDetailCard

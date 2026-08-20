@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TamaguiProvider } from "tamagui";
@@ -85,13 +85,15 @@ describe("LogOfflineActivityModal", () => {
     expect(payload.name).toBe("Write docs");
     expect(payload.started_at < payload.completed_at).toBe(true);
 
-    callbacks.onSuccess({
-      success: true,
-      message: "Activity logged",
-      activity: { name: "Write docs" },
-      xp_gained: 42,
-      xp_eligible_seconds: 1800,
-      level_ups: [],
+    act(() => {
+      callbacks.onSuccess({
+        success: true,
+        message: "Activity logged",
+        activity: { name: "Write docs" },
+        xp_gained: 42,
+        xp_eligible_seconds: 1800,
+        level_ups: [],
+      });
     });
 
     expect(await screen.findByText("+42 XP awarded")).toBeInTheDocument();
@@ -109,7 +111,9 @@ describe("LogOfflineActivityModal", () => {
     await waitFor(() => expect(logMutate).toHaveBeenCalledTimes(1));
     const [, callbacks] = logMutate.mock.calls[0];
 
-    callbacks.onError(new Error(JSON.stringify({ success: false, message: "Daily limit reached." })));
+    act(() => {
+      callbacks.onError(new Error(JSON.stringify({ success: false, message: "Daily limit reached." })));
+    });
 
     expect(await screen.findByText("Daily limit reached.")).toBeInTheDocument();
   });
