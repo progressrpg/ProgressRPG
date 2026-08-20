@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { ReactElement, ReactNode } from 'react';
-import * as RadixToast from '@radix-ui/react-toast';
+import { ToastProvider as TamaguiToastProvider } from 'tamagui';
 import { v4 as uuidv4 } from 'uuid';
 import { ToastContext } from './toastContextDef';
 import type { Toast } from './toastContextDef';
@@ -26,11 +26,11 @@ export function ToastProvider({ children, duration = 3300 }: ProviderProps): Rea
   const toastsEnabled = useFeatureFlag('toastsFeature');
 
   return (
-    <RadixToast.Provider duration={duration}>
+    <TamaguiToastProvider duration={duration}>
       <ToastContext.Provider value={{ toasts, showToast }}>
         {children}
         {toastsEnabled && <ToastManager messages={toasts} onDismiss={dismissToast} />}
       </ToastContext.Provider>
-    </RadixToast.Provider>
+    </TamaguiToastProvider>
   );
 }

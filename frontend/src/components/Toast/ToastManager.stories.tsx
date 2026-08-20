@@ -1,12 +1,14 @@
-import * as RadixToast from '@radix-ui/react-toast';
+import { ToastProvider } from 'tamagui';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, waitFor, within } from 'storybook/test';
 import ToastManager from './ToastManager';
 
 /**
- * `ToastManager` renders a `messages[]` prop as Radix `Toast.Root`s plus the
- * shared `Toast.Viewport`. It must be mounted under a Radix `Toast.Provider`
- * (normally supplied by `ToastContext`) - the story provides one directly.
+ * `ToastManager` renders a `messages[]` prop as Tamagui `Toast`s plus the
+ * shared `ToastViewport` (#581). It must be mounted under a Tamagui
+ * `ToastProvider` (normally supplied by `ToastContext`, alongside the global
+ * `TamaguiProvider` from `.storybook/preview.tsx`) - the story provides one
+ * directly.
  */
 const meta: Meta<typeof ToastManager> = {
   title: 'Shared/ToastManager',
@@ -14,9 +16,9 @@ const meta: Meta<typeof ToastManager> = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <RadixToast.Provider>
+      <ToastProvider>
         <Story />
-      </RadixToast.Provider>
+      </ToastProvider>
     ),
   ],
   args: {
