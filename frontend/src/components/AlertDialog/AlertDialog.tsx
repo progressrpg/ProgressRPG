@@ -47,8 +47,13 @@ export default function AlertDialog({
         `role="alertdialog"`, wired to the actual title/description) both
         expose as dialog-family landmarks, so `getByRole('alertdialog')`/
         assistive tech see two nested dialogs for what's semantically one.
+        render="div" goes with it - role="presentation" isn't a permitted
+        ARIA role on a native <dialog> element (only "alertdialog" is), so
+        the frame is switched to a plain <div> where "presentation" is
+        valid. aria-modal is stripped for the same reason: it's only valid
+        on role="dialog"/"alertdialog", not "presentation".
       */}
-      <AlertDialogPrimitive.Portal role="presentation">
+      <AlertDialogPrimitive.Portal role="presentation" render="div" aria-modal={undefined}>
         <AlertDialogPrimitive.Overlay unstyled className={styles.overlay} />
         <AlertDialogPrimitive.Content
           unstyled
