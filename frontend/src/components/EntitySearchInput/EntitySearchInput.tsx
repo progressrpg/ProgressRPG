@@ -116,19 +116,22 @@ export default function EntitySearchInput({
       // role="option" lives on the <li> itself, not a nested button: a
       // listbox's immediate children must carry the option role directly
       // (axe's aria-required-children), so an <option> role one level
-      // deeper (on a button inside the <li>) doesn't satisfy it.
+      // deeper (on a button inside the <li>) doesn't satisfy it. The click
+      // handlers live here too, not on the inner div - a click landing on
+      // the <li> (e.g. via its accessible role/name, or padding around the
+      // text) wouldn't bubble down into a descendant's onClick.
       <li
         key={`${entity.id}-${entity.name}`}
         role="option"
         aria-selected={isHighlighted}
         className={styles.optionItem}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => commitSelection(entity)}
       >
         <div
           className={classNames(styles.optionButton, {
             [styles.optionButtonActive]: isHighlighted,
           })}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => commitSelection(entity)}
         >
           {entity.name}
         </div>
