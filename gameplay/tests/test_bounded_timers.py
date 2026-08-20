@@ -18,8 +18,8 @@ from core.models import GameSettings
 from gameplay.models import ActivityTimer
 from progression.models import PlayerActivity
 from gameplay.tasks import (
-    auto_complete_timer_on_disconnect,
-    auto_complete_timers_for_stale_players,
+    auto_pause_timer_on_disconnect,
+    auto_pause_timers_for_stale_players,
     complete_expired_bounded_timers,
 )
 from users.tests import user_factory
@@ -232,7 +232,7 @@ class BoundedSessionsSurviveAbsenceTests(TestCase):
         self.player.save(update_fields=["last_seen"])
 
         with patch.object(ActivityTimer, "complete") as complete:
-            result = auto_complete_timers_for_stale_players()
+            result = auto_pause_timers_for_stale_players()
 
         complete.assert_not_called()
         self.assertEqual(result, 0)
@@ -246,7 +246,7 @@ class BoundedSessionsSurviveAbsenceTests(TestCase):
         cache.set(DISCONNECT_TASK_CACHE_KEY.format(player_id=self.player.id), task_id)
 
         with patch.object(ActivityTimer, "complete") as complete:
-            result = auto_complete_timer_on_disconnect.apply(
+            result = auto_pause_timer_on_disconnect.apply(
                 kwargs={"player_id": self.player.id}, task_id=task_id
             ).get()
 

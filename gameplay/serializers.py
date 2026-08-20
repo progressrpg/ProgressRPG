@@ -11,6 +11,9 @@ from progression.serializers import PlayerActivitySerializer
 class ActivityTimerSerializer(serializers.ModelSerializer):
     activity = PlayerActivitySerializer(read_only=True)
     elapsed_time = serializers.SerializerMethodField()
+    # Computed server-side so the client doesn't have to reimplement the
+    # logical-day rule to decide whether to offer Resume.
+    can_resume = serializers.SerializerMethodField()
 
     class Meta:
         model = ActivityTimer
@@ -28,6 +31,7 @@ class ActivityTimerSerializer(serializers.ModelSerializer):
             # reconstructing it from is_premium and losing it on reload.
             "limit_seconds",
             "limit_reason",
+            "can_resume",
         ]
         read_only_fields = [
             "id",
@@ -38,6 +42,9 @@ class ActivityTimerSerializer(serializers.ModelSerializer):
 
     def get_elapsed_time(self, obj) -> float:
         return obj.get_elapsed_time()
+
+    def get_can_resume(self, obj) -> bool:
+        return obj.can_resume()
 
 
 class XpModifierSerializer(serializers.ModelSerializer):

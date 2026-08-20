@@ -64,9 +64,9 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         running disconnect() would stay marked online forever.
 
         This is also the only signal keeping a running activity timer alive:
-        gameplay.tasks.auto_complete_timers_for_stale_players auto-completes
-        the timers of players whose `last_seen` has gone stale, so a lapsed
-        heartbeat costs the player their session, not just an online badge.
+        gameplay.tasks.auto_pause_timers_for_stale_players pauses the timers
+        of players whose `last_seen` has gone stale, so a lapsed heartbeat
+        interrupts the player's session, not just an online badge.
         """
         type(self.player).objects.filter(pk=self.player.pk).update(
             last_seen=timezone.now()
@@ -197,10 +197,10 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
 
         if activity_timer and activity_timer.status == "active":
             # Give the player DISCONNECT_GRACE_SECONDS to reconnect before
-            # the activity is auto-completed and XP is awarded.
-            from .tasks import auto_complete_timer_on_disconnect
+            # the activity is paused and its elapsed time banked.
+            from .tasks import auto_pause_timer_on_disconnect
 
-            result = await sync_to_async(auto_complete_timer_on_disconnect.apply_async)(
+            result = await sync_to_async(auto_pause_timer_on_disconnect.apply_async)(
                 kwargs={"player_id": self.player.id},
                 countdown=DISCONNECT_GRACE_SECONDS,
             )

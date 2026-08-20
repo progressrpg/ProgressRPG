@@ -3,7 +3,7 @@ Tests for the stale-connection auto-complete sweep.
 
 If a websocket connection dies without a clean disconnect (crash, sleep,
 dropped network), TimerConsumer.disconnect() never fires, so its
-grace-period auto-complete never runs. auto_complete_timers_for_stale_players
+grace-period auto-complete never runs. auto_pause_timers_for_stale_players
 is a periodic backstop: it completes any active ActivityTimer whose player's
 last_seen heartbeat has gone stale.
 """
@@ -17,24 +17,30 @@ from django.utils import timezone
 from gameplay.models import ActivityTimer
 from gameplay.tasks import (
     STALE_TIMER_THRESHOLD,
-    auto_complete_timers_for_stale_players,
+    auto_pause_timers_for_stale_players,
     truncate_to_last_heartbeat,
 )
 from users.tests import user_factory
 
 
-class AutoCompleteStaleTimersTaskTests(TestCase):
+class AutoPauseStaleTimersTaskTests(TestCase):
     def setUp(self):
         self.user = user_factory(with_player=True)
         self.player = self.user.player
         self.timer = self.player.activity_timer
 
-    def _make_active(self, last_seen):
-        self.timer.status = "active"
-        self.timer.start_time = timezone.now()
-        self.timer.save(update_fields=["status", "start_time"])
-        self.player.last_seen = last_seen
-        self.player.save(update_fields=["last_seen"])
+    def _make_active(self, last_seen, timer=None, player=None):
+        timer = timer or self.timer
+        player = player or self.player
+        # Through new_activity()/start(), because pausing a timer with no
+        # activity attached resets it instead - no real session is ever in
+        # that state, and a fixture that is would mask what pausing does.
+        timer.new_activity(name="Stale session")
+        timer.start()
+        timer.start_time = timezone.now()
+        timer.save(update_fields=["start_time"])
+        player.last_seen = last_seen
+        player.save(update_fields=["last_seen"])
 
     # fresh heartbeat — untouched
 
@@ -42,7 +48,7 @@ class AutoCompleteStaleTimersTaskTests(TestCase):
         self._make_active(timezone.now())
 
         with patch.object(ActivityTimer, "complete") as mock_complete:
-            result = auto_complete_timers_for_stale_players()
+            result = auto_pause_timers_for_stale_players()
 
         mock_complete.assert_not_called()
         self.assertEqual(result, 0)
@@ -53,13 +59,13 @@ class AutoCompleteStaleTimersTaskTests(TestCase):
         )
 
         with patch.object(ActivityTimer, "complete") as mock_complete:
-            auto_complete_timers_for_stale_players()
+            auto_pause_timers_for_stale_players()
 
         mock_complete.assert_not_called()
 
-    # stale heartbeat — completed
+    # stale heartbeat — paused, never completed
 
-    def test_completes_timer_when_last_seen_older_than_threshold(self):
+    def test_pauses_timer_when_last_seen_older_than_threshold(self):
         self._make_active(
             timezone.now() - (STALE_TIMER_THRESHOLD + timedelta(seconds=1))
         )
@@ -67,22 +73,43 @@ class AutoCompleteStaleTimersTaskTests(TestCase):
         with patch.object(ActivityTimer, "complete") as mock_complete, patch(
             "gameplay.tasks.broadcast_activity_timer"
         ) as mock_broadcast:
-            result = auto_complete_timers_for_stale_players()
+            result = auto_pause_timers_for_stale_players()
 
-        mock_complete.assert_called_once_with(completion_source="auto")
         self.assertEqual(result, 1)
-        # Any other open session (tabs/devices) for this player should be
-        # told the timer was auto-completed by this sweep.
+        # The server is guessing the player is gone. A wrong guess must cost
+        # them a click, not force-submit the session they were in.
+        mock_complete.assert_not_called()
+        self.timer.refresh_from_db()
+        self.assertEqual(self.timer.status, "paused")
+        # Any other open session (tabs/devices) should be told, so it stops
+        # ticking a timer the server has stopped.
         mock_broadcast.assert_called_once_with(self.timer)
 
-    def test_completes_timer_when_last_seen_was_never_set(self):
+    def test_pauses_timer_when_last_seen_was_never_set(self):
         self._make_active(None)
 
         with patch.object(ActivityTimer, "complete") as mock_complete:
-            result = auto_complete_timers_for_stale_players()
+            result = auto_pause_timers_for_stale_players()
 
-        mock_complete.assert_called_once_with(completion_source="auto")
         self.assertEqual(result, 1)
+        mock_complete.assert_not_called()
+        self.timer.refresh_from_db()
+        self.assertEqual(self.timer.status, "paused")
+
+    def test_pausing_banks_the_elapsed_time_for_the_player_to_resolve(self):
+        now = timezone.now()
+        last_seen = now - (STALE_TIMER_THRESHOLD + timedelta(seconds=1))
+        self._make_active(last_seen)
+        # Worked for ten minutes before the heartbeat went quiet.
+        self.timer.start_time = last_seen - timedelta(minutes=10)
+        self.timer.save(update_fields=["start_time"])
+
+        with patch("gameplay.tasks.broadcast_activity_timer"):
+            auto_pause_timers_for_stale_players()
+
+        self.timer.refresh_from_db()
+        self.assertAlmostEqual(self.timer.elapsed_time, 10 * 60, delta=2)
+        self.assertTrue(self.timer.has_banked_time())
 
     # non-active timers — ignored regardless of staleness
 
@@ -94,7 +121,7 @@ class AutoCompleteStaleTimersTaskTests(TestCase):
         self.timer.save(update_fields=["status"])
 
         with patch.object(ActivityTimer, "complete") as mock_complete:
-            result = auto_complete_timers_for_stale_players()
+            result = auto_pause_timers_for_stale_players()
 
         mock_complete.assert_not_called()
         self.assertEqual(result, 0)
@@ -107,7 +134,7 @@ class AutoCompleteStaleTimersTaskTests(TestCase):
         # Default timer status after player creation is "empty"
 
         with patch.object(ActivityTimer, "complete") as mock_complete:
-            result = auto_complete_timers_for_stale_players()
+            result = auto_pause_timers_for_stale_players()
 
         mock_complete.assert_not_called()
         self.assertEqual(result, 0)
@@ -120,14 +147,14 @@ class AutoCompleteStaleTimersTaskTests(TestCase):
         self.timer.save(update_fields=["status"])
 
         with patch.object(ActivityTimer, "complete") as mock_complete:
-            result = auto_complete_timers_for_stale_players()
+            result = auto_pause_timers_for_stale_players()
 
         mock_complete.assert_not_called()
         self.assertEqual(result, 0)
 
     # multiple players
 
-    def test_completes_multiple_stale_timers_and_skips_fresh_ones(self):
+    def test_pauses_multiple_stale_timers_and_skips_fresh_ones(self):
         stale_last_seen = timezone.now() - (
             STALE_TIMER_THRESHOLD + timedelta(seconds=1)
         )
@@ -135,19 +162,18 @@ class AutoCompleteStaleTimersTaskTests(TestCase):
         other_user = user_factory(with_player=True)
         other_player = other_user.player
         other_timer = other_player.activity_timer
-        other_timer.status = "active"
-        other_timer.start_time = timezone.now()
-        other_timer.save(update_fields=["status", "start_time"])
-        other_player.last_seen = stale_last_seen
-        other_player.save(update_fields=["last_seen"])
+        self._make_active(stale_last_seen, timer=other_timer, player=other_player)
 
         self._make_active(timezone.now())  # fresh — should be left alone
 
-        with patch.object(ActivityTimer, "complete") as mock_complete:
-            result = auto_complete_timers_for_stale_players()
+        with patch("gameplay.tasks.broadcast_activity_timer"):
+            result = auto_pause_timers_for_stale_players()
 
-        mock_complete.assert_called_once_with(completion_source="auto")
         self.assertEqual(result, 1)
+        other_timer.refresh_from_db()
+        self.timer.refresh_from_db()
+        self.assertEqual(other_timer.status, "paused")
+        self.assertEqual(self.timer.status, "active")
 
 
 class RegisterConnectionLastSeenTests(TestCase):
@@ -192,7 +218,7 @@ class StaleTimerThresholdTests(TestCase):
         player.save(update_fields=["last_seen"])
 
         with patch.object(ActivityTimer, "complete") as mock_complete:
-            result = auto_complete_timers_for_stale_players()
+            result = auto_pause_timers_for_stale_players()
 
         mock_complete.assert_not_called()
         self.assertEqual(result, 0)
@@ -200,9 +226,9 @@ class StaleTimerThresholdTests(TestCase):
 
 class TruncateToLastHeartbeatTests(TestCase):
     """
-    Auto-completes credit time up to the last confirmed heartbeat rather than
-    up to now, so the window we wait before giving up on a player can be
-    generous without inflating the XP awarded when we do.
+    Auto-pauses bank time up to the last confirmed heartbeat rather than up
+    to now, so the window we wait before giving up on a player can be
+    generous without crediting the wait itself as time worked.
     """
 
     def setUp(self):
@@ -211,6 +237,9 @@ class TruncateToLastHeartbeatTests(TestCase):
         self.timer = self.player.activity_timer
 
     def _make_active(self, start_time, last_seen, elapsed_time=0):
+        # An activity has to be attached: pausing a timer without one resets
+        # it rather than banking its time, and no real session lacks one.
+        self.timer.new_activity(name="Interrupted session")
         self.timer.status = "active"
         self.timer.start_time = start_time
         self.timer.elapsed_time = elapsed_time
@@ -270,7 +299,7 @@ class TruncateToLastHeartbeatTests(TestCase):
         self.timer.refresh_from_db()
         self.assertEqual(self.timer.elapsed_time, 0)
 
-    def test_sweep_does_not_award_xp_for_the_wait_before_giving_up(self):
+    def test_sweep_does_not_bank_the_wait_before_giving_up(self):
         now = timezone.now()
         self._make_active(
             start_time=now - timedelta(minutes=25),
@@ -278,7 +307,7 @@ class TruncateToLastHeartbeatTests(TestCase):
         )
 
         with patch("gameplay.tasks.broadcast_activity_timer"):
-            auto_complete_timers_for_stale_players()
+            auto_pause_timers_for_stale_players()
 
         self.timer.refresh_from_db()
         expected = 25 * 60 - int(

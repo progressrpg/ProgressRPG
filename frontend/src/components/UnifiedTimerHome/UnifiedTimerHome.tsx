@@ -36,6 +36,9 @@ export default function UnifiedTimerHome() {
     name,
     setName,
     isActive,
+    isPaused,
+    hasSession,
+    canResume,
     isUnlabelled,
     isEditingLabel,
     inputValue,
@@ -48,6 +51,8 @@ export default function UnifiedTimerHome() {
     flowDispatch,
     handleConfirmActivity,
     handleToggle,
+    handleResume,
+    handleDiscard,
     handleCreateActivity,
     handleUnifiedSelect,
     handleUnifiedSubmit,
@@ -70,13 +75,21 @@ export default function UnifiedTimerHome() {
   // Label display (clickable name) only shows for a labelled, non-editing
   // running timer; every other case shows the list/input (no timer running,
   // an unlabelled running timer, or an in-progress click-to-edit).
-  const showLabelDisplay = isActive && !isUnlabelled && !isEditingLabel;
+  const showLabelDisplay = hasSession && !isUnlabelled && !isEditingLabel;
 
-  const statusMessage = showLabelDisplay
-    ? `Timer running: ${inputValue || "Untitled activity"}`
-    : isActive
-      ? "Timer running, unlabelled"
-      : "Timer stopped";
+  // A paused session is not the same as no session: its time is banked and
+  // waiting to be resolved. Saying "Timer stopped" for both is what this
+  // announcement used to do, and it is all a screen-reader user gets in
+  // place of the visual paused card.
+  const statusMessage = isPaused
+    ? canResume
+      ? `Timer paused at ${formatDuration(elapsed)}: ${inputValue || "Untitled activity"}. Resume, submit, or discard.`
+      : `Timer paused at ${formatDuration(elapsed)}: ${inputValue || "Untitled activity"}. This session's day has ended — submit or discard.`
+    : showLabelDisplay
+      ? `Timer running: ${inputValue || "Untitled activity"}`
+      : isActive
+        ? "Timer running, unlabelled"
+        : "Timer stopped";
 
   // Click-to-edit needs the input focused immediately so the pre-filled
   // name is ready to be replaced/confirmed without an extra click.
@@ -153,7 +166,12 @@ export default function UnifiedTimerHome() {
 
   return (
     <>
-      <section className={classNames(styles.wrapper, { [styles.isActive]: isActive })}>
+      <section
+        className={classNames(styles.wrapper, {
+          [styles.isActive]: isActive,
+          [styles.isPaused]: isPaused,
+        })}
+      >
         <h2 className="sr-only">Activity timer</h2>
         <p className="sr-only" aria-live="polite">
           {statusMessage}
@@ -176,26 +194,61 @@ export default function UnifiedTimerHome() {
           <motion.div
             layout
             className={styles.controlsRow}
-            style={{ justifyContent: isActive ? "flex-end" : "center" }}
+            style={{ justifyContent: hasSession ? "flex-end" : "center" }}
           >
+            {/* Resume sits before the main button so the paused row reads
+                left-to-right as "carry on / finish". Withdrawn once the
+                session's own day has passed — its time can still be
+                submitted, but adding to it would credit today's work to
+                that day. */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {isPaused && canResume && (
+                <motion.div key="resume" layout {...fadeProps}>
+                  <Button onClick={handleResume} variant="primary" className={styles.ctaButton}>
+                    Resume
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <motion.div layout>
               <Button
-                onClick={isActive ? handleToggle : handleStartClick}
-                variant="primary"
+                onClick={hasSession ? handleToggle : handleStartClick}
+                variant={isPaused ? "secondary" : "primary"}
                 className={styles.ctaButton}
               >
-                {isActive ? "Stop" : "Start"}
+                {hasSession ? (isPaused ? "Submit" : "Stop") : "Start"}
               </Button>
             </motion.div>
 
             <AnimatePresence mode="popLayout" initial={false}>
-              {isActive && (
+              {isPaused && (
+                <motion.div key="discard" layout {...fadeProps}>
+                  <Button onClick={handleDiscard} variant="ghost" className={styles.ctaButton}>
+                    Discard
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence mode="popLayout" initial={false}>
+              {hasSession && (
                 <motion.div key="timer" layout {...fadeProps} className={styles.timerPill}>
                   {formatDuration(elapsed)}
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
+
+          <AnimatePresence initial={false}>
+            {isPaused && (
+              <motion.p key="pausedNote" {...fadeProps} className={styles.pausedNote}>
+                {canResume
+                  ? "Paused — your time is saved."
+                  : "Paused — this session's day has ended, so it can be submitted but not continued."}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           {/* Row 2: the activity's identity — either its label (clickable to
               edit) or the search input used to pick/type one. These are

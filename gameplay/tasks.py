@@ -7,7 +7,16 @@ from django.utils import timezone
 
 from character.models import PlayerCharacterLink
 from .models import ActivityTimer, XpModifier
-from .utils import broadcast_activity_timer
+from .utils import broadcast_activity_timer, pause_server_timers
+
+# How long a paused session is left for the player to resolve before it is
+# closed out on their behalf. ActivityTimer is OneToOne with Player and
+# set_activity refuses to start a new session over banked time, so an
+# unresolved pause blocks starting anything else - this is the safety valve
+# if the UI ever fails to offer the choice. It completes rather than
+# discards: the work was real, so it is credited to the day it happened on,
+# just later than the player would have done it themselves.
+ABANDONED_PAUSE_HORIZON = timedelta(days=7)
 
 DISCONNECT_TASK_CACHE_KEY = "disconnect_task:{player_id}"
 
@@ -55,10 +64,16 @@ def truncate_to_last_heartbeat(timer: ActivityTimer) -> None:
 
 
 @shared_task(bind=True)
-def auto_complete_timer_on_disconnect(self, player_id: int):
+def auto_pause_timer_on_disconnect(self, player_id: int):
     """
-    Complete an active activity timer for a player who disconnected without
-    reconnecting within the grace window. Awards XP for elapsed time.
+    Pause an active activity timer for a player who disconnected without
+    reconnecting within the grace window.
+
+    Pausing rather than completing is the whole point: the server is
+    guessing that the player is gone, and a wrong guess should cost them a
+    click rather than force-submitting a session they were in the middle
+    of. The banked time is theirs to resume or submit when they return.
+
     Revoked by TimerConsumer.connect() if the player reconnects in time.
     """
     stored_task_id = cache.get(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
@@ -98,23 +113,26 @@ def auto_complete_timer_on_disconnect(self, player_id: int):
         return "still_connected"
 
     truncate_to_last_heartbeat(timer)
-    timer.complete(completion_source="auto")
+    # pause_server_timers rather than timer.pause(): it also deactivates the
+    # player's activity XP modifiers, which would otherwise keep running
+    # against a session that has stopped.
+    pause_server_timers(timer)
     broadcast_activity_timer(timer)
     cache.delete(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
-    return "completed"
+    return "paused"
 
 
 @shared_task
-def auto_complete_timers_for_stale_players():
+def auto_pause_timers_for_stale_players():
     """
     Backstop for connections that die without a clean websocket disconnect
     (crash, sleep, dropped network) — in these cases TimerConsumer.disconnect()
-    never fires, so its grace-period auto-complete never runs and an active
-    timer would otherwise keep accruing XP indefinitely.
+    never fires, so its grace-period pause never runs and an active timer
+    would otherwise keep accruing XP indefinitely.
 
     Sweeps for active ActivityTimers belonging to players whose last_seen
     heartbeat is older than STALE_TIMER_THRESHOLD (or was never set), and
-    completes them the same way the disconnect grace period does.
+    pauses them the same way the disconnect grace period does.
     """
     cutoff = timezone.now() - STALE_TIMER_THRESHOLD
     stale_timers = (
@@ -127,9 +145,32 @@ def auto_complete_timers_for_stale_players():
         .filter(Q(player__last_seen__isnull=True) | Q(player__last_seen__lt=cutoff))
     )
 
-    completed_count = 0
+    paused_count = 0
     for timer in stale_timers:
         truncate_to_last_heartbeat(timer)
+        pause_server_timers(timer)
+        broadcast_activity_timer(timer)
+        paused_count += 1
+
+    return paused_count
+
+
+@shared_task
+def complete_abandoned_paused_timers():
+    """
+    Close out paused sessions the player never came back to resolve.
+
+    Completes rather than discards, crediting the session's original logical
+    day: the work was real, so this delays the XP rather than losing it.
+    """
+    cutoff = timezone.now() - ABANDONED_PAUSE_HORIZON
+
+    abandoned = ActivityTimer.objects.select_related("player", "activity").filter(
+        status="paused", elapsed_time__gt=0, last_updated__lt=cutoff
+    )
+
+    completed_count = 0
+    for timer in abandoned:
         timer.complete(completion_source="auto")
         broadcast_activity_timer(timer)
         completed_count += 1

@@ -2,9 +2,11 @@
 Tests for the disconnect grace period.
 
 On disconnect with an active timer the consumer schedules
-auto_complete_timer_on_disconnect via Celery and stores the task ID in
-Redis.  On reconnect the consumer revokes that task.  If the player
-never comes back the task calls ActivityTimer.complete(), awarding XP.
+auto_pause_timer_on_disconnect via Celery and stores the task ID in
+Redis.  On reconnect the consumer revokes that task.  If the player never
+comes back the task pauses the timer, banking its elapsed time for them
+to resume or submit when they return - it never completes it, because a
+wrong guess about their absence should cost a click, not a session.
 """
 
 from datetime import timedelta
@@ -22,7 +24,7 @@ from gameplay.consumers import (
     TimerConsumer,
 )
 from gameplay.models import ActivityTimer
-from gameplay.tasks import auto_complete_timer_on_disconnect
+from gameplay.tasks import auto_pause_timer_on_disconnect
 
 from users.tests import user_factory
 
@@ -34,7 +36,7 @@ def _run_task(player_id, task_id):
     Run the task synchronously (via apply()) with a known task ID so the
     supersede guard inside the task sees the right self.request.id.
     """
-    return auto_complete_timer_on_disconnect.apply(
+    return auto_pause_timer_on_disconnect.apply(
         kwargs={"player_id": player_id},
         task_id=task_id,
     ).get()
@@ -73,7 +75,7 @@ class MockTimer:
 # ── Celery task tests ──────────────────────────────────────────────────────────
 
 
-class AutoCompleteTimerTaskTests(TransactionTestCase):
+class AutoPauseTimerTaskTests(TransactionTestCase):
     TASK_ID = "test-task-abc123"
 
     def setUp(self):
@@ -159,8 +161,9 @@ class AutoCompleteTimerTaskTests(TransactionTestCase):
         mock_broadcast.assert_not_called()
         self.assertIsNone(cache.get(self._cache_key()))
 
-    def test_credits_only_time_up_to_the_last_heartbeat(self):
+    def test_banks_only_time_up_to_the_last_heartbeat(self):
         now = timezone.now()
+        self.timer.new_activity(name="Interrupted session")
         self.timer.status = "active"
         self.timer.start_time = now - timedelta(minutes=10)
         self.timer.save(update_fields=["status", "start_time"])
@@ -172,29 +175,33 @@ class AutoCompleteTimerTaskTests(TransactionTestCase):
         with patch("gameplay.tasks.broadcast_activity_timer"):
             result = _run_task(self.player.id, self.TASK_ID)
 
-        self.assertEqual(result, "completed")
+        self.assertEqual(result, "paused")
         self.timer.refresh_from_db()
+        # Two of the ten minutes were after the heartbeat went quiet, so
+        # only eight are banked - the wait isn't time worked.
         self.assertAlmostEqual(self.timer.elapsed_time, 8 * 60, delta=2)
 
-    def test_completes_active_timer_and_clears_cache(self):
+    def test_pauses_active_timer_and_clears_cache(self):
+        self.timer.new_activity(name="Interrupted session")
         self.timer.status = "active"
         self.timer.start_time = timezone.now()
         self.timer.save(update_fields=["status", "start_time"])
         self._prime_cache()
 
-        with patch.object(
-            ActivityTimer, "complete", return_value={"xp_gained": 50}
-        ) as mock_complete, patch(
+        with patch.object(ActivityTimer, "complete") as mock_complete, patch(
             "gameplay.tasks.broadcast_activity_timer"
         ) as mock_broadcast:
             result = _run_task(self.player.id, self.TASK_ID)
 
-        self.assertEqual(result, "completed")
-        mock_complete.assert_called_once_with(completion_source="auto")
+        self.assertEqual(result, "paused")
+        # Never completed: the server is guessing the player is gone, and a
+        # wrong guess must not force-submit their session.
+        mock_complete.assert_not_called()
+        self.timer.refresh_from_db()
+        self.assertEqual(self.timer.status, "paused")
         self.assertIsNone(cache.get(self._cache_key()))
-        # Any other open session (tabs/devices) for this player should be
-        # told the timer was auto-completed, so it stops ticking a timer
-        # the server has already closed out.
+        # Any other open session (tabs/devices) should be told, so it stops
+        # ticking a timer the server has stopped.
         mock_broadcast.assert_called_once_with(self.timer)
 
 
@@ -231,7 +238,7 @@ class TimerConsumerDisconnectGraceTests(TransactionTestCase):
         mock_result = MagicMock()
         mock_result.id = "scheduled-task-id"
 
-        with patch("gameplay.tasks.auto_complete_timer_on_disconnect") as mock_task:
+        with patch("gameplay.tasks.auto_pause_timer_on_disconnect") as mock_task:
             mock_task.apply_async.return_value = mock_result
             async_to_sync(consumer.disconnect)(1000)
 
@@ -244,7 +251,7 @@ class TimerConsumerDisconnectGraceTests(TransactionTestCase):
         mock_result = MagicMock()
         mock_result.id = "scheduled-task-id"
 
-        with patch("gameplay.tasks.auto_complete_timer_on_disconnect") as mock_task:
+        with patch("gameplay.tasks.auto_pause_timer_on_disconnect") as mock_task:
             mock_task.apply_async.return_value = mock_result
             with patch(
                 "gameplay.consumers.control_timers", new_callable=AsyncMock
@@ -274,7 +281,7 @@ class TimerConsumerDisconnectGraceTests(TransactionTestCase):
     def test_pauses_immediately_when_timer_is_waiting(self):
         consumer = self._make_consumer(timer_status="waiting")
 
-        with patch("gameplay.tasks.auto_complete_timer_on_disconnect") as mock_task:
+        with patch("gameplay.tasks.auto_pause_timer_on_disconnect") as mock_task:
             mock_task.apply_async.return_value = MagicMock(id="x")
             with patch(
                 "gameplay.consumers.control_timers", new_callable=AsyncMock

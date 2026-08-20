@@ -275,6 +275,30 @@ class ActivityTimer(Timer):
         self.activity.save(update_fields=["task"])
         return self
 
+    def has_banked_time(self) -> bool:
+        """Whether this timer is holding time the player hasn't resolved."""
+        return self.status == "paused" and self.elapsed_time > 0
+
+    def can_resume(self) -> bool:
+        """
+        Whether a paused session may still be picked up where it left off.
+
+        Only while its own logical day is current. After that the banked
+        time is still the player's - they submit it - but continuing to add
+        to it would credit today's work to the day the session began.
+        """
+        if self.status != "paused":
+            return False
+
+        if not self.activity or self.activity.logical_date is None:
+            # No day recorded (a session that predates logical dates, or one
+            # never properly started): don't strand the player over it.
+            return True
+
+        from progression.day_boundaries import current_logical_date
+
+        return self.activity.logical_date == current_logical_date(self.player)
+
     def is_bounded(self) -> bool:
         """Whether this session declared its own end."""
         return bool(self.limit_seconds)

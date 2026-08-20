@@ -41,6 +41,21 @@ class BaseTimerViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def start(self, request):
         timer = self.get_timer(request)
+
+        # Resuming a paused session is the same endpoint as starting one, so
+        # the logical-day rule is enforced here rather than trusted to the
+        # UI: past its own day, a session can be submitted but not continued,
+        # or today's work would be credited to the day it began.
+        if timer.status == "paused" and not timer.can_resume():
+            return Response(
+                {
+                    "error": "This session's day has ended. Submit or discard "
+                    "it instead of resuming.",
+                    "code": "session_day_ended",
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         timer.start()
         self.broadcast_timer_update(timer)
         return Response(self.serialize(timer))
@@ -106,6 +121,21 @@ class ActivityTimerViewSet(BaseTimerViewSet):
     def set_activity(self, request):
         timer = self.get_timer(request)
 
+        if timer.has_banked_time():
+            # new_activity() resets elapsed_time to 0, so starting something
+            # new over a paused session would destroy the time banked on it
+            # rather than preserve it. The client resolves the session first
+            # (resume, submit, or discard via /reset/); this guard is here
+            # for the stale tab that doesn't know it needs to.
+            return Response(
+                {
+                    "error": "A paused session is holding unsubmitted time. "
+                    "Resume, submit, or discard it first.",
+                    "code": "paused_session_pending",
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         name = request.data.get("activityName")
         if not name:
             name = ""
@@ -136,7 +166,7 @@ class ActivityTimerViewSet(BaseTimerViewSet):
         """
         timer = self.get_timer(request)
 
-        if timer.status not in ("active", "waiting") or not timer.activity:
+        if timer.status not in ("active", "waiting", "paused") or not timer.activity:
             return Response(
                 {"error": "No running timer to label."},
                 status=status.HTTP_400_BAD_REQUEST,
