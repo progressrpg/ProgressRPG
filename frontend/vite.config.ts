@@ -10,6 +10,17 @@ import { tamaguiPlugin } from '@tamagui/vite-plugin'
 
 const dirname = fileURLToPath(new URL('.', import.meta.url))
 
+// The 'unit' vitest project (happy-dom) doesn't benefit from Tamagui's
+// static extraction - it's a bundle-size/runtime-perf optimization that
+// tests never observe, since they assert on rendered DOM, not shipped CSS.
+// Its per-file AST walk is real cost for a mostly-not-Tamagui codebase
+// though: disabling it cut this project's transform time roughly 4x (~43s
+// -> ~9s across a 70-file/560-test run measured locally) with zero test
+// diff. Left enabled everywhere else (build, dev, the 'storybook' project)
+// since those do care about the optimized output.
+const isUnitTestRun =
+  !!process.env.VITEST && process.argv.includes('--project') && process.argv.includes('unit')
+
 // https://vite.dev/config/
 export default defineConfig(() => {
   return {
@@ -51,6 +62,7 @@ export default defineConfig(() => {
       tamaguiPlugin({
         config: './tamagui.config.ts',
         components: ['tamagui'],
+        disable: isUnitTestRun,
       }),
     ],
     base: '/',
