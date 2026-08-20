@@ -130,9 +130,24 @@ interface PopoverContentProps {
 // stable to point at.
 function Content({ children, ...rest }: PopoverContentProps): React.ReactElement {
   const { contentId } = usePopoverContext('Content');
+  // Tamagui's forwarded ref type (TamaguiElementMethods) isn't exported for reuse here.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ref = React.useRef<any>(null);
+
+  // The role="dialog" wrapper above is a *different* DOM node than this
+  // Content frame (@tamagui/popper spreads floating-ui's getFloatingProps,
+  // including role/id, onto its own outer positioning element - user props
+  // like `aria-label` passed here only ever reach this inner frame). Copy it
+  // onto that ancestor directly so the actual dialog-role element gets an
+  // accessible name, satisfying aria-dialog-name.
+  React.useLayoutEffect(() => {
+    const label = rest['aria-label'];
+    if (!label) return;
+    ref.current?.closest('[role="dialog"]')?.setAttribute('aria-label', label);
+  });
 
   return (
-    <PopoverPrimitive.Content id={contentId} unstyled {...rest}>
+    <PopoverPrimitive.Content id={contentId} unstyled ref={ref} {...rest}>
       {children}
     </PopoverPrimitive.Content>
   );
