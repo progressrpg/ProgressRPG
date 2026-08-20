@@ -34,6 +34,7 @@ playwright/.auth
 
 *storybook.log
 storybook-static
+coverage
 
 # Tamagui compiler cache
 .tamagui
