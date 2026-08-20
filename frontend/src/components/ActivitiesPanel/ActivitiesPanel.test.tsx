@@ -1,15 +1,23 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TamaguiProvider } from "tamagui";
 
 import { TooltipProvider } from "../Tooltip/Tooltip";
 import ActivitiesPanel from "./ActivitiesPanel";
+import tamaguiConfig from "../../../tamagui.config";
 
+// ActivitiesPanel renders Modal via PlayerItemList (#582), which needs a
+// TamaguiProvider ancestor - unlike Radix's Dialog.Root, it isn't usable
+// standalone. The app root (src/main.tsx) provides this in production;
+// tests need their own.
 function renderActivitiesPanel() {
   return render(
-    <TooltipProvider>
-      <ActivitiesPanel />
-    </TooltipProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <TooltipProvider>
+        <ActivitiesPanel />
+      </TooltipProvider>
+    </TamaguiProvider>
   );
 }
 
