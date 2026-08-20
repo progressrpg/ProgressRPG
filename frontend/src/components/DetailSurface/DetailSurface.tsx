@@ -77,8 +77,13 @@ export default function DetailSurface({
         // without it, this wrapper and Content above (which sets the real
         // `role="dialog"`, wired to the actual title) both expose as
         // "dialog" landmarks, so `getByRole('dialog')`/assistive tech see
-        // two nested dialogs for what's semantically one.
-        <Dialog.Portal role="presentation">{content}</Dialog.Portal>
+        // two nested dialogs for what's semantically one. aria-modal is
+        // stripped alongside it - Tamagui sets it by default on this frame,
+        // but aria-modal is only valid on role="dialog"/"alertdialog", and
+        // this element's role is now "presentation".
+        <Dialog.Portal role="presentation" aria-modal={undefined}>
+          {content}
+        </Dialog.Portal>
       )}
     </Dialog>
   );
