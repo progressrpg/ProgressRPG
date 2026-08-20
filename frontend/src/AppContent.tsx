@@ -14,7 +14,7 @@ import { useAuth } from './context/AuthContext';
 import { useGame } from './hooks/useGame';
 import { apiFetch } from './utils/api';
 
-const announcement = `Progress RPG is in alpha status, and under active development. Bugs may appear, and data may be lost. Thank you for testing!`;
+const announcement = `Progress RPG is in active development. Please report any issues you encounter. Your feedback is valuable!`;
 
 export default function AppContent(): React.ReactElement {
   const { isAuthenticated } = useAuth();
