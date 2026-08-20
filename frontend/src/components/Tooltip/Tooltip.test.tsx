@@ -101,4 +101,47 @@ describe('Tooltip', () => {
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
   });
+
+  it('renders only the trigger, with no tooltip behaviour, when disabled', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Tooltip content="Helpful context" disabled>
+        <button type="button">Trigger</button>
+      </Tooltip>
+    );
+
+    const trigger = screen.getByRole('button', { name: 'Trigger' });
+    await user.click(trigger);
+
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it.each([null, undefined, false])(
+    'renders only the trigger when content is %s',
+    async (content) => {
+      const user = userEvent.setup();
+
+      render(
+        <Tooltip content={content}>
+          <button type="button">Trigger</button>
+        </Tooltip>
+      );
+
+      const trigger = screen.getByRole('button', { name: 'Trigger' });
+      await user.click(trigger);
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    }
+  );
+
+  it('TooltipProvider renders its children as a passthrough', () => {
+    render(
+      <TooltipProvider>
+        <span>Provider child</span>
+      </TooltipProvider>
+    );
+
+    expect(screen.getByText('Provider child')).toBeInTheDocument();
+  });
 });
