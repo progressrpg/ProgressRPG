@@ -1,3 +1,5 @@
+import asyncio
+
 from asgiref.sync import sync_to_async
 from celery import current_app
 from channels.db import database_sync_to_async
@@ -24,6 +26,24 @@ from users.models import Player
 # the wait itself.
 DISCONNECT_GRACE_SECONDS = 120
 DISCONNECT_TASK_CACHE_KEY = "disconnect_task:{player_id}"
+
+# How often this consumer stamps `last_seen` while the socket is open.
+#
+# Server-side deliberately. The old client-driven heartbeat was a
+# setInterval in the player's tab, and browsers throttle those once a tab is
+# backgrounded (Chrome clamps a hidden tab to roughly one wake-up a minute
+# after five minutes hidden) and stop them outright when the device sleeps -
+# so `last_seen` reported "this tab's JS is running promptly", not "this
+# player is connected", and the sweeps mistook a backgrounded tab for an
+# abandoned session.
+#
+# This loop instead runs for exactly as long as the consumer does, and
+# Daphne's own websocket keepalive (--ping-interval / --ping-timeout, at the
+# protocol level, answered by the browser's network stack rather than by
+# page JS) guarantees the consumer doesn't outlive a client that has stopped
+# answering. So "an ASGI process is holding a socket for this player" is
+# what `last_seen` now means - which is what the sweeps already assumed.
+HEARTBEAT_INTERVAL_SECONDS = 60
 ONLINE_COUNT_CACHE_KEY = "online_count"
 ONLINE_COUNT_CACHE_SECONDS = 2
 
@@ -55,6 +75,48 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 "count": online_count,
             },
         )
+
+    async def _heartbeat_loop(self):
+        """
+        Keep `last_seen` fresh for as long as this socket is open.
+
+        Errors are swallowed and the loop continues on purpose: an
+        unhandled exception here would kill the task silently, leaving the
+        socket open while the player looks stale - and the sweeps would then
+        interrupt a session that is very much alive.
+        """
+        try:
+            while True:
+                await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
+                try:
+                    await self.record_heartbeat()
+                except Exception:
+                    logger_errors.exception(
+                        "[HEARTBEAT] Failed to stamp last_seen for player "
+                        f"{getattr(self, 'player', None) and self.player.id}"
+                    )
+        except asyncio.CancelledError:
+            raise
+
+    async def _stop_heartbeat(self):
+        """
+        Cancel the heartbeat and wait for it to actually stop.
+
+        Awaiting matters: cancelling without it leaves a window where an
+        in-flight stamp lands after unregister_connection(), refreshing
+        `last_seen` for a player who has just left and suppressing the sweep
+        for a whole threshold window.
+        """
+        task = getattr(self, "_heartbeat_task", None)
+        if task is None:
+            return
+
+        self._heartbeat_task = None
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
     @database_sync_to_async
     def record_heartbeat(self):
@@ -127,6 +189,10 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 )
 
             await database_sync_to_async(self.player.register_connection)()
+
+            # register_connection stamps last_seen; this keeps it fresh for
+            # as long as the socket lives.
+            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
             logger.debug(
                 f"[CONNECT] Player {self.player.id} is_online={self.player.is_online}"
             )  # ✅ Verify status
@@ -177,6 +243,10 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         logger.info(
             f"[DISCONNECT] WebSocket disconnecting. Player: {player_id} | Code: {close_code}"
         )
+
+        # Stopped before anything else, and before the player attribute
+        # check, so a half-initialised consumer can't leak the task.
+        await self._stop_heartbeat()
 
         if not hasattr(self, "player"):
             return

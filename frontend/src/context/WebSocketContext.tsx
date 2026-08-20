@@ -7,7 +7,6 @@ import { useOnlineCount } from './OnlineCountContext';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from './AuthContext';
 import { useWebSocketConnection } from '../hooks/useWebSocketConnection';
-import { useWebSocketHeartbeat } from '../hooks/useWebSocketHeartbeat';
 import { handleGlobalWebSocketEvent } from '../websockets/handleGlobalWebSocketEvent';
 import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
 import { useMaintenanceContext } from './MaintenanceContext';
@@ -25,8 +24,6 @@ import type { ActivityTimerApiData, IncomingWebSocketMessage, OutgoingWebSocketM
 interface ProviderProps {
   children: ReactNode;
 }
-
-// (Heartbeat cadence and its rationale live in useWebSocketHeartbeat.)
 
 // ---------------------------------------------------------------------------
 // Provider
@@ -103,8 +100,6 @@ export const WebSocketProvider = ({ children }: ProviderProps): ReactElement => 
   }, []);
 
   const typedSend = (data: OutgoingWebSocketMessage): void => send(data);
-
-  useWebSocketHeartbeat(isConnected, send);
 
   return (
     <WebSocketContext.Provider value={{ send: typedSend, isConnected, addEventHandler, disconnect }}>

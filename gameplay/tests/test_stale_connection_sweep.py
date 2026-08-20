@@ -14,6 +14,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
+from gameplay.consumers import HEARTBEAT_INTERVAL_SECONDS
 from gameplay.models import ActivityTimer
 from gameplay.tasks import (
     STALE_TIMER_THRESHOLD,
@@ -191,37 +192,65 @@ class RegisterConnectionLastSeenTests(TestCase):
 
 class StaleTimerThresholdTests(TestCase):
     """
-    The threshold has to absorb a browser throttling or suspending the tab's
-    heartbeat interval, not just one late ping. It previously sat at 90s —
-    a single missed ping — and was auto-completing the timers of players who
-    had simply switched to another window to do the thing they were timing.
+    `last_seen` is now stamped server-side, by TimerConsumer, for as long as
+    it holds an open socket - so a lapse means the process holding that
+    socket is gone, not that the player's browser throttled a timer.
+
+    That is what lets the threshold be tight again. It sat at 90s when the
+    signal came from a setInterval in the player's tab, which was a single
+    missed ping of slack and interrupted the sessions of players who had
+    simply switched to another window.
     """
 
-    # Mirrors HEARTBEAT_INTERVAL_MS in frontend/src/hooks/useWebSocketHeartbeat.ts.
-    HEARTBEAT_INTERVAL = timedelta(seconds=25)
+    def test_threshold_tolerates_several_missed_server_stamps(self):
+        """
+        A missed stamp means the consumer's loop didn't run - a wedged or
+        dying worker. A few in a row is the signal; one is noise.
+        """
+        interval = timedelta(seconds=HEARTBEAT_INTERVAL_SECONDS)
 
-    def test_threshold_tolerates_many_consecutive_missed_heartbeats(self):
-        self.assertGreaterEqual(STALE_TIMER_THRESHOLD, self.HEARTBEAT_INTERVAL * 10)
+        self.assertGreaterEqual(STALE_TIMER_THRESHOLD, interval * 3)
 
-    def test_backgrounded_tab_with_a_throttled_heartbeat_is_not_swept(self):
+    def test_a_session_whose_process_is_still_stamping_is_not_swept(self):
         user = user_factory(with_player=True)
         player = user.player
         timer = player.activity_timer
-        timer.status = "active"
-        timer.start_time = timezone.now()
-        timer.save(update_fields=["status", "start_time"])
+        timer.new_activity(name="Live session")
+        timer.start()
 
-        # Chrome clamps a hidden tab to roughly one wake-up a minute; five
-        # minutes of that is a player working in another window, not a dead
-        # connection.
-        player.last_seen = timezone.now() - timedelta(minutes=5)
+        # One interval ago: the loop is running, the socket is held.
+        player.last_seen = timezone.now() - timedelta(
+            seconds=HEARTBEAT_INTERVAL_SECONDS
+        )
         player.save(update_fields=["last_seen"])
 
-        with patch.object(ActivityTimer, "complete") as mock_complete:
+        with patch("gameplay.tasks.broadcast_activity_timer"):
             result = auto_pause_timers_for_stale_players()
 
-        mock_complete.assert_not_called()
+        timer.refresh_from_db()
         self.assertEqual(result, 0)
+        self.assertEqual(timer.status, "active")
+
+    def test_a_session_whose_process_died_mid_session_is_swept(self):
+        user = user_factory(with_player=True)
+        player = user.player
+        timer = player.activity_timer
+        timer.new_activity(name="Orphaned session")
+        timer.start()
+
+        # No stamps since well past the threshold: disconnect() never ran,
+        # so nothing paused this timer and it would accrue forever.
+        player.last_seen = timezone.now() - (
+            STALE_TIMER_THRESHOLD + timedelta(minutes=1)
+        )
+        player.save(update_fields=["last_seen"])
+
+        with patch("gameplay.tasks.broadcast_activity_timer"):
+            result = auto_pause_timers_for_stale_players()
+
+        timer.refresh_from_db()
+        self.assertEqual(result, 1)
+        self.assertEqual(timer.status, "paused")
 
 
 class TruncateToLastHeartbeatTests(TestCase):

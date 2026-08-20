@@ -27,7 +27,7 @@ services:
       target: dev
     command: >
       sh -c "
-      daphne -b 0.0.0.0 -p ${PORT:-8000} progress_rpg.asgi:application &
+      daphne -b 0.0.0.0 -p ${PORT:-8000} --ping-interval 20 --ping-timeout 30 progress_rpg.asgi:application &
       DAPHNE_PID=$$!;
       trap 'kill $$DAPHNE_PID' TERM INT;
       sleep 7;

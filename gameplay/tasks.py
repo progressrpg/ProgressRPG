@@ -20,23 +20,19 @@ ABANDONED_PAUSE_HORIZON = timedelta(days=7)
 
 DISCONNECT_TASK_CACHE_KEY = "disconnect_task:{player_id}"
 
-# A player's websocket heartbeat ping refreshes `last_seen` (see
-# WebSocketContext.tsx HEARTBEAT_INTERVAL_MS). If a connection dies without a
-# clean disconnect (crash, sleep, dropped network), Channels' disconnect() may
-# never fire, so TimerConsumer's grace-period auto-complete never runs. This
-# threshold is this sweep's backstop.
+# `last_seen` is stamped by TimerConsumer for as long as it holds an open
+# socket (see consumers.HEARTBEAT_INTERVAL_SECONDS, 60s). If the process
+# dies without a clean disconnect - OOM, crash, deploy restart - the stamps
+# simply stop, and TimerConsumer.disconnect() never runs to pause the timer.
+# This sweep is the backstop for exactly that case.
 #
-# It has to be generous, because the heartbeat is driven by a setInterval in
-# the player's tab and browsers throttle those aggressively once a tab is
-# backgrounded — Chrome clamps a hidden tab to roughly one aligned wake-up per
-# minute after 5 minutes hidden, and a sleeping laptop or locked phone stops
-# them altogether. The old 90s threshold left slack for a single missed ping,
-# so a player who started a timer and then switched to another window — the
-# app's core use case — had their live timer auto-completed out from under
-# them a few minutes later. Tolerate many consecutive missed pings instead:
-# this is a guard against a dead connection accruing XP forever, not a
-# presence check.
-STALE_TIMER_THRESHOLD = timedelta(minutes=10)
+# It can be tight now that the signal is server-side. It used to be driven
+# by a setInterval in the player's tab, which browsers throttle when the tab
+# is backgrounded and stop when the device sleeps, so the threshold had to
+# absorb a browser's scheduling rather than a process's liveness. Four
+# minutes tolerates three consecutive missed stamps, which for an in-process
+# loop means the worker is wedged, not that the player stepped away.
+STALE_TIMER_THRESHOLD = timedelta(minutes=4)
 
 
 def truncate_to_last_heartbeat(timer: ActivityTimer) -> None:

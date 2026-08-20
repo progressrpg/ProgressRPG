@@ -21,7 +21,9 @@ User = get_user_model()
 logger = logging.getLogger("general")
 
 # A connection is considered abandoned (worker crash, OOM kill, deploy
-# restart) if we haven't seen a heartbeat ping for this long.
+# restart) if `last_seen` hasn't been stamped for this long. Stamped
+# server-side by TimerConsumer for as long as it holds the socket, so a
+# lapse means the process is gone, not that the player's tab is idle.
 STALE_CONNECTION_THRESHOLD = timedelta(minutes=10)
 
 
