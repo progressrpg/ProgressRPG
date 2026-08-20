@@ -1,3 +1,4 @@
+from datetime import time
 import hashlib
 from datetime import datetime, timezone
 
@@ -503,3 +504,42 @@ class PlayerActivityActivityLinkAPITests(APITestCase):
         self.assertEqual(
             Activity.objects.filter(player=player_for(self.user)).count(), 1
         )
+
+
+class DayStartTimeSettingTests(APITestCase):
+    """
+    `day_start_time` defines when a player's day rolls over, so it has to be
+    editable — a default nobody can change isn't a setting.
+    """
+
+    def setUp(self):
+        from users.tests import user_factory
+
+        self.user = user_factory(with_player=True)
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_day_start_time_can_be_updated(self):
+        response = self.client.patch(
+            reverse("me-user-settings"), {"day_start_time": "05:30"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.day_start_time, time(5, 30))
+
+    def test_day_start_time_is_returned_with_the_user(self):
+        response = self.client.patch(
+            reverse("me-user-settings"), {"day_start_time": "05:30"}, format="json"
+        )
+
+        self.assertEqual(response.data["day_start_time"], "05:30:00")
+
+    def test_a_nonsense_time_is_rejected(self):
+        response = self.client.patch(
+            reverse("me-user-settings"), {"day_start_time": "not a time"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.day_start_time, time(2, 0))

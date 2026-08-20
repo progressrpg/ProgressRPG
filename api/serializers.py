@@ -93,15 +93,22 @@ class UserSerializer(serializers.ModelSerializer):
             "is_superuser",
             "date_of_birth",
             "timezone",
+            "day_start_time",
         ]
 
 
 class UserSettingsSerializer(serializers.ModelSerializer):
     timezone = serializers.CharField(required=False)
+    # When this user's day rolls over, in their own timezone. Together with
+    # `timezone` it defines their logical day - see
+    # progression.day_boundaries - so activity, streaks and daily goals are
+    # counted against the day the work felt like, not the calendar day the
+    # clock had already ticked into.
+    day_start_time = serializers.TimeField(required=False)
 
     class Meta:
         model = User
-        fields = ["timezone"]
+        fields = ["timezone", "day_start_time"]
 
     def validate_timezone(self, value):
         return validate_timezone_name(value)
@@ -258,7 +265,9 @@ class RegistrationStatusResponseSerializer(serializers.Serializer):
     registration_open = serializers.BooleanField()
     registration_enabled = serializers.BooleanField()
     self_serve_registration = serializers.BooleanField()
-    waitlist_signup_provider = serializers.ChoiceField(choices=["mailchimp", "internal"])
+    waitlist_signup_provider = serializers.ChoiceField(
+        choices=["mailchimp", "internal"]
+    )
     turnstile_site_key = serializers.CharField(allow_blank=True)
 
 
