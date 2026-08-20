@@ -1,8 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { TamaguiProvider } from 'tamagui';
 import DetailCard from './DetailCard';
+import tamaguiConfig from '../../../tamagui.config';
 
+// DetailCard's underlying DetailSurface (#799) needs a TamaguiProvider
+// ancestor - the app root (src/main.tsx) provides this in production;
+// tests need their own.
 function renderCard(overrides: Partial<React.ComponentProps<typeof DetailCard>> = {}) {
   const props = {
     open: true,
@@ -11,7 +16,11 @@ function renderCard(overrides: Partial<React.ComponentProps<typeof DetailCard>> 
     children: <p>Card content</p>,
     ...overrides,
   };
-  render(<DetailCard {...props} />);
+  render(
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <DetailCard {...props} />
+    </TamaguiProvider>
+  );
   return props;
 }
 

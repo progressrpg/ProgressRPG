@@ -23,7 +23,6 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@radix-ui/react-dialog": "^1.1.14",
     "@tamagui/config": "^2.7.6",
     "@tamagui/core": "^2.7.6",
     "@tamagui/vite-plugin": "^2.7.6",
