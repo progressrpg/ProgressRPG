@@ -54,23 +54,30 @@ describe("SkillsPanel", () => {
     mockUseDeleteSkill.mockReturnValue({ mutate: deleteMutate });
   });
 
-  it("edits a skill through PlayerItemList", async () => {
-    const user = userEvent.setup();
-    render(<SkillsPanel />);
+  it(
+    "edits a skill through PlayerItemList",
+    async () => {
+      const user = userEvent.setup();
+      render(<SkillsPanel />);
 
-    await user.click(screen.getByRole("button", { name: "Open skill Writing" }));
-    const input = screen.getByLabelText("skill name");
-    await user.clear(input);
-    await user.type(input, "Research");
-    await user.tab();
+      await user.click(screen.getByRole("button", { name: "Open skill Writing" }));
+      const input = screen.getByLabelText("skill name");
+      await user.clear(input);
+      await user.type(input, "Research");
+      await user.tab();
 
-    await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith(
-        { id: 1, data: { name: "Research" } },
-        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
-      );
-    });
-  });
+      await waitFor(() => {
+        expect(updateMutate).toHaveBeenCalledWith(
+          { id: 1, data: { name: "Research" } },
+          expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+        );
+      });
+    },
+    // Open/type/tab through a real Tamagui Modal — the default 5000ms
+    // budget gets tight under a full parallel suite run (passes standalone;
+    // was flaking under CPU contention alongside the storybook/browser project).
+    10000,
+  );
 
   it("deletes a skill through PlayerItemList", async () => {
     const user = userEvent.setup();

@@ -54,29 +54,37 @@ describe("CategoriesPanel", () => {
     mockUseDeleteCategory.mockReturnValue({ mutate: deleteMutate });
   });
 
-  it("edits and deletes categories through PlayerItemList", async () => {
-    const user = userEvent.setup();
-    render(<CategoriesPanel />);
+  it(
+    "edits and deletes categories through PlayerItemList",
+    async () => {
+      const user = userEvent.setup();
+      render(<CategoriesPanel />);
 
-    await user.click(screen.getByRole("button", { name: "Open category Deep Work" }));
-    const input = screen.getByLabelText("category name");
-    await user.clear(input);
-    await user.type(input, "Admin");
-    await user.tab();
+      await user.click(screen.getByRole("button", { name: "Open category Deep Work" }));
+      const input = screen.getByLabelText("category name");
+      await user.clear(input);
+      await user.type(input, "Admin");
+      await user.tab();
 
-    await waitFor(() => {
-      expect(updateMutate).toHaveBeenCalledWith(
-        { id: 1, data: { name: "Admin" } },
-        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
-      );
-    });
+      await waitFor(() => {
+        expect(updateMutate).toHaveBeenCalledWith(
+          { id: 1, data: { name: "Admin" } },
+          expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+        );
+      });
 
-    // The modal stays open after an autosave — no explicit Save click to close it.
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
+      // The modal stays open after an autosave — no explicit Save click to close it.
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
 
-    await waitFor(() => {
-      expect(deleteMutate).toHaveBeenCalledWith(1);
-    });
-  });
+      await waitFor(() => {
+        expect(deleteMutate).toHaveBeenCalledWith(1);
+      });
+    },
+    // Two open/type/tab/click sequences through a real Tamagui Modal —
+    // the default 5000ms budget gets tight under a full parallel suite run
+    // (passes standalone; was flaking under CPU contention alongside the
+    // storybook/browser project).
+    10000,
+  );
 });
