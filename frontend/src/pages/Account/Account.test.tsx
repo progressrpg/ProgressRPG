@@ -381,4 +381,148 @@ describe("Account", () => {
 
     expect(screen.queryByText(/Free trial/)).not.toBeInTheDocument();
   });
+
+  it("saves a valid name and refetches player data on success", async () => {
+    const user = userEvent.setup();
+    const fetchPlayerAndCharacter = vi.fn().mockResolvedValue(undefined);
+    mockUseGame.mockReturnValue({
+      player: mockPlayer(),
+      loading: false,
+      fetchPlayerAndCharacter,
+    });
+    mockUpdatePlayer.mockResolvedValue({ name: "New Name" });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: /edit name/i }));
+    const input = screen.getByRole("textbox");
+    await user.clear(input);
+    await user.type(input, "New Name");
+    await user.click(screen.getByRole("button", { name: /save name/i }));
+
+    expect(mockUpdatePlayer).toHaveBeenCalledWith({ name: "New Name" }, expect.anything());
+    await vi.waitFor(() => expect(screen.queryByRole("textbox")).not.toBeInTheDocument());
+    expect(fetchPlayerAndCharacter).toHaveBeenCalled();
+  });
+
+  it("shows an error and stays in edit mode when saving the name fails", async () => {
+    const user = userEvent.setup();
+    mockUseGame.mockReturnValue({
+      player: mockPlayer(),
+      loading: false,
+      fetchPlayerAndCharacter: vi.fn(),
+    });
+    mockUpdatePlayer.mockRejectedValue(new Error("Name already taken"));
+
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: /edit name/i }));
+    const input = screen.getByRole("textbox");
+    await user.clear(input);
+    await user.type(input, "New Name");
+    await user.click(screen.getByRole("button", { name: /save name/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Name already taken");
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+  });
+
+  it("cancels editing and discards the draft name", async () => {
+    const user = userEvent.setup();
+    mockUseGame.mockReturnValue({
+      player: mockPlayer(),
+      loading: false,
+      fetchPlayerAndCharacter: vi.fn(),
+    });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: /edit name/i }));
+    await user.clear(screen.getByRole("textbox"));
+    await user.type(screen.getByRole("textbox"), "Discarded");
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(mockUpdatePlayer).not.toHaveBeenCalled();
+    expect(screen.getByText("player_01234")).toBeInTheDocument();
+  });
+
+  it("downloads user data when the download button is clicked", async () => {
+    const user = userEvent.setup();
+    mockUseGame.mockReturnValue({
+      player: mockPlayer(),
+      loading: false,
+      fetchPlayerAndCharacter: vi.fn(),
+    });
+    mockDownloadUserData.mockResolvedValue({ url: "http://example.com/data.zip" });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: /download my data/i }));
+
+    expect(mockDownloadUserData).toHaveBeenCalled();
+    expect(await screen.findByRole("button", { name: /download my data/i })).toBeInTheDocument();
+  });
+
+  it("requires typing DELETE before the delete-account button is enabled", async () => {
+    const user = userEvent.setup();
+    mockUseGame.mockReturnValue({
+      player: mockPlayer(),
+      loading: false,
+      fetchPlayerAndCharacter: vi.fn(),
+    });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    const confirmButton = screen.getByRole("button", { name: /confirm delete/i });
+    expect(confirmButton).toBeDisabled();
+
+    await user.type(screen.getByPlaceholderText("Type DELETE to confirm"), "wrong");
+    expect(confirmButton).toBeDisabled();
+
+    await user.clear(screen.getByPlaceholderText("Type DELETE to confirm"));
+    await user.type(screen.getByPlaceholderText("Type DELETE to confirm"), "DELETE");
+    expect(confirmButton).not.toBeDisabled();
+  });
+
+  it("deletes the account, clears storage, and navigates home on confirm", async () => {
+    const user = userEvent.setup();
+    mockUseGame.mockReturnValue({
+      player: mockPlayer(),
+      loading: false,
+      fetchPlayerAndCharacter: vi.fn(),
+    });
+    mockDeleteAccount.mockResolvedValue(undefined);
+    localStorage.setItem("leftover", "1");
+
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.type(screen.getByPlaceholderText("Type DELETE to confirm"), "DELETE");
+    await user.click(screen.getByRole("button", { name: /confirm delete/i }));
+
+    await vi.waitFor(() => expect(mockDeleteAccount).toHaveBeenCalled());
+    await vi.waitFor(() => expect(localStorage.getItem("leftover")).toBeNull());
+  });
+
+  it("cancels the delete-account confirmation and resets the typed text", async () => {
+    const user = userEvent.setup();
+    mockUseGame.mockReturnValue({
+      player: mockPlayer(),
+      loading: false,
+      fetchPlayerAndCharacter: vi.fn(),
+    });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    await user.type(screen.getByPlaceholderText("Type DELETE to confirm"), "DEL");
+    await user.click(screen.getByRole("button", { name: /^cancel$/i }));
+
+    expect(screen.queryByPlaceholderText("Type DELETE to confirm")).not.toBeInTheDocument();
+    expect(mockDeleteAccount).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /delete my account/i }));
+    expect(screen.getByPlaceholderText("Type DELETE to confirm")).toHaveValue("");
+  });
 });

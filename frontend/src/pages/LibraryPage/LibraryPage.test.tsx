@@ -28,7 +28,21 @@ vi.mock("../../hooks/useFeatureFlag", () => ({
 }));
 
 vi.mock("../../components/TasksPanel/TasksPanel", () => ({
-  default: () => <div data-testid="tasks-panel">Tasks panel</div>,
+  default: ({
+    openTaskId,
+    onOpenTaskHandled,
+    onOpenNote,
+  }: {
+    openTaskId: number | null;
+    onOpenTaskHandled: () => void;
+    onOpenNote: (noteId: number) => void;
+  }) => (
+    <div data-testid="tasks-panel">
+      Tasks panel (open task: {openTaskId ?? "none"})
+      <button onClick={onOpenTaskHandled}>Clear open task</button>
+      <button onClick={() => onOpenNote(42)}>Open note 42</button>
+    </div>
+  ),
 }));
 
 vi.mock("../../components/ActivitiesPanel/ActivitiesPanel", () => ({
@@ -37,6 +51,24 @@ vi.mock("../../components/ActivitiesPanel/ActivitiesPanel", () => ({
 
 vi.mock("../../components/SkillsPanel/SkillsPanel", () => ({
   default: () => <div data-testid="skills-panel">Skills panel</div>,
+}));
+
+vi.mock("../../components/NotesPanel/NotesPanel", () => ({
+  default: ({
+    openNoteId,
+    onOpenNoteHandled,
+    onOpenTask,
+  }: {
+    openNoteId: number | null;
+    onOpenNoteHandled: () => void;
+    onOpenTask: (taskId: number) => void;
+  }) => (
+    <div data-testid="notes-panel">
+      Notes panel (open note: {openNoteId ?? "none"})
+      <button onClick={onOpenNoteHandled}>Clear open note</button>
+      <button onClick={() => onOpenTask(7)}>Open task 7</button>
+    </div>
+  ),
 }));
 
 vi.mock("../../components/ComingSoonPanel/ComingSoonPanel", () => ({
@@ -85,6 +117,52 @@ describe("LibraryPage", () => {
       expect(screen.queryByRole("tab", { name: "Projects" })).not.toBeInTheDocument();
       expect(screen.queryByRole("tab", { name: "Categories" })).not.toBeInTheDocument();
     });
+
+    it("switches to the Notes tab when a note is opened from the Tasks panel", async () => {
+      const user = userEvent.setup();
+      render(<LibraryPage />);
+
+      await user.click(screen.getByRole("tab", { name: "Tasks" }));
+      await user.click(screen.getByRole("button", { name: "Open note 42" }));
+
+      expect(screen.getByTestId("notes-panel")).toHaveTextContent("open note: 42");
+      expect(screen.queryByTestId("tasks-panel")).not.toBeInTheDocument();
+    });
+
+    it("switches to the Tasks tab when a task is opened from the Notes panel", async () => {
+      const user = userEvent.setup();
+      render(<LibraryPage />);
+
+      await user.click(screen.getByRole("tab", { name: "Notes" }));
+      await user.click(screen.getByRole("button", { name: "Open task 7" }));
+
+      expect(screen.getByTestId("tasks-panel")).toHaveTextContent("open task: 7");
+      expect(screen.queryByTestId("notes-panel")).not.toBeInTheDocument();
+    });
+
+    it("clears the pending open-task id once TasksPanel reports it handled", async () => {
+      const user = userEvent.setup();
+      render(<LibraryPage />);
+
+      await user.click(screen.getByRole("tab", { name: "Notes" }));
+      await user.click(screen.getByRole("button", { name: "Open task 7" }));
+      expect(screen.getByTestId("tasks-panel")).toHaveTextContent("open task: 7");
+
+      await user.click(screen.getByRole("button", { name: "Clear open task" }));
+      expect(screen.getByTestId("tasks-panel")).toHaveTextContent("open task: none");
+    });
+
+    it("clears the pending open-note id once NotesPanel reports it handled", async () => {
+      const user = userEvent.setup();
+      render(<LibraryPage />);
+
+      await user.click(screen.getByRole("tab", { name: "Tasks" }));
+      await user.click(screen.getByRole("button", { name: "Open note 42" }));
+      expect(screen.getByTestId("notes-panel")).toHaveTextContent("open note: 42");
+
+      await user.click(screen.getByRole("button", { name: "Clear open note" }));
+      expect(screen.getByTestId("notes-panel")).toHaveTextContent("open note: none");
+    });
   });
 
   describe("when a tab's feature flag is disabled", () => {
@@ -110,6 +188,16 @@ describe("LibraryPage", () => {
 
       expect(screen.queryByTestId("skills-panel")).not.toBeInTheDocument();
       expect(screen.getByTestId("coming-soon-panel")).toHaveTextContent("skills coming soon");
+    });
+
+    it("still shows the Notes tab but renders a coming-soon notice", async () => {
+      const user = userEvent.setup();
+      render(<LibraryPage />);
+
+      await user.click(screen.getByRole("tab", { name: "Notes" }));
+
+      expect(screen.queryByTestId("notes-panel")).not.toBeInTheDocument();
+      expect(screen.getByTestId("coming-soon-panel")).toHaveTextContent("notes coming soon");
     });
 
     it("always renders the Activities tab regardless of flags", async () => {
