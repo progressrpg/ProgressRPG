@@ -21,7 +21,10 @@ export default function useActivityTimer(): ActivityTimerReturn {
   const [elapsed, setElapsed] = useState<number>(0);
   const [currentActivity, setCurrentActivity] = useState<CurrentActivity | null>(null);
   const [limitSeconds, setLimitSeconds] = useState<number | null>(null); // optional time limit
-  const [limitReached, setLimitReached] = useState<boolean>(false); // true after auto-stop fires; cleared on next startActivity or stop
+  const [limitReached, setLimitReached] = useState<boolean>(false);
+  // Server-decided: whether a paused session is still within its own
+  // logical day and so may be continued rather than only submitted.
+  const [canResume, setCanResume] = useState<boolean>(false); // true after auto-stop fires; cleared on next startActivity or stop
   const [autoStopCompletion, setAutoStopCompletion] = useState<AutoStopCompletion | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -140,6 +143,10 @@ export default function useActivityTimer(): ActivityTimerReturn {
           activityName: trimmedText,
           task_id: taskId ?? null,
           duration: 0,
+          // Sent so the server can honour the bound while the tab is away;
+          // it clamps this to the free-tier ceiling for non-premium players.
+          limitSeconds: resolvedLimit,
+          limitReason: autoStopReasonRef.current,
         }),
       });
 
@@ -218,6 +225,78 @@ export default function useActivityTimer(): ActivityTimerReturn {
     }
   }, []);
 
+
+  // ----------------------------
+  // Resume a paused session
+  // ----------------------------
+
+  /**
+   * Continue a session the server paused (or the player did) from the time
+   * already banked on it. tickMain adds `pausedTimeRef` to whatever has
+   * elapsed since `startTimeRef`, so resuming is just a matter of putting
+   * the banked seconds in one and "now" in the other.
+   */
+  const resume = useCallback(async (): Promise<unknown> => {
+    if (statusRef.current !== "paused") return null;
+
+    const bankedSeconds = elapsedRef.current;
+
+    // Optimistic, matching startActivity: the timer ticks immediately and
+    // reconciles on the next load rather than waiting on the round-trip.
+    pausedTimeRef.current = bankedSeconds;
+    startTimeRef.current = Date.now();
+    setStatus("active");
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(tickMain, 1000);
+
+    try {
+      return await apiFetch(`/activity_timers/start/`, { method: "POST" });
+    } catch (err) {
+      console.error("Failed to resume activity:", err);
+
+      // Roll back to paused with the banked time intact - nothing is lost,
+      // the player can simply try again.
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      startTimeRef.current = null;
+      pausedTimeRef.current = bankedSeconds;
+      setElapsed(bankedSeconds);
+      setStatus("paused");
+
+      throw err;
+    }
+  }, [tickMain]);
+
+  /**
+   * Throw away a paused session without submitting it. Routed through the
+   * existing reset endpoint, which is what clears elapsed time server-side;
+   * set_activity refuses to start something new over banked time.
+   */
+  const discard = useCallback(async (): Promise<void> => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    startTimeRef.current = null;
+    pausedTimeRef.current = 0;
+
+    try {
+      await apiFetch(`/activity_timers/reset/`, { method: "POST" });
+    } finally {
+      setStatus("empty");
+      setElapsed(0);
+      setDuration(0);
+      setCurrentActivity(null);
+      setLimitSeconds(null);
+      limitRef.current = null;
+      autoStopReasonRef.current = null;
+      didAutoStopRef.current = false;
+      setLimitReached(false);
+    }
+  }, []);
 
   // ----------------------------
   // Stop and submit
@@ -353,10 +432,15 @@ export default function useActivityTimer(): ActivityTimerReturn {
     if (!serverData) return;
     //console.log("timer from server:", serverData);
     const { id, status, elapsed_time, activity } = serverData;
+    // The server owns the limit. Callers may still pass one as a fallback
+    // for older payloads, but a session's declared duration must survive a
+    // reload — deriving it from is_premium here is what used to drop a
+    // custom duration on every reconnect.
+    const serverLimit = serverData.limit_seconds ?? undefined;
     // ActivityTimerApiData doesn't declare duration but the server may return it;
     // cast to access it safely and fall back to 0.
     const duration = (serverData as ActivityTimerApiData & { duration?: number }).duration ?? 0;
-    const resolvedLimit = normalizeLimitSeconds(incomingLimit);
+    const resolvedLimit = normalizeLimitSeconds(serverLimit ?? incomingLimit);
     const nextElapsed = elapsed_time || 0;
     const nextStatus: TimerStatus = status || 'empty';
 
@@ -375,6 +459,7 @@ export default function useActivityTimer(): ActivityTimerReturn {
     didAutoStopRef.current = false;
     setLimitReached(false);
     setAutoStopCompletion(null);
+    setCanResume(Boolean(serverData.can_resume));
 
     if (activity) {
       setCurrentActivity(activity);
@@ -404,10 +489,13 @@ export default function useActivityTimer(): ActivityTimerReturn {
     duration,
     limitSeconds,
     limitReached,
+    canResume,
     autoStopCompletion,
     currentActivity,
     startActivity,
     labelActivity,
+    resume,
+    discard,
     stop,
     loadFromServer,
     clearAutoStopCompletion,

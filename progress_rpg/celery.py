@@ -45,8 +45,16 @@ app.conf.beat_schedule = {
         "task": "users.tasks.reconcile_stale_online_players",
         "schedule": 300.0,  # every 5 minutes
     },
-    "auto_complete_timers_for_stale_players": {
-        "task": "gameplay.tasks.auto_complete_timers_for_stale_players",
+    "auto_pause_timers_for_stale_players": {
+        "task": "gameplay.tasks.auto_pause_timers_for_stale_players",
+        "schedule": 30.0,  # every 30 seconds
+    },
+    "complete_abandoned_paused_timers": {
+        "task": "gameplay.tasks.complete_abandoned_paused_timers",
+        "schedule": crontab(hour=4, minute=30),  # daily, off-peak
+    },
+    "complete_expired_bounded_timers": {
+        "task": "gameplay.tasks.complete_expired_bounded_timers",
         "schedule": 30.0,  # every 30 seconds
     },
     "send_waitlist_nudges": {

@@ -209,6 +209,17 @@ class ActivityTimer(Timer):
         null=True,
         blank=True,
     )
+    # A declared duration for this session, in seconds. Null means
+    # unbounded. Deliberately not called `duration`: TimeRecord.duration
+    # means elapsed time, and having two adjacent fields with opposite
+    # meanings would fail as a plausible wrong number rather than an error.
+    #
+    # Persisted rather than held in the browser so the server can honour it:
+    # a bounded session has a knowable end, so when the connection drops
+    # there is nothing to guess - it runs to that end and completes there,
+    # instead of needing a verdict about whether the player is still around.
+    limit_seconds = models.PositiveIntegerField(null=True, blank=True)
+    limit_reason = models.CharField(max_length=32, blank=True, default="")
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -237,8 +248,21 @@ class ActivityTimer(Timer):
         self.start_time = None
         self.elapsed_time = 0
         self.status = "waiting"
+        # A new session inherits nothing from the previous one's declared
+        # duration; set_limit() applies the new one (or the free ceiling).
+        self.limit_seconds = None
+        self.limit_reason = ""
 
-        self.save(update_fields=["activity", "start_time", "elapsed_time", "status"])
+        self.save(
+            update_fields=[
+                "activity",
+                "start_time",
+                "elapsed_time",
+                "status",
+                "limit_seconds",
+                "limit_reason",
+            ]
+        )
         logger.debug(
             f"ActivityTimer after save: {self.pk}, activity: {self.activity}, "
             f"status: {self.status}"
@@ -251,6 +275,72 @@ class ActivityTimer(Timer):
         self.activity.save(update_fields=["task"])
         return self
 
+    def has_banked_time(self) -> bool:
+        """Whether this timer is holding time the player hasn't resolved."""
+        return self.status == "paused" and self.elapsed_time > 0
+
+    def can_resume(self) -> bool:
+        """
+        Whether a paused session may still be picked up where it left off.
+
+        Only while its own logical day is current. After that the banked
+        time is still the player's - they submit it - but continuing to add
+        to it would credit today's work to the day the session began.
+        """
+        if self.status != "paused":
+            return False
+
+        if not self.activity or self.activity.logical_date is None:
+            # No day recorded (a session that predates logical dates, or one
+            # never properly started): don't strand the player over it.
+            return True
+
+        from progression.day_boundaries import current_logical_date
+
+        return self.activity.logical_date == current_logical_date(self.player)
+
+    def is_bounded(self) -> bool:
+        """Whether this session declared its own end."""
+        return bool(self.limit_seconds)
+
+    def limit_remaining(self) -> int | None:
+        """Seconds left before the declared limit, or None if unbounded."""
+        if not self.is_bounded():
+            return None
+        assert self.limit_seconds is not None
+        return max(0, self.limit_seconds - self.get_elapsed_time())
+
+    def limit_reached(self) -> bool:
+        """Whether a bounded session has run out its declared duration."""
+        remaining = self.limit_remaining()
+        return remaining is not None and remaining <= 0
+
+    def set_limit(self, limit_seconds, reason: str = "") -> None:
+        """
+        Apply a declared duration, clamped to the free-tier ceiling for
+        non-premium players. The client clamps too, but a limit arriving
+        from a client is a claim rather than a fact.
+        """
+        from core.models import GameSettings
+
+        try:
+            parsed = int(limit_seconds)
+        except (TypeError, ValueError):
+            parsed = 0
+
+        resolved = parsed if parsed > 0 else None
+        resolved_reason = reason or ("preset_limit" if resolved else "")
+
+        if not self.player.is_premium:
+            ceiling = int(GameSettings.current().free_timer_limit_seconds)
+            if ceiling > 0 and (resolved is None or resolved > ceiling):
+                resolved = ceiling
+                resolved_reason = "free_limit"
+
+        self.limit_seconds = resolved
+        self.limit_reason = resolved_reason
+        self.save(update_fields=["limit_seconds", "limit_reason"])
+
     def start(self):
         """
         Start the timer and persist the associated activity start timestamp.
@@ -258,8 +348,15 @@ class ActivityTimer(Timer):
         super().start()
 
         if self.activity and self.activity.started_at is None:
+            from progression.day_boundaries import logical_date_for
+
             self.activity.started_at = self.start_time or timezone.now()
-            self.activity.save(update_fields=["started_at"])
+            # Stamped here, once, so the session keeps the day it began on
+            # however many times it is later paused and resumed.
+            self.activity.logical_date = logical_date_for(
+                self.player, self.activity.started_at
+            )
+            self.activity.save(update_fields=["started_at", "logical_date"])
 
         return self
 
@@ -337,6 +434,8 @@ class ActivityTimer(Timer):
         self.update_activity_time()
 
         if self.activity.started_at is None:
+            from progression.day_boundaries import logical_date_for
+
             if pre_complete_start_time is not None:
                 backfilled_started_at = pre_complete_start_time
             else:
@@ -345,7 +444,10 @@ class ActivityTimer(Timer):
                 )
 
             self.activity.started_at = backfilled_started_at
-            self.activity.save(update_fields=["started_at"])
+            self.activity.logical_date = logical_date_for(
+                self.player, backfilled_started_at
+            )
+            self.activity.save(update_fields=["started_at", "logical_date"])
 
         reward_summary = self.activity.get_xp_reward_summary()
         xp_gained = self.activity.complete(reward_summary=reward_summary)
@@ -353,7 +455,12 @@ class ActivityTimer(Timer):
 
         from progression.daily_goals import check_and_award_daily_goals
 
-        goals_state, bonus_level_ups = check_and_award_daily_goals(self.player)
+        # Against the session's own logical day rather than the current one:
+        # a session started before the day rolled over completes the goals
+        # for the day it was worked, however late it is submitted.
+        goals_state, bonus_level_ups = check_and_award_daily_goals(
+            self.player, today=self.activity.logical_date
+        )
         level_ups = level_ups + bonus_level_ups
 
         reward_summary["level_ups"] = level_ups
@@ -369,6 +476,8 @@ class ActivityTimer(Timer):
 
     def _reset_hook(self):
         self.activity = None
+        self.limit_seconds = None
+        self.limit_reason = ""
 
     def reset(self):
         """

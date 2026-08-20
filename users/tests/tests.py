@@ -35,6 +35,7 @@ from users.validators import (
     generate_default_player_name,
 )
 
+from progression.day_boundaries import logical_date_for
 from users.tests import user_factory
 
 from character.models import Character, PlayerCharacterLink
@@ -387,7 +388,14 @@ class UserLoginModelTest(TestCase):
         # test.
         (login,) = UserLogin.objects.bulk_create([UserLogin(user=self.user)])
         timestamp = timezone.now() - timedelta(days=days_ago)
-        UserLogin.objects.filter(pk=login.pk).update(timestamp=timestamp)
+        # bulk_create skips save(), and the timestamp is rewritten after the
+        # fact, so this has to stamp logical_date itself to match - leaving
+        # it null would push local_date() onto its fallback, which fetches
+        # the user and so breaks the query-count guarantees under test.
+        UserLogin.objects.filter(pk=login.pk).update(
+            timestamp=timestamp,
+            logical_date=logical_date_for(self.user, timestamp),
+        )
         return UserLogin.objects.get(pk=login.pk)
 
     def test_login_metrics_derive_from_userlogin_rows(self):
@@ -434,7 +442,9 @@ class UserLoginModelTest(TestCase):
 
         def make_login(ts):
             login = UserLogin.objects.create(user=self.user)
-            UserLogin.objects.filter(pk=login.pk).update(timestamp=ts)
+            UserLogin.objects.filter(pk=login.pk).update(
+                timestamp=ts, logical_date=logical_date_for(self.user, ts)
+            )
             # select_related("user") to match real callers (eg. the admin
             # inline formset) - without it, annotate_first_of_day's access
             # of logins[0].user below would issue its own query.

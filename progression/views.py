@@ -33,6 +33,7 @@ from .models import (
     Task,
     Note,
 )
+from .day_boundaries import current_logical_date
 from .serializers import (
     CategorySerializer,
     RoleSerializer,
@@ -250,7 +251,7 @@ class PlayerActivityViewSet(PlayerScopedQuerysetMixin, viewsets.ModelViewSet):
 
         # Return latest activities (today’s or recent 5)
         activities = PlayerActivity.objects.filter(
-            player=player, completed_at__date=timezone.now().date()
+            player=player, logical_date=current_logical_date(player)
         ).order_by("-completed_at")
         if not activities.exists():
             activities = PlayerActivity.objects.filter(player=player).order_by(

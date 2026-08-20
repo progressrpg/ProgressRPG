@@ -121,7 +121,9 @@ EXPOSE 8000
 ENV PORT=8000
 ENV DJANGO_SETTINGS_MODULE=progress_rpg.settings.dev
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "progress_rpg.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", \
+     "--ping-interval", "20", "--ping-timeout", "30", \
+     "progress_rpg.asgi:application"]
 
 
 # --------------------------
@@ -136,4 +138,6 @@ ENV DJANGO_SETTINGS_MODULE=progress_rpg.settings.prod
 
 RUN SECRET_KEY=dummy DATABASE_URL=postgres://dummy:dummy@localhost/dummy python manage.py collectstatic --noinput --clear
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "progress_rpg.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", \
+     "--ping-interval", "20", "--ping-timeout", "30", \
+     "progress_rpg.asgi:application"]

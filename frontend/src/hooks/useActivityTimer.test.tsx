@@ -118,6 +118,32 @@ describe('useActivityTimer', () => {
     });
   });
 
+  it('takes the limit from the server payload, not the caller fallback', async () => {
+    // Regression: both loadFromServer call sites used to rebuild the limit
+    // as `is_premium ? null : freeTimerLimitSeconds`, so a custom duration
+    // vanished on every reload and websocket reconciliation.
+    mockApiFetch.mockResolvedValue({ xp_gained: 0, base_xp: 0, xp_multiplier: 1, level_ups: [], duration_seconds: 0 });
+
+    const { result } = renderHook(() => useActivityTimer());
+
+    act(() => {
+      result.current.loadFromServer(
+        {
+          id: 1,
+          status: 'active',
+          elapsed_time: 10,
+          activity: { id: 1, name: 'Declared 45 minutes' },
+          limit_seconds: 2700,
+          limit_reason: 'preset_limit',
+        } as unknown as ActivityTimerApiData,
+        // What the caller would previously have forced for a premium user.
+        { limitSeconds: null }
+      );
+    });
+
+    expect(result.current.limitSeconds).toBe(2700);
+  });
+
   it('plays the start chime when an activity starts successfully', async () => {
     mockApiFetch.mockImplementation((url: string) => {
       if (url === '/activity_timers/set_activity/') {
@@ -180,7 +206,15 @@ describe('useActivityTimer', () => {
     expect(mockApiFetch).toHaveBeenCalledWith(
       '/activity_timers/set_activity/',
       expect.objectContaining({
-        body: JSON.stringify({ activityName: '', task_id: null, duration: 0 }),
+        body: JSON.stringify({
+          activityName: '',
+          task_id: null,
+          duration: 0,
+          // Sent so the server can enforce the bound itself; null here
+          // because an unlabelled quick-start declares no duration.
+          limitSeconds: null,
+          limitReason: null,
+        }),
       })
     );
     expect(result.current.status).toBe('active');

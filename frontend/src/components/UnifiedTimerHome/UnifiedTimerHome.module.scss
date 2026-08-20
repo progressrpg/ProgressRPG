@@ -21,6 +21,21 @@ $row-control-height: sp.$form-control-height;
   animation: timerPulse 1.6s ease-in-out infinite;
 }
 
+// A paused session still holds the player's time, so it stays visually
+// present — but deliberately not pulsing, since nothing is accruing.
+.isPaused .timerPill {
+  border-color: rgba(c.$color-border-primary, 0.5);
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.pausedNote {
+  margin: sp.$padding-vertical 0 0;
+  font-size: 0.9rem;
+  opacity: 0.75;
+  text-align: center;
+}
+
 // Two fixed rows, always in this order: controls (toggle + timer) on top,
 // the activity's identity (label or search) below. Neither row's own
 // position ever depends on the other's content, so swapping label<->search
