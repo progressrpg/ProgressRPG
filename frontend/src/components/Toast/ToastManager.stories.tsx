@@ -24,6 +24,21 @@ const meta: Meta<typeof ToastManager> = {
   args: {
     onDismiss: () => {},
   },
+  parameters: {
+    a11y: {
+      config: {
+        // `ToastViewport` (Tamagui, ported from Radix's Toast) renders two
+        // invisible `FocusProxy` sentinels (aria-hidden + tabIndex=0) that
+        // detect Tab focus entering/exiting the viewport so it can redirect
+        // to the first/last toast - the same intentional pattern
+        // @radix-ui/react-toast uses upstream. aria-hidden-focus can't tell
+        // "hidden from screen readers but a deliberate keyboard-only
+        // sentinel" from a real bug, so it's disabled here rather than
+        // worked around.
+        rules: [{ id: 'aria-hidden-focus', enabled: false }],
+      },
+    },
+  },
 };
 
 export default meta;

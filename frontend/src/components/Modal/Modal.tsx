@@ -42,9 +42,14 @@ export default function Modal({
         it, this wrapper and Content below (which sets the real
         `role="dialog"`, wired to the actual title/description) both expose
         as "dialog" landmarks, so `getByRole('dialog')`/assistive tech see
-        two nested dialogs for what's semantically one.
+        two nested dialogs for what's semantically one. render="div" goes
+        with it - role="presentation" isn't a permitted ARIA role on a
+        native <dialog> element (only "alertdialog" is), so the frame is
+        switched to a plain <div> where "presentation" is valid. aria-modal
+        is stripped for the same reason: it's only valid on
+        role="dialog"/"alertdialog", not "presentation".
       */}
-      <Dialog.Portal role="presentation">
+      <Dialog.Portal role="presentation" render="div" aria-modal={undefined}>
         <Dialog.Overlay unstyled className={styles.modalBackdrop} data-testid="modal-overlay" />
         <Dialog.Content
           unstyled
@@ -87,7 +92,11 @@ export default function Modal({
               &times;
             </Button>
           </div>
-          <div className={styles.modalContent}>
+          {/* tabIndex makes the scrollable region keyboard-reachable -
+              modalContent overflows (see Modal.module.scss) and, without
+              this, keyboard users have no way to scroll it since nothing
+              inside is guaranteed to be focusable/scrollable itself. */}
+          <div className={styles.modalContent} tabIndex={0}>
             {children}
           </div>
           {footer && (

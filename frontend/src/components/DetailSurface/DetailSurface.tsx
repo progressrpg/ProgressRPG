@@ -77,8 +77,15 @@ export default function DetailSurface({
         // without it, this wrapper and Content above (which sets the real
         // `role="dialog"`, wired to the actual title) both expose as
         // "dialog" landmarks, so `getByRole('dialog')`/assistive tech see
-        // two nested dialogs for what's semantically one.
-        <Dialog.Portal role="presentation">{content}</Dialog.Portal>
+        // two nested dialogs for what's semantically one. render="div"
+        // goes with it - role="presentation" isn't a permitted ARIA role on
+        // a native <dialog> element (only "alertdialog" is), so the frame
+        // is switched to a plain <dialog>-free <div> where "presentation"
+        // is valid. aria-modal is stripped for the same reason: it's only
+        // valid on role="dialog"/"alertdialog", not "presentation".
+        <Dialog.Portal role="presentation" render="div" aria-modal={undefined}>
+          {content}
+        </Dialog.Portal>
       )}
     </Dialog>
   );
