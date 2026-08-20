@@ -1,6 +1,6 @@
 // SupportFlow/screens/ActivityInputScreen.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import * as Tabs from "@radix-ui/react-tabs";
+import * as Tabs from "../../Tabs/Tabs";
 import Button from "../../Button/Button";
 import ButtonFrame from "../../Button/ButtonFrame";
 import { ACTIVITY_PRESETS } from "../supportFlowReducer";
