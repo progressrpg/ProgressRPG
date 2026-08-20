@@ -7,7 +7,7 @@
 
 .toastViewport {
   position: fixed;
-  top: 33vh;
+  top: sp.$spacing-lg;
   left: 50%;
   transform: translateX(-50%);
   z-index: v.$z-index-toast;

@@ -36,7 +36,7 @@ export default function ToastManager({ messages, onDismiss }: ToastManagerProps)
           <div className={styles.inner}>
             <div className={styles.icon} aria-hidden="true" />
             <div className={styles.content}>
-              <Toast.Description className={styles.message}>{message}</Toast.Description>
+              <Toast.Description unstyled className={styles.message}>{message}</Toast.Description>
             </div>
           </div>
         </Toast>
