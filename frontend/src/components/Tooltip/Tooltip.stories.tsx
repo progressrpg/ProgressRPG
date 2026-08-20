@@ -5,10 +5,10 @@ import Button from '../Button/Button';
 
 /**
  * `Tooltip` wraps a single focusable trigger element and shows supplementary
- * content on click/tap or focus via Radix — hover never opens it, on either
- * desktop or mobile (see #568). Clicking/tapping the trigger again, clicking
- * anywhere else, or pressing Escape closes it. It must be nested under a
- * `TooltipProvider` (mounted once near the app root, and globally in
+ * content on click/tap or focus via Tamagui — hover never opens it, on
+ * either desktop or mobile (see #568). Clicking/tapping the trigger again,
+ * clicking anywhere else, or pressing Escape closes it. It must be nested
+ * under a `TamaguiProvider` (mounted once near the app root, and globally in
  * .storybook/preview.tsx). Use tooltips only for supplementary context -
  * essential information must remain available without clicking or focusing.
  */
@@ -35,7 +35,7 @@ export const Default: Story = {
     const trigger = canvas.getByRole('button', { name: 'Click or focus me' });
     await userEvent.tab();
     await expect(trigger).toHaveFocus();
-    // Tooltip content renders via a Radix Portal into document.body.
+    // Tooltip content renders via a Tamagui Portal into document.body.
     const tooltip = await within(canvasElement.ownerDocument.body).findByRole('tooltip');
     await expect(tooltip).toHaveTextContent('Additional context shown on click/tap or focus');
   },

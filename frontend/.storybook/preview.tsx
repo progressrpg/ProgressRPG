@@ -20,12 +20,11 @@ const preview: Preview = {
         <Story />
       </TamaguiProvider>
     ),
-    // Global (rather than living on Tooltip.stories.tsx's meta.decorators)
-    // so it also covers the autodocs-generated Docs page, which renders the
-    // component through its own preview pathway and doesn't reliably pick up
-    // meta-level decorators - without this, Tooltip's Radix primitives throw
-    // "must be used within TooltipProvider" there even though every actual
-    // story works fine.
+    // TooltipProvider is a no-op passthrough since #583 (Tamagui's Tooltip
+    // needs no ambient ancestor), kept here purely so Tooltip.stories.tsx
+    // and its autodocs-generated Docs page - which renders the component
+    // through its own preview pathway and doesn't reliably pick up
+    // meta-level decorators - don't need their own wrapping.
     (Story) => (
       <TooltipProvider>
         <Story />
