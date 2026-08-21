@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
   mockSuccessfulSubscriptionSync,
-  stabilizeAuthenticatedPlayer,
   stabilizeTimerPage,
   visitAuthenticatedPage,
 } from '../utils/authenticatedPage';
@@ -23,7 +22,10 @@ test.describe('Public page smoke tests', () => {
 
   test('Register page loads', async ({ page }) => {
     await page.goto('/register');
-    await expect(page.getByRole('heading', { name: /waiting list/i })).toBeVisible();
+    // Registration is currently invite-only (self_serve_registration off),
+    // so unauthenticated visitors land on the waitlist-nudge heading rather
+    // than the registration form itself - see RegisterPage.tsx.
+    await expect(page.getByRole('heading', { name: /invite only|temporarily full/i })).toBeVisible();
   });
 
   test('Forgot password page loads', async ({ page }) => {
@@ -103,23 +105,38 @@ test.describe('Authenticated page smoke tests', () => {
     await expect(page.getByRole('heading', { name: /payment cancelled/i })).toBeVisible();
   });
 
-  test('Tasks page loads', async ({ page }) => {
-    await stabilizeAuthenticatedPlayer(page);
-    await visitAuthenticatedPage(page, '/tasks');
-    await expect(page.getByRole('heading', { name: 'Tasks', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /add task/i })).toBeVisible();
+  test('Planning mode (tasks) loads from the timer page', async ({ page }) => {
+    await stabilizeTimerPage(page, { unifiedHomepage: true });
+
+    try {
+      await page.goto('/timer');
+      const section = page.locator('section').filter({
+        has: page.getByRole('heading', { name: 'Activity timer' }),
+      });
+
+      // Blank start auto-labels "Planning" and opens Planning mode - the
+      // standalone /tasks page was folded in here. Start assigns and starts
+      // the activity in one atomic set_activity call (start: true) - wait
+      // for that single request before touching the tasks panel.
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
+        ),
+        section.getByRole('button', { name: 'Start' }).click(),
+      ]);
+      await expect(page.getByPlaceholder('New task name')).toBeVisible();
+      await expect(page.getByRole('button', { name: /add task/i })).toBeVisible();
+    } finally {
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
+    }
   });
 
-  test('Projects page loads', async ({ page }) => {
-    await visitAuthenticatedPage(page, '/projects');
-    await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /add project/i })).toBeVisible();
-  });
-
-  test('Activities page loads', async ({ page }) => {
-    await visitAuthenticatedPage(page, '/activities');
-    await expect(page.getByRole('heading', { name: 'Activities', exact: true })).toBeVisible();
-  });
+  // /projects has no route at all currently - ProjectsPanel exists as a
+  // component but isn't mounted anywhere in routesConfig.jsx.
+  //
+  // /activities was also folded into the timer page: see "Timer page loads"
+  // above (unified homepage) and unified-timer-home.spec.ts's flag-off
+  // regression guard (legacy CurrentActivity + ActivityTimeline view).
 
   test('Tutorial modal opens from the navbar', async ({ page }) => {
     await stabilizeTimerPage(page);

@@ -37,6 +37,7 @@ export default function UnifiedTimerHome() {
     setName,
     isActive,
     isPaused,
+    isWaiting,
     hasSession,
     canResume,
     isUnlabelled,
@@ -203,7 +204,7 @@ export default function UnifiedTimerHome() {
                 that day. */}
             <AnimatePresence mode="popLayout" initial={false}>
               {isPaused && canResume && (
-                <motion.div key="resume" layout {...fadeProps}>
+                <motion.div key="resume" {...fadeProps}>
                   <Button onClick={handleResume} variant="primary" className={styles.ctaButton}>
                     Resume
                   </Button>
@@ -223,7 +224,7 @@ export default function UnifiedTimerHome() {
 
             <AnimatePresence mode="popLayout" initial={false}>
               {isPaused && (
-                <motion.div key="discard" layout {...fadeProps}>
+                <motion.div key="discard" {...fadeProps}>
                   <Button onClick={handleDiscard} variant="ghost" className={styles.ctaButton}>
                     Discard
                   </Button>
@@ -233,7 +234,7 @@ export default function UnifiedTimerHome() {
 
             <AnimatePresence mode="popLayout" initial={false}>
               {hasSession && (
-                <motion.div key="timer" layout {...fadeProps} className={styles.timerPill}>
+                <motion.div key="timer" {...fadeProps} className={styles.timerPill}>
                   {formatDuration(elapsed)}
                 </motion.div>
               )}
@@ -295,7 +296,7 @@ export default function UnifiedTimerHome() {
           </motion.div>
         </motion.div>
 
-        {isActive && (
+        {hasSession && (
           <>
             {notesFeatureEnabled && mode === "doing" && (taskId !== null || activityCatalogId !== null) && (
               <TimerNoteField taskId={taskId} activityId={activityCatalogId} />

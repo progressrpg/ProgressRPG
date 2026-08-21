@@ -44,7 +44,11 @@ test.describe('Unified timer homepage (flag on)', () => {
 
       const labelButton = section.getByRole('button', { name: /Flow test activity/ });
       await expect(labelButton).toBeVisible();
-      await expect(section.getByRole('combobox')).toHaveCount(0);
+      // Scoped to the activity-name combobox specifically: Planning mode's
+      // own "New task name" combobox (TasksPanel) is still on the page at
+      // this point, so asserting on the whole section's combobox count would
+      // wrongly fail.
+      await expect(section.getByRole('combobox', { name: 'Activity name' })).toHaveCount(0);
 
       // Click-to-edit: re-opens the input pre-filled with the current label.
       await labelButton.click();
@@ -86,8 +90,15 @@ test.describe('Unified timer homepage (flag on)', () => {
       });
 
       // Blank start auto-labels "Planning" and opens Planning mode already —
-      // no extra click needed to get there.
-      await section.getByRole('button', { name: 'Start' }).click();
+      // no extra click needed to get there. Start assigns and starts the
+      // activity in one atomic set_activity call (start: true) - wait for
+      // that single request before touching the tasks panel.
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
+        ),
+        section.getByRole('button', { name: 'Start' }).click(),
+      ]);
       await expect(section.getByRole('button', { name: 'Stop' })).toBeVisible();
       await expect(page.getByRole('radio', { name: 'Planning' })).toHaveAttribute('aria-checked', 'true');
 
