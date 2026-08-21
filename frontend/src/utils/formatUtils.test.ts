@@ -2,11 +2,109 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatDueAt,
-  toDateInputValue,
-  toTimeInputValue,
+  formatDuration,
+  formatDurationShort,
+  formatPublishedAt,
+  formatRewardDuration,
   fromDateAndTimeInputValues,
   isOverdue,
+  pluralize,
+  toDateInputValue,
+  toTimeInputValue,
 } from "./formatUtils";
+
+describe("formatDuration", () => {
+  it("formats seconds under a minute as mm:ss", () => {
+    expect(formatDuration(5)).toBe("0:05");
+  });
+
+  it("formats minutes and seconds without a leading zero on minutes", () => {
+    expect(formatDuration(125)).toBe("2:05");
+  });
+
+  it("formats hours as h:mm:ss with padded minutes", () => {
+    expect(formatDuration(3665)).toBe("1:01:05");
+  });
+});
+
+describe("formatDurationShort", () => {
+  it("formats sub-minute durations as seconds", () => {
+    expect(formatDurationShort(45)).toBe("45s");
+  });
+
+  it("formats whole minutes without a seconds remainder", () => {
+    expect(formatDurationShort(120)).toBe("2m");
+  });
+
+  it("formats minutes with a seconds remainder", () => {
+    expect(formatDurationShort(125)).toBe("2m 5s");
+  });
+
+  it("formats whole hours without a minutes remainder", () => {
+    expect(formatDurationShort(7200)).toBe("2h");
+  });
+
+  it("formats hours with a minutes remainder", () => {
+    expect(formatDurationShort(7260)).toBe("2h 1m");
+  });
+});
+
+describe("pluralize", () => {
+  it("uses the singular form for a count of 1", () => {
+    expect(pluralize(1, "day")).toBe("day");
+  });
+
+  it("uses the default plural form (singular + s) for other counts", () => {
+    expect(pluralize(0, "day")).toBe("days");
+    expect(pluralize(3, "day")).toBe("days");
+  });
+
+  it("uses an explicit irregular plural when given", () => {
+    expect(pluralize(3, "child", "children")).toBe("children");
+  });
+});
+
+describe("formatRewardDuration", () => {
+  it("clamps negative durations to zero seconds", () => {
+    expect(formatRewardDuration(-5)).toBe("0 seconds");
+  });
+
+  it("formats a sub-minute duration in seconds, pluralizing correctly", () => {
+    expect(formatRewardDuration(1)).toBe("1 second");
+    expect(formatRewardDuration(45)).toBe("45 seconds");
+  });
+
+  it("formats minutes with a seconds remainder", () => {
+    expect(formatRewardDuration(90)).toBe("1 minute 30 seconds");
+  });
+
+  it("formats whole minutes without a seconds remainder", () => {
+    expect(formatRewardDuration(120)).toBe("2 minutes");
+  });
+
+  it("formats hours with a minutes remainder, dropping any seconds", () => {
+    expect(formatRewardDuration(3665)).toBe("1 hour 1 minute");
+  });
+
+  it("formats whole hours without a minutes remainder", () => {
+    expect(formatRewardDuration(7200)).toBe("2 hours");
+  });
+});
+
+describe("formatPublishedAt", () => {
+  it("returns null when publishedAt is null", () => {
+    expect(formatPublishedAt(null)).toBeNull();
+  });
+
+  it("returns null for an invalid date string", () => {
+    expect(formatPublishedAt("not-a-date")).toBeNull();
+  });
+
+  it("formats a valid ISO string as a date and time", () => {
+    const result = formatPublishedAt("2026-05-01T08:30:00.000Z");
+    expect(result).toMatch(/\d{1,2}.*2026.*\d{1,2}:\d{2}/);
+  });
+});
 
 describe("formatDueAt", () => {
   // Anchor "today" to a fixed, mid-week local date so day-diff buckets are deterministic.
@@ -83,6 +181,28 @@ describe("formatDueAt", () => {
   it("falls back to an absolute date beyond the month cap (future)", () => {
     // 200 days out from Wed 15 Jul 2026 is Sun 31 Jan 2027.
     expect(formatDueAt(atLocalMidnight(200))).toBe("Sun 31st Jan");
+  });
+
+  it("uses the 'th' ordinal suffix for the 11th-13th of the month", () => {
+    // Well beyond the 180-day month cutoff from Wed 15 Jul 2026, so this falls
+    // back to an absolute date.
+    const mar12 = new Date(2027, 2, 12, 9, 0, 0);
+    expect(formatDueAt(mar12.toISOString())).toBe("Fri 12th Mar");
+  });
+
+  it("uses the 'nd' ordinal suffix for the 2nd of the month", () => {
+    const mar2 = new Date(2027, 2, 2, 9, 0, 0);
+    expect(formatDueAt(mar2.toISOString())).toBe("Tue 2nd Mar");
+  });
+
+  it("uses the 'rd' ordinal suffix for the 3rd of the month", () => {
+    const mar3 = new Date(2027, 2, 3, 9, 0, 0);
+    expect(formatDueAt(mar3.toISOString())).toBe("Wed 3rd Mar");
+  });
+
+  it("uses the default 'th' ordinal suffix outside 1st/2nd/3rd/11th-13th", () => {
+    const mar15 = new Date(2027, 2, 15, 9, 0, 0);
+    expect(formatDueAt(mar15.toISOString())).toBe("Mon 15th Mar");
   });
 });
 

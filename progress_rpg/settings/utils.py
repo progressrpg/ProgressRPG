@@ -33,10 +33,24 @@ def get_dev_email_backend():
 
 
 def get_build_number():
+    render_commit = os.getenv("RENDER_GIT_COMMIT")
+    if render_commit:
+        return render_commit[:7]
+
     try:
+        import subprocess
+
         base = getattr(settings, "BASE_DIR", os.path.dirname(os.path.dirname(__file__)))
-        path = os.path.join(base, "BUILD_NUMBER")
-        with open(path, "r") as fh:
-            return int(fh.read().strip())
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=base,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
     except Exception:
-        return 0
+        pass
+
+    return "dev"

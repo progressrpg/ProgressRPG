@@ -19,6 +19,22 @@ export interface ActivityTimerApiData {
   last_updated: string;
   activity: PlayerActivity | null;
   player: number;
+  /**
+   * The session's declared duration in seconds, or null when unbounded.
+   * Authoritative: the server clamps it to the free-tier ceiling and
+   * completes the session when it runs out, so the client must not
+   * re-derive it from is_premium.
+   */
+  limit_seconds: number | null;
+  /** Why the limit is what it is — "free_limit", "preset_limit", or "". */
+  limit_reason: string;
+  /**
+   * Whether a paused session may still be resumed, decided server-side so
+   * the client doesn't reimplement the logical-day rule. False once the
+   * session's own day has passed: the banked time is still the player's to
+   * submit, but continuing it would credit today's work to that day.
+   */
+  can_resume: boolean;
 }
 
 /** Response from POST /activity_timers/complete/ */
@@ -93,6 +109,8 @@ export interface ActivityTimerReturn {
   duration: number;
   limitSeconds: number | null;
   limitReached: boolean;
+  /** Whether a paused session is still within its own logical day. */
+  canResume: boolean;
   autoStopCompletion: AutoStopCompletion | null;
   currentActivity: CurrentActivity | null;
   startActivity: (newActivity: StartActivityInput | string) => Promise<unknown>;
@@ -102,6 +120,14 @@ export interface ActivityTimerReturn {
    * not reset elapsed time or status.
    */
   labelActivity: (name: string, taskId?: number | null) => Promise<unknown>;
+  /**
+   * Continue a paused session from the time already banked on it. Only
+   * meaningful while `canResume` is true — past its own logical day the
+   * server refuses, since continuing would credit today's work to that day.
+   */
+  resume: () => Promise<unknown>;
+  /** Throw away a paused session's banked time without submitting it. */
+  discard: () => Promise<void>;
   stop: (opts?: {
     activityName?: string;
     elapsedSeconds?: number;

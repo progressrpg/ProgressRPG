@@ -1,9 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TamaguiProvider } from "tamagui";
 
 import { TooltipProvider } from "../Tooltip/Tooltip";
 import LogOfflineActivityModal from "./LogOfflineActivityModal";
+import tamaguiConfig from "../../../tamagui.config";
 
 const logMutate = vi.fn();
 const fetchPlayerAndCharacter = vi.fn();
@@ -37,11 +39,17 @@ vi.mock("../EntitySearchInput/EntitySearchInput", () => ({
   ),
 }));
 
+// LogOfflineActivityModal renders Modal (#582), which needs a
+// TamaguiProvider ancestor - unlike Radix's Dialog.Root, it isn't usable
+// standalone. The app root (src/main.tsx) provides this in production;
+// tests need their own.
 function renderModal(onClose = vi.fn()) {
   return render(
-    <TooltipProvider>
-      <LogOfflineActivityModal onClose={onClose} />
-    </TooltipProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <TooltipProvider>
+        <LogOfflineActivityModal onClose={onClose} />
+      </TooltipProvider>
+    </TamaguiProvider>
   );
 }
 
@@ -77,13 +85,15 @@ describe("LogOfflineActivityModal", () => {
     expect(payload.name).toBe("Write docs");
     expect(payload.started_at < payload.completed_at).toBe(true);
 
-    callbacks.onSuccess({
-      success: true,
-      message: "Activity logged",
-      activity: { name: "Write docs" },
-      xp_gained: 42,
-      xp_eligible_seconds: 1800,
-      level_ups: [],
+    act(() => {
+      callbacks.onSuccess({
+        success: true,
+        message: "Activity logged",
+        activity: { name: "Write docs" },
+        xp_gained: 42,
+        xp_eligible_seconds: 1800,
+        level_ups: [],
+      });
     });
 
     expect(await screen.findByText("+42 XP awarded")).toBeInTheDocument();
@@ -101,7 +111,9 @@ describe("LogOfflineActivityModal", () => {
     await waitFor(() => expect(logMutate).toHaveBeenCalledTimes(1));
     const [, callbacks] = logMutate.mock.calls[0];
 
-    callbacks.onError(new Error(JSON.stringify({ success: false, message: "Daily limit reached." })));
+    act(() => {
+      callbacks.onError(new Error(JSON.stringify({ success: false, message: "Daily limit reached." })));
+    });
 
     expect(await screen.findByText("Daily limit reached.")).toBeInTheDocument();
   });

@@ -1,7 +1,5 @@
 from datetime import timedelta
 
-from django.utils import timezone
-
 from users.models import UserLogin
 
 
@@ -14,18 +12,6 @@ LOGIN_STATE_STREAK_RESET = "streak_reset"
 LOGIN_REWARD_BASE_XP = 10
 LOGIN_REWARD_STREAK_STEP_XP = 2
 LOGIN_REWARD_MAX_XP = 20
-
-
-def _build_login_message(previous_login, today, streak):
-    if not previous_login:
-        return "Welcome! This is your first login, starting your streak."
-
-    previous_login_day = timezone.localtime(previous_login.timestamp).date()
-    if previous_login_day == today:
-        return "Welcome back! You logged in earlier today."
-    if previous_login_day == today - timedelta(days=1):
-        return f"Welcome back! Your login streak is now {streak} days."
-    return "Welcome back, we missed you! Your login streak has been reset."
 
 
 def get_login_state(user):
@@ -68,7 +54,7 @@ def get_login_state(user):
     if not previous_login:
         state = LOGIN_STATE_FIRST_LOGIN_EVER
     else:
-        previous_login_day = timezone.localtime(previous_login.timestamp).date()
+        previous_login_day = previous_login.local_date()
         latest_login_day = latest_login.local_date()
         if previous_login_day == latest_login_day - timedelta(days=1):
             state = LOGIN_STATE_STREAK_CONTINUES

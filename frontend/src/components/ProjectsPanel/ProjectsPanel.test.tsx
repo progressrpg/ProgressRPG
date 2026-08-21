@@ -1,8 +1,26 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render as rtlRender, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TamaguiProvider } from "tamagui";
 
 import ProjectsPanel from "./ProjectsPanel";
+import tamaguiConfig from "../../../tamagui.config";
+
+// ProjectsPanel renders Modal via PlayerItemList (#582), which needs a
+// TamaguiProvider ancestor - unlike Radix's Dialog.Root, it isn't usable
+// standalone. The app root (src/main.tsx) provides this in production;
+// tests need their own.
+function render(...args: Parameters<typeof rtlRender>) {
+  const [ui, options] = args;
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        {children}
+      </TamaguiProvider>
+    ),
+    ...options,
+  });
+}
 
 const mockUseProjects = vi.fn();
 const mockUseCreateProject = vi.fn();

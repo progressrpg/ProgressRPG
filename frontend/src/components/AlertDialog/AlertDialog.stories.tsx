@@ -4,15 +4,15 @@ import AlertDialog from './AlertDialog';
 
 /**
  * `AlertDialog` interrupts the user with a confirm/destructive prompt that
- * requires an explicit decision before continuing (Radix `AlertDialog`
- * under the hood). Use it in place of `window.confirm`. For non-blocking
- * informational overlays, use `Modal`.
+ * requires an explicit decision before continuing (Tamagui `AlertDialog`
+ * under the hood, #582). Use it in place of `window.confirm`. For
+ * non-blocking informational overlays, use `Modal`.
  */
 const meta: Meta<typeof AlertDialog> = {
   title: 'Shared/AlertDialog',
   component: AlertDialog,
   tags: ['autodocs'],
-  // AlertDialog renders via a Radix Portal into document.body. With inline
+  // AlertDialog renders via a Tamagui Portal into document.body. With inline
   // docs rendering that portal escapes the story canvas and covers the whole
   // docs page, so render each story in its own iframe instead.
   parameters: {
@@ -40,7 +40,7 @@ export const Destructive: Story = {
     confirmLabel: 'Delete',
   },
   play: async ({ canvasElement }) => {
-    // AlertDialog renders via a Radix Portal into document.body, outside the canvas.
+    // AlertDialog renders via a Tamagui Portal into document.body, outside the canvas.
     const body = within(canvasElement.ownerDocument.body);
     const dialog = await body.findByRole('alertdialog', { name: 'Delete this activity?' });
     await expect(dialog).toBeVisible();

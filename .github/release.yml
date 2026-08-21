@@ -7,11 +7,19 @@ changelog:
       - wontfix
       - triage
   categories:
-    - title: Features
+    - title: New
       labels:
         - feature
 
-    - title: Fixes and UX improvements
+    - title: Improvements
+      labels:
+        - documentation
+        - dependencies
+        - python
+        - javascript
+        - codex
+
+    - title: Fixes
       labels:
         - bug
         - known-issue
@@ -19,14 +27,6 @@ changelog:
         - "Severity: high"
         - "Severity: medium"
         - "Severity: low"
-
-    - title: Developer experience and quality
-      labels:
-        - documentation
-        - dependencies
-        - python
-        - javascript
-        - codex
 
     - title: Other changes
       labels:
@@ -36,14 +36,14 @@ change-template: "* $TITLE by @$AUTHOR in #$NUMBER"
 template: |
   ## Highlights
 
-  ### Features
+  ### New
   - Replace with a short human-written summary of the main feature changes in this release.
 
-  ### Fixes and UX improvements
-  - Replace with a short human-written summary of the most important fixes, polish, and behavior changes.
-
-  ### Developer experience and quality
+  ### Improvements
   - Replace with a short human-written summary of testing, tooling, deployment, and dependency updates.
+
+  ### Fixes
+  - Replace with a short human-written summary of the most important fixes, polish, and behavior changes.
 
   ## Full changelog
   <details>

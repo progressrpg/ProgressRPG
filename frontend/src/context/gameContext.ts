@@ -36,7 +36,7 @@ export interface GameContextValue {
   announcementUnreadCount: number;
   setAnnouncementUnreadCount: Dispatch<SetStateAction<number>>;
   loading: boolean;
-  buildNumber: string | boolean;
+  buildNumber: string;
   freeTimerLimitSeconds: number;
   gameSettings: GameSettings | null;
   /** Online player count as of the initial bootstrap fetch; frozen after load.

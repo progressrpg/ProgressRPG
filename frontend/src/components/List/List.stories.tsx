@@ -30,6 +30,7 @@ const meta: Meta<typeof List<DemoItem>> = {
   args: {
     items,
     ariaLabel: 'Names',
+    renderItem: (item) => item.name,
   },
 };
 

@@ -30,8 +30,7 @@ tnk:
 	docker compose exec web python manage.py test $(t) --buffer
 
 vt:
-	cd ./frontend
-	npm test
+	cd frontend && npm run test
 
 shell:
 	docker compose exec web python manage.py shell_plus

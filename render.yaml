@@ -14,7 +14,7 @@ projects:
               - fromGroup: Prod env
             region: frankfurt
             preDeployCommand: ./scripts/pre-deploy.sh
-            dockerCommand: daphne -b 0.0.0.0 -p $PORT progress_rpg.asgi:application
+            dockerCommand: daphne -b 0.0.0.0 -p $PORT --ping-interval 20 --ping-timeout 30 progress_rpg.asgi:application
             dockerContext: .
             dockerfilePath: ./Dockerfile
             autoDeployTrigger: commit

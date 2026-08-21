@@ -1,17 +1,33 @@
 import { expect, test } from '@playwright/test';
-import { stabilizeAuthenticatedPlayer } from '../utils/authenticatedPage';
+import { stabilizeTimerPage } from '../utils/authenticatedPage';
+import { timerUserStorageState } from '../../playwright/testUser';
 
 test.describe('Task flow', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+  test.use({ storageState: timerUserStorageState('tasks-projects') });
 
   test('can create and delete a task', async ({ page }) => {
     const taskName = `Flow test task ${Date.now()}`;
 
-    await stabilizeAuthenticatedPlayer(page);
+    await stabilizeTimerPage(page, { unifiedHomepage: true });
 
     try {
-      await page.goto('/tasks');
-      await expect(page.getByRole('heading', { name: 'Tasks', exact: true })).toBeVisible();
+      // The standalone /tasks page was folded into Planning mode on the
+      // unified timer homepage - blank start auto-labels "Planning" and
+      // opens it.
+      await page.goto('/timer');
+      const section = page.locator('section').filter({
+        has: page.getByRole('heading', { name: 'Activity timer' }),
+      });
+      // Start assigns and starts the activity in one atomic set_activity
+      // call (start: true) - wait for that single request before touching
+      // the tasks panel.
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
+        ),
+        section.getByRole('button', { name: 'Start' }).click(),
+      ]);
+      await expect(page.getByPlaceholder('New task name')).toBeVisible();
 
       await page.getByPlaceholder('New task name').fill(taskName);
       const [taskPostResponse] = await Promise.all([
@@ -35,35 +51,6 @@ test.describe('Task flow', () => {
   });
 });
 
-test.describe('Project flow', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
-
-  test('can create and delete a project', async ({ page }) => {
-    const projectName = `Flow test project ${Date.now()}`;
-
-    await stabilizeAuthenticatedPlayer(page);
-
-    try {
-      await page.goto('/projects');
-      await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
-
-      await page.getByPlaceholder('New project name').fill(projectName);
-      const [projectPostResponse] = await Promise.all([
-        page.waitForResponse(r => r.url().includes('/projects/') && r.request().method() === 'POST'),
-        page.getByRole('button', { name: /add project/i }).click(),
-      ]);
-      expect(projectPostResponse.status()).toBeLessThan(300);
-      await page.waitForResponse(r => r.url().includes('/projects/') && r.request().method() === 'GET');
-
-      const projectItem = page.locator('button', { hasText: projectName });
-      await expect(projectItem).toBeVisible({ timeout: 10000 });
-
-      await projectItem.click();
-      await page.getByRole('button', { name: 'Delete' }).click();
-      await page.getByRole('button', { name: 'Delete' }).last().click();
-      await expect(projectItem).not.toBeVisible();
-    } finally {
-      await page.unrouteAll({ behavior: 'ignoreErrors' });
-    }
-  });
-});
+// No "Project flow" here: /projects has no route at all currently -
+// ProjectsPanel exists as a component but isn't mounted anywhere in
+// routesConfig.jsx, so there's no live page for this suite to cover.

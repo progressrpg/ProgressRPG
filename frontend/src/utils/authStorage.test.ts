@@ -82,6 +82,32 @@ describe('authStorage', () => {
     expect(localStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
   });
 
+  it('treats corrupted JSON in the active storage as no session', () => {
+    localStorage.setItem(AUTH_SESSION_KEY, 'not-json{');
+
+    expect(getStoredAuthTokens()).toEqual({ accessToken: null, refreshToken: null });
+  });
+
+  it('treats a descriptor missing a token as no session', () => {
+    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({ accessToken: 'only-access' }));
+
+    expect(getStoredAuthTokens()).toEqual({ accessToken: null, refreshToken: null });
+  });
+
+  it('updates a remembered (localStorage) session with no sessionStorage descriptor', () => {
+    storeAuthTokens('old-access', 'refresh-token', true);
+
+    updateStoredAccessToken('new-access');
+
+    expect(readDescriptor(localStorage)?.accessToken).toBe('new-access');
+  });
+
+  it('is a no-op when neither storage has a descriptor to update', () => {
+    expect(() => updateStoredAccessToken('new-access')).not.toThrow();
+    expect(readDescriptor(localStorage)).toBeNull();
+    expect(readDescriptor(sessionStorage)).toBeNull();
+  });
+
   it('updates the access token in sessionStorage rather than a stale localStorage bundle', () => {
     storeAuthTokens('other-tab-access', 'other-tab-refresh', true);
     storeAuthTokens('this-tab-access', 'this-tab-refresh', false);

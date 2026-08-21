@@ -14,11 +14,11 @@ import { useAuth } from './context/AuthContext';
 import { useGame } from './hooks/useGame';
 import { apiFetch } from './utils/api';
 
-const announcement = `Progress RPG is in alpha status, and under active development. Bugs may appear, and data may be lost. Thank you for testing!`;
+const announcement = `Progress RPG is in active development. Please report any issues you encounter. Your feedback is valuable!`;
 
 export default function AppContent(): React.ReactElement {
   const { isAuthenticated } = useAuth();
-  const { player, fetchPlayerAndCharacter } = useGame();
+  const { player, buildNumber, fetchPlayerAndCharacter } = useGame();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Tracks whether the user has explicitly dismissed the tutorial this session.
@@ -58,7 +58,11 @@ export default function AppContent(): React.ReactElement {
         onHelpClick={() => { setTutorialDismissed(false); setTutorialForced(true); }}
       />
       <NavDrawer drawerOpen={drawerOpen} onClose={() => setDrawerOpen(false)}/>
-      {!hideBanner && <StaticBanner message={`${announcement}`} />}
+      {!hideBanner && (
+        <StaticBanner
+          message={buildNumber ? `${announcement} (Build: ${buildNumber})` : announcement}
+        />
+      )}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <AppRoutes />
       </main>

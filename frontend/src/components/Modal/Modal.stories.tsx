@@ -4,10 +4,10 @@ import Modal from './Modal';
 import Button from '../Button/Button';
 
 /**
- * `Modal` is an always-open Radix `Dialog` intended to be conditionally
- * mounted by the parent (mount when shown, unmount on `onClose`). Use it for
- * informational overlays; for confirm/destructive prompts use `AlertDialog`
- * instead.
+ * `Modal` is an always-open Tamagui `Dialog` (#582) intended to be
+ * conditionally mounted by the parent (mount when shown, unmount on
+ * `onClose`). Use it for informational overlays; for confirm/destructive
+ * prompts use `AlertDialog` instead.
  */
 const meta: Meta<typeof Modal> = {
   title: 'Shared/Modal',
@@ -24,7 +24,7 @@ type Story = StoryObj<typeof Modal>;
 
 export const Default: Story = {
   play: async ({ canvasElement }) => {
-    // Modal renders via a Radix Portal into document.body, outside the canvas.
+    // Modal renders via a Tamagui Portal into document.body, outside the canvas.
     const body = within(canvasElement.ownerDocument.body);
     const dialog = await body.findByRole('dialog', { name: 'Modal title' });
     await expect(dialog).toBeVisible();

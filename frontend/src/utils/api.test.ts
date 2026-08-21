@@ -43,6 +43,43 @@ describe("getValidAccessToken", () => {
     expect(getStoredAuthTokens().accessToken).toBe("new-access-token");
   });
 
+  it("logs the user out and throws when no tokens are stored at all", async () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    const unauthorizedHandler = vi.fn();
+    setUnauthorizedHandler(unauthorizedHandler);
+
+    await expect(getValidAccessToken()).rejects.toThrow("Missing tokens");
+
+    expect(unauthorizedHandler).toHaveBeenCalled();
+  });
+
+  it("returns the stored access token without refreshing when it is not expiring soon", async () => {
+    storeAuthTokens("fresh-token", "refresh-token", true);
+    (jwtDecode as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      exp: Date.now() / 1000 + 3600, // an hour from now
+    });
+
+    const token = await getValidAccessToken();
+
+    expect(token).toBe("fresh-token");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("treats a token that fails to decode as expiring soon and refreshes it", async () => {
+    (jwtDecode as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new Error("malformed token");
+    });
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ access_token: "refreshed-token" }),
+    });
+
+    const token = await getValidAccessToken();
+
+    expect(token).toBe("refreshed-token");
+  });
+
   it("logs the user out when the refresh response is missing access_token", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
@@ -80,6 +117,22 @@ describe("apiFetch", () => {
 
     expect(result).toEqual({ ok: true });
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to getValidAccessToken when no explicit access token is given", async () => {
+    storeAuthTokens("stored-access", "stored-refresh", true);
+    (jwtDecode as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      exp: Date.now() / 1000 + 3600,
+    });
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(okResponse);
+
+    await apiFetch("/me/", {});
+
+    const [, requestInit] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(requestInit.headers.Authorization).toBe("Bearer stored-access");
+
+    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it("recovers after one transient network error", async () => {
@@ -182,6 +235,60 @@ describe("apiFetch", () => {
     } satisfies Partial<ApiFetchError>);
 
     expect(maintenanceHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws with the response body text on a non-ok, non-401/503 response", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "Internal Server Error",
+    });
+
+    await expect(apiFetch("/me/", {}, "test-token")).rejects.toThrow("Internal Server Error");
+  });
+
+  it("falls back to a generic message when the error response has no body text", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "",
+    });
+
+    await expect(apiFetch("/me/", {}, "test-token")).rejects.toThrow("API error");
+  });
+
+  it("returns a Blob when responseType is blob", async () => {
+    const blob = new Blob(["data"]);
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      blob: async () => blob,
+    });
+
+    const result = await apiFetch("/export/", { responseType: "blob" }, "test-token");
+
+    expect(result).toBe(blob);
+  });
+
+  it("returns text when responseType is text", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => "raw text",
+    });
+
+    const result = await apiFetch("/export/", { responseType: "text" }, "test-token");
+
+    expect(result).toBe("raw text");
+  });
+
+  it("returns the raw Response when responseType is raw", async () => {
+    const rawResponse = { ok: true, status: 200 };
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(rawResponse);
+
+    const result = await apiFetch("/export/", { responseType: "raw" }, "test-token");
+
+    expect(result).toBe(rawResponse);
   });
 
   describe("skipAuth", () => {

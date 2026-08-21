@@ -5,6 +5,11 @@ import classNames from "classnames";
 import { useEntitySearchInput, type SearchEntity } from "./useEntitySearchInput";
 import styles from "./EntitySearchInput.module.scss";
 
+// Stable per-option id so the combobox can point aria-activedescendant at
+// whichever option Arrow keys move focus to, without moving DOM focus off
+// the input itself.
+const optionId = (type: string, index: number) => `${type}-entity-search-option-${index}`;
+
 interface EntitySearchInputProps {
   type: "activity" | "task";
   value: string;
@@ -113,19 +118,29 @@ export default function EntitySearchInput({
   const renderOption = (entity: SearchEntity, index: number) => {
     const isHighlighted = index === activeHighlightedIndex;
     return (
-      <li key={`${entity.id}-${entity.name}`} className={styles.optionItem}>
-        <button
-          type="button"
-          role="option"
-          aria-selected={isHighlighted}
+      // role="option" lives on the <li> itself, not a nested button: a
+      // listbox's immediate children must carry the option role directly
+      // (axe's aria-required-children), so an <option> role one level
+      // deeper (on a button inside the <li>) doesn't satisfy it. The click
+      // handlers live here too, not on the inner div - a click landing on
+      // the <li> (e.g. via its accessible role/name, or padding around the
+      // text) wouldn't bubble down into a descendant's onClick.
+      <li
+        key={`${entity.id}-${entity.name}`}
+        id={optionId(type, index)}
+        role="option"
+        aria-selected={isHighlighted}
+        className={styles.optionItem}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => commitSelection(entity)}
+      >
+        <div
           className={classNames(styles.optionButton, {
             [styles.optionButtonActive]: isHighlighted,
           })}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => commitSelection(entity)}
         >
           {entity.name}
-        </button>
+        </div>
       </li>
     );
   };
@@ -154,6 +169,11 @@ export default function EntitySearchInput({
         aria-autocomplete={canSearch ? "list" : "none"}
         aria-expanded={isDropdownOpen}
         aria-controls={isDropdownOpen ? `${type}-entity-search-results` : undefined}
+        aria-activedescendant={
+          isDropdownOpen && activeHighlightedIndex >= 0
+            ? optionId(type, activeHighlightedIndex)
+            : undefined
+        }
         className={classNames(styles.input, inputClassName)}
         disabled={disabled}
       />

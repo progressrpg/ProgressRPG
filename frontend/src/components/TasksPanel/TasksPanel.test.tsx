@@ -2,15 +2,23 @@ import type { ComponentProps } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TamaguiProvider } from "tamagui";
 
 import { TooltipProvider } from "../Tooltip/Tooltip";
 import TasksPanel from "./TasksPanel";
+import tamaguiConfig from "../../../tamagui.config";
 
+// TasksPanel renders Modal via PlayerItemList (#582), which needs a
+// TamaguiProvider ancestor - unlike Radix's Dialog.Root, it isn't usable
+// standalone. The app root (src/main.tsx) provides this in production;
+// tests need their own.
 function renderTasksPanel(props: ComponentProps<typeof TasksPanel> = {}) {
   return render(
-    <TooltipProvider>
-      <TasksPanel {...props} />
-    </TooltipProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <TooltipProvider>
+        <TasksPanel {...props} />
+      </TooltipProvider>
+    </TamaguiProvider>
   );
 }
 
@@ -403,9 +411,11 @@ describe("TasksPanel", () => {
         data: [parentTask, newSubtask],
       });
       rerender(
-        <TooltipProvider>
-          <TasksPanel />
-        </TooltipProvider>,
+        <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+          <TooltipProvider>
+            <TasksPanel />
+          </TooltipProvider>
+        </TamaguiProvider>,
       );
 
       const reopenedDialog = await screen.findByRole("dialog");

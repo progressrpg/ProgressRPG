@@ -24,18 +24,26 @@ from progression.services import (
     log_offline_activity,
 )
 
+from progression.day_boundaries import (
+    current_logical_date,
+    logical_date_for,
+    logical_day_bounds,
+)
 from users.tests import user_factory
 
 
-def past_local_day_start(days_ago: int = 1):
-    """Return a timezone-aware midnight for a past local calendar day.
+def past_logical_day_start(player, days_ago: int = 1):
+    """Return the start instant of a past *logical* day for `player`.
 
-    Using fixed local-day anchors keeps daily-cap tests deterministic even
-    when run near midnight or under different CI timezones.
+    Anchoring on the logical day rather than local midnight is what keeps
+    the daily-cap tests deterministic: with a day_start_time cutoff, local
+    midnight belongs to the previous logical day, so a run anchored there
+    would spill its later hours into the next day's ledger and never hit
+    the cap under test.
     """
-    tz = timezone.get_current_timezone()
-    day = timezone.localdate() - timedelta(days=days_ago)
-    return timezone.make_aware(datetime.combine(day, time.min), tz)
+    day = current_logical_date(player) - timedelta(days=days_ago)
+    start, _end = logical_day_bounds(player, day)
+    return start
 
 
 class OfflineLoggingTestBase(TestCase):
@@ -115,7 +123,7 @@ class LogOfflineActivityServiceTests(OfflineLoggingTestBase):
 
     def test_daily_duration_cap_enforced_regardless_of_tier(self):
         self.grant_premium()
-        base = past_local_day_start()
+        base = past_logical_day_start(self.player)
 
         log_offline_activity(
             self.player,
@@ -134,7 +142,7 @@ class LogOfflineActivityServiceTests(OfflineLoggingTestBase):
 
     def test_daily_xp_eligible_cap_limits_premium_xp_not_duration(self):
         self.grant_premium()
-        base = past_local_day_start()
+        base = past_logical_day_start(self.player)
 
         first = log_offline_activity(
             self.player,
@@ -157,7 +165,7 @@ class LogOfflineActivityServiceTests(OfflineLoggingTestBase):
         self.assertEqual(second.activity.duration, 3 * 3600)
 
         ledger = OfflineActivityLedger.objects.get(
-            player=self.player, date=timezone.localdate(base)
+            player=self.player, date=logical_date_for(self.player, base)
         )
         self.assertEqual(
             ledger.xp_eligible_seconds, OFFLINE_DAILY_XP_ELIGIBLE_CAP_SECONDS
@@ -264,7 +272,7 @@ class LogOfflineActivityServiceTests(OfflineLoggingTestBase):
 
         self.assertTrue(
             DailyGoalAward.objects.filter(
-                player=self.player, date=timezone.localdate()
+                player=self.player, date=current_logical_date(self.player)
             ).exists()
         )
 
@@ -319,7 +327,7 @@ class PlayerActivityLogOfflineApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_exceeding_daily_cap_returns_400(self):
-        base = past_local_day_start()
+        base = past_logical_day_start(self.player)
         self._log(
             name="First",
             started_at=base.isoformat(),

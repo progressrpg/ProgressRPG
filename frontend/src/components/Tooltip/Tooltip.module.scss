@@ -31,30 +31,37 @@
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
   font-size: 0.875rem;
   line-height: 1.4;
-  transform-origin: var(--radix-tooltip-content-transform-origin);
+  // Tamagui sets transform-origin inline itself (computed from the actual
+  // flip/shift middleware result), unlike Radix's CSS-var handoff.
   animation-duration: v.$duration-fast;
   animation-timing-function: v.$easing-standard;
   animation-fill-mode: both;
 
-  &[data-side='top'] {
+  // Tamagui's `data-placement` is the full placement ("top", "top-start",
+  // "bottom-end", ...), not just the side Radix's `data-side` gave us -
+  // prefix-match to key the slide direction off the side alone.
+  &[data-placement^='top'] {
     animation-name: tooltip-slide-up;
   }
 
-  &[data-side='bottom'] {
+  &[data-placement^='bottom'] {
     animation-name: tooltip-slide-down;
   }
 
-  &[data-side='left'] {
+  &[data-placement^='left'] {
     animation-name: tooltip-slide-left;
   }
 
-  &[data-side='right'] {
+  &[data-placement^='right'] {
     animation-name: tooltip-slide-right;
   }
 }
 
 .arrow {
-  fill: rgba(c.$color-bg-invert, 0.96);
+  // Tamagui's Arrow is a rotated box (border/background), not an SVG
+  // polygon like Radix's - background-color is what actually paints it.
+  background-color: rgba(c.$color-bg-invert, 0.96);
+  border-width: 0;
 }
 
 @keyframes tooltip-slide-up {

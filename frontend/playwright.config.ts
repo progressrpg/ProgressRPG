@@ -15,7 +15,13 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 1,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  // Locally, cap workers rather than leaving Playwright's CPU-based auto
+  // default (often 8+): every project (chromium/firefox/webkit/a11y) shares
+  // one single-process Daphne dev backend (compose.yaml), and too many
+  // concurrent browser contexts saturate it, surfacing as scattered,
+  // feature-agnostic flakiness across unrelated specs (fail-then-pass on
+  // retry) rather than any one test's bug.
+  workers: process.env.CI ? 1 : 4,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
 

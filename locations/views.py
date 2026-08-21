@@ -90,6 +90,7 @@ class PopulationCentreMapView(APIView):
             .select_related("from_node", "to_node")
             .only(
                 "id",
+                "geom",
                 "from_node__location",
                 "to_node__location",
             )
@@ -240,7 +241,7 @@ class MapViewportView(APIView):
         paths = (
             Path.objects.filter(geom__isnull=False, geom__bboverlaps=bbox)
             .select_related("from_node", "to_node")
-            .only("id", "from_node__location", "to_node__location")
+            .only("id", "geom", "from_node__location", "to_node__location")
         )
         roads = Road.objects.filter(geom__bboverlaps=bbox)
         characters = (

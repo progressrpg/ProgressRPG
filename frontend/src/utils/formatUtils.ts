@@ -122,6 +122,23 @@ export function formatDueAt(dueAt: string | null): string {
   return `${weekday} ${day}${ordinalSuffix(day)} ${month}`;
 }
 
+export function formatPublishedAt(publishedAt: string | null): string | null {
+  if (!publishedAt) return null;
+  const date = new Date(publishedAt);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const datePart = date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const timePart = date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${datePart}, ${timePart}`;
+}
+
 // Sentinel time used to represent "date set, no time set" — see fromDateAndTimeInputValues.
 const END_OF_DAY_TIME = "23:59";
 

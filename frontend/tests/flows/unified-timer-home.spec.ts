@@ -1,12 +1,19 @@
 import { expect, test } from '@playwright/test';
 import { stabilizeTimerPage } from '../utils/authenticatedPage';
+import { timerUserStorageState } from '../../playwright/testUser';
+
+// Every test in this file — in both describe blocks below — drives the same
+// seeded test user's single activity timer against the real backend.
+// test.describe.configure({ mode: 'serial' }) only orders tests *within* the
+// describe block it's called in, so a per-block serial flag here wouldn't
+// stop the two blocks from being scheduled concurrently under
+// fullyParallel: true. Setting it at file scope (Playwright's documented
+// pattern for cross-describe ordering) forces every test in the file to run
+// serially in declaration order instead.
+test.describe.configure({ mode: 'serial' });
 
 test.describe('Unified timer homepage (flag on)', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
-  // Both tests below drive the same seeded test user's single activity timer
-  // against the real backend — running them concurrently races Start/Stop
-  // calls against each other, so force this suite to run serially.
-  test.describe.configure({ mode: 'serial' });
+  test.use({ storageState: timerUserStorageState('unified-timer-home') });
 
   test('blank start, label, click-to-edit, and stop happy path', async ({ page }) => {
     await stabilizeTimerPage(page, { unifiedHomepage: true });
@@ -44,7 +51,11 @@ test.describe('Unified timer homepage (flag on)', () => {
 
       const labelButton = section.getByRole('button', { name: /Flow test activity/ });
       await expect(labelButton).toBeVisible();
-      await expect(section.getByRole('combobox')).toHaveCount(0);
+      // Scoped to the activity-name combobox specifically: Planning mode's
+      // own "New task name" combobox (TasksPanel) is still on the page at
+      // this point, so asserting on the whole section's combobox count would
+      // wrongly fail.
+      await expect(section.getByRole('combobox', { name: 'Activity name' })).toHaveCount(0);
 
       // Click-to-edit: re-opens the input pre-filled with the current label.
       await labelButton.click();
@@ -86,8 +97,15 @@ test.describe('Unified timer homepage (flag on)', () => {
       });
 
       // Blank start auto-labels "Planning" and opens Planning mode already —
-      // no extra click needed to get there.
-      await section.getByRole('button', { name: 'Start' }).click();
+      // no extra click needed to get there. Start assigns and starts the
+      // activity in one atomic set_activity call (start: true) - wait for
+      // that single request before touching the tasks panel.
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
+        ),
+        section.getByRole('button', { name: 'Start' }).click(),
+      ]);
       await expect(section.getByRole('button', { name: 'Stop' })).toBeVisible();
       await expect(page.getByRole('radio', { name: 'Planning' })).toHaveAttribute('aria-checked', 'true');
 
@@ -146,7 +164,17 @@ test.describe('Unified timer homepage (flag on)', () => {
         has: page.getByRole('heading', { name: 'Activity timer' }),
       });
 
-      await section.getByRole('button', { name: 'Start' }).click();
+      // Start assigns and starts the activity in one atomic set_activity
+      // call (start: true) - wait for that request to resolve before
+      // stopping, otherwise Stop can race the in-flight start on the
+      // backend (nothing active to stop yet) and never open the reward
+      // dialog.
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
+        ),
+        section.getByRole('button', { name: 'Start' }).click(),
+      ]);
       await section.getByRole('button', { name: 'Stop' }).click();
 
       const dialog = page.getByRole('dialog', { name: 'Activity complete!' });
@@ -161,7 +189,7 @@ test.describe('Unified timer homepage (flag on)', () => {
 });
 
 test.describe('Unified timer homepage (flag off regression guard)', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+  test.use({ storageState: timerUserStorageState('unified-timer-home') });
 
   test('renders the legacy timer + activity feed unchanged', async ({ page }) => {
     await stabilizeTimerPage(page, { unifiedHomepage: false });

@@ -49,6 +49,8 @@ npm run build:production # Production build
 
 Accessibility component patterns and a11y-specific test commands: `frontend/docs/ACCESSIBILITY.md`.
 
+**Test runs — individual only:** Claude may run individual/scoped test units (a single spec file, a single test via `-g`/`--project`, a single Vitest file or `-t` filter) to verify a change. Claude must NOT run the full Vitest suite or the full Playwright suite — prompt the user to run those themselves instead.
+
 ### Code Quality
 
 Pre-commit hooks run Black, trailing-whitespace, and YAML checks on commit.
@@ -83,4 +85,4 @@ When producing an implementation plan (plan mode, or any "planning only, don't i
 
 **Exception:** base a feature-branch PR on `staging` instead of `development` when the user says to — typically because their local dev tools are blocked (e.g. by Freedom) or the change can only be verified in a live/staging-like environment. Acknowledge the stated reason and use `staging` for that PR. This is a user call, not something to infer from the working environment (e.g. a Claude Code cloud/remote session lacking Docker is not by itself a reason to target `staging`). Otherwise, base feature-branch PRs on `development` as usual.
 
-**Templates:** when creating a `development` → `staging` or `staging` → `main` PR, use the matching file in `.github/PULL_REQUEST_TEMPLATE/` (`development-to-staging.md` / `staging-to-main.md`) via `gh pr create -T <file>`, and fill in its UVI (user-visible improvement) bullets — non-technical, one line per user-facing change, grouped into Features / Fixes and UX improvements / Developer experience and quality (matching `.github/release.yml`'s categories). `development` → `staging` UVIs are written to be copy-pasted straight into the next `staging` → `main` release PR, so phrase them for that reuse up front rather than leaving them for later.
+**Templates:** when creating a `development` → `staging` or `staging` → `main` PR, use the matching file in `.github/PULL_REQUEST_TEMPLATE/` (`development-to-staging.md` / `staging-to-main.md`) via `gh pr create -T <file>`, and fill in its UVI (user-visible improvement) bullets — non-technical, one line per user-facing change, grouped into New / Improvements / Fixes (matching `.github/release.yml`'s categories). `development` → `staging` UVIs are written to be copy-pasted straight into the next `staging` → `main` release PR, so phrase them for that reuse up front rather than leaving them for later.
