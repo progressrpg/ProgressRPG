@@ -29,22 +29,24 @@ npm run test:coverage
 
 ### Running Playwright tests
 
-Playwright uses a dedicated backend user instead of a personal account. From the `frontend/` directory:
+Playwright uses dedicated backend users instead of a personal account — every spec file that touches the activity timer gets its own user (see `playwright/testUser.ts`'s `TEST_USERS`), since the timer is a `OneToOneField` per player broadcast over one WebSocket channel, and sharing a user across concurrently-run spec files would race Start/Stop/label calls against each other. From the `frontend/` directory:
 
 ```bash
-# Create or reset the dedicated E2E account
-npm run test:e2e:setup-user
+# Create or reset all dedicated E2E accounts (one per timer-touching spec file)
+npm run test:e2e:setup-users
 
 # Run the browser tests
 npm run test:e2e
 ```
 
-The default test credentials are:
+The base test credentials are:
 
 - Email: `playwright@example.com`
 - Password: `correcthorsebatterystaple`
 
-The setup script runs through `docker compose` so it matches the backend test environment. You can override the defaults with `PLAYWRIGHT_TEST_EMAIL`, `PLAYWRIGHT_TEST_PASSWORD`, `PLAYWRIGHT_TEST_PLAYER_NAME`, `PLAYWRIGHT_TEST_CHARACTER_FIRST_NAME`, and `PLAYWRIGHT_TEST_CHARACTER_LAST_NAME` before running the setup command and Playwright.
+Each spec-specific user is derived from the base email via plus-addressing (e.g. `playwright+timer@example.com`) and shares the base password. `npm run test:e2e:setup-user` (singular) still exists to seed just the base account if you need it directly.
+
+The setup scripts run through `docker compose` so they match the backend test environment. You can override the defaults with `PLAYWRIGHT_TEST_EMAIL`, `PLAYWRIGHT_TEST_PASSWORD`, `PLAYWRIGHT_TEST_PLAYER_NAME`, `PLAYWRIGHT_TEST_CHARACTER_FIRST_NAME`, and `PLAYWRIGHT_TEST_CHARACTER_LAST_NAME` before running setup and Playwright.
 
 ### Writing Tests
 

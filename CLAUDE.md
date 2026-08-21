@@ -49,6 +49,8 @@ npm run build:production # Production build
 
 Accessibility component patterns and a11y-specific test commands: `frontend/docs/ACCESSIBILITY.md`.
 
+**Test runs — individual only:** Claude may run individual/scoped test units (a single spec file, a single test via `-g`/`--project`, a single Vitest file or `-t` filter) to verify a change. Claude must NOT run the full Vitest suite or the full Playwright suite — prompt the user to run those themselves instead.
+
 ### Code Quality
 
 Pre-commit hooks run Black, trailing-whitespace, and YAML checks on commit.

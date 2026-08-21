@@ -265,9 +265,18 @@ export function useActivityInput() {
   // at all", which a paused one still is. Treating a paused session as no
   // session is what made pausing destructive: the next start would call
   // set_activity and wipe the banked time.
+  //
+  // "waiting" is the backend's real, load-bearing state between set_activity
+  // (assigns the activity) and start (starts the clock) - two separate API
+  // calls made back-to-back by a single Start click. A WebSocket push can
+  // report "waiting" in the gap between them. Without this branch, hasSession
+  // briefly went false and the UI reverted to the pre-Start screen, which
+  // could swallow a click made during that window (e.g. on Planning mode's
+  // "Add task" button).
   const isActive = status === "active";
   const isPaused = status === "paused";
-  const hasSession = isActive || isPaused;
+  const isWaiting = status === "waiting";
+  const hasSession = isActive || isPaused || isWaiting;
   // While actively editing (click-to-edit), `name` is the single source of
   // truth — including when the user has deleted it down to "". Falling back
   // to `currentActivity?.name` unconditionally here meant selecting all text
@@ -596,6 +605,7 @@ export function useActivityInput() {
     setName,
     isActive,
     isPaused,
+    isWaiting,
     hasSession,
     canResume,
     isUnlabelled,

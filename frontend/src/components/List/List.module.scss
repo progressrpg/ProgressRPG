@@ -52,6 +52,7 @@
 .listItem.tonePlayer:not(.selected) {
   //border-color: rgba(c.$color-player, 0.45);
   background: rgba(c.$color-player, 0.08);
+  --item-meta-color: #{c.$color-text-muted-strong};
 }
 
 .listItem.toneCharacter:not(.selected) {

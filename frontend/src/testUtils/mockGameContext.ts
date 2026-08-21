@@ -52,7 +52,7 @@ export const mockGameContextValue: GameContextValue = {
   announcementUnreadCount: 0,
   setAnnouncementUnreadCount: () => {},
   loading: false,
-  buildNumber: false,
+  buildNumber: "",
   freeTimerLimitSeconds: 1800,
   gameSettings: null,
   initialOnlineCount: 0,

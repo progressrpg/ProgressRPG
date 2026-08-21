@@ -113,10 +113,13 @@
 .emptyMessage {
   margin: sp.$spacing-xs 0 0;
   padding: sp.$spacing-sm sp.$padding-base;
-  // color-text-muted (not a translucent color-text-body): the latter's
-  // ~60%-opacity #808080-on-white only reaches a 3.94 contrast ratio,
-  // under WCAG AA's 4.5:1 minimum for normal-weight body text.
-  color: c.$color-text-muted;
+  // color-text-muted-strong (not color-text-muted): this message can sit on
+  // tinted panel backgrounds (e.g. UnifiedTimerHome's rgba($color-player,
+  // 0.14) wrapper, #dbece2), where color-text-muted's #707070 only reaches
+  // 4.03:1 - under WCAG AA's 4.5:1 minimum for normal-weight body text.
+  // color-text-muted-strong's #4d4d4d clears 6.9:1 there and stays well
+  // above 4.5:1 on plain backgrounds too.
+  color: c.$color-text-muted-strong;
   box-sizing: border-box;
   min-height: var(--entity-search-persistent-min-height, auto);
   @include t.apply-text-style(t.$text-body);

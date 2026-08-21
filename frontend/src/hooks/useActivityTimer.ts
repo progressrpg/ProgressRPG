@@ -136,7 +136,11 @@ export default function useActivityTimer(): ActivityTimerReturn {
     timerRef.current = setInterval(tickMain, 1000);
 
     try {
-      // 1) Tell server what the activity is
+      // Assign the activity and start the clock in one round-trip: this is
+      // a single user action ("press Start"), and sending `start: true`
+      // lets the server land directly on "active" instead of a separate
+      // start() call bracketed by its own broadcast of the intermediate
+      // "waiting" state - a state the client here never needed to see.
       const setData = await apiFetch<{ activity_timer?: { activity?: CurrentActivity } }>(`/activity_timers/set_activity/`, {
         method: "POST",
         body: JSON.stringify({
@@ -147,26 +151,21 @@ export default function useActivityTimer(): ActivityTimerReturn {
           // it clamps this to the free-tier ceiling for non-premium players.
           limitSeconds: resolvedLimit,
           limitReason: autoStopReasonRef.current,
+          start: true,
         }),
       });
 
-      //console.log("setData:", setData);
       // If server returns canonical activity object, store it
       // But don't update status yet - keep optimistic "active" state
       const serverActivity = setData?.activity_timer?.activity;
       if (serverActivity) setCurrentActivity({ taskId, ...serverActivity });
-
-      // 2) Tell server to start timing
-      const startData = await apiFetch(`/activity_timers/start/`, {
-        method: "POST",
-      });
 
       playActivityStartedSound();
 
       // Don't load from server here - keep optimistic state to avoid flicker
       // The timer is already running locally and will sync on next reload
 
-      return startData;
+      return setData;
     } catch (err) {
       console.error("Failed to start activity:", err);
 

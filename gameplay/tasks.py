@@ -197,10 +197,11 @@ def complete_expired_bounded_timers():
         .exclude(limit_seconds=0)
     )
     for timer in bounded_timers:
-        if not timer.limit_reached():
+        limit_seconds = timer.limit_seconds
+        if limit_seconds is None or not timer.limit_reached():
             continue
 
-        timer.elapsed_time = timer.limit_seconds
+        timer.elapsed_time = limit_seconds
         timer.start_time = None
         timer.save(update_fields=["elapsed_time", "start_time"])
 

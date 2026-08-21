@@ -4,13 +4,15 @@ import { expect, within } from 'storybook/test';
 import Footer from './Footer';
 import { AuthContext } from '../../context/authContext';
 import { mockAuthContextValue } from '../../testUtils/mockAuthContext';
+import { withGameContext } from '../../../.storybook/decorators/withGameContext';
 
 /**
- * `Footer` reads `useAuth()` only, to gate the "Admin Panel" link behind a
- * staff user. Wrapped in `MemoryRouter` since its internal links use
- * `react-router`'s `Link` - mounted once at the meta level (Storybook
- * composes story-level decorators with meta-level ones rather than
- * replacing them, so a per-story Router here too would double-nest it).
+ * `Footer` reads `useAuth()` to gate the "Admin Panel" link behind a staff
+ * user, and `useGame()` for the build number line. Wrapped in `MemoryRouter`
+ * since its internal links use `react-router`'s `Link` - mounted once at
+ * the meta level (Storybook composes story-level decorators with meta-level
+ * ones rather than replacing them, so a per-story Router here too would
+ * double-nest it).
  */
 function withAuth(overrides: Parameters<typeof mockAuthContextValue>[0] = {}) {
   return (Story: () => React.ReactElement) => (
@@ -31,6 +33,7 @@ const meta: Meta<typeof Footer> = {
       </MemoryRouter>
     ),
     withAuth(),
+    withGameContext,
   ],
 };
 
