@@ -158,7 +158,17 @@ test.describe('Unified timer homepage (flag on)', () => {
         has: page.getByRole('heading', { name: 'Activity timer' }),
       });
 
-      await section.getByRole('button', { name: 'Start' }).click();
+      // Start assigns and starts the activity in one atomic set_activity
+      // call (start: true) - wait for that request to resolve before
+      // stopping, otherwise Stop can race the in-flight start on the
+      // backend (nothing active to stop yet) and never open the reward
+      // dialog.
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
+        ),
+        section.getByRole('button', { name: 'Start' }).click(),
+      ]);
       await section.getByRole('button', { name: 'Stop' }).click();
 
       const dialog = page.getByRole('dialog', { name: 'Activity complete!' });
