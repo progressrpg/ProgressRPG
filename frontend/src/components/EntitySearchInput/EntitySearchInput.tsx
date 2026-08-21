@@ -5,6 +5,11 @@ import classNames from "classnames";
 import { useEntitySearchInput, type SearchEntity } from "./useEntitySearchInput";
 import styles from "./EntitySearchInput.module.scss";
 
+// Stable per-option id so the combobox can point aria-activedescendant at
+// whichever option Arrow keys move focus to, without moving DOM focus off
+// the input itself.
+const optionId = (type: string, index: number) => `${type}-entity-search-option-${index}`;
+
 interface EntitySearchInputProps {
   type: "activity" | "task";
   value: string;
@@ -122,6 +127,7 @@ export default function EntitySearchInput({
       // text) wouldn't bubble down into a descendant's onClick.
       <li
         key={`${entity.id}-${entity.name}`}
+        id={optionId(type, index)}
         role="option"
         aria-selected={isHighlighted}
         className={styles.optionItem}
@@ -163,6 +169,11 @@ export default function EntitySearchInput({
         aria-autocomplete={canSearch ? "list" : "none"}
         aria-expanded={isDropdownOpen}
         aria-controls={isDropdownOpen ? `${type}-entity-search-results` : undefined}
+        aria-activedescendant={
+          isDropdownOpen && activeHighlightedIndex >= 0
+            ? optionId(type, activeHighlightedIndex)
+            : undefined
+        }
         className={classNames(styles.input, inputClassName)}
         disabled={disabled}
       />

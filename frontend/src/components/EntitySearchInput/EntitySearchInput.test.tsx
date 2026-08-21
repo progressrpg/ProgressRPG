@@ -106,6 +106,33 @@ describe("EntitySearchInput", () => {
     expect(addEntityToCache).toHaveBeenCalledWith("Plan offsite");
   });
 
+  it("points aria-activedescendant at the option ArrowDown highlights", async () => {
+    const user = userEvent.setup();
+    mockEntities = [
+      { id: "t1", name: "Write report", taskId: 1, source: "task" },
+      { id: "t2", name: "Write tests", taskId: 2, source: "task" },
+    ];
+
+    render(<Harness type="task" />);
+    const combobox = screen.getByRole("combobox");
+    await user.type(combobox, "write");
+
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeInTheDocument();
+    });
+
+    expect(combobox).not.toHaveAttribute("aria-activedescendant");
+
+    await user.keyboard("{ArrowDown}");
+    const firstOption = screen.getByRole("option", { name: "Write report" });
+    expect(firstOption).toHaveAttribute("id");
+    expect(combobox).toHaveAttribute("aria-activedescendant", firstOption.id);
+
+    await user.keyboard("{ArrowDown}");
+    const secondOption = screen.getByRole("option", { name: "Write tests" });
+    expect(combobox).toHaveAttribute("aria-activedescendant", secondOption.id);
+  });
+
   it("does not open a persistent list without alwaysOpen (legacy behaviour unchanged)", () => {
     render(<Harness defaultResults={[{ id: "d1", name: "Default row", taskId: null, source: "activity" }]} />);
 
