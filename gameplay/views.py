@@ -149,7 +149,7 @@ class ActivityTimerViewSet(BaseTimerViewSet):
         # sequential round-trips (set_activity then start) with a "waiting"
         # broadcast sent in between for a state the client never asked to
         # observe. `start=true` folds both into one atomic save + broadcast.
-        start_immediately = bool(request.data.get("start"))
+        start_immediately = request.data.get("start") is True
 
         updated = timer.new_activity(
             name=name, task=task, start_immediately=start_immediately
