@@ -91,6 +91,33 @@ class PausedSessionApiTests(TestCase):
         self.timer.refresh_from_db()
         self.assertEqual(self.timer.status, "paused")
 
+    def test_resuming_a_session_started_immediately_after_its_day_has_ended_is_refused(
+        self,
+    ):
+        """
+        set_activity(start=True) folds new_activity() and start() into one
+        atomic save (see ActivityTimer.new_activity) rather than calling
+        start() itself - it must still stamp the activity's logical_date on
+        that path, or can_resume() sees a null date and never refuses.
+        """
+        self.timer.new_activity(name="Interrupted session", start_immediately=True)
+        self.timer.start_time = timezone.now() - timedelta(minutes=10)
+        self.timer.save(update_fields=["start_time"])
+        pause_server_timers(self.timer)
+        self.timer.refresh_from_db()
+
+        activity = self.timer.activity
+        self.assertIsNotNone(activity.logical_date)
+        activity.logical_date = activity.logical_date - timedelta(days=3)
+        activity.save(update_fields=["logical_date"])
+
+        response = self.client.post(reverse("activitytimer-start"), format="json")
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["code"], "session_day_ended")
+        self.timer.refresh_from_db()
+        self.assertEqual(self.timer.status, "paused")
+
     def test_a_stale_session_can_still_be_submitted(self):
         self._paused_session()
         activity = self.timer.activity

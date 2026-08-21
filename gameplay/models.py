@@ -247,13 +247,20 @@ class ActivityTimer(Timer):
             f"start_immediately={start_immediately}"
         )
 
+        # When starting immediately, stamp started_at on creation so
+        # PlayerActivity.save()'s logical_date backstop derives it in the
+        # same insert - otherwise the activity keeps a null logical_date
+        # until a later start()/complete() call sets it, and can_resume()
+        # treats a null logical_date as "always resumable".
+        started_at = timezone.now() if start_immediately else None
         self.activity = PlayerActivity.objects.create(
             name=name,
             player=self.player,
             task=task,
+            started_at=started_at,
         )
 
-        self.start_time = timezone.now() if start_immediately else None
+        self.start_time = started_at
         self.elapsed_time = 0
         self.status = "active" if start_immediately else "waiting"
         # A new session inherits nothing from the previous one's declared
