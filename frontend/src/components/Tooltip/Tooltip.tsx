@@ -169,7 +169,11 @@ export default function Tooltip({
   // for mouse pointers (only for touch, where it suppresses the
   // compatibility click outright), so left unhandled this would otherwise
   // reach any onClick a consumer's own child sets.
-  const handleClick = (event: React.MouseEvent) => {
+  // Typed loosely (rather than React.MouseEvent) because Trigger's asChild
+  // prop types resolve onClick against Tamagui's cross-platform (RN-shaped)
+  // event type here, not the DOM MouseEvent - preventDefault is the only
+  // member both shapes actually share.
+  const handleClick = (event: { preventDefault: () => void }) => {
     event.preventDefault();
   };
 
@@ -180,7 +184,7 @@ export default function Tooltip({
   // DOM listener; running before Tamagui's own (broken - see
   // #583/tamagui/tamagui#4152) bubble-phase onFocus keeps our decision
   // authoritative either way.
-  const handleFocusCapture = (event: React.FocusEvent) => {
+  const handleFocusCapture = (event: { stopPropagation: () => void }) => {
     event.stopPropagation();
     if (!pointerDownRef.current) setOpen(true);
   };
