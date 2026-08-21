@@ -15,23 +15,18 @@ test.describe('Future-Proofing Accessibility Tests', () => {
 
   for (const route of routes) {
     test(`${route} should pass basic a11y checks`, async ({ page }) => {
-      try {
-        await page.goto(route, { waitUntil: 'domcontentloaded' });
-        const results = await checkA11y(page);
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      const results = await checkA11y(page);
 
-        // Check critical violations only for future routes
-        const criticalViolations = results.violations.filter(
-          (v: any) => v.impact === 'critical' || v.impact === 'serious'
-        );
+      const criticalViolations = results.violations.filter(
+        (v: any) => v.impact === 'critical' || v.impact === 'serious'
+      );
 
-        if (criticalViolations.length > 0) {
-          console.error(`Critical a11y issues on ${route}:`, criticalViolations);
-        }
-
-        expect(criticalViolations).toHaveLength(0);
-      } catch (error) {
-        console.log(`Route ${route} not yet implemented - skipping`);
+      if (criticalViolations.length > 0) {
+        console.error(`Critical a11y issues on ${route}:`, criticalViolations);
       }
+
+      expect(criticalViolations).toHaveLength(0);
     });
   }
 
