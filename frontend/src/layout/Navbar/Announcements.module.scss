@@ -122,6 +122,14 @@
   // style) so the title stays compact along with the rest of this list.
   font-family: inherit;
   font-size: 0.85rem;
+  // Tamagui's base `.is_View` rule sets `letter-spacing: var(--f-letterSpacing-true)`
+  // on every Tamagui host element, including this trigger (built on
+  // Collapsible.Trigger/Button). That variable is tuned for Tamagui's own
+  // default font-size token, not this component's much smaller overridden
+  // font-size above, and resolves to several negative pixels here - enough
+  // to render the title's characters overlapping. Reset it explicitly since
+  // this element never opts into Tamagui's font-size scale in the first place.
+  letter-spacing: normal;
 
   // No custom focus style here - falls back to the site-wide
   // :focus-visible outline (see styles/base/_a11y.scss) instead of this
