@@ -334,6 +334,18 @@ class AnnouncementSaveTest(TestCase):
 
         self.assertEqual(announcement.published_at, first_published_at)
 
+    def test_publishing_via_update_fields_still_persists_published_at(self):
+        announcement = Announcement.objects.create(
+            title="Hi", body="Body", is_published=False
+        )
+
+        announcement.is_published = True
+        announcement.save(update_fields=["is_published"])
+
+        self.assertIsNotNone(announcement.published_at)
+        announcement.refresh_from_db()
+        self.assertIsNotNone(announcement.published_at)
+
 
 class AnnouncementAdminReadonlyFieldsTest(TestCase):
     def setUp(self):
