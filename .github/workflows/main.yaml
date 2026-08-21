@@ -122,8 +122,8 @@ jobs:
       - name: Run migrations
         run: python manage.py migrate
 
-      - name: Seed Playwright test user
-        run: python manage.py seed_playwright_user
+      - name: Seed Playwright test users
+        run: python manage.py seed_playwright_user --all
 
       - name: Start backend (daphne)
         run: |
