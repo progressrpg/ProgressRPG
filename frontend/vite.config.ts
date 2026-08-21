@@ -66,6 +66,14 @@ export default defineConfig(() => {
       }),
     ],
     base: '/',
+    // @tamagui/vite-plugin's config() hook returns envPrefix: ['TAMAGUI_'].
+    // Since this config doesn't otherwise declare envPrefix, Vite's plugin-config
+    // merge lets that replace the built-in 'VITE_' default outright instead of
+    // merging with it - silently dropping every VITE_-prefixed var (including
+    // VITE_API_BASE_URL) from import.meta.env in every build. Declaring it here
+    // makes it an array before the plugin's config is merged in, so Vite
+    // concatenates them instead.
+    envPrefix: ['VITE_'],
     // maplibre-gl loads its own worker via a dynamically-constructed URL;
     // Vite's dependency pre-bundler rewrites that URL to a path
     // (maplibre-gl-worker.mjs) it never actually emits, breaking the map at
