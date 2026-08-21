@@ -23,6 +23,7 @@ DEFAULT_PLAYWRIGHT_PLAYER_NAME = "Playwright Hero"
 PLAYWRIGHT_SUITE_SLUGS = [
     "a11y-pages",
     "a11y-tasks",
+    "a11y-tasks-edit",
     "accessibility",
     "auth-logout",
     "tasks-core-loop",

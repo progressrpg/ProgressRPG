@@ -13,77 +13,89 @@ import { timerUserStorageState } from '../../playwright/testUser';
  */
 
 test.describe('Tasks page accessibility', () => {
-  test.use({ storageState: timerUserStorageState('a11y-tasks') });
+  // Each test gets its own suite slug (and so its own dedicated per-project
+  // user) rather than sharing one 'a11y-tasks' user across the describe
+  // block: both tests drive /timer's single set_activity call, and
+  // fullyParallel:true can run them concurrently in the same project,
+  // racing Start clicks against the same ActivityTimer and starving
+  // page.waitForResponse of the response it's actually waiting for.
+  test.describe('tasks panel', () => {
+    test.use({ storageState: timerUserStorageState('a11y-tasks') });
 
-  test('tasks panel and add-task input have no detectable violations', async ({ page }) => {
-    await stabilizeTimerPage(page, { unifiedHomepage: true });
-    await page.goto('/timer');
-    const section = page.locator('section').filter({
-      has: page.getByRole('heading', { name: 'Activity timer' }),
+    test('tasks panel and add-task input have no detectable violations', async ({ page }) => {
+      await stabilizeTimerPage(page, { unifiedHomepage: true });
+      await page.goto('/timer');
+      const section = page.locator('section').filter({
+        has: page.getByRole('heading', { name: 'Activity timer' }),
+      });
+
+      // Blank start auto-labels "Planning" and opens Planning mode. Start
+      // assigns and starts the activity in one atomic set_activity call
+      // (start: true) - wait for that single request before touching the
+      // tasks panel.
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
+        ),
+        section.getByRole('button', { name: 'Start' }).click(),
+      ]);
+      await expect(page.getByPlaceholder('New task name')).toBeVisible();
+
+      // The timer pill, activity label, and search control fade in over 180ms
+      // (UnifiedTimerHome.tsx's fadeTransition) - wait for that to settle so
+      // axe doesn't sample a low-opacity mid-fade frame as a false-positive
+      // contrast violation.
+      await page.waitForTimeout(300);
+
+      const results = await checkA11y(page);
+      expectNoA11yViolations(results);
     });
-
-    // Blank start auto-labels "Planning" and opens Planning mode. Start
-    // assigns and starts the activity in one atomic set_activity call
-    // (start: true) - wait for that single request before touching the
-    // tasks panel.
-    await Promise.all([
-      page.waitForResponse(
-        (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
-      ),
-      section.getByRole('button', { name: 'Start' }).click(),
-    ]);
-    await expect(page.getByPlaceholder('New task name')).toBeVisible();
-
-    // The timer pill, activity label, and search control fade in over 180ms
-    // (UnifiedTimerHome.tsx's fadeTransition) - wait for that to settle so
-    // axe doesn't sample a low-opacity mid-fade frame as a false-positive
-    // contrast violation.
-    await page.waitForTimeout(300);
-
-    const results = await checkA11y(page);
-    expectNoA11yViolations(results);
   });
 
-  test('task edit dialog is accessible', async ({ page }) => {
-    const taskName = `A11y task ${Date.now()}`;
+  test.describe('task edit dialog', () => {
+    test.use({ storageState: timerUserStorageState('a11y-tasks-edit') });
 
-    await stabilizeTimerPage(page, { unifiedHomepage: true });
-    await page.goto('/timer');
-    const section = page.locator('section').filter({
-      has: page.getByRole('heading', { name: 'Activity timer' }),
+    test('task edit dialog is accessible', async ({ page }) => {
+      const taskName = `A11y task ${Date.now()}`;
+
+      await stabilizeTimerPage(page, { unifiedHomepage: true });
+      await page.goto('/timer');
+      const section = page.locator('section').filter({
+        has: page.getByRole('heading', { name: 'Activity timer' }),
+      });
+
+      // Start assigns and starts the activity in one atomic set_activity call
+      // (start: true) - wait for that single request before touching the
+      // tasks panel.
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
+        ),
+        section.getByRole('button', { name: 'Start' }).click(),
+      ]);
+      await expect(page.getByPlaceholder('New task name')).toBeVisible();
+
+      await page.getByPlaceholder('New task name').fill(taskName);
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/tasks/') && r.request().method() === 'POST',
+        ),
+        page.getByRole('button', { name: /add task/i }).click(),
+      ]);
+      await page.waitForResponse(
+        (r) => r.url().includes('/tasks/') && r.request().method() === 'GET',
+      );
+
+      await page.getByRole('button', { name: `Edit task ${taskName}` }).first().click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible();
+
+      const results = await checkA11y(page, { include: ['[role="dialog"]'] });
+      expectNoA11yViolations(results);
+
+      // Clean up the task created for this scan.
+      await dialog.getByRole('button', { name: 'Delete' }).click();
+      await dialog.getByRole('button', { name: 'Delete' }).click();
     });
-
-    // Start assigns and starts the activity in one atomic set_activity call
-    // (start: true) - wait for that single request before touching the
-    // tasks panel.
-    await Promise.all([
-      page.waitForResponse(
-        (r) => r.url().includes('/activity_timers/set_activity/') && r.request().method() === 'POST',
-      ),
-      section.getByRole('button', { name: 'Start' }).click(),
-    ]);
-    await expect(page.getByPlaceholder('New task name')).toBeVisible();
-
-    await page.getByPlaceholder('New task name').fill(taskName);
-    await Promise.all([
-      page.waitForResponse(
-        (r) => r.url().includes('/tasks/') && r.request().method() === 'POST',
-      ),
-      page.getByRole('button', { name: /add task/i }).click(),
-    ]);
-    await page.waitForResponse(
-      (r) => r.url().includes('/tasks/') && r.request().method() === 'GET',
-    );
-
-    await page.getByRole('button', { name: `Edit task ${taskName}` }).first().click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-
-    const results = await checkA11y(page, { include: ['[role="dialog"]'] });
-    expectNoA11yViolations(results);
-
-    // Clean up the task created for this scan.
-    await dialog.getByRole('button', { name: 'Delete' }).click();
-    await dialog.getByRole('button', { name: 'Delete' }).click();
   });
 });
