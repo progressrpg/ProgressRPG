@@ -4,6 +4,7 @@ import {
   stabilizeTimerPage,
   visitAuthenticatedPage,
 } from '../utils/authenticatedPage';
+import { TEST_USERS } from '../../playwright/testUser';
 
 test.describe('Public page smoke tests', () => {
   test('Home page loads', async ({ page }) => {
@@ -56,7 +57,7 @@ test.describe('Public page smoke tests', () => {
 });
 
 test.describe('Authenticated page smoke tests', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+  test.use({ storageState: TEST_USERS['smoke-pages'].storageStatePath });
 
   test('Timer page loads', async ({ page }) => {
     await stabilizeTimerPage(page);

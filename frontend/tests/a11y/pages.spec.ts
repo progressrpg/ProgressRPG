@@ -5,6 +5,7 @@ import {
   stabilizeTimerPage,
   visitAuthenticatedPage,
 } from '../utils/authenticatedPage';
+import { TEST_USERS } from '../../playwright/testUser';
 
 const cleanupRoutes = async (page: Parameters<typeof test>[0]['page']) => {
   try {
@@ -79,7 +80,7 @@ test.describe('Page Accessibility', () => {
 });
 
 test.describe('Authenticated Page Accessibility', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+  test.use({ storageState: TEST_USERS['a11y-pages'].storageStatePath });
 
   test('Timer page is accessible', async ({ page }) => {
     await stabilizeTimerPage(page);

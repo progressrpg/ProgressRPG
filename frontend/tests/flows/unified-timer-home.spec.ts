@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { stabilizeTimerPage } from '../utils/authenticatedPage';
+import { TEST_USERS } from '../../playwright/testUser';
 
 test.describe('Unified timer homepage (flag on)', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+  test.use({ storageState: TEST_USERS['unified-timer-home'].storageStatePath });
   // Both tests below drive the same seeded test user's single activity timer
   // against the real backend — running them concurrently races Start/Stop
   // calls against each other, so force this suite to run serially.
@@ -172,7 +173,7 @@ test.describe('Unified timer homepage (flag on)', () => {
 });
 
 test.describe('Unified timer homepage (flag off regression guard)', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+  test.use({ storageState: TEST_USERS['unified-timer-home'].storageStatePath });
 
   test('renders the legacy timer + activity feed unchanged', async ({ page }) => {
     await stabilizeTimerPage(page, { unifiedHomepage: false });
