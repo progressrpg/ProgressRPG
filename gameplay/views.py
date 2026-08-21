@@ -145,7 +145,15 @@ class ActivityTimerViewSet(BaseTimerViewSet):
         if task_id:
             task = get_object_or_404(Task, pk=task_id, player=request.user.player)
 
-        updated = timer.new_activity(name=name, task=task)
+        # Pressing "Start" is one user action; it shouldn't cost two
+        # sequential round-trips (set_activity then start) with a "waiting"
+        # broadcast sent in between for a state the client never asked to
+        # observe. `start=true` folds both into one atomic save + broadcast.
+        start_immediately = bool(request.data.get("start"))
+
+        updated = timer.new_activity(
+            name=name, task=task, start_immediately=start_immediately
+        )
         # A declared duration makes the session bounded: the server knows
         # when it ends, so a dropped connection needs no verdict about the
         # player. Clamped inside set_limit for non-premium players.

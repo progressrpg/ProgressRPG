@@ -228,15 +228,23 @@ class ActivityTimer(Timer):
     def __str__(self):
         return f"ActivityTimer {self.id} for {self.player.name}"
 
-    def new_activity(self, name="", task=None):
+    def new_activity(self, name="", task=None, start_immediately=False):
         """
         Assign a new activity to the timer.
         Optionally associate it with a Task.
 
+        `start_immediately` folds the "waiting" step in: rather than landing
+        in `waiting` and requiring a separate `start()` call (and its own
+        save + broadcast) to actually begin ticking, the timer goes straight
+        to `active` in this same save. This is what a fresh "press Start"
+        should do — the two-call shape existed only so `label_activity` and
+        `resume()` could act on a `waiting`/`paused` timer independently;
+        neither of those needs a session to pass through `waiting` first.
         """
         logger.debug(
             f"[ACTIVITYTIMER.new_activity]: Assigning new activity {name} "
-            f"(task={getattr(task, 'id', None)}) to timer {self.pk}"
+            f"(task={getattr(task, 'id', None)}) to timer {self.pk}, "
+            f"start_immediately={start_immediately}"
         )
 
         self.activity = PlayerActivity.objects.create(
@@ -245,9 +253,9 @@ class ActivityTimer(Timer):
             task=task,
         )
 
-        self.start_time = None
+        self.start_time = timezone.now() if start_immediately else None
         self.elapsed_time = 0
-        self.status = "waiting"
+        self.status = "active" if start_immediately else "waiting"
         # A new session inherits nothing from the previous one's declared
         # duration; set_limit() applies the new one (or the free ceiling).
         self.limit_seconds = None
