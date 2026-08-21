@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.test import TestCase, Client, override_settings, tag
 from django.test.client import RequestFactory
 from django.test.utils import CaptureQueriesContext
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from django.utils import timezone
 from unittest.mock import patch
 import logging
@@ -36,6 +36,7 @@ from users.validators import (
 )
 
 from progression.day_boundaries import logical_date_for
+from users.services.login_services import LOGIN_STATE_STREAK_CONTINUES, get_login_state
 from users.tests import user_factory
 
 from character.models import Character, PlayerCharacterLink
@@ -548,6 +549,32 @@ class DailyLoginRewardTest(TestCase):
 
         self.user.player.refresh_from_db()
         self.assertEqual(self.user.player.xp, 20)
+
+    def test_streak_continues_across_day_start_cutoff_same_calendar_date(self):
+        # With the default 02:00 cutoff, a login at 01:00 belongs to the
+        # previous logical day. A second login later the same calendar date,
+        # after the cutoff, is therefore the *next* logical day - so the
+        # streak should continue, not reset, even though both timestamps
+        # share a calendar date (Copilot review on PR #808 caught
+        # get_login_state comparing a raw calendar date against a logical
+        # date here).
+        day = date(2026, 8, 21)
+
+        def seed_login(hour):
+            (login,) = UserLogin.objects.bulk_create([UserLogin(user=self.user)])
+            ts = timezone.make_aware(datetime(day.year, day.month, day.day, hour))
+            UserLogin.objects.filter(pk=login.pk).update(
+                timestamp=ts, logical_date=logical_date_for(self.user, ts)
+            )
+            return UserLogin.objects.get(pk=login.pk)
+
+        seed_login(1)  # 01:00, before the cutoff -> logical date is Aug 20
+        seed_login(3)  # 03:00 the same calendar date, after the cutoff -> Aug 21
+
+        state = get_login_state(self.user)
+
+        self.assertEqual(state["login_state"], LOGIN_STATE_STREAK_CONTINUES)
+        self.assertEqual(state["login_reward_xp"], 12)
 
 
 class UserTimezoneApiTest(TestCase):
