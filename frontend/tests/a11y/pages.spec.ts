@@ -2,7 +2,6 @@ import { test } from '@playwright/test';
 import { checkA11y, expectNoA11yViolations } from '../utils/a11y';
 import {
   mockSuccessfulSubscriptionSync,
-  stabilizeAuthenticatedPlayer,
   stabilizeTimerPage,
   visitAuthenticatedPage,
 } from '../utils/authenticatedPage';
@@ -33,7 +32,10 @@ test.describe('Page Accessibility', () => {
 
   test('Register page is accessible', async ({ page }) => {
     await page.goto('/register');
-    await page.getByRole('heading', { name: /waiting list/i }).waitFor();
+    // Registration is currently invite-only (self_serve_registration off),
+    // so unauthenticated visitors land on the waitlist-nudge heading rather
+    // than the registration form itself - see RegisterPage.tsx.
+    await page.getByRole('heading', { name: /invite only|temporarily full/i }).waitFor();
     const results = await checkA11y(page);
     expectNoA11yViolations(results);
   });
@@ -159,25 +161,10 @@ test.describe('Authenticated Page Accessibility', () => {
     expectNoA11yViolations(results);
   });
 
-  test('Tasks page is accessible', async ({ page }) => {
-    await stabilizeAuthenticatedPlayer(page);
-    await visitAuthenticatedPage(page, '/tasks');
-    await page.getByRole('heading', { name: 'Tasks', exact: true }).waitFor();
-    const results = await checkA11y(page);
-    expectNoA11yViolations(results);
-  });
-
-  test('Projects page is accessible', async ({ page }) => {
-    await visitAuthenticatedPage(page, '/projects');
-    await page.getByRole('heading', { name: 'Projects', exact: true }).waitFor();
-    const results = await checkA11y(page);
-    expectNoA11yViolations(results);
-  });
-
-  test('Activities page is accessible', async ({ page }) => {
-    await visitAuthenticatedPage(page, '/activities');
-    await page.getByRole('heading', { name: 'Activities', exact: true }).waitFor();
-    const results = await checkA11y(page);
-    expectNoA11yViolations(results);
-  });
+  // The standalone /tasks and /activities pages were removed when both were
+  // folded into the unified timer homepage (see tests/a11y/tasks.a11y.spec.ts
+  // for Planning-mode/tasks coverage, and the "Timer page is accessible"
+  // test above for the flag-off legacy CurrentActivity+ActivityTimeline
+  // view). /projects has no route at all currently - ProjectsPanel exists
+  // as a component but isn't mounted anywhere in routesConfig.jsx.
 });

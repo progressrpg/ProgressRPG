@@ -27,7 +27,7 @@ export function useBootstrapGameData() {
   const [announcementUnreadCount, setAnnouncementUnreadCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [buildNumber, setBuildNumber] = useState<string | boolean>(true);
+  const [buildNumber, setBuildNumber] = useState<string>("");
   const [freeTimerLimitSeconds, setFreeTimerLimitSeconds] = useState<number>(1800);
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [onlineCount, setOnlineCount] = useState<number>(0);

@@ -58,6 +58,11 @@ $color-warning-dark: #f57c00;
 $color-text-error: $color-error;
 $color-text-disabled: map.get(c.$neutral-scale, 400);
 $color-text-muted: map.get(c.$neutral-scale, 500);
+// $color-text-muted (neutral 500, #707070) only clears 4.5:1 against ~white
+// backgrounds (4.95:1). Tinted surfaces like .tonePlayer's rgba($color-player,
+// 0.08) darken the background enough to drop it to 3.64:1 - use this instead
+// wherever muted text sits on a tinted list-item background.
+$color-text-muted-strong: map.get(c.$neutral-scale, 600);
 $color-text-default: map.get(c.$neutral-scale, 900);
 
 // Border colors

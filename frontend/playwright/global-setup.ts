@@ -43,8 +43,10 @@ export default async function globalSetup() {
 
   await page.goto(BASE_URL);
   await page.evaluate(({ access, refresh }) => {
-    localStorage.setItem('accessToken', access);
-    localStorage.setItem('refreshToken', refresh);
+    localStorage.setItem(
+      'authSession',
+      JSON.stringify({ accessToken: access, refreshToken: refresh, persistence: 'local' }),
+    );
   }, { access: accessToken, refresh: refreshToken });
 
   await context.storageState({ path: TEST_USER_STORAGE_STATE_PATH });
