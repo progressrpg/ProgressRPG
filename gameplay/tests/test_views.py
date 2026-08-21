@@ -98,6 +98,48 @@ class LabelActivityViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
+class SetActivityGuardTests(APITestCase):
+    """
+    set_activity() only refused to overwrite a *paused* session holding
+    banked time - an active or waiting session (no banked elapsed_time to
+    protect) passed the old guard unchecked, and new_activity() would then
+    create a replacement activity, orphaning the running one without ever
+    completing or discarding it.
+    """
+
+    def setUp(self):
+        self.user = user_factory(with_player=True)
+        self.player = self.user.player
+        self.client.force_authenticate(user=self.user)
+        self.url = reverse("activitytimer-set-activity")
+
+    def test_refuses_to_overwrite_an_active_session(self):
+        timer = self.player.activity_timer
+        timer.new_activity(name="First activity", start_immediately=True)
+        original_activity_id = timer.activity_id
+
+        response = self.client.post(self.url, {"activityName": "Second activity"})
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["code"], "unresolved_session_pending")
+        timer.refresh_from_db()
+        self.assertEqual(timer.status, "active")
+        self.assertEqual(timer.activity_id, original_activity_id)
+
+    def test_refuses_to_overwrite_a_waiting_session(self):
+        timer = self.player.activity_timer
+        timer.new_activity(name="First activity")
+        original_activity_id = timer.activity_id
+
+        response = self.client.post(self.url, {"activityName": "Second activity"})
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["code"], "unresolved_session_pending")
+        timer.refresh_from_db()
+        self.assertEqual(timer.status, "waiting")
+        self.assertEqual(timer.activity_id, original_activity_id)
+
+
 class ActivityTimerBroadcastTests(APITestCase):
     """
     Every mutating activity-timer endpoint should push the updated timer to

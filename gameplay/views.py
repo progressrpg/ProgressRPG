@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -120,47 +121,74 @@ class ActivityTimerViewSet(BaseTimerViewSet):
     @action(detail=False, methods=["post"])
     def set_activity(self, request):
         timer = self.get_timer(request)
+        timer_model = type(timer)
 
-        if timer.has_banked_time():
-            # new_activity() resets elapsed_time to 0, so starting something
-            # new over a paused session would destroy the time banked on it
-            # rather than preserve it. The client resolves the session first
-            # (resume, submit, or discard via /reset/); this guard is here
-            # for the stale tab that doesn't know it needs to.
-            return Response(
-                {
-                    "error": "A paused session is holding unsubmitted time. "
-                    "Resume, submit, or discard it first.",
-                    "code": "paused_session_pending",
-                },
-                status=status.HTTP_409_CONFLICT,
+        # Locked so two concurrent Start requests (or a Start racing the
+        # bounded-timer sweep/complete endpoint) can't both read "empty" and
+        # both create a replacement activity - only one may pass the
+        # unresolved-session check below, the other blocks until it commits
+        # and then sees the now-occupied status.
+        with transaction.atomic():
+            locked = timer_model.objects.select_for_update().get(pk=timer.pk)
+
+            if locked.status == "paused" and locked.elapsed_time > 0:
+                # new_activity() resets elapsed_time to 0, so starting
+                # something new over a paused session would destroy the time
+                # banked on it rather than preserve it. The client resolves
+                # the session first (resume, submit, or discard via
+                # /reset/); this guard is here for the stale tab that
+                # doesn't know it needs to.
+                return Response(
+                    {
+                        "error": "A paused session is holding unsubmitted time. "
+                        "Resume, submit, or discard it first.",
+                        "code": "paused_session_pending",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            if locked.status != "empty":
+                # Active/waiting sessions (and paused ones with no banked
+                # time) still hold a real activity relation; overwriting it
+                # here would silently orphan that activity instead of
+                # completing or discarding it.
+                return Response(
+                    {
+                        "error": "A session is already in progress. Stop, "
+                        "submit, or discard it first.",
+                        "code": "unresolved_session_pending",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            name = request.data.get("activityName")
+            if not name:
+                name = ""
+
+            task_id = request.data.get("task_id")
+            task = None
+            if task_id:
+                task = get_object_or_404(Task, pk=task_id, player=request.user.player)
+
+            # Pressing "Start" is one user action; it shouldn't cost two
+            # sequential round-trips (set_activity then start) with a
+            # "waiting" broadcast sent in between for a state the client
+            # never asked to observe. `start=true` folds both into one
+            # atomic save + broadcast.
+            start_immediately = request.data.get("start") is True
+
+            updated = locked.new_activity(
+                name=name, task=task, start_immediately=start_immediately
+            )
+            # A declared duration makes the session bounded: the server
+            # knows when it ends, so a dropped connection needs no verdict
+            # about the player. Clamped inside set_limit for non-premium
+            # players.
+            updated.set_limit(
+                request.data.get("limitSeconds"),
+                reason=request.data.get("limitReason") or "",
             )
 
-        name = request.data.get("activityName")
-        if not name:
-            name = ""
-
-        task_id = request.data.get("task_id")
-        task = None
-        if task_id:
-            task = get_object_or_404(Task, pk=task_id, player=request.user.player)
-
-        # Pressing "Start" is one user action; it shouldn't cost two
-        # sequential round-trips (set_activity then start) with a "waiting"
-        # broadcast sent in between for a state the client never asked to
-        # observe. `start=true` folds both into one atomic save + broadcast.
-        start_immediately = request.data.get("start") is True
-
-        updated = timer.new_activity(
-            name=name, task=task, start_immediately=start_immediately
-        )
-        # A declared duration makes the session bounded: the server knows
-        # when it ends, so a dropped connection needs no verdict about the
-        # player. Clamped inside set_limit for non-premium players.
-        updated.set_limit(
-            request.data.get("limitSeconds"),
-            reason=request.data.get("limitReason") or "",
-        )
         updated.refresh_from_db()
         self.broadcast_timer_update(updated)
         return Response({"success": True, "activity_timer": self.serialize(updated)})
