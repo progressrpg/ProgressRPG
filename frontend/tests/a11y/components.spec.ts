@@ -20,6 +20,11 @@ test.describe('Component Accessibility', () => {
 
   test('Navigation is accessible', async ({ page }) => {
     await page.goto('/');
+    // Wait for the navbar to actually mount before scanning - without this,
+    // axe's include:['nav', 'header'] can run before React has rendered
+    // either element (more likely on slower webkit), throwing "No elements
+    // found for include in page Context" instead of a real a11y result.
+    await page.getByRole('navigation', { name: 'Main navigation' }).waitFor();
     const results = await checkA11y(page, {
       include: ['nav', 'header']
     });
