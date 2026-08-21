@@ -2,12 +2,18 @@ import { expect, test } from '@playwright/test';
 import { stabilizeTimerPage } from '../utils/authenticatedPage';
 import { timerUserStorageState } from '../../playwright/testUser';
 
+// Every test in this file — in both describe blocks below — drives the same
+// seeded test user's single activity timer against the real backend.
+// test.describe.configure({ mode: 'serial' }) only orders tests *within* the
+// describe block it's called in, so a per-block serial flag here wouldn't
+// stop the two blocks from being scheduled concurrently under
+// fullyParallel: true. Setting it at file scope (Playwright's documented
+// pattern for cross-describe ordering) forces every test in the file to run
+// serially in declaration order instead.
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Unified timer homepage (flag on)', () => {
   test.use({ storageState: timerUserStorageState('unified-timer-home') });
-  // Both tests below drive the same seeded test user's single activity timer
-  // against the real backend — running them concurrently races Start/Stop
-  // calls against each other, so force this suite to run serially.
-  test.describe.configure({ mode: 'serial' });
 
   test('blank start, label, click-to-edit, and stop happy path', async ({ page }) => {
     await stabilizeTimerPage(page, { unifiedHomepage: true });
