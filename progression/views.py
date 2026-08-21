@@ -249,14 +249,21 @@ class PlayerActivityViewSet(PlayerScopedQuerysetMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        # Return latest activities (today’s or recent 5)
+        # Return latest activities (today’s or recent 5). Restricted to
+        # completed sessions - without it, active/waiting/abandoned
+        # sessions sharing today's logical_date (completed_at still null)
+        # would be included, and Postgres sorts nulls first on -completed_at
+        # so they'd bury the actually-submitted activities this is meant to
+        # surface.
         activities = PlayerActivity.objects.filter(
-            player=player, logical_date=current_logical_date(player)
+            player=player,
+            logical_date=current_logical_date(player),
+            is_complete=True,
         ).order_by("-completed_at")
         if not activities.exists():
-            activities = PlayerActivity.objects.filter(player=player).order_by(
-                "-completed_at"
-            )[:5]
+            activities = PlayerActivity.objects.filter(
+                player=player, is_complete=True
+            ).order_by("-completed_at")[:5]
         from users.serializers import PlayerSerializer
 
         return Response(
