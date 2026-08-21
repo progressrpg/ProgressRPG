@@ -1,9 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { TamaguiProvider } from "tamagui";
 
 import { TooltipProvider } from "../../components/Tooltip/Tooltip";
 import AchievementBadges from "./AchievementBadges";
+import tamaguiConfig from "../../../tamagui.config";
+
+// AchievementBadges renders Tooltip (#583), which needs a TamaguiProvider
+// ancestor - unlike Radix's Tooltip.Root, it isn't usable standalone. The
+// app root (src/main.tsx) provides this in production; tests need their own.
+function render(...args: Parameters<typeof rtlRender>) {
+  const [ui, options] = args;
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        {children}
+      </TamaguiProvider>
+    ),
+    ...options,
+  });
+}
 
 const achievements = [
   {
@@ -40,8 +57,8 @@ function renderBadges(props: Partial<React.ComponentProps<typeof AchievementBadg
 
 describe("AchievementBadges", () => {
   it("renders nothing when there are no achievements", () => {
-    const { container } = renderBadges({ achievements: [] });
-    expect(container).toBeEmptyDOMElement();
+    renderBadges({ achievements: [] });
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("renders an accessible badge per achievement with an aria-label summarizing state", () => {

@@ -378,7 +378,7 @@ rpds-py==2026.6.3
     #   referencing
 sendgrid==6.12.5
     # via -r requirements.in
-sentry-sdk==2.66.1
+sentry-sdk==2.68.0
     # via -r requirements.in
 service-identity==26.1.0
     # via twisted
@@ -386,11 +386,11 @@ simple-websocket==1.1.0
     # via python-engineio
 six==1.17.0
     # via python-dateutil
-sqlparse==0.5.5
+sqlparse==0.6.0
     # via
     #   -r requirements.in
     #   django
-stripe==15.4.0
+stripe==15.5.0
     # via -r requirements.in
 tomli==2.4.1
     # via nab-python

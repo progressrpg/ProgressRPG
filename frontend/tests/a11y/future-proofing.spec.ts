@@ -3,32 +3,32 @@ import { checkA11y, expectNoA11yViolations } from '../utils/a11y';
 import { routePaths } from '../../src/routes/routePaths.js';
 
 test.describe('Future-Proofing Accessibility Tests', () => {
-  test('Any new page should pass basic a11y checks', async ({ page }) => {
-    test.setTimeout(90000);
-    const routes = routePaths.filter(path => !path.includes(':') && path !== '*');
+  // One test per route, rather than one test looping over all of them. A
+  // shared test.setTimeout() budget across ~18 goto+axe-scan pairs was
+  // tight enough on firefox (slower actions, cold Vite dev-server compiles)
+  // that unrelated earlier routes could eat the budget and trip the
+  // timeout on whichever route happened to run last - flaky and hard to
+  // attribute. Per-route tests give each its own default timeout and its
+  // own pass/fail, so a slow or broken route no longer takes its neighbors
+  // down with it.
+  const routes = routePaths.filter(path => !path.includes(':') && path !== '*');
 
-    for (const route of routes) {
-      try {
-        await page.goto(route, { waitUntil: 'domcontentloaded' });
-        const results = await checkA11y(page);
+  for (const route of routes) {
+    test(`${route} should pass basic a11y checks`, async ({ page }) => {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      const results = await checkA11y(page);
 
-        console.log(`Testing ${route}...`);
+      const criticalViolations = results.violations.filter(
+        (v: any) => v.impact === 'critical' || v.impact === 'serious'
+      );
 
-        // Check critical violations only for future routes
-        const criticalViolations = results.violations.filter(
-          (v: any) => v.impact === 'critical' || v.impact === 'serious'
-        );
-
-        if (criticalViolations.length > 0) {
-          console.error(`Critical a11y issues on ${route}:`, criticalViolations);
-        }
-
-        expect(criticalViolations).toHaveLength(0);
-      } catch (error) {
-        console.log(`Route ${route} not yet implemented - skipping`);
+      if (criticalViolations.length > 0) {
+        console.error(`Critical a11y issues on ${route}:`, criticalViolations);
       }
-    }
-  });
+
+      expect(criticalViolations).toHaveLength(0);
+    });
+  }
 
   test('Modal components should be accessible wherever used', async ({ page }) => {
     await page.goto('/');

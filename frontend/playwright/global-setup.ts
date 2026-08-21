@@ -1,29 +1,31 @@
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { chromium } from '@playwright/test';
+import { chromium, type Browser } from '@playwright/test';
 
 import {
   API_URL,
   BASE_URL,
-  TEST_EMAIL,
-  TEST_PASSWORD,
-  TEST_USER_STORAGE_STATE_PATH,
+  DEFAULT_USER,
+  PROJECT_NAMES,
+  TIMER_SUITE_SLUGS,
+  derivedUser,
+  type TestUser,
 } from './testUser';
 
-export default async function globalSetup() {
-  await mkdir(dirname(TEST_USER_STORAGE_STATE_PATH), { recursive: true });
+async function seedStorageState(browser: Browser, user: TestUser): Promise<void> {
+  await mkdir(dirname(user.storageStatePath), { recursive: true });
 
   const response = await fetch(`${API_URL}/auth/jwt/create/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD }),
+    body: JSON.stringify({ email: user.email, password: user.password }),
   });
 
   if (!response.ok) {
     throw new Error(
       [
-        `Login failed for Playwright test user ${TEST_EMAIL}.`,
-        `Run "npm run test:e2e:setup-user" from the frontend directory first.`,
+        `Login failed for Playwright test user ${user.email}.`,
+        `Run "npm run test:e2e:setup-users" from the frontend directory first.`,
         `Response: ${response.status} ${await response.text()}`,
       ].join(' '),
     );
@@ -37,16 +39,36 @@ export default async function globalSetup() {
     throw new Error(`Login response missing tokens: ${JSON.stringify(data)}`);
   }
 
-  const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
 
   await page.goto(BASE_URL);
   await page.evaluate(({ access, refresh }) => {
-    localStorage.setItem('accessToken', access);
-    localStorage.setItem('refreshToken', refresh);
+    localStorage.setItem(
+      'authSession',
+      JSON.stringify({ accessToken: access, refreshToken: refresh, persistence: 'local' }),
+    );
   }, { access: accessToken, refresh: refreshToken });
 
-  await context.storageState({ path: TEST_USER_STORAGE_STATE_PATH });
-  await browser.close();
+  await context.storageState({ path: user.storageStatePath });
+  await context.close();
+}
+
+export default async function globalSetup() {
+  const browser = await chromium.launch();
+
+  try {
+    // One dedicated user per (timer-touching spec file, project) - see
+    // testUser.ts - so concurrent runs never share an ActivityTimer/WebSocket
+    // channel, whether the collision is across spec files or across the
+    // chromium/firefox/webkit/a11y projects Playwright runs each file under.
+    await seedStorageState(browser, DEFAULT_USER);
+    for (const slug of TIMER_SUITE_SLUGS) {
+      for (const project of PROJECT_NAMES) {
+        await seedStorageState(browser, derivedUser(slug, project));
+      }
+    }
+  } finally {
+    await browser.close();
+  }
 }

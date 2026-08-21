@@ -15,6 +15,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   type?: 'button' | 'submit' | 'reset';
   ariaLabel?: string;
   ariaDescribedBy?: string;
+  /** Never used - discarded to prevent Tamagui asChild leakage. See destructuring below. */
+  onPress?: unknown;
   /** Extra HTML attributes forwarded to the underlying element. */
   [key: string]: unknown;
 }
@@ -32,6 +34,14 @@ export default function Button({
   type = 'button',
   ariaLabel,
   ariaDescribedBy,
+  // Tamagui's `asChild` cloning (e.g. Popover.Trigger) always injects an
+  // `onPress` prop onto its child, even when the toggle behaviour it drives
+  // is disabled - see Popover.tsx's Trigger comment. `Button` is a plain
+  // DOM component, not RN-style, so it must be dropped here rather than
+  // spread onto the underlying element, which React logs as an unknown
+  // DOM event handler.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onPress: _onPress,
   ...props
 }: ButtonProps) {
   const Component = as === 'a' ? 'a' : 'button';

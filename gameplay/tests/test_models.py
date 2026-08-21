@@ -123,6 +123,34 @@ class TestActivityTimer(TestCase):
         # the daily-goals bonus.
         self.assertEqual(ap_after, ap_before + result["xp_gained"] + 25)
 
+    def test_completing_twice_does_not_double_award_xp(self):
+        """
+        Two callers racing to complete the same timer - eg. the bounded-
+        timer sweep and the manual /complete/ endpoint - must not both award
+        XP. Simulated here with two separate in-memory ActivityTimer objects
+        for the same row, since Django's TestCase can't exercise real
+        concurrent transactions.
+        """
+        from gameplay.models import ActivityTimer
+
+        self.timer.new_activity("Test activity")
+        self.timer.elapsed_time = 15
+        self.timer.start_time = now()
+        self.timer.save(update_fields=["elapsed_time", "start_time"])
+
+        racing_timer = ActivityTimer.objects.get(pk=self.timer.pk)
+        xp_before = self.player.xp
+
+        first_result = self.timer.complete()
+        second_result = racing_timer.complete()
+
+        self.assertGreater(first_result["xp_gained"], 0)
+        self.assertEqual(second_result["xp_gained"], 0)
+        self.assertEqual(second_result["level_ups"], [])
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.xp, xp_before + first_result["xp_gained"])
+
 
 class TestServerMessageModel(TestCase):
     @classmethod

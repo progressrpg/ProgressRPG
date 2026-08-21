@@ -1,0 +1,243 @@
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/colors' as c;
+@use '../../styles/semantic/spacing' as sp;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  padding: 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(c.$color-border-accent, 0.8);
+}
+
+.badgeOnTrigger {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  margin-left: 0;
+}
+
+// Doubled selector to win the cascade over navLink's own padding rule -
+// both are single-class selectors from separate CSS Modules, so which one
+// wins otherwise depends on unpredictable module bundle order.
+.trigger.trigger {
+  // No explicit height: navLink's siblings (Home, Timer, etc.) don't set
+  // one either - their height comes from line-height + this same padding.
+  // Fixing a height here would only approximate that and drift out of
+  // sync whenever the button's typography changes.
+  position: relative;
+  padding: sp.$spacing-xs;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popoverContent {
+  width: min(22rem, 92vw);
+  max-height: 65vh;
+  overflow: auto;
+  background: c.$color-bg;
+  border: 1px solid rgba(c.$color-border-primary, 0.25);
+  border-radius: sp.$border-radius;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  padding: sp.$spacing-sm;
+  z-index: v.$z-index-dropdown;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp.$spacing-sm;
+  margin-bottom: sp.$spacing-sm;
+  font-size: 0.9rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-sm;
+}
+
+.item {
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: sp.$border-radius;
+  padding: sp.$spacing-sm;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.06);
+    border-color: rgba(c.$color-border-primary, 0.35);
+  }
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp.$spacing-sm;
+  font-weight: 600;
+}
+
+.publishedAt {
+  margin: sp.$spacing-xs 0 0;
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.summary {
+  margin: sp.$spacing-xs 0;
+  font-size: 0.75rem;
+  opacity: 0.9;
+
+  // Redundant once the full body is shown - hide while the item is open.
+  // Scoped to .item specifically (see .chevron) rather than a bare
+  // [data-state="open"] ancestor match, since Popover.Content also carries
+  // data-state="open" for as long as the popover itself is open.
+  .item[data-state="open"] & {
+    display: none;
+  }
+}
+
+.accordionTrigger {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  // Buttons don't inherit ambient typography by default - browsers give
+  // them their own UA control font instead. Set explicitly (rather than
+  // `font: inherit`, which pulled in the ancestor h3's full-size heading
+  // style) so the title stays compact along with the rest of this list.
+  font-family: inherit;
+  font-size: 0.85rem;
+
+  // No custom focus style here - falls back to the site-wide
+  // :focus-visible outline (see styles/base/_a11y.scss) instead of this
+  // component's own green one.
+}
+
+.accordionContent {
+  overflow: hidden;
+}
+
+.metaRight {
+  display: inline-flex;
+  align-items: center;
+  gap: sp.$spacing-xs;
+}
+
+// CSS-drawn arrow rather than a text glyph, so its size and orientation
+// render consistently across browsers/fonts instead of relying on a
+// unicode triangle that can look ambiguous at small sizes.
+.chevron {
+  display: inline-block;
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: -0.15rem;
+  opacity: 0.6;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg); // points down at rest
+  transition: transform 0.15s ease;
+
+  // Points up once the item is open. Scoped to .item specifically, not a
+  // bare [data-state="open"] ancestor match - Popover.Content also carries
+  // data-state="open" for as long as the popover itself is open, which would
+  // otherwise match every chevron regardless of its own item's state.
+  .item[data-state="open"] & {
+    transform: rotate(-135deg);
+  }
+}
+
+// Body is rendered from markdown (see Announcements.tsx), so styles target
+// the elements react-markdown can produce rather than a single bare <p>.
+//
+// font-size is set on p/li directly, not just .body - the global `p { }`
+// rule (styles/base/_global.scss) targets <p> explicitly, which wins over
+// an inherited size from this container regardless of .body's own value.
+.body {
+  margin: sp.$spacing-xs 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+
+  p {
+    margin: 0 0 sp.$spacing-xs;
+    font-size: 0.75rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  ul,
+  ol {
+    margin: 0 0 sp.$spacing-xs;
+    padding-left: sp.$spacing-md;
+  }
+
+  li {
+    margin-bottom: sp.$spacing-xs;
+    font-size: 0.75rem;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    font-size: 0.75rem;
+  }
+
+  code {
+    font-size: 0.85em;
+    background: rgba(c.$color-border-primary, 0.12);
+    border-radius: 0.2rem;
+    padding: 0.1rem 0.3rem;
+  }
+}
+
+.empty {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.actionButton {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.75rem;
+  padding: 0;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.unreadDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: c.$color-border-primary;
+}
+
+.mobilePanel {
+  margin: 0 sp.$spacing-sm sp.$spacing-sm;
+  padding: sp.$spacing-sm;
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: sp.$border-radius;
+  background: rgba(c.$color-bg, 0.95);
+}

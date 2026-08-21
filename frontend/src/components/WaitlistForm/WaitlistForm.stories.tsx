@@ -21,7 +21,10 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('heading', { name: 'Join the Waitlist' })).toBeVisible();
-    await expect(canvas.getByLabelText('Email:')).toBeVisible();
+    // Exact match fails: the required-asterisk span's aria-label="required"
+    // makes the label's computed accessible name "Email: required", not
+    // just "Email:".
+    await expect(canvas.getByLabelText('Email:', { exact: false })).toBeVisible();
   },
 };
 

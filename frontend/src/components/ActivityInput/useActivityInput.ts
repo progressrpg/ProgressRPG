@@ -206,7 +206,7 @@ export function useActivityInput() {
     freeTimerLimitSeconds,
   } = useGame();
 
-  const { currentActivity, status, stop, startActivity, labelActivity, elapsed, limitSeconds, autoStopCompletion, clearAutoStopCompletion } =
+  const { currentActivity, status, canResume, stop, startActivity, labelActivity, resume, discard, elapsed, limitSeconds, autoStopCompletion, clearAutoStopCompletion } =
     activityTimer;
 
   const isPremium = Boolean(player?.is_premium);
@@ -260,7 +260,23 @@ export function useActivityInput() {
     },
   });
 
+  // Two different questions, which used to share one flag. `isActive` is
+  // "is the timer ticking"; `hasSession` is "is there a session in progress
+  // at all", which a paused one still is. Treating a paused session as no
+  // session is what made pausing destructive: the next start would call
+  // set_activity and wipe the banked time.
+  //
+  // "waiting" is the backend's real, load-bearing state between set_activity
+  // (assigns the activity) and start (starts the clock) - two separate API
+  // calls made back-to-back by a single Start click. A WebSocket push can
+  // report "waiting" in the gap between them. Without this branch, hasSession
+  // briefly went false and the UI reverted to the pre-Start screen, which
+  // could swallow a click made during that window (e.g. on Planning mode's
+  // "Add task" button).
   const isActive = status === "active";
+  const isPaused = status === "paused";
+  const isWaiting = status === "waiting";
+  const hasSession = isActive || isPaused || isWaiting;
   // While actively editing (click-to-edit), `name` is the single source of
   // truth — including when the user has deleted it down to "". Falling back
   // to `currentActivity?.name` unconditionally here meant selecting all text
@@ -268,8 +284,8 @@ export function useActivityInput() {
   // `name` became "", so this fell back to the still-uncommitted old name.
   // Outside of active editing, the fallback is still needed (e.g. showing
   // the labelled activity's name before edit mode's own state has caught up).
-  const inputValue = isActive ? (isEditingLabel ? name : name || currentActivity?.name || "") : name;
-  const isUnlabelled = isActive && !(currentActivity?.name ?? currentActivity?.text ?? "").trim();
+  const inputValue = hasSession ? (isEditingLabel ? name : name || currentActivity?.name || "") : name;
+  const isUnlabelled = hasSession && !(currentActivity?.name ?? currentActivity?.text ?? "").trim();
 
   useWelcomeMessageEffect({
     loginState,
@@ -351,10 +367,39 @@ export function useActivityInput() {
     [addEntityToCache, labelActivity],
   );
 
+  /**
+   * Pick a paused session back up. Nothing is lost if this fails - the
+   * banked time stays paused and the player can try again.
+   */
+  const handleResume = useCallback(async () => {
+    primeAudio();
+    try {
+      await resume();
+    } catch (err) {
+      console.error("[ActivityInput] Failed to resume timer:", err);
+    }
+  }, [resume]);
+
+  /**
+   * Throw a paused session away without submitting it. Confirmation is the
+   * caller's business; this is the destructive half.
+   */
+  const handleDiscard = useCallback(async () => {
+    try {
+      await discard();
+      setName("");
+      await refreshAfterActivityChange();
+    } catch (err) {
+      console.error("[ActivityInput] Failed to discard timer:", err);
+    }
+  }, [discard, refreshAfterActivityChange]);
+
   const handleToggle = useCallback(async () => {
     primeAudio();
 
-    if (isActive) {
+    // Submitting is the main action for a paused session too, not just a
+    // running one - stop() banks from the same elapsed value either way.
+    if (hasSession) {
       const completedActivityName = (name || currentActivity?.name || "").trim();
       const completedTaskId = currentActivity?.taskId ?? null;
       const completedActivityId = currentActivity?.id ?? null;
@@ -419,7 +464,7 @@ export function useActivityInput() {
     currentActivity?.name,
     currentActivity?.taskId,
     elapsed,
-    isActive,
+    hasSession,
     isPremium,
     name,
     openActivityReward,
@@ -457,14 +502,14 @@ export function useActivityInput() {
   // timer, and is also what click-to-edit's blur/select path uses.
   const handleUnifiedSelect = useCallback(
     async (activity: SelectedEntity) => {
-      if (!isActive) {
+      if (!hasSession) {
         await handleSelectActivity(activity);
         return;
       }
 
       await labelRunningActivity(activity.name, resolveSelectedTaskId(activity), activity as unknown as CacheEntry);
     },
-    [handleSelectActivity, isActive, labelRunningActivity],
+    [handleSelectActivity, hasSession, labelRunningActivity],
   );
 
   // Submitting free text: starts a timer if none is running, otherwise
@@ -474,7 +519,7 @@ export function useActivityInput() {
     async (activityName: string) => {
       const trimmedName = activityName.trim();
 
-      if (!isActive) {
+      if (!hasSession) {
         if (!trimmedName) return;
         await handleCreateActivity(trimmedName);
         return;
@@ -482,7 +527,7 @@ export function useActivityInput() {
 
       await labelRunningActivity(trimmedName, null, trimmedName ? trimmedName : undefined);
     },
-    [handleCreateActivity, isActive, labelRunningActivity],
+    [handleCreateActivity, hasSession, labelRunningActivity],
   );
 
   // Click-to-edit: clicking the running-labelled activity name pre-fills
@@ -559,6 +604,10 @@ export function useActivityInput() {
     name,
     setName,
     isActive,
+    isPaused,
+    isWaiting,
+    hasSession,
+    canResume,
     isUnlabelled,
     isEditingLabel,
     inputValue,
@@ -572,6 +621,8 @@ export function useActivityInput() {
     flowDispatch,
     handleConfirmActivity,
     handleToggle,
+    handleResume,
+    handleDiscard,
     handleBlankStart,
     handleSelectActivity,
     handleCreateActivity,

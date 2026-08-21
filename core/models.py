@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.storage import Storage
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.deconstruct import deconstructible
 
 
@@ -233,7 +234,7 @@ class FeatureFlag(models.Model):
 class Announcement(models.Model):
     title = models.CharField(max_length=200)
     summary = models.CharField(max_length=300, blank=True)
-    body = models.TextField()
+    body = models.TextField(help_text="Supports Markdown (bold, links, lists, etc.).")
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -253,6 +254,11 @@ class Announcement(models.Model):
             if self.pk
             else False
         )
+        if self.is_published and self.published_at is None:
+            self.published_at = timezone.now()
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None and "published_at" not in update_fields:
+                kwargs["update_fields"] = list(update_fields) + ["published_at"]
         super().save(*args, **kwargs)
         if self.is_published and not was_published:
             from django.db import transaction

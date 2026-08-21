@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import * as Tabs from "@radix-ui/react-tabs";
+import * as Tabs from "../../components/Tabs/Tabs";
 
 import TasksPanel from "../../components/TasksPanel/TasksPanel";
 import ActivitiesPanel from "../../components/ActivitiesPanel/ActivitiesPanel";

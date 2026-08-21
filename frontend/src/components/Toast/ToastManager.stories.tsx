@@ -1,12 +1,14 @@
-import * as RadixToast from '@radix-ui/react-toast';
+import { ToastProvider } from 'tamagui';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 import ToastManager from './ToastManager';
 
 /**
- * `ToastManager` renders a `messages[]` prop as Radix `Toast.Root`s plus the
- * shared `Toast.Viewport`. It must be mounted under a Radix `Toast.Provider`
- * (normally supplied by `ToastContext`) - the story provides one directly.
+ * `ToastManager` renders a `messages[]` prop as Tamagui `Toast`s plus the
+ * shared `ToastViewport` (#581). It must be mounted under a Tamagui
+ * `ToastProvider` (normally supplied by `ToastContext`, alongside the global
+ * `TamaguiProvider` from `.storybook/preview.tsx`) - the story provides one
+ * directly.
  */
 const meta: Meta<typeof ToastManager> = {
   title: 'Shared/ToastManager',
@@ -14,13 +16,28 @@ const meta: Meta<typeof ToastManager> = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <RadixToast.Provider>
+      <ToastProvider>
         <Story />
-      </RadixToast.Provider>
+      </ToastProvider>
     ),
   ],
   args: {
     onDismiss: () => {},
+  },
+  parameters: {
+    a11y: {
+      config: {
+        // `ToastViewport` (Tamagui, ported from Radix's Toast) renders two
+        // invisible `FocusProxy` sentinels (aria-hidden + tabIndex=0) that
+        // detect Tab focus entering/exiting the viewport so it can redirect
+        // to the first/last toast - the same intentional pattern
+        // @radix-ui/react-toast uses upstream. aria-hidden-focus can't tell
+        // "hidden from screen readers but a deliberate keyboard-only
+        // sentinel" from a real bug, so it's disabled here rather than
+        // worked around.
+        rules: [{ id: 'aria-hidden-focus', enabled: false }],
+      },
+    },
   },
 };
 
@@ -33,7 +50,12 @@ export const Default: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Task saved.')).toBeVisible();
+    // .toast[data-state='open'] runs a real 0.25s fadeInUp animation
+    // starting at opacity: 0, so the toast isn't `toBeVisible()` on the
+    // very first frame after mount - wait for the animation to progress.
+    await waitFor(() => {
+      expect(canvas.getByText('Task saved.')).toBeVisible();
+    });
   },
 };
 

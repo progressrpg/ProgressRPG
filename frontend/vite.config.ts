@@ -6,8 +6,20 @@ import path from 'node:path'
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import { playwright } from '@vitest/browser-playwright'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { tamaguiPlugin } from '@tamagui/vite-plugin'
 
 const dirname = fileURLToPath(new URL('.', import.meta.url))
+
+// The 'unit' vitest project (happy-dom) doesn't benefit from Tamagui's
+// static extraction - it's a bundle-size/runtime-perf optimization that
+// tests never observe, since they assert on rendered DOM, not shipped CSS.
+// Its per-file AST walk is real cost for a mostly-not-Tamagui codebase
+// though: disabling it cut this project's transform time roughly 4x (~43s
+// -> ~9s across a 70-file/560-test run measured locally) with zero test
+// diff. Left enabled everywhere else (build, dev, the 'storybook' project)
+// since those do care about the optimized output.
+const isUnitTestRun =
+  !!process.env.VITEST && process.argv.includes('--project') && process.argv.includes('unit')
 
 // https://vite.dev/config/
 export default defineConfig(() => {
@@ -40,6 +52,17 @@ export default defineConfig(() => {
             rename: { stripBase: true },
           },
         ],
+      }),
+      // Activates Tamagui's compiler (extracts static styles at build time
+      // instead of shipping a runtime style engine) for the RN/Expo
+      // migration (#578/#591, decided in #591; first landed by #580).
+      // Without this plugin, `tamagui`/`@tamagui/core` still work but every
+      // style is computed at runtime instead - a materially worse bundle/
+      // perf profile than what #629's PoC measured.
+      tamaguiPlugin({
+        config: './tamagui.config.ts',
+        components: ['tamagui'],
+        disable: isUnitTestRun,
       }),
     ],
     base: '/',

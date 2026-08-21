@@ -8,13 +8,13 @@
 
 ## Summary
 
-### Features
+### New
 -
 
-### Fixes and UX improvements
+### Improvements
 -
 
-### Developer experience and quality
+### Fixes
 -
 
 ---

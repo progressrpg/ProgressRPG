@@ -8,6 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import OfflineActivityLedger, PlayerActivity, Task
+from .day_boundaries import logical_date_for
 
 # Offline-logged activities are recorded for completeness/history at any
 # tier, but only earn XP for premium accounts, subject to the daily caps
@@ -58,7 +59,9 @@ def log_offline_activity(
         raise ValidationError("Cannot log an activity that completes in the future.")
 
     duration = int((completed_at - started_at).total_seconds())
-    log_date = timezone.localdate(started_at)
+    # The player's logical day, not the server's calendar day - the daily
+    # caps below and the activity's own attribution have to agree.
+    log_date = logical_date_for(player, started_at)
 
     ledger, _created = OfflineActivityLedger.objects.select_for_update().get_or_create(
         player=player, date=log_date
@@ -90,6 +93,7 @@ def log_offline_activity(
         task=task,
         origin=PlayerActivity.Origin.MANUAL,
         started_at=started_at,
+        logical_date=log_date,
         duration=duration,
     )
 
@@ -106,7 +110,9 @@ def log_offline_activity(
 
     from .daily_goals import check_and_award_daily_goals
 
-    _goals_state, bonus_level_ups = check_and_award_daily_goals(player)
+    # Awarded against the day the activity happened on, not today - a
+    # session logged after the fact belongs to the day it was worked.
+    _goals_state, bonus_level_ups = check_and_award_daily_goals(player, today=log_date)
     level_ups = level_ups + bonus_level_ups
 
     return OfflineActivityLogResult(

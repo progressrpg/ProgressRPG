@@ -3,9 +3,11 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ComponentProps } from 'react';
+import { TamaguiProvider } from 'tamagui';
 import { fromLngLat, toLngLat } from './utils';
 import { colourForCharacter } from './characters/placement';
 import { TOOLTIP_ONLY_SELECTION_OPACITY } from './layers';
+import tamaguiConfig from '../../../tamagui.config';
 
 const mockFetchMapCharacterDetail = vi.fn();
 vi.mock('../../api/map', async (importOriginal) => {
@@ -255,15 +257,21 @@ function positionAlongPathForTest(
   return pos;
 }
 
+// Map's tap-to-expand village tooltip renders ProgressBar (#673/#674), which
+// needs a TamaguiProvider ancestor since it moved onto Tamagui's Progress
+// primitive (#580) - the app root (src/main.tsx) provides this in
+// production, tests need their own.
 function renderMap(props: ComponentProps<typeof PopulationCentreMap>) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <PopulationCentreMap {...props} />
-      </TooltipProvider>
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        <TooltipProvider>
+          <PopulationCentreMap {...props} />
+        </TooltipProvider>
+      </TamaguiProvider>
     </QueryClientProvider>
   );
 }
@@ -1485,9 +1493,11 @@ describe('PopulationCentreMap path-aware interpolation (#615)', () => {
       ],
     };
     rerender(
-      <TooltipProvider>
-        <PopulationCentreMap geojson={correctedGeojson} />
-      </TooltipProvider>
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        <TooltipProvider>
+          <PopulationCentreMap geojson={correctedGeojson} />
+        </TooltipProvider>
+      </TamaguiProvider>
     );
 
     const justAfter = positionAlongPathForTest([50, 50], [[60, 50]], 0.08);

@@ -22,7 +22,11 @@ $primary-scale: (
   100: color.adjust($color-primary, $lightness: +30%),
   200: color.adjust($color-primary, $lightness: +20%),
   300: color.adjust($color-primary, $lightness: +10%),
-  400: color.adjust($color-primary, $lightness: +5%),
+  // Capped at +2.5% (not the +5%/+10%/... step used elsewhere in this scale)
+  // because primary-scale 400 backs white-on-primary text (button hover,
+  // selected-list-item hover) - +5% drops below the 4.5:1 WCAG AA contrast
+  // ratio required for that text (#00943c ~3.93:1 vs #fefefe).
+  400: color.adjust($color-primary, $lightness: +2.5%),
   500: $color-primary,
   600: color.adjust($color-primary, $lightness: -5%),
   700: color.adjust($color-primary, $lightness: -10%),

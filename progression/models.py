@@ -557,6 +557,11 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
     origin = models.CharField(
         max_length=10, choices=Origin.choices, default=Origin.TIMER
     )
+    # The player's logical day this session belongs to, derived from
+    # `started_at` (see progression.day_boundaries). Stamped once, when the
+    # session starts, so it survives any number of pause/resume cycles and
+    # isn't rewritten by a later change of timezone or day-start setting.
+    logical_date = models.DateField(null=True, blank=True)
     skill = models.ForeignKey(
         "progression.PlayerSkill",
         on_delete=models.SET_NULL,
@@ -588,6 +593,14 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
                 name="activity_task_or_project_not_both",
             )
         ]
+        indexes = [
+            # Every day-based aggregation (daily goals, the timeline,
+            # streak calendars) filters on both columns together.
+            models.Index(
+                fields=["player", "logical_date"],
+                name="activity_player_logical_day",
+            )
+        ]
 
     def __str__(self):
         """
@@ -601,6 +614,21 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
             update_fields = kwargs.get("update_fields")
             if update_fields is not None:
                 kwargs["update_fields"] = set(update_fields) | {"activity"}
+
+        # Timer sessions get their logical day stamped at start (see
+        # ActivityTimer.start) so it survives pause/resume. This is the
+        # backstop for every other path: an activity with no logical_date
+        # is invisible to daily goals and the timeline, so derive it here
+        # rather than requiring each caller to remember.
+        if self.logical_date is None and self.player_id:
+            moment = self.started_at or self.completed_at
+            if moment is not None:
+                from .day_boundaries import logical_date_for
+
+                self.logical_date = logical_date_for(self.player, moment)
+                update_fields = kwargs.get("update_fields")
+                if update_fields is not None:
+                    kwargs["update_fields"] = set(update_fields) | {"logical_date"}
 
         super().save(*args, **kwargs)
 

@@ -8,12 +8,12 @@
   width: 100%;
   padding: s.$card-padding;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  background-color: c.$color-border-primary;
+  background-color: c.$color-bg-green;
 }
 
 .bannerText {
   @include t.apply-text-style(t.$text-body);
-  @include c.apply-text-tone(map.get(c.$text-tone, inverted));
+  @include c.apply-text-tone(map.get(c.$text-tone, primary));
 
   @include m.respond-to(md, down) {
     font-size: 0.875rem;
