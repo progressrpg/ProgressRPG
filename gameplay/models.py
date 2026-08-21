@@ -405,89 +405,110 @@ class ActivityTimer(Timer):
         completion_source: str = "manual",
     ):
         """
-        Complete the activity timer and return the XP gained for the activity.
+        Complete the activity timer and return the XP gained for the
+        activity.
+
+        Locks the row for the duration of completion (rather than trusting
+        `self.status`/`self.activity`, which may already be stale) so that
+        two concurrent completers - the periodic bounded-timer sweep racing
+        itself or the manual /complete/ endpoint - can't both read
+        "not yet completed" and both award XP. reset() clears `activity` as
+        the last step of a successful completion, so a locked row with no
+        activity means someone else already finished this one first.
         """
+        empty_reward_summary = {
+            "duration_seconds": 0,
+            "base_xp": 0,
+            "xp_multiplier": 1,
+            "mastery_multiplier": 1,
+            "xp_gained": 0,
+            "skill_xp_gained": 0,
+            "level_ups": [],
+        }
+
         if not self.activity:
             logger.warning(
-                f"[COMPLETE] Timer {self.id} has no activity assigned — skipping activity.complete()"
+                f"[COMPLETE] Timer {self.id} has no activity assigned — "
+                "skipping activity.complete()"
             )
-            return {
-                "duration_seconds": 0,
-                "base_xp": 0,
-                "xp_multiplier": 1,
-                "mastery_multiplier": 1,
-                "xp_gained": 0,
-                "skill_xp_gained": 0,
-                "level_ups": [],
-            }
+            return empty_reward_summary
 
-        if self.status == "completed":
-            logger.warning(
-                f"[COMPLETE CALLED AGAIN] Timer {self.id} already completed — elapsed_time: {self.elapsed_time}"
-            )
+        with transaction.atomic():
+            # Not select_related("activity") - `activity` is nullable, and
+            # Postgres refuses FOR UPDATE across the nullable side of the
+            # resulting outer join.
+            locked = ActivityTimer.objects.select_for_update().get(pk=self.pk)
 
-        pre_complete_start_time = self.start_time
-        super().complete()
-
-        if completion_source == "auto":
-            try:
-                if client_elapsed_seconds is None:
-                    raise TypeError
-                parsed_client_elapsed = int(client_elapsed_seconds)
-            except (TypeError, ValueError):
-                parsed_client_elapsed = None
-
-            if (
-                parsed_client_elapsed is not None
-                and parsed_client_elapsed > self.elapsed_time
-            ):
-                self.elapsed_time = parsed_client_elapsed
-                self.save(update_fields=["elapsed_time"])
-
-        if newName:
-            self.rename_activity(newName)
-        self.update_activity_time()
-
-        if self.activity.started_at is None:
-            from progression.day_boundaries import logical_date_for
-
-            if pre_complete_start_time is not None:
-                backfilled_started_at = pre_complete_start_time
-            else:
-                backfilled_started_at = timezone.now() - timedelta(
-                    seconds=max(0, int(self.elapsed_time))
+            if not locked.activity_id:
+                logger.info(
+                    f"[COMPLETE] Timer {self.id} already completed by another "
+                    "process — skipping"
                 )
+                return empty_reward_summary
 
-            self.activity.started_at = backfilled_started_at
-            self.activity.logical_date = logical_date_for(
-                self.player, backfilled_started_at
+            pre_complete_start_time = self.start_time
+            super().complete()
+
+            if completion_source == "auto":
+                try:
+                    if client_elapsed_seconds is None:
+                        raise TypeError
+                    parsed_client_elapsed = int(client_elapsed_seconds)
+                except (TypeError, ValueError):
+                    parsed_client_elapsed = None
+
+                if (
+                    parsed_client_elapsed is not None
+                    and parsed_client_elapsed > self.elapsed_time
+                ):
+                    self.elapsed_time = parsed_client_elapsed
+                    self.save(update_fields=["elapsed_time"])
+
+            if newName:
+                self.rename_activity(newName)
+            self.update_activity_time()
+
+            if self.activity.started_at is None:
+                from progression.day_boundaries import logical_date_for
+
+                if pre_complete_start_time is not None:
+                    backfilled_started_at = pre_complete_start_time
+                else:
+                    backfilled_started_at = timezone.now() - timedelta(
+                        seconds=max(0, int(self.elapsed_time))
+                    )
+
+                self.activity.started_at = backfilled_started_at
+                self.activity.logical_date = logical_date_for(
+                    self.player, backfilled_started_at
+                )
+                self.activity.save(update_fields=["started_at", "logical_date"])
+
+            reward_summary = self.activity.get_xp_reward_summary()
+            xp_gained = self.activity.complete(reward_summary=reward_summary)
+            level_ups = self.player.add_activity(self.elapsed_time, xp=xp_gained)
+
+            from progression.daily_goals import check_and_award_daily_goals
+
+            # Against the session's own logical day rather than the current
+            # one: a session started before the day rolled over completes
+            # the goals for the day it was worked, however late it is
+            # submitted.
+            goals_state, bonus_level_ups = check_and_award_daily_goals(
+                self.player, today=self.activity.logical_date
             )
-            self.activity.save(update_fields=["started_at", "logical_date"])
+            level_ups = level_ups + bonus_level_ups
 
-        reward_summary = self.activity.get_xp_reward_summary()
-        xp_gained = self.activity.complete(reward_summary=reward_summary)
-        level_ups = self.player.add_activity(self.elapsed_time, xp=xp_gained)
+            reward_summary["level_ups"] = level_ups
+            reward_summary["daily_goals_bonus_ap"] = goals_state.bonus_ap
 
-        from progression.daily_goals import check_and_award_daily_goals
+            logger.debug(
+                f"[TIMER COMPLETE] Timer {self.id} completed — elapsed_time: {self.elapsed_time}, completed_at: {self.activity.completed_at}"
+            )
 
-        # Against the session's own logical day rather than the current one:
-        # a session started before the day rolled over completes the goals
-        # for the day it was worked, however late it is submitted.
-        goals_state, bonus_level_ups = check_and_award_daily_goals(
-            self.player, today=self.activity.logical_date
-        )
-        level_ups = level_ups + bonus_level_ups
+            self.reset()
 
-        reward_summary["level_ups"] = level_ups
-        reward_summary["daily_goals_bonus_ap"] = goals_state.bonus_ap
-
-        logger.debug(
-            f"[TIMER COMPLETE] Timer {self.id} completed — elapsed_time: {self.elapsed_time}, completed_at: {self.activity.completed_at}"
-        )
-
-        self.reset()
-
-        return reward_summary
+            return reward_summary
 
     def _reset_hook(self):
         self.activity = None
