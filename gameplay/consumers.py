@@ -259,11 +259,13 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             logger.info(f"[DISCONNECT] Removed from group: {self.player_group}")
             await self.channel_layer.group_discard(self.player_group, self.channel_name)
 
-        # Prefer the current in-memory timer state for this socket session,
-        # falling back to DB if it is not set.
-        activity_timer = getattr(self, "activity_timer", None)
-        if activity_timer is None:
-            activity_timer = await self.get_activity_timer()
+        # Reloaded from the DB rather than trusting self.activity_timer,
+        # which was loaded once at connect() and never refreshed: a REST
+        # call (e.g. set_activity) mutates a separate ORM instance, so a
+        # socket that connected before the timer started would otherwise
+        # still see it as empty here, skip the grace-period task below, and
+        # leave the now-interrupted session running unattended.
+        activity_timer = await self.get_activity_timer()
 
         if activity_timer and activity_timer.status == "active":
             # Give the player DISCONNECT_GRACE_SECONDS to reconnect before

@@ -221,7 +221,14 @@ class TimerConsumerDisconnectGraceTests(TransactionTestCase):
     def _cache_key(self):
         return DISCONNECT_TASK_CACHE_KEY.format(player_id=self.player.id)
 
-    def _make_consumer(self, timer_status="active"):
+    def _make_consumer(self, timer_status="active", stale_in_memory_status=None):
+        """
+        `stale_in_memory_status`, when given, sets consumer.activity_timer to
+        a MockTimer with a *different* status than the DB row - reproducing
+        a socket that connected before a since-changed REST call (e.g.
+        set_activity) updated the real timer. disconnect() must reload from
+        the DB rather than trust this stale attribute.
+        """
         consumer = TimerConsumer()
         consumer.scope = {"user": self.user}
         consumer.channel_layer = DummyChannelLayer()
@@ -230,7 +237,18 @@ class TimerConsumerDisconnectGraceTests(TransactionTestCase):
         consumer.player_group = f"player_{self.player.id}"
         consumer.character = None
         consumer.link = None
-        consumer.activity_timer = MockTimer(status=timer_status)
+
+        timer = self.player.activity_timer
+        timer.status = timer_status
+        timer.save(update_fields=["status"])
+
+        consumer.activity_timer = MockTimer(
+            status=(
+                stale_in_memory_status
+                if stale_in_memory_status is not None
+                else timer_status
+            )
+        )
         return consumer
 
     def _disconnect_with_mock_task(self, consumer):
@@ -289,9 +307,43 @@ class TimerConsumerDisconnectGraceTests(TransactionTestCase):
                 async_to_sync(consumer.disconnect)(1000)
 
         mock_task.apply_async.assert_not_called()
-        mock_control.assert_called_once_with(
-            consumer.player, consumer.activity_timer, "pause"
+        mock_control.assert_called_once()
+        called_player, called_timer, called_action = mock_control.call_args.args
+        self.assertEqual(called_player, consumer.player)
+        self.assertEqual(called_timer.pk, self.player.activity_timer.pk)
+        self.assertEqual(called_action, "pause")
+
+    # regression: disconnect must reload the timer from the DB rather than
+    # trust self.activity_timer, which is only set once at connect() and
+    # never updated as the socket sits open
+
+    def test_reloads_timer_from_db_when_it_started_after_connect(self):
+        """
+        A socket that connected while the timer was empty, then the player
+        pressed Start via the REST endpoint (a separate ORM instance) - the
+        consumer's own self.activity_timer, loaded once at connect(), is
+        stale. disconnect() must still see the now-active session and
+        schedule the grace-period task rather than silently skipping it.
+        """
+        consumer = self._make_consumer(
+            timer_status="active", stale_in_memory_status="empty"
         )
+        mock_result = MagicMock()
+        mock_result.id = "scheduled-task-id"
+
+        with patch("gameplay.tasks.auto_pause_timer_on_disconnect") as mock_task:
+            mock_task.apply_async.return_value = mock_result
+            with patch(
+                "gameplay.consumers.control_timers", new_callable=AsyncMock
+            ) as mock_control:
+                async_to_sync(consumer.disconnect)(1000)
+
+        mock_task.apply_async.assert_called_once_with(
+            kwargs={"player_id": self.player.id},
+            countdown=DISCONNECT_GRACE_SECONDS,
+        )
+        self.assertEqual(cache.get(self._cache_key()), "scheduled-task-id")
+        mock_control.assert_not_called()
 
 
 # ── consumer reconnect tests ───────────────────────────────────────────────────
