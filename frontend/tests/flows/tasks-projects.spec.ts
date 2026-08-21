@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { stabilizeTimerPage } from '../utils/authenticatedPage';
-import { TEST_USERS } from '../../playwright/testUser';
+import { timerUserStorageState } from '../../playwright/testUser';
 
 test.describe('Task flow', () => {
-  test.use({ storageState: TEST_USERS['tasks-projects'].storageStatePath });
+  test.use({ storageState: timerUserStorageState('tasks-projects') });
 
   test('can create and delete a task', async ({ page }) => {
     const taskName = `Flow test task ${Date.now()}`;

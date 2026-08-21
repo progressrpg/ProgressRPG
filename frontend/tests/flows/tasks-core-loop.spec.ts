@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { stabilizeTimerPage } from '../utils/authenticatedPage';
-import { TEST_USERS } from '../../playwright/testUser';
+import { timerUserStorageState } from '../../playwright/testUser';
 
 /**
  * End-to-end coverage for the tasks core loop (issue #469):
@@ -33,7 +33,7 @@ async function createTask(page: import('@playwright/test').Page, taskName: strin
 }
 
 test.describe('Tasks core loop', () => {
-  test.use({ storageState: TEST_USERS['tasks-core-loop'].storageStatePath });
+  test.use({ storageState: timerUserStorageState('tasks-core-loop') });
 
   test('hides completed tasks and remembers the show/hide preference', async ({ page }) => {
     const taskName = `Filter task ${Date.now()}`;

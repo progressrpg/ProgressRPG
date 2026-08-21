@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { TEST_EMAIL, TEST_PASSWORD, TEST_USERS } from '../../playwright/testUser';
+import { TEST_EMAIL, TEST_PASSWORD, timerUserStorageState } from '../../playwright/testUser';
 
 test.describe('Login flow', () => {
   test('valid credentials redirect to timer or onboarding', async ({ page }) => {
@@ -22,7 +22,7 @@ test.describe('Login flow', () => {
 });
 
 test.describe('Logout flow', () => {
-  test.use({ storageState: TEST_USERS['auth-logout'].storageStatePath });
+  test.use({ storageState: timerUserStorageState('auth-logout') });
 
   test('logout redirects to home and clears session', async ({ page }) => {
     await page.goto('/logout');

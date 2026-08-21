@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { checkA11y, expectNoA11yViolations } from '../utils/a11y';
 import { stabilizeTimerPage } from '../utils/authenticatedPage';
-import { TEST_USERS } from '../../playwright/testUser';
+import { timerUserStorageState } from '../../playwright/testUser';
 
 /**
  * Accessibility coverage for the tasks core loop (issue #469): the tasks
@@ -13,7 +13,7 @@ import { TEST_USERS } from '../../playwright/testUser';
  */
 
 test.describe('Tasks page accessibility', () => {
-  test.use({ storageState: TEST_USERS['a11y-tasks'].storageStatePath });
+  test.use({ storageState: timerUserStorageState('a11y-tasks') });
 
   test('tasks panel and add-task input have no detectable violations', async ({ page }) => {
     await stabilizeTimerPage(page, { unifiedHomepage: true });

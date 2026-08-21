@@ -2,7 +2,15 @@ import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { chromium, type Browser } from '@playwright/test';
 
-import { API_URL, BASE_URL, TEST_USERS, type TestUser } from './testUser';
+import {
+  API_URL,
+  BASE_URL,
+  DEFAULT_USER,
+  PROJECT_NAMES,
+  TIMER_SUITE_SLUGS,
+  derivedUser,
+  type TestUser,
+} from './testUser';
 
 async function seedStorageState(browser: Browser, user: TestUser): Promise<void> {
   await mkdir(dirname(user.storageStatePath), { recursive: true });
@@ -50,10 +58,15 @@ export default async function globalSetup() {
   const browser = await chromium.launch();
 
   try {
-    // One dedicated user per timer-touching spec file (see TEST_USERS) so
-    // concurrent spec files never share an ActivityTimer/WebSocket channel.
-    for (const user of Object.values(TEST_USERS)) {
-      await seedStorageState(browser, user);
+    // One dedicated user per (timer-touching spec file, project) - see
+    // testUser.ts - so concurrent runs never share an ActivityTimer/WebSocket
+    // channel, whether the collision is across spec files or across the
+    // chromium/firefox/webkit/a11y projects Playwright runs each file under.
+    await seedStorageState(browser, DEFAULT_USER);
+    for (const slug of TIMER_SUITE_SLUGS) {
+      for (const project of PROJECT_NAMES) {
+        await seedStorageState(browser, derivedUser(slug, project));
+      }
     }
   } finally {
     await browser.close();

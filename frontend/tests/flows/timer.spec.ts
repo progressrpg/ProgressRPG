@@ -2,10 +2,10 @@ import { expect, test } from '@playwright/test';
 import {
   stabilizeTimerPage,
 } from '../utils/authenticatedPage';
-import { TEST_USERS } from '../../playwright/testUser';
+import { timerUserStorageState } from '../../playwright/testUser';
 
 test.describe('Timer flow', () => {
-  test.use({ storageState: TEST_USERS.timer.storageStatePath });
+  test.use({ storageState: timerUserStorageState('timer') });
 
   test('can start and stop an activity', async ({ page }) => {
     await stabilizeTimerPage(page);

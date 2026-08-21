@@ -15,7 +15,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:e2e:setup-user": "docker compose -f ../compose.yaml run -e PLAYWRIGHT_TEST_EMAIL -e PLAYWRIGHT_TEST_PASSWORD -e PLAYWRIGHT_TEST_PLAYER_NAME --rm web python manage.py seed_playwright_user",
-    "test:e2e:setup-users": "node playwright/setup-users.mjs",
+    "test:e2e:setup-users": "docker compose -f ../compose.yaml run -e PLAYWRIGHT_TEST_EMAIL -e PLAYWRIGHT_TEST_PASSWORD -e PLAYWRIGHT_TEST_PLAYER_NAME --rm web python manage.py seed_playwright_user --all",
     "test:e2e": "playwright test",
     "test:a11y": "playwright test --project=a11y",
     "test:a11y:ui": "playwright test --project=a11y --ui",
