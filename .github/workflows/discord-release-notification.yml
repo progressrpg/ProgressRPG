@@ -49,7 +49,12 @@ jobs:
           req = urllib.request.Request(
               webhook_url,
               data=json.dumps(payload).encode("utf-8"),
-              headers={"Content-Type": "application/json"},
+              headers={
+                  "Content-Type": "application/json",
+                  # Discord's edge rejects the default Python-urllib/x.y
+                  # User-Agent with a 403 - needs a real one to get through.
+                  "User-Agent": "progress-rpg-discord-notifier/1.0",
+              },
               method="POST",
           )
           with urllib.request.urlopen(req) as resp:
