@@ -35,6 +35,7 @@ export default function UnifiedTimerHome() {
   const {
     name,
     setName,
+    setActivityInputRef,
     isActive,
     isPaused,
     isWaiting,
@@ -272,6 +273,7 @@ export default function UnifiedTimerHome() {
                 <motion.div key="search" {...fadeProps} className={styles.searchControl}>
                   <EntitySearchInput
                     type="activity"
+                    inputRef={setActivityInputRef}
                     value={inputValue}
                     onChange={setName}
                     onSelect={handleUnifiedSelect}
