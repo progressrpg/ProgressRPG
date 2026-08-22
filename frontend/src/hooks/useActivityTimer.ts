@@ -1,7 +1,7 @@
 // hooks/useActivityTimer.ts
 import { useState, useRef, useEffect, useCallback } from "react";
-import { apiFetch } from "../utils/api.js";
-import { playActivityStartedSound, primeAudio } from "../utils/sounds.js";
+import { apiFetch } from "../utils/api";
+import { playActivityStartedSound, primeAudio } from "../utils/sounds";
 import type {
   TimerStatus,
   CurrentActivity,
@@ -11,7 +11,6 @@ import type {
   AutoStopCompletion,
   ActivityTimerReturn,
 } from "../types";
-//import { useGame } from "../context/GameContext.jsx";
 
 
 export default function useActivityTimer(): ActivityTimerReturn {

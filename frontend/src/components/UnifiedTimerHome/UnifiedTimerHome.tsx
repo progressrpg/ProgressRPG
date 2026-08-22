@@ -38,7 +38,6 @@ export default function UnifiedTimerHome() {
     setActivityInputRef,
     isActive,
     isPaused,
-    isWaiting,
     hasSession,
     canResume,
     isUnlabelled,
