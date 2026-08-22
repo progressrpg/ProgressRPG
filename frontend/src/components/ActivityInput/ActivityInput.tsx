@@ -13,6 +13,7 @@ export default function ActivityInput() {
   const {
     name,
     setName,
+    setActivityInputRef,
     isActive,
     inputValue,
     elapsed,
@@ -43,6 +44,7 @@ export default function ActivityInput() {
             <div className={classNames(styles.grow, styles.control)}>
               <EntitySearchInput
                 type="activity"
+                inputRef={setActivityInputRef}
                 value={inputValue}
                 onChange={setName}
                 onSelect={async (activity) => {
