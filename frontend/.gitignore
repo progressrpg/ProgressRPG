@@ -11,7 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+# Committed: the explicit per-mode API base URL defaults config.ts now
+# requires (#571). Real secrets/overrides go in .env*.local.
 .env.*
+!.env.development
+!.env.test
 
 # Editor directories and files
 .vscode/*
