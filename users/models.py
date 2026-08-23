@@ -105,6 +105,16 @@ class CustomUser(AbstractUser):
     stripe_customer_id = models.CharField(
         max_length=255, blank=True, null=True, unique=True
     )
+    # Opt-in for the 7-day inactivity reminder email (see
+    # users.services.inactivity_reminder_service). Minimal stand-in for the
+    # settings-page toggle proposed in issue #816 - exposed here so the
+    # reminder can respect it before that page exists.
+    receives_inactivity_reminder = models.BooleanField(default=True)
+    # Stamped when an inactivity reminder is sent, so a user isn't reminded
+    # twice for the same inactivity period. Compared against the instant of
+    # their last activity: a later activity naturally makes the user
+    # eligible again without needing a separate reset signal.
+    inactivity_reminder_sent_at = models.DateTimeField(null=True, blank=True)
 
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
