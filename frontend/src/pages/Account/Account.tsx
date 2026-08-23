@@ -3,11 +3,13 @@ import React, { useState } from "react";
 import Achievements from "../../components/Achievements/Achievements";
 import Button from "../../components/Button/Button";
 import * as Tabs from "../../components/Tabs/Tabs";
+import TimezoneSelect from "../../components/TimezoneSelect/TimezoneSelect";
 import {
   PLAYER_NAME_MAX_LENGTH,
 } from "../../utils/playerNameValidation";
 import { useAccountPage } from "./useAccountPage";
 import { usePreferencesTab } from "./usePreferencesTab";
+import { useTimezonePreference } from "./useTimezonePreference";
 import styles from "./Account.module.scss";
 
 export default function Account(): React.ReactElement {
@@ -50,6 +52,18 @@ export default function Account(): React.ReactElement {
     handleToggle,
     pendingKey,
   } = usePreferencesTab();
+
+  const {
+    timezones,
+    timezonesLoading,
+    timezonesError,
+    currentTimezone,
+    detectedTimezone,
+    showDetectedTimezoneHint,
+    handleTimezoneChange,
+    isUpdating: isUpdatingTimezone,
+    updateError: timezoneUpdateError,
+  } = useTimezonePreference();
 
   const [activeTab, setActiveTab] = useState("account");
 
@@ -284,6 +298,51 @@ export default function Account(): React.ReactElement {
           </Tabs.Content>
 
           <Tabs.Content value="preferences" className={styles.tabContent}>
+            <section className={styles.section}>
+              <h2>Timezone</h2>
+              <p className={styles.description}>
+                Used to work out when your day rolls over.
+              </p>
+              {timezonesLoading && (
+                <p className={styles.description}>Loading timezones...</p>
+              )}
+              {timezonesError && (
+                <p className={styles.fieldError} role="alert">
+                  Couldn't load the timezone list. Please try again later.
+                </p>
+              )}
+              {!timezonesLoading && !timezonesError && (
+                <div className={styles.infoItem}>
+                  <label className={styles.label} htmlFor="account-timezone">
+                    Timezone
+                  </label>
+                  <TimezoneSelect
+                    id="account-timezone"
+                    options={timezones}
+                    value={currentTimezone}
+                    onChange={handleTimezoneChange}
+                    disabled={isUpdatingTimezone}
+                    ariaLabel="Timezone"
+                  />
+                  {showDetectedTimezoneHint && detectedTimezone && (
+                    <Button
+                      variant="secondary"
+                      className={styles.inlineButton}
+                      disabled={isUpdatingTimezone}
+                      onClick={() => handleTimezoneChange(detectedTimezone)}
+                    >
+                      Use detected timezone ({detectedTimezone})
+                    </Button>
+                  )}
+                  {timezoneUpdateError && (
+                    <p className={styles.fieldError} role="alert">
+                      Couldn't update your timezone. Please try again.
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+
             <section className={styles.section}>
               <h2>Notifications</h2>
               {preferencesLoading && (

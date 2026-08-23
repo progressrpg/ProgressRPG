@@ -58,6 +58,17 @@ export interface UserPreferencesResponse {
   preferences: UserPreference[];
 }
 
+/** One IANA timezone name accepted by PATCH /me/user_settings/, with a
+ * display label (api/views.py MeViewSet.timezone_choices). */
+export interface TimezoneChoice {
+  value: string;
+  label: string;
+}
+
+export interface TimezoneChoicesResponse {
+  timezones: TimezoneChoice[];
+}
+
 /** Registration status (public, unauthenticated) */
 export interface RegistrationStatus {
   registration_open: boolean;
