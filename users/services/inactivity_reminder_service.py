@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import date
 from typing import Any, Optional
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
+from progression.day_boundaries import logical_date_for
 from users.utils import send_email_to_users
 
 User = get_user_model()
@@ -12,19 +13,21 @@ User = get_user_model()
 INACTIVITY_THRESHOLD_DAYS = 7
 
 
-def get_last_active_at(user) -> Optional[datetime]:
+def get_last_active_logical_date(user) -> Optional[date]:
     """
-    The instant of this user's most recent recorded login or activity
-    session, or None if they have neither. Combines three sources since no
-    single one is authoritative: `last_login` (stamped by Django auth on
-    every login), `UserLogin.last_recorded_login` (this app's own login
-    log), and the most recent `PlayerActivity` (a completed or in-progress
-    timer/task session).
+    The last logical day (per progression.day_boundaries - respecting this
+    user's own day_start_time/timezone, not a raw calendar date) on which
+    they logged in or recorded an activity session, or None if they never
+    have. Combines three sources since no single one is authoritative:
+    `last_login` (stamped by Django auth on every login),
+    `UserLogin.last_recorded_login` (this app's own login log), and the
+    most recent `PlayerActivity` (a completed or in-progress timer/task
+    session).
     """
     from progression.models import PlayerActivity
     from users.models import UserLogin
 
-    candidates = [user.last_login, UserLogin.last_recorded_login(user)]
+    instants = [user.last_login, UserLogin.last_recorded_login(user)]
 
     player = getattr(user, "player", None)
     if player is not None:
@@ -34,10 +37,10 @@ def get_last_active_at(user) -> Optional[datetime]:
             .values_list("created_at", flat=True)
             .first()
         )
-        candidates.append(latest_activity_at)
+        instants.append(latest_activity_at)
 
-    active_at = [c for c in candidates if c is not None]
-    return max(active_at) if active_at else None
+    logical_dates = [logical_date_for(user, i) for i in instants if i is not None]
+    return max(logical_dates) if logical_dates else None
 
 
 def send_reminder_email(user) -> None:
@@ -60,11 +63,23 @@ def send_reminder_email(user) -> None:
 
 def send_due_reminders() -> int:
     """
-    Scans opted-in users for 7+ days of inactivity (no recorded login or
-    activity session) and sends each a one-time reminder email. Sends once
-    per inactivity period: a user isn't reminded again until they've been
-    active since their last reminder, at which point a fresh 7-day
-    inactivity period can trigger another one.
+    Scans opted-in users for exactly 7 logical days of inactivity (no
+    recorded login or activity session) and sends each a reminder email.
+    "Logical day" means per-user, honouring their own
+    day_start_time/timezone (progression.day_boundaries) rather than a raw
+    168-hour window, so the boundary lands consistently regardless of what
+    time of day their last activity happened to fall at.
+
+    Deliberately exact-equality, not >=: a user's gap only reads exactly 7
+    on the single logical day it first reaches the threshold, then reads 8,
+    9, ... on every day after - so with the daily beat schedule running
+    once a day, the check is self-idempotent and needs no separate
+    "already sent" record. That also means a fresh 7-day gap after renewed
+    activity naturally triggers another reminder with no extra bookkeeping.
+    The tradeoff: if a scheduled scan is ever skipped (worker downtime) or
+    run twice in the same day, there's no record to catch up a missed send
+    or suppress a duplicate one - accepted here in exchange for not needing
+    a model/field per reminder category.
 
     No-op while `GameSettings.inactivity_reminders_enabled_from` is unset
     (rollout is opt-in, mirroring the waitlist nudge cutoff). Users already
@@ -73,14 +88,12 @@ def send_due_reminders() -> int:
     long-dormant accounts.
     """
     from core.models import GameSettings
-    from users.models import ReminderLog
 
     cutoff = GameSettings.current().inactivity_reminders_enabled_from
     if cutoff is None:
         return 0
 
     now = timezone.now()
-    threshold = now - timedelta(days=INACTIVITY_THRESHOLD_DAYS)
 
     candidates = User.objects.filter(
         is_active=True,
@@ -90,19 +103,15 @@ def send_due_reminders() -> int:
 
     sent_count = 0
     for user in candidates.iterator():
-        last_active_at = get_last_active_at(user)
-        if last_active_at is None or last_active_at > threshold:
-            continue
-        if last_active_at < cutoff:
+        last_active_date = get_last_active_logical_date(user)
+        if last_active_date is None:
             continue
 
-        _log, created = ReminderLog.objects.get_or_create(
-            user=user,
-            reminder_type=ReminderLog.ReminderType.INACTIVITY_7DAY,
-            triggered_by_activity_at=last_active_at,
-        )
-        if not created:
-            continue  # already reminded for this inactivity period
+        today = logical_date_for(user, now)
+        if (today - last_active_date).days != INACTIVITY_THRESHOLD_DAYS:
+            continue
+        if last_active_date < logical_date_for(user, cutoff):
+            continue
 
         send_reminder_email(user)
         sent_count += 1

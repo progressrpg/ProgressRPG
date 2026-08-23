@@ -9,7 +9,6 @@ from .models import (
     CustomUser,
     Player,
     PlayerCurrency,
-    ReminderLog,
     UserLogin,
     InviteCode,
     TutorialStep,
@@ -429,18 +428,6 @@ class InviteCodeAdmin(admin.ModelAdmin):
         "uses",
     ]
     readonly_fields = ["uses"]
-
-
-@admin.register(ReminderLog)
-class ReminderLogAdmin(admin.ModelAdmin):
-    list_display = ["user", "reminder_type", "triggered_by_activity_at", "sent_at"]
-    list_filter = ["reminder_type"]
-    search_fields = ["user__email"]
-    ordering = ["-sent_at"]
-    readonly_fields = ["user", "reminder_type", "triggered_by_activity_at", "sent_at"]
-
-    def has_add_permission(self, request):
-        return False
 
 
 @admin.register(Waitlist)
