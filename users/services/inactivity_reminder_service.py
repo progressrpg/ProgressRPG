@@ -3,7 +3,6 @@ from typing import Any, Optional
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 
 from users.utils import send_email_to_users
@@ -74,6 +73,7 @@ def send_due_reminders() -> int:
     long-dormant accounts.
     """
     from core.models import GameSettings
+    from users.models import ReminderLog
 
     cutoff = GameSettings.current().inactivity_reminders_enabled_from
     if cutoff is None:
@@ -95,23 +95,16 @@ def send_due_reminders() -> int:
             continue
         if last_active_at < cutoff:
             continue
-        if (
-            user.inactivity_reminder_sent_at is not None
-            and user.inactivity_reminder_sent_at >= last_active_at
-        ):
+
+        _log, created = ReminderLog.objects.get_or_create(
+            user=user,
+            reminder_type=ReminderLog.ReminderType.INACTIVITY_7DAY,
+            triggered_by_activity_at=last_active_at,
+        )
+        if not created:
             continue  # already reminded for this inactivity period
 
-        updated = (
-            User.objects.filter(pk=user.pk, receives_inactivity_reminder=True)
-            .filter(
-                Q(inactivity_reminder_sent_at__isnull=True)
-                | Q(inactivity_reminder_sent_at__lt=last_active_at)
-            )
-            .update(inactivity_reminder_sent_at=now)
-        )
-
-        if updated:
-            send_reminder_email(user)
-            sent_count += 1
+        send_reminder_email(user)
+        sent_count += 1
 
     return sent_count
