@@ -558,7 +558,15 @@ class DailyLoginRewardTest(TestCase):
         # share a calendar date (Copilot review on PR #808 caught
         # get_login_state comparing a raw calendar date against a logical
         # date here).
+        #
+        # current_login_streak() walks backwards from "today" (real
+        # timezone.now(), via current_logical_date) looking for consecutive
+        # logical dates, so the seeded logins must actually be "today" and
+        # "yesterday" from that function's point of view - fixing the
+        # calendar date here without also fixing now() made this flake
+        # depending on which real date the suite happened to run on.
         day = date(2026, 8, 21)
+        frozen_now = timezone.make_aware(datetime(day.year, day.month, day.day, 4))
 
         def seed_login(hour):
             (login,) = UserLogin.objects.bulk_create([UserLogin(user=self.user)])
@@ -568,10 +576,11 @@ class DailyLoginRewardTest(TestCase):
             )
             return UserLogin.objects.get(pk=login.pk)
 
-        seed_login(1)  # 01:00, before the cutoff -> logical date is Aug 20
-        seed_login(3)  # 03:00 the same calendar date, after the cutoff -> Aug 21
+        with patch("django.utils.timezone.now", return_value=frozen_now):
+            seed_login(1)  # 01:00, before the cutoff -> logical date is Aug 20
+            seed_login(3)  # 03:00 the same calendar date, after the cutoff -> Aug 21
 
-        state = get_login_state(self.user)
+            state = get_login_state(self.user)
 
         self.assertEqual(state["login_state"], LOGIN_STATE_STREAK_CONTINUES)
         self.assertEqual(state["login_reward_xp"], 12)

@@ -1,0 +1,12 @@
+We miss you at Progress RPG
+
+Hello,
+
+It's been a week since you last recorded an activity in Progress RPG. No pressure - just a nudge in case you'd forgotten.
+
+{{ frontend_url }}
+
+Best wishes,
+Duncan (Founder, Progress RPG)
+
+© {{ current_year }} Progress RPG. All rights reserved.

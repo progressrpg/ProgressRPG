@@ -132,6 +132,7 @@ django==5.2.17
     #   django-celery-beat
     #   django-cf-turnstile
     #   django-cors-headers
+    #   django-dynamic-preferences
     #   django-extensions
     #   django-filter
     #   django-redis
@@ -151,6 +152,8 @@ django-celery-beat==2.9.0
 django-cf-turnstile==0.1.0
     # via -r requirements.in
 django-cors-headers==4.9.0
+    # via -r requirements.in
+django-dynamic-preferences==1.17.0
     # via -r requirements.in
 django-environ==0.14.0
     # via -r requirements.in
@@ -288,6 +291,8 @@ packaging==26.3
     #   wheel
 pathspec==1.1.1
     # via mypy
+persisting-theory==1.0
+    # via django-dynamic-preferences
 pillow==12.3.0
     # via -r requirements.in
 pip-review==1.3.0

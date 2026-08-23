@@ -124,6 +124,11 @@ class GameSettings(models.Model):
     registration_enabled = models.BooleanField(default=True)
     self_serve_registration = models.BooleanField(default=False)
     waitlist_nudges_enabled_from = models.DateTimeField(null=True, blank=True)
+    # Mirrors waitlist_nudges_enabled_from's rollout guard: null keeps the
+    # 7-day inactivity reminder (users.services.inactivity_reminder_service)
+    # off, and users who were already past the threshold before this is set
+    # don't get burst-emailed the moment it's turned on.
+    inactivity_reminders_enabled_from = models.DateTimeField(null=True, blank=True)
 
     class WaitlistSignupProvider(models.TextChoices):
         MAILCHIMP = "mailchimp", "Mailchimp"
