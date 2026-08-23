@@ -3,6 +3,7 @@ import styles from "./NavDrawer.module.scss";
 import { Link } from "react-router";
 import { useAuth } from "../../context/AuthContext";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
+import { useGame } from "../../hooks/useGame";
 
 interface NavDrawerProps {
   drawerOpen: boolean;
@@ -12,7 +13,9 @@ interface NavDrawerProps {
 export default function NavDrawer({ drawerOpen, onClose }: NavDrawerProps) {
   const drawerRef = useRef<HTMLElement>(null);
   const { isAuthenticated } = useAuth();
-  const isMapEnabled = useFeatureFlag("map");
+  const { player } = useGame() ?? {};
+  const isMapEnabled = useFeatureFlag("map") || Boolean(player?.progressive_unlocks.map);
+  const isLibraryEnabled = Boolean(player?.progressive_unlocks.library);
 
   const handleClose = useCallback(() => {
     const activeElement = document.activeElement as HTMLElement | null;
@@ -75,15 +78,17 @@ export default function NavDrawer({ drawerOpen, onClose }: NavDrawerProps) {
                   <span aria-hidden="true">⏱ </span>Timer
                 </Link>
               </li>
-              <li>
-                <Link
-                  to="/library"
-                  onClick={handleClose}
-                  tabIndex={drawerOpen ? 0 : -1}
-                >
-                  <span aria-hidden="true">📚 </span>Your library
-                </Link>
-              </li>
+              {isLibraryEnabled && (
+                <li>
+                  <Link
+                    to="/library"
+                    onClick={handleClose}
+                    tabIndex={drawerOpen ? 0 : -1}
+                  >
+                    <span aria-hidden="true">📚 </span>Your library
+                  </Link>
+                </li>
+              )}
               {isMapEnabled && (
                 <li>
                   <Link to="/map" onClick={handleClose} tabIndex={drawerOpen ? 0 : -1}>

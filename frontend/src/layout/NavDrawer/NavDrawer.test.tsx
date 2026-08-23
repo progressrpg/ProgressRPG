@@ -7,6 +7,7 @@ import NavDrawer from "./NavDrawer";
 
 const mockUseAuth = vi.fn();
 const mockUseFeatureFlag = vi.fn();
+const mockUseGame = vi.fn();
 
 vi.mock("../../context/AuthContext", () => ({
   useAuth: () => mockUseAuth(),
@@ -14,6 +15,10 @@ vi.mock("../../context/AuthContext", () => ({
 
 vi.mock("../../hooks/useFeatureFlag", () => ({
   useFeatureFlag: (flag: string) => mockUseFeatureFlag(flag),
+}));
+
+vi.mock("../../hooks/useGame", () => ({
+  useGame: () => mockUseGame(),
 }));
 
 function renderDrawer(props: Partial<React.ComponentProps<typeof NavDrawer>> = {}) {
@@ -37,6 +42,11 @@ describe("NavDrawer", () => {
   beforeEach(() => {
     mockUseAuth.mockReturnValue({ isAuthenticated: false });
     mockUseFeatureFlag.mockReturnValue(false);
+    mockUseGame.mockReturnValue({
+      player: {
+        progressive_unlocks: { infobar: true, library: true, map: true },
+      },
+    });
   });
 
   it("renders authenticated links when the user is logged in", () => {
@@ -52,6 +62,52 @@ describe("NavDrawer", () => {
       "/library"
     );
     expect(screen.queryByRole("link", { name: /Log in/, ...HIDDEN })).not.toBeInTheDocument();
+  });
+
+  it("hides the library link until progressive_unlocks.library is true", () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    mockUseGame.mockReturnValue({
+      player: {
+        progressive_unlocks: { infobar: false, library: false, map: false },
+      },
+    });
+    renderDrawer();
+
+    expect(
+      screen.queryByRole("link", { name: /Your library/, ...HIDDEN })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the map link via progressive_unlocks.map alone, without the map feature flag", () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    mockUseFeatureFlag.mockReturnValue(false);
+    mockUseGame.mockReturnValue({
+      player: {
+        progressive_unlocks: { infobar: true, library: true, map: true },
+      },
+    });
+    renderDrawer();
+
+    expect(screen.getByRole("link", { name: /Map/, ...HIDDEN })).toHaveAttribute(
+      "href",
+      "/map"
+    );
+  });
+
+  it("keeps the map link visible for testers regardless of progressive_unlocks.map", () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    mockUseFeatureFlag.mockImplementation((flag: string) => flag === "map");
+    mockUseGame.mockReturnValue({
+      player: {
+        progressive_unlocks: { infobar: true, library: true, map: false },
+      },
+    });
+    renderDrawer();
+
+    expect(screen.getByRole("link", { name: /Map/, ...HIDDEN })).toHaveAttribute(
+      "href",
+      "/map"
+    );
   });
 
   it("renders logged-out links when the user is not authenticated", () => {
