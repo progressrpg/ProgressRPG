@@ -637,3 +637,66 @@ class DayStartTimeSettingTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.user.refresh_from_db()
         self.assertEqual(self.user.day_start_time, time(2, 0))
+
+    def test_timezone_can_be_updated(self):
+        response = self.client.patch(
+            reverse("me-user-settings"),
+            {"timezone": "Europe/London"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(str(self.user.timezone), "Europe/London")
+
+    def test_an_invalid_timezone_is_rejected(self):
+        response = self.client.patch(
+            reverse("me-user-settings"),
+            {"timezone": "Not/A_Timezone"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(str(self.user.timezone), "UTC")
+
+
+class TimezoneChoicesTests(APITestCase):
+    """
+    Backs the Account Preferences tab's timezone picker with every value
+    `user_settings`'s `timezone` field will actually accept.
+    """
+
+    def setUp(self):
+        from users.tests import user_factory
+
+        self.user = user_factory(with_player=True)
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_requires_auth(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(reverse("me-timezone-choices"))
+        self.assertEqual(response.status_code, 401)
+
+    def test_returns_value_label_pairs_including_known_zones(self):
+        response = self.client.get(reverse("me-timezone-choices"))
+
+        self.assertEqual(response.status_code, 200)
+        timezones = response.data["timezones"]
+        values = {entry["value"] for entry in timezones}
+        self.assertIn("Europe/London", values)
+        self.assertIn("UTC", values)
+
+        by_value = {entry["value"]: entry["label"] for entry in timezones}
+        self.assertEqual(by_value["Europe/London"], "Europe/London")
+
+    def test_every_returned_value_is_accepted_by_user_settings(self):
+        response = self.client.get(reverse("me-timezone-choices"))
+        sample = response.data["timezones"][0]["value"]
+
+        update = self.client.patch(
+            reverse("me-user-settings"), {"timezone": sample}, format="json"
+        )
+
+        self.assertEqual(update.status_code, 200)

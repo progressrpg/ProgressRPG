@@ -374,6 +374,40 @@ class MeViewSet(viewsets.ViewSet):
 
         return Response(UserSerializer(request.user).data)
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="TimezoneChoicesResponse",
+            fields={
+                "timezones": inline_serializer(
+                    name="TimezoneChoiceItem",
+                    fields={
+                        "value": drf_serializers.CharField(),
+                        "label": drf_serializers.CharField(),
+                    },
+                    many=True,
+                ),
+            },
+        )
+    )
+    @action(detail=False, methods=["get"])
+    def timezone_choices(self, request):
+        """
+        Every IANA timezone name `user_settings`'s `timezone` field will
+        accept, paired with a display label - backs the timezone picker on
+        the Account Preferences tab. Sourced from the same `zoneinfo` data
+        `validate_timezone_name` validates against, via
+        timezone_field.choices.standard() for consistent, sorted labels.
+        """
+        from zoneinfo import available_timezones
+
+        from timezone_field.choices import standard
+
+        timezones = [
+            {"value": value, "label": label}
+            for value, label in standard(available_timezones())
+        ]
+        return Response({"timezones": timezones})
+
     @extend_schema(responses=PlayerSerializer)
     @action(detail=False, methods=["get", "patch"])
     def player(self, request):
