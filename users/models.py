@@ -105,11 +105,6 @@ class CustomUser(AbstractUser):
     stripe_customer_id = models.CharField(
         max_length=255, blank=True, null=True, unique=True
     )
-    # Opt-in for the 7-day inactivity reminder email (see
-    # users.services.inactivity_reminder_service). Minimal stand-in for the
-    # settings-page toggle proposed in issue #805 - exposed here so the
-    # reminder can respect it before that page exists.
-    receives_inactivity_reminder = models.BooleanField(default=True)
 
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
@@ -118,6 +113,20 @@ class CustomUser(AbstractUser):
     @property
     def days_logged_in(self):
         return UserLogin.days_logged_in(self)
+
+    @property
+    def preferences(self):
+        """
+        Per-user settings registered in users/dynamic_preferences_registry.py
+        (django-dynamic-preferences), e.g.
+        user.preferences["notifications__inactivity_reminder_emails"]. Kept
+        as a manager rather than a cached instance so writes through it
+        always hit the DB/cache immediately - no stale reads if the same
+        request reads a preference after changing it.
+        """
+        from dynamic_preferences.users.registries import user_preferences_registry
+
+        return user_preferences_registry.manager(instance=self)
 
     @property
     def current_login_streak(self):
@@ -334,43 +343,6 @@ class UserLogin(models.Model):
 
     def __str__(self):
         return f"{self.user.email} @ {self.timestamp.isoformat()}"
-
-
-class ReminderLog(models.Model):
-    """
-    Records that a given reminder email was sent to a user, generically
-    across reminder categories - a new category is just a new
-    `reminder_type` value, never a new column on `CustomUser`.
-
-    `triggered_by_activity_at` is the instant of the user's last activity
-    that made them eligible for the send, not just "now". Uniquing on
-    (user, reminder_type, triggered_by_activity_at) is what makes a send
-    idempotent per inactivity period: `get_or_create` on that triple both
-    guards against double-sending in a race and needs no separate
-    "sent_at" column to reset - a later activity produces a different
-    `triggered_by_activity_at` and is naturally eligible again.
-    """
-
-    class ReminderType(models.TextChoices):
-        INACTIVITY_7DAY = "inactivity_7day", "7-day inactivity"
-
-    user = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name="reminder_logs"
-    )
-    reminder_type = models.CharField(max_length=50, choices=ReminderType.choices)
-    triggered_by_activity_at = models.DateTimeField()
-    sent_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user", "reminder_type", "triggered_by_activity_at"],
-                name="unique_reminder_per_activity_period",
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.reminder_type} -> {self.user.email} @ {self.sent_at.isoformat()}"
 
 
 class Player(LevelProgressionMixin, models.Model):
