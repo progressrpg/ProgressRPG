@@ -95,14 +95,13 @@ def send_due_reminders() -> int:
 
     now = timezone.now()
 
-    candidates = User.objects.filter(
-        is_active=True,
-        pending_delete=False,
-        receives_inactivity_reminder=True,
-    )
+    candidates = User.objects.filter(is_active=True, pending_delete=False)
 
     sent_count = 0
     for user in candidates.iterator():
+        if not user.preferences["notifications__inactivity_reminder_emails"]:
+            continue
+
         last_active_date = get_last_active_logical_date(user)
         if last_active_date is None:
             continue

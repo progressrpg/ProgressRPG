@@ -105,11 +105,6 @@ class CustomUser(AbstractUser):
     stripe_customer_id = models.CharField(
         max_length=255, blank=True, null=True, unique=True
     )
-    # Opt-in for the 7-day inactivity reminder email (see
-    # users.services.inactivity_reminder_service). Minimal stand-in for the
-    # settings-page toggle proposed in issue #805 - exposed here so the
-    # reminder can respect it before that page exists.
-    receives_inactivity_reminder = models.BooleanField(default=True)
 
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
@@ -118,6 +113,20 @@ class CustomUser(AbstractUser):
     @property
     def days_logged_in(self):
         return UserLogin.days_logged_in(self)
+
+    @property
+    def preferences(self):
+        """
+        Per-user settings registered in users/dynamic_preferences_registry.py
+        (django-dynamic-preferences), e.g.
+        user.preferences["notifications__inactivity_reminder_emails"]. Kept
+        as a manager rather than a cached instance so writes through it
+        always hit the DB/cache immediately - no stale reads if the same
+        request reads a preference after changing it.
+        """
+        from dynamic_preferences.users.registries import user_preferences_registry
+
+        return user_preferences_registry.manager(instance=self)
 
     @property
     def current_login_streak(self):

@@ -120,9 +120,8 @@ class InactivityReminderTest(TestCase):
         self.assertEqual(len(mail.outbox), 1)
 
     def test_skips_users_who_opted_out(self):
-        self._inactive_user(
-            "optedout@example.com", 7, receives_inactivity_reminder=False
-        )
+        user, _last_active_date = self._inactive_user("optedout@example.com", 7)
+        user.preferences["notifications__inactivity_reminder_emails"] = False
 
         with self.captureOnCommitCallbacks(execute=True):
             count = inactivity_reminder_service.send_due_reminders()
