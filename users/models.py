@@ -521,6 +521,11 @@ class Player(LevelProgressionMixin, models.Model):
 
 
 class TutorialStep(models.Model):
+    class UnlockKey(models.TextChoices):
+        INFOBAR = "infobar", "Infobar"
+        LIBRARY = "library", "Library"
+        MAP = "map", "Map"
+
     image = models.ForeignKey(
         "core.Image",
         null=True,
@@ -532,6 +537,13 @@ class TutorialStep(models.Model):
     body = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0, db_index=True)
     youtube_url = models.URLField(blank=True)
+    # When set, this step is only shown to a "new signup" player (see
+    # users.services.progressive_unlocks) once they've reached the
+    # matching progression milestone — it's excluded from unseen_tutorial_step_ids
+    # entirely until then, and always excluded for pre-cutoff players.
+    unlock_key = models.CharField(
+        max_length=20, choices=UnlockKey.choices, blank=True, default=""
+    )
 
     class Meta:
         ordering = ["order"]

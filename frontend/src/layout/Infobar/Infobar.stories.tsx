@@ -32,6 +32,7 @@ const demoPlayer: Player = {
   onboarding_completed: true,
   login_streak: 8,
   unseen_tutorial_step_ids: [],
+  progressive_unlocks: { infobar: true, library: true, map: true },
 };
 
 function withPlayer(player: Player | null, loading = false) {

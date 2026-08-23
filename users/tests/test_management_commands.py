@@ -34,7 +34,9 @@ class SeedPlaywrightUserCommandTests(TestCase):
         self.assertEqual(player.onboarding_step, 2)
         self.assertTrue(player.onboarding_completed)
         self.assertFalse(player.is_deleted)
-        self.assertEqual(player.tutorial_steps_seen.count(), 1)
+        self.assertEqual(
+            player.tutorial_steps_seen.count(), TutorialStep.objects.count()
+        )
         self.assertEqual(player.activity_timer.status, "empty")
         self.assertIsNone(player.activity_timer.activity)
 

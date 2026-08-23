@@ -129,6 +129,12 @@ class GameSettings(models.Model):
     # off, and users who were already past the threshold before this is set
     # don't get burst-emailed the moment it's turned on.
     inactivity_reminders_enabled_from = models.DateTimeField(null=True, blank=True)
+    # Unlike the two cutoffs above, this feature is meant to be on for every
+    # new signup going forward, so it defaults to "now" rather than null/off
+    # (see users.services.progressive_unlocks). Players created at or after
+    # this moment are gated behind progression milestones (Infobar/Library/
+    # Map); players created before it see everything, unaffected.
+    progressive_unlocks_enabled_from = models.DateTimeField(default=timezone.now)
 
     class WaitlistSignupProvider(models.TextChoices):
         MAILCHIMP = "mailchimp", "Mailchimp"
