@@ -311,6 +311,40 @@ class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
 
 
+def _serialize_preferences(user):
+    """
+    Every registered preference (users/dynamic_preferences_registry.py),
+    with this user's current value - generic over the registry so a new
+    preference class there appears here, and on the frontend Preferences
+    tab, with no further backend/API changes needed. Only
+    `BooleanPreference` is exposed for now (the only type any preference
+    currently uses); teach this function a new `type` string if a future
+    preference needs one.
+    """
+    from dynamic_preferences.types import BooleanPreference
+    from dynamic_preferences.users.registries import user_preferences_registry
+
+    manager = user.preferences
+    items = []
+    for section, prefs in dict(user_preferences_registry).items():
+        for name, pref in prefs.items():
+            if not isinstance(pref, BooleanPreference):
+                continue
+            key = pref.identifier()
+            items.append(
+                {
+                    "key": key,
+                    "section": section,
+                    "name": name,
+                    "verbose_name": pref.verbose_name,
+                    "help_text": pref.help_text,
+                    "type": "boolean",
+                    "value": manager[key],
+                }
+            )
+    return items
+
+
 class MeViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
@@ -418,6 +452,53 @@ class MeViewSet(viewsets.ViewSet):
                 }
             }
         )
+
+    @extend_schema(
+        responses=inline_serializer(
+            name="UserPreferencesResponse",
+            fields={
+                "preferences": inline_serializer(
+                    name="UserPreferenceItem",
+                    fields={
+                        "key": drf_serializers.CharField(),
+                        "section": drf_serializers.CharField(),
+                        "name": drf_serializers.CharField(),
+                        "verbose_name": drf_serializers.CharField(),
+                        "help_text": drf_serializers.CharField(),
+                        "type": drf_serializers.CharField(),
+                        "value": drf_serializers.BooleanField(),
+                    },
+                    many=True,
+                ),
+            },
+        )
+    )
+    @action(detail=False, methods=["get", "patch"])
+    def preferences(self, request):
+        """
+        Per-user settings registered in users/dynamic_preferences_registry.py
+        (django-dynamic-preferences). GET lists every registered preference
+        with this user's current value; PATCH takes `{<key>: <value>, ...}`
+        (keys are the `section__name` identifiers GET returns) and updates
+        just those. See `_serialize_preferences` above.
+        """
+        if request.method == "PATCH":
+            valid_keys = {item["key"] for item in _serialize_preferences(request.user)}
+            for key, value in request.data.items():
+                if key not in valid_keys:
+                    return Response(
+                        {"detail": f"Unknown preference: {key}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if not isinstance(value, bool):
+                    return Response(
+                        {"detail": f"{key} must be a boolean"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            for key, value in request.data.items():
+                request.user.preferences[key] = value
+
+        return Response({"preferences": _serialize_preferences(request.user)})
 
     @extend_schema(
         responses=inline_serializer(

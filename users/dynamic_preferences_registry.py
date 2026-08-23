@@ -25,7 +25,4 @@ class InactivityReminderEmails(BooleanPreference):
     name = "inactivity_reminder_emails"
     default = True
     verbose_name = "Inactivity reminder emails"
-    help_text = (
-        "Send a reminder email after 7 days with no recorded activity "
-        "(see users.services.inactivity_reminder_service)."
-    )
+    help_text = "Receive a reminder email after 7 days with no recorded activity."

@@ -268,6 +268,62 @@ class TestMeViewSet(APITestCase):
         self.assertFalse(goals["bonus_awarded_today"])
         self.assertEqual(goals["bonus_ap"], 0)
 
+    def test_preferences_lists_registered_preferences_with_defaults(self):
+        self.authenticate()
+
+        res = self.client.get(reverse("me-preferences"))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        keys = {item["key"] for item in res.data["preferences"]}
+        self.assertIn("notifications__inactivity_reminder_emails", keys)
+        item = next(
+            i
+            for i in res.data["preferences"]
+            if i["key"] == "notifications__inactivity_reminder_emails"
+        )
+        self.assertTrue(item["value"])
+        self.assertEqual(item["type"], "boolean")
+
+    def test_preferences_patch_updates_value(self):
+        self.authenticate()
+
+        res = self.client.patch(
+            reverse("me-preferences"),
+            {"notifications__inactivity_reminder_emails": False},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        item = next(
+            i
+            for i in res.data["preferences"]
+            if i["key"] == "notifications__inactivity_reminder_emails"
+        )
+        self.assertFalse(item["value"])
+        self.assertFalse(
+            self.user.preferences["notifications__inactivity_reminder_emails"]
+        )
+
+    def test_preferences_patch_rejects_unknown_key(self):
+        self.authenticate()
+
+        res = self.client.patch(
+            reverse("me-preferences"), {"not_a_real_key": True}, format="json"
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_preferences_patch_rejects_non_boolean_value(self):
+        self.authenticate()
+
+        res = self.client.patch(
+            reverse("me-preferences"),
+            {"notifications__inactivity_reminder_emails": "not a bool"},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
 
 class CustomTokenObtainPairViewTests(APITestCase):
     def setUp(self):
