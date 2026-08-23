@@ -320,6 +320,11 @@ def _serialize_preferences(user):
     `BooleanPreference` is exposed for now (the only type any preference
     currently uses); teach this function a new `type` string if a future
     preference needs one.
+
+    A preference class may also define an `is_visible()`
+    staticmethod/classmethod (e.g. InactivityReminderEmails, gated on
+    GameSettings.inactivity_reminders_enabled_from) - if it returns False
+    the preference is left out entirely, same as if it weren't registered.
     """
     from dynamic_preferences.types import BooleanPreference
     from dynamic_preferences.users.registries import user_preferences_registry
@@ -329,6 +334,9 @@ def _serialize_preferences(user):
     for section, prefs in dict(user_preferences_registry).items():
         for name, pref in prefs.items():
             if not isinstance(pref, BooleanPreference):
+                continue
+            is_visible = getattr(pref, "is_visible", None)
+            if is_visible is not None and not is_visible():
                 continue
             key = pref.identifier()
             items.append(

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone as dj_timezone
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -12,7 +13,7 @@ from unittest import skip
 from unittest.mock import patch, MagicMock
 
 from character.models import Character, PlayerCharacterLink
-from core.models import Announcement, FeatureFlag, PlayerAnnouncementState
+from core.models import Announcement, FeatureFlag, GameSettings, PlayerAnnouncementState
 from progression.models import Activity, PlayerActivity
 from users.models import CustomUserManager, Player
 
@@ -268,7 +269,17 @@ class TestMeViewSet(APITestCase):
         self.assertFalse(goals["bonus_awarded_today"])
         self.assertEqual(goals["bonus_ap"], 0)
 
+    def _enable_inactivity_reminders(self):
+        # InactivityReminderEmails.is_visible() mirrors this same cutoff
+        # (users/dynamic_preferences_registry.py), so the preference is
+        # absent from GET/PATCH until it's set - most of these tests need
+        # it on to exercise the preference at all.
+        settings = GameSettings.current()
+        settings.inactivity_reminders_enabled_from = dj_timezone.now()
+        settings.save()
+
     def test_preferences_lists_registered_preferences_with_defaults(self):
+        self._enable_inactivity_reminders()
         self.authenticate()
 
         res = self.client.get(reverse("me-preferences"))
@@ -284,7 +295,32 @@ class TestMeViewSet(APITestCase):
         self.assertTrue(item["value"])
         self.assertEqual(item["type"], "boolean")
 
+    def test_preferences_hides_inactivity_reminder_when_feature_disabled(self):
+        # GameSettings.inactivity_reminders_enabled_from is unset by
+        # default (see setUp / GameSettings.current()'s defaults), so the
+        # preference shouldn't appear at all - no point exposing a toggle
+        # for a feature that can't do anything yet.
+        self.authenticate()
+
+        res = self.client.get(reverse("me-preferences"))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        keys = {item["key"] for item in res.data["preferences"]}
+        self.assertNotIn("notifications__inactivity_reminder_emails", keys)
+
+    def test_preferences_patch_rejects_inactivity_reminder_when_feature_disabled(self):
+        self.authenticate()
+
+        res = self.client.patch(
+            reverse("me-preferences"),
+            {"notifications__inactivity_reminder_emails": False},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_preferences_patch_updates_value(self):
+        self._enable_inactivity_reminders()
         self.authenticate()
 
         res = self.client.patch(
@@ -305,6 +341,7 @@ class TestMeViewSet(APITestCase):
         )
 
     def test_preferences_patch_rejects_unknown_key(self):
+        self._enable_inactivity_reminders()
         self.authenticate()
 
         res = self.client.patch(
@@ -314,6 +351,7 @@ class TestMeViewSet(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_preferences_patch_rejects_non_boolean_value(self):
+        self._enable_inactivity_reminders()
         self.authenticate()
 
         res = self.client.patch(

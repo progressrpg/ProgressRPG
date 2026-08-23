@@ -10,6 +10,12 @@ free from the package.
 Values are read via `user.preferences['<section>__<name>']` (dynamic
 django-dynamic-preferences wires up `preferences` on the user model
 through UserPreferencesConfig).
+
+A preference class may define an `is_visible()` staticmethod/classmethod
+returning bool; `api.views._serialize_preferences` skips (GET) and
+rejects (PATCH) any preference for which that returns False, so it's
+absent from `/me/preferences/` and the Account Preferences tab. Omit it
+and a preference is always visible.
 """
 
 from dynamic_preferences.preferences import Section
@@ -26,3 +32,12 @@ class InactivityReminderEmails(BooleanPreference):
     default = True
     verbose_name = "Inactivity reminder emails"
     help_text = "Receive a reminder email after 7 days with no recorded activity."
+
+    @staticmethod
+    def is_visible():
+        # Mirrors the same rollout guard the reminder-send logic itself
+        # checks (users.services.inactivity_reminder_service.send_due_reminders)
+        # - no point exposing the toggle before the feature can do anything.
+        from core.models import GameSettings
+
+        return GameSettings.current().inactivity_reminders_enabled_from is not None
