@@ -65,20 +65,50 @@ def apply_xp(level: int, xp: int, amount: int) -> tuple[int, int, list[dict[str,
 
 def get_multiplier(person, now=None) -> Decimal:
     """
-    Active XpModifier multiplier for `person` (a Player or Character) - both
-    provide a `xp_mods` reverse manager (see gameplay.models.XpModifier).
+    Combined XpModifier multiplier for `person` (a Player or Character) -
+    both provide a `xp_mods` reverse manager (see gameplay.models.XpModifier).
+
+    Modifiers combine in two buckets:
+
+        total = (1 + sum of additive bonuses) * product of multiplicative ones
+
+    A modifier's value always reads as "+X%" - 1.25 means +25% - and its
+    `stacking` mode decides which bucket that 25% lands in. Two additive
+    +25% modifiers give 1.5; two multiplicative ones give 1.5625.
+
+    Order is deliberately irrelevant: addition commutes within the bucket and
+    multiplication commutes across the two, so there is no precedence to
+    define and none to get wrong when a modifier is added later.
+
+    There is no cap. The multipliers are a small authored set, and the
+    additive bucket already bounds the growth that would otherwise motivate
+    one. If a ceiling is ever wanted it belongs in GameSettings, alongside
+    xp_mastery_multiplier_cap, rather than hardcoded here.
+
+    Note that the stacked case is the *normal* case, not an edge case: a
+    player who is actively recording is by definition also online, so
+    player_online and activity_active are both live during ordinary engaged
+    play.
     """
     now = now or timezone.now()
+
+    from gameplay.models import XpModifier
 
     mods = person.xp_mods.filter(
         is_active=True,
         starts_at__lte=now,
     ).filter(models.Q(ends_at__isnull=True) | models.Q(ends_at__gt=now))
-    mult = Decimal("1.0")
-    for m in mods:
-        mult *= m.multiplier
 
-    return mult
+    additive_bonus = Decimal("0")
+    multiplicative = Decimal("1.0")
+
+    for mod in mods:
+        if mod.stacking == XpModifier.Stacking.ADDITIVE:
+            additive_bonus += mod.multiplier - Decimal("1")
+        else:
+            multiplicative *= mod.multiplier
+
+    return (Decimal("1.0") + additive_bonus) * multiplicative
 
 
 # Authored baseline productivity for every character - flat for v1, may
