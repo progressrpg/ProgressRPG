@@ -687,3 +687,27 @@ class XpModifier(models.Model):
         indexes = [
             models.Index(fields=["key", "is_active", "starts_at", "ends_at"]),
         ]
+        constraints = [
+            # activate_link_modifier's update_or_create assumes at most one
+            # row per (key, owner); until now that held by convention only.
+            # Enforcing it also makes that call genuinely race-safe: a
+            # concurrent caller now loses on an IntegrityError and re-fetches
+            # rather than silently inserting a second row that would compound
+            # into get_multiplier.
+            #
+            # Two constraints, one per scope, rather than one over
+            # (scope, key, character): Postgres treats NULLs as distinct in a
+            # unique constraint, and both owner FKs are nullable - so a single
+            # constraint would quietly permit duplicate rows on whichever side
+            # was null.
+            models.UniqueConstraint(
+                fields=["key", "character"],
+                condition=models.Q(character__isnull=False),
+                name="uniq_xpmodifier_key_per_character",
+            ),
+            models.UniqueConstraint(
+                fields=["key", "player"],
+                condition=models.Q(player__isnull=False),
+                name="uniq_xpmodifier_key_per_player",
+            ),
+        ]
