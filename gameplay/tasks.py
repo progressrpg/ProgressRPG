@@ -83,7 +83,7 @@ def auto_pause_timer_on_disconnect(self, player_id: int):
     except ActivityTimer.DoesNotExist:
         return "no_timer"
 
-    if timer.status != "active":
+    if timer.status != ActivityTimer.Status.ACTIVE:
         cache.delete(DISCONNECT_TASK_CACHE_KEY.format(player_id=player_id))
         return f"skipped:{timer.status}"
 
@@ -133,7 +133,7 @@ def auto_pause_timers_for_stale_players():
     cutoff = timezone.now() - STALE_TIMER_THRESHOLD
     stale_timers = (
         ActivityTimer.objects.select_related("player", "activity")
-        .filter(status="active")
+        .filter(status=ActivityTimer.Status.ACTIVE)
         # Bounded sessions are excluded: they declared their own end, so
         # complete_expired_bounded_timers closes them out at that end
         # instead of this sweep guessing from a heartbeat.
@@ -162,7 +162,7 @@ def complete_abandoned_paused_timers():
     cutoff = timezone.now() - ABANDONED_PAUSE_HORIZON
 
     abandoned = ActivityTimer.objects.select_related("player", "activity").filter(
-        status="paused", elapsed_time__gt=0, last_updated__lt=cutoff
+        status=ActivityTimer.Status.PAUSED, elapsed_time__gt=0, last_updated__lt=cutoff
     )
 
     completed_count = 0
@@ -193,7 +193,7 @@ def complete_expired_bounded_timers():
 
     bounded_timers = (
         ActivityTimer.objects.select_related("player", "activity")
-        .filter(status="active", limit_seconds__isnull=False)
+        .filter(status=ActivityTimer.Status.ACTIVE, limit_seconds__isnull=False)
         .exclude(limit_seconds=0)
     )
     for timer in bounded_timers:

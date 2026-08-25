@@ -47,7 +47,7 @@ HEARTBEAT_INTERVAL_SECONDS = 60
 ONLINE_COUNT_CACHE_KEY = "online_count"
 ONLINE_COUNT_CACHE_SECONDS = 2
 
-from .models import ServerMessage
+from .models import ActivityTimer, ServerMessage
 from .utils import process_completion, process_initiation, control_timers
 
 logger = logging.getLogger("general")
@@ -267,7 +267,7 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         # leave the now-interrupted session running unattended.
         activity_timer = await self.get_activity_timer()
 
-        if activity_timer and activity_timer.status == "active":
+        if activity_timer and activity_timer.status == ActivityTimer.Status.ACTIVE:
             # Give the player DISCONNECT_GRACE_SECONDS to reconnect before
             # the activity is paused and its elapsed time banked.
             from .tasks import auto_pause_timer_on_disconnect
@@ -285,9 +285,9 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
                 f"[DISCONNECT] Scheduled auto-complete task {result.id} for player {self.player.id} in {DISCONNECT_GRACE_SECONDS}s"
             )
         elif activity_timer and activity_timer.status not in [
-            "completed",
-            "empty",
-            "paused",
+            ActivityTimer.Status.COMPLETED,
+            ActivityTimer.Status.EMPTY,
+            ActivityTimer.Status.PAUSED,
         ]:
             # Timer was waiting/other non-active state — pause it immediately.
             await control_timers(self.player, activity_timer, "pause")

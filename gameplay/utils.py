@@ -45,7 +45,11 @@ def start_server_timers(act_timer: ActivityTimer):
     logger.info("[START SERVER TIMERS] Attempting to start server timers")
     logger.debug(f"[START SERVER TIMERS] Timers status: activity={act_timer.status}")
 
-    if act_timer.status in ["active", "paused", "waiting"]:
+    if act_timer.status in [
+        ActivityTimer.Status.ACTIVE,
+        ActivityTimer.Status.PAUSED,
+        ActivityTimer.Status.WAITING,
+    ]:
         try:
             from gameplay.services.xp_modifiers import set_activity_active_modifiers
 
@@ -72,7 +76,10 @@ def pause_server_timers(act_timer: ActivityTimer):
     logger.debug(f"[PAUSE SERVER TIMERS] Timers status before: {act_timer.status}")
 
     try:
-        if act_timer.status not in ["completed", "empty"]:
+        if act_timer.status not in [
+            ActivityTimer.Status.COMPLETED,
+            ActivityTimer.Status.EMPTY,
+        ]:
             from gameplay.services.xp_modifiers import set_activity_active_modifiers
 
             act_timer.pause()
