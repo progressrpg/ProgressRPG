@@ -17,15 +17,17 @@ duplication, hardcoded `srid=3857`).
 
 ## 1. High-level strategy
 
-Three independent, low-risk commits, ordered safest-first:
+Four independent, low-risk commits, ordered safest-first:
 
 1. Replace `"Male"`/`"Female"` string literals with `Character.SexChoices`
    in `lifecycle_services.py` and `relationship_services.py`.
 2. Deduplicate `DISCONNECT_TASK_CACHE_KEY` to one source of truth.
 3. Introduce a `PROJECT_SRID` constant for `srid=3857`, applied to
-   **production code only** — not the 30+ test files that also hardcode
-   it (see Design decisions for why this is deliberately scoped down from
-   the audit's "42 sites").
+   production code (models, services, management commands).
+4. Sweep `PROJECT_SRID` into the 30 test files that also hardcode
+   `srid=3857`, at your request — split into its own commit since it's
+   pure test-fixture churn across 4 apps, separate from the production
+   fix in commit 3 (see Design decisions).
 
 ## 2. Files likely to change
 
@@ -44,6 +46,10 @@ Three independent, low-risk commits, ordered safest-first:
   `locations/services/watabou_import.py`,
   `locations/management/commands/{show_map,import_village,generate_landarea,generate_characters,populate_interiors}.py`
   — replace hardcoded `srid=3857` with `PROJECT_SRID` (all exist).
+- 30 test files across `character/tests/` (3), `economy/tests/` (5),
+  `locations/tests/` (21, including `factories.py`), and
+  `progression/tests/` (1) — replace hardcoded `srid=3857` with
+  `PROJECT_SRID` (all exist; full list in Implementation plan, commit 4).
 
 ## 3. Implementation plan
 
@@ -87,7 +93,25 @@ Three independent, low-risk commits, ordered safest-first:
   `Point(...)` definitions), `locations/services/movement.py` (2),
   `locations/services/watabou_import.py` (2 default kwargs), and the 5
   management commands listed above.
-- Leave migrations and test files untouched (see Design decisions).
+- Leave migrations untouched (see Design decisions) — they're historical
+  snapshots, not read for the finding's "no named source of truth" problem.
+
+**Commit 4 — sweep `PROJECT_SRID` into test files**
+- Replace `srid=3857` with `srid=PROJECT_SRID` (imported from
+  `locations.constants`) in the 30 test/fixture files that hardcode it:
+  `character/tests/{test_behaviour_services,test_character_location,test_tasks}.py`;
+  `economy/tests/{test_capacity_services,test_conversion,test_field_crop,test_planning_services,test_tasks}.py`;
+  `locations/tests/{factories,test_assign_workers,test_character_serializers,test_generate_characters,test_generate_fields,test_generate_landarea,test_generate_paths,test_generate_villages,test_import_village_command,test_initial_map_centre_view,test_map_character_detail,test_map_serializers,test_map_viewport,test_map_world_bounds,test_models,test_population_centre_admin,test_population_centre_views,test_population_estimation,test_road_connections,test_schedule,test_wander,test_watabou_import}.py`;
+  `progression/tests/test_activity_archive.py`.
+- `locations/tests/factories.py` is worth doing first within this commit —
+  several of the other test files likely construct points via its
+  factories rather than calling `Point(..., srid=3857)` directly, so
+  fixing the factory may shrink the remaining per-file literal count
+  before touching the rest (check at implementation time; the grep count
+  above is call sites, not files that need a factory fix vs. a direct
+  literal fix).
+- Cross-app commit (4 apps) but mechanical and low-risk — same
+  find/replace pattern as commit 3, just a larger file count.
 
 ## 4. Design decisions
 
@@ -105,19 +129,17 @@ Three independent, low-risk commits, ordered safest-first:
   a new file for a single constant. Alternative considered: new
   `gameplay/constants.py` — rejected as unnecessary abstraction for one
   value; can revisit if a second cross-module gameplay constant appears.
-- **`PROJECT_SRID` scoped to production code, not the ~230 test-file
-  occurrences**: the audit's own count ("42 sites") undercounts what a
-  full sweep finds (269 total, 39 non-migration files, of which ~30 are
-  test files each hardcoding `srid=3857` in fixture/factory data). This is
-  a `minor` finding; rewriting 30 test files' fixture literals for a
-  cosmetic constant is disproportionate churn for a minor issue and adds
-  merge-conflict risk against any in-flight test changes. Production code
-  (models, services, management commands) is where "no single named
-  source of truth" actually costs a reader something — that's what this
-  commit fixes. Alternative considered: sweep everything including tests
-  — rejected as scope creep beyond what the finding's severity warrants;
-  flagged as an open question below in case you'd rather do the full
-  sweep.
+- **`PROJECT_SRID` swept into test files too, as a separate commit**: the
+  audit's own count ("42 sites") undercounts what a full sweep finds (269
+  total, 39 non-migration files, of which 30 are test files each
+  hardcoding `srid=3857` in fixture/factory data). Per your request, this
+  plan now sweeps both production and test code, but keeps them as two
+  commits (3 and 4) rather than one: commit 3 is the finding's actual fix
+  (a real "no named source of truth" cost in code someone reads to
+  understand the system); commit 4 is mechanical fixture churn across 4
+  apps with a much larger, purely additive diff. Splitting them means
+  commit 3 alone is still a clean, reviewable unit if you'd rather land
+  the production fix first and the test sweep separately, or not at all.
 - **New `locations/constants.py` file**: mirrors the existing
   `economy/constants.py` pattern already in the codebase, so this is
   reuse of an established convention, not a new abstraction.
@@ -134,6 +156,12 @@ Three independent, low-risk commits, ordered safest-first:
   value (3857) Django already has recorded, so `makemigrations` should
   produce no new migration — confirm at implementation time (no Django
   env in this session to verify directly).
+- **Commit 4**: none — test-only, same literal value, no behavior change.
+  Watch for tests that hardcode `3857` as a bare int (e.g. an SRID
+  assertion, `self.assertEqual(obj.location.srid, 3857)`) rather than
+  inside a `Point(...)`/field call — those are asserting the *behavior*
+  the finding is about, not restating it, so leave the bare literal alone
+  in that case rather than replacing it with the constant.
 
 ## 6. Tests
 
@@ -147,6 +175,9 @@ Three independent, low-risk commits, ordered safest-first:
 - **Commit 3**: no new tests — no behavior change. Spot-check one
   management command manually (can't run Django management commands in
   this session) at implementation time.
+- **Commit 4**: no new tests — this commit *is* the test suite. Run the
+  affected apps' test modules after the sweep (scoped runs only, per this
+  repo's test-running convention) to confirm nothing was mis-edited.
 
 ## 7. Risks
 
@@ -159,10 +190,14 @@ Three independent, low-risk commits, ordered safest-first:
 - Commit 3: touching a migration file by mistake while sweeping — the
   plan explicitly excludes `*/migrations/*.py`, worth double-checking the
   diff doesn't touch any.
+- Commit 4: replacing a bare-int SRID assertion (see Edge cases) instead
+  of leaving it as a literal — would make a test tautological against its
+  own constant instead of verifying the actual stored value. Also: 30
+  files is enough that one could plausibly use a *different* SRID
+  deliberately (e.g. a WGS84 fixture testing a conversion path) — grep
+  each file's context rather than blind find/replace.
 
 ## 8. Open questions
 
-- Should commit 3 also sweep the ~30 test files hardcoding `srid=3857`,
-  or is production-code-only the right scope for a `minor` finding? Plan
-  above assumes production-only; happy to widen it if you'd rather do the
-  full sweep in the same PR.
+- None outstanding — scope now covers both production and test code per
+  your request.
