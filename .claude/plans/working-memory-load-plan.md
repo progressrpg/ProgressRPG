@@ -480,11 +480,12 @@ here.
   — `Journey.status` has no `choices` at all, and
   `locations/management/commands/place_characters.py:112` writes
   `status="cancelled"`, a value nothing else recognises (not `is_complete`,
-  not the unique constraint, not any queryset). That one carries a
-  data-integrity question — is `"cancelled"` a real third state or a bug? —
-  so it needs your answer before it's a mechanical `TextChoices` conversion
-  like `Timer.Status` was. Worth a small follow-up plan of its own; not
-  added to this one to keep this plan's scope to §1.
+  not the unique constraint, not any queryset). **Resolved:** confirmed with
+  you that `"cancelled"` is a bug, not an intentional third state — unify it
+  into `"complete"` rather than add a value nothing reads. Planned
+  separately in `.claude/plans/journey-status-choices-plan.md` (PR #836,
+  sibling to this one off #828) rather than folded in here, to keep this
+  plan's scope to §1.
 - Confirmed groupings for commit 9's hooks are a hypothesis from reading
   effect declarations, not full effect bodies (890 lines wasn't fully read
   for this plan). Implementation should re-derive the grouping from the
