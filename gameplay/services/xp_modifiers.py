@@ -17,6 +17,21 @@ ACTIVITY_ACTIVE_CHARACTER_MULTIPLIER = 1.5
 # quick pause/resume) doesn't drop and reactivate the boost - see issue #750.
 ACTIVITY_ACTIVE_GRACE_MINUTES = 5
 
+# How each authored modifier key combines with the others active at the same
+# time (see progression.ap.get_multiplier for the rule). Kept here rather
+# than left to each call site so that every code-created row for a given key
+# is consistent by construction - stacking mode is really a property of the
+# modifier *type*, and `key` is what identifies the type. The admin can still
+# create rows with any mode; that is the deliberate escape hatch.
+#
+# Both current keys are multiplicative, which is how they already behaved.
+# The additive bucket has no occupant yet: it is exercised only by
+# progression.tests.test_ap until the first additive modifier is authored.
+STACKING_BY_KEY = {
+    PLAYER_ONLINE_KEY: XpModifier.Stacking.MULTIPLICATIVE,
+    ACTIVITY_ACTIVE_KEY: XpModifier.Stacking.MULTIPLICATIVE,
+}
+
 
 @transaction.atomic
 def activate_link_modifier(
@@ -42,6 +57,9 @@ def activate_link_modifier(
         **{owner_field: owner},
         defaults={
             "multiplier": multiplier,
+            "stacking": STACKING_BY_KEY.get(
+                key, XpModifier.Stacking.MULTIPLICATIVE
+            ),
             "starts_at": now,
             "ends_at": ends_at,
             "is_active": True,
