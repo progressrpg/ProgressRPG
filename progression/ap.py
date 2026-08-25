@@ -63,35 +63,25 @@ def apply_xp(level: int, xp: int, amount: int) -> tuple[int, int, list[dict[str,
     return level, max(0, xp), levelups
 
 
-def get_multiplier(person, now=None) -> Decimal:
+def get_multiplier_buckets(person, now=None) -> tuple[Decimal, Decimal]:
     """
-    Combined XpModifier multiplier for `person` (a Player or Character) -
-    both provide a `xp_mods` reverse manager (see gameplay.models.XpModifier).
+    The two halves of the modifier stack for `person` (a Player or Character)
+    - both provide a `xp_mods` reverse manager (see gameplay.models.XpModifier).
 
-    Modifiers combine in two buckets:
-
-        total = (1 + sum of additive bonuses) * product of multiplicative ones
+    Returns (additive_bucket, multiplicative_bucket). Additive modifiers sum
+    within the first; multiplicative ones multiply into the second. Their
+    product is the combined multiplier - see get_multiplier, which is the
+    usual entry point. This variant exists for breakdowns that want to show
+    *why* a boost is what it is rather than only its product.
 
     A modifier's value always reads as "+X%" - 1.25 means +25% - and its
-    `stacking` mode decides which bucket that 25% lands in. Two additive
-    +25% modifiers give 1.5; two multiplicative ones give 1.5625.
-
-    Order is deliberately irrelevant: addition commutes within the bucket and
-    multiplication commutes across the two, so there is no precedence to
-    define and none to get wrong when a modifier is added later.
-
-    There is no cap. The multipliers are a small authored set, and the
-    additive bucket already bounds the growth that would otherwise motivate
-    one. If a ceiling is ever wanted it belongs in GameSettings, alongside
-    xp_mastery_multiplier_cap, rather than hardcoded here.
-
-    Note that the stacked case is the *normal* case, not an edge case: a
-    player who is actively recording is by definition also online, so
-    player_online and activity_active are both live during ordinary engaged
-    play.
+    `stacking` mode decides which bucket that 25% lands in. An additive
+    modifier contributes (multiplier - 1) to the additive bucket.
     """
     now = now or timezone.now()
 
+    # Imported here rather than at module scope: gameplay.models imports
+    # progression.models, so a top-level import would close the cycle.
     from gameplay.models import XpModifier
 
     mods = person.xp_mods.filter(
@@ -108,7 +98,34 @@ def get_multiplier(person, now=None) -> Decimal:
         else:
             multiplicative *= mod.multiplier
 
-    return (Decimal("1.0") + additive_bonus) * multiplicative
+    return Decimal("1.0") + additive_bonus, multiplicative
+
+
+def get_multiplier(person, now=None) -> Decimal:
+    """
+    Combined XpModifier multiplier for `person` (a Player or Character):
+
+        total = (1 + sum of additive bonuses) * product of multiplicative ones
+
+    Two additive +25% modifiers give 1.5; two multiplicative ones give
+    1.5625. See get_multiplier_buckets for the split.
+
+    Order is deliberately irrelevant: addition commutes within the bucket and
+    multiplication commutes across the two, so there is no precedence to
+    define and none to get wrong when a modifier is added later.
+
+    There is no cap. The multipliers are a small authored set, and the
+    additive bucket already bounds the growth that would otherwise motivate
+    one. If a ceiling is ever wanted it belongs in GameSettings, alongside
+    xp_mastery_multiplier_cap, rather than hardcoded here.
+
+    Note that the stacked case is the *normal* case, not an edge case: a
+    player who is actively recording is by definition also online, so
+    player_online and activity_active are both live during ordinary engaged
+    play.
+    """
+    additive, multiplicative = get_multiplier_buckets(person, now=now)
+    return additive * multiplicative
 
 
 # Authored baseline productivity for every character - flat for v1, may

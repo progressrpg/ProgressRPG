@@ -208,6 +208,37 @@ class GetMultiplierTests(TestCase):
             ap.get_multiplier(self.character, now=self.now), Decimal("1.25")
         )
 
+    def test_buckets_multiply_to_the_combined_multiplier(self):
+        """
+        get_multiplier is defined as the product of the two buckets, so the
+        itemised view in a reward breakdown can never disagree with the
+        figure actually applied.
+        """
+        self.make_modifier(
+            Decimal("1.25"), key="add_a", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.make_modifier(
+            Decimal("2"), key="mult_a", stacking=XpModifier.Stacking.MULTIPLICATIVE
+        )
+
+        additive, multiplicative = ap.get_multiplier_buckets(
+            self.character, now=self.now
+        )
+
+        self.assertEqual(additive, Decimal("1.25"))
+        self.assertEqual(multiplicative, Decimal("2"))
+        self.assertEqual(
+            additive * multiplicative,
+            ap.get_multiplier(self.character, now=self.now),
+        )
+
+    def test_buckets_are_identity_with_no_modifiers(self):
+        additive, multiplicative = ap.get_multiplier_buckets(
+            self.character, now=self.now
+        )
+        self.assertEqual(additive, Decimal("1.0"))
+        self.assertEqual(multiplicative, Decimal("1.0"))
+
     def test_works_for_player_scope_too(self):
         user = user_factory(with_player=True)
         player = user.player
