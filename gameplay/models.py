@@ -641,6 +641,33 @@ class XpModifier(models.Model):
     key = models.CharField(
         max_length=64
     )  # e.g. "player_online", "focus_streak", "event_weekend"
+
+    class Stacking(models.TextChoices):
+        """
+        How this modifier combines with the others active at the same time.
+
+        See progression.ap.get_multiplier for the rule: additive modifiers
+        sum within their own bucket, and that bucket then multiplies with
+        the multiplicative ones.
+        """
+
+        ADDITIVE = "additive", "Additive"
+        MULTIPLICATIVE = "multiplicative", "Multiplicative"
+
+    stacking = models.CharField(
+        max_length=16,
+        choices=Stacking.choices,
+        default=Stacking.MULTIPLICATIVE,
+        help_text=(
+            "Additive modifiers sum with each other before multiplying with "
+            "the multiplicative ones. Defaults to multiplicative, which is "
+            "how every modifier behaved before this field existed."
+        ),
+    )
+
+    # Always read as "+X%", whichever stacking mode applies: 1.25 means +25%,
+    # and the mode decides whether that 25% joins the sum or the product. An
+    # additive modifier contributes (multiplier - 1) to its bucket.
     multiplier = models.DecimalField(max_digits=6, decimal_places=3, default=1.0)
 
     starts_at = models.DateTimeField()
