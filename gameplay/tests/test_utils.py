@@ -180,19 +180,27 @@ class ControlTimersTests(TransactionTestCase):
         self.assertEqual(message["action"], "console.log")
         self.assertIn("not in a valid state", message["message"])
 
-    def test_invalid_mode_raises_unbound_local_error(self):
+    def test_invalid_mode_returns_false_and_broadcasts_the_reason(self):
         """
-        Current behaviour, pinned before it is fixed.
-
-        The `else` branch logs "Invalid mode" but never assigns
-        `server_success`, so the `if server_success:` below it reads an
-        unbound local. UnboundLocalError is a subclass of NameError.
+        Regression test. The `else` branch used to log "Invalid mode" and
+        fall through to `if server_success:`, which read an unbound local
+        and raised UnboundLocalError instead of reporting failure.
         """
-        with self.assertRaises(UnboundLocalError):
-            self._control("sideways")
+        result = self._control("sideways")
 
-        # Nothing was broadcast: the function blew up before reaching a send.
-        self.assertEqual(self.send.calls, [])
+        self.assertFalse(result)
+        _group, message = self.send.calls[0]
+        self.assertEqual(message["type"], "response")
+        self.assertEqual(message["action"], "console.log")
+        self.assertIn("Invalid mode", message["message"])
+
+    def test_invalid_mode_leaves_the_timer_untouched(self):
+        self.timer.new_activity(name="Writing")
+
+        self._control("sideways")
+
+        self.timer.refresh_from_db()
+        self.assertEqual(self.timer.status, "waiting")
 
 
 class ProcessInitiationTests(TestCase):

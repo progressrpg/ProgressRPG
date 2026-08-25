@@ -118,8 +118,22 @@ async def control_timers(player: Player, act_timer: ActivityTimer, mode: str) ->
         success_message = "Timers successfully paused"
         failure_message = "Pausing timers failed"
     else:
+        # Returns rather than falling through: the branches above are what
+        # assign `server_success`/`action`/the log messages, so continuing
+        # past here would read an unbound local. Mirrors the failure
+        # contract of the two valid modes - a caller in an async consumer
+        # gets False, not an exception.
         result_text = f"[CONTROL TIMERS] Invalid mode: {mode}"
         logger.warning(result_text)
+        await send_group_message(
+            f"player_{player_id}",
+            {
+                "type": "response",
+                "action": "console.log",
+                "message": result_text,
+            },
+        )
+        return False
 
     if server_success:
         logger.info(f"[CONTROL TIMERS] {success_message} for player {player_id}")
