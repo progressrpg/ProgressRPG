@@ -93,7 +93,7 @@ defusedxml==0.7.1
     # via
     #   -r requirements.in
     #   python3-openid
-disposable-email-domains==0.0.237
+disposable-email-domains==0.0.242
     # via -r requirements.in
 dj-database-url==3.1.2
     # via -r requirements.in
