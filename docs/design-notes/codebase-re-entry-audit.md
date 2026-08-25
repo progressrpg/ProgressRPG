@@ -68,7 +68,7 @@ Non-obvious game-design logic with no stated intent. **These are flagged, not ex
 
 | Severity | Location | What is unexplained |
 |---|---|---|
-| blocks | `progression/ap.py:73-81` | `get_multiplier` multiplies **every** active modifier, with no cap and no precedence. Nothing states whether unbounded multiplicative stacking is intended, or what stops `player_online` × `activity_active` × future modifiers from compounding. This is the most load-bearing formula in the game. |
+| blocks | `progression/ap.py:73-81` | `get_multiplier` multiplies **every** active modifier, with no cap and no precedence. Nothing states whether unbounded multiplicative stacking is intended, or what stops `player_online` × `activity_active` × future modifiers from compounding. This is the most load-bearing formula in the game. **Resolved:** mixed additive/multiplicative stacking is planned, so the rule itself is being replaced rather than documented — see `.claude/plans/modifier-stacking-plan.md`. Worth recording that today's 1.875 is not an edge case: `player_online` and `activity_active` co-occur by construction, so that is the normal engaged-player rate. |
 | blocks | `character/services/behaviour_services.py:58-99` | The entire day shape — wake 07:00 ±15min, 1h morning block, lunch at the work-window midpoint ±10min for exactly 1h, dinner 17:30 ±10min, leisure to 22:30, wind-down to 23:00 — has no rationale for any value or for the jitter widths. |
 | blocks | `character/services/behaviour_services.py:102` | `rng.sample(work_activities_for(...), 2)` — exactly two distinct work activities per day, and it raises if a character has fewer than two available. No comment on why two. |
 | slows | `gameplay/consumers.py:27`, `gameplay/services/xp_modifiers.py:19`, `gameplay/services/xp_modifiers.py:94` | Three unrelated grace periods — `DISCONNECT_GRACE_SECONDS = 120`, `ACTIVITY_ACTIVE_GRACE_MINUTES = 5`, `cooldown_minutes=30`. Each is documented in isolation; nothing says how they relate or why the modifier cooldown is 15× the reconnect grace. **[PCL path]** — the 30-minute cooldown is only *scheduled* from the disconnect path, so it currently never fires; re-enabling the link turns it on in practice for the first time. |
@@ -99,7 +99,7 @@ Similar things built differently, forcing per-file relearning.
 |---|---|---|
 | blocks | `progression/models.py:648-687` vs `:869-907` | Two `get_xp_reward_summary()` implementations with **different key sets** (`task_xp_multiplier` vs `kind_multiplier`/`boost_multiplier`) and different semantics: the CharacterActivity one applies `character.get_xp_multiplier()` (XpModifier boosts), the PlayerActivity one does not. Which reward rules apply depends on which model you're holding, and nothing says so. |
 | blocks | `locations/tasks.py:133` (`commute_tick` → `schedule.py`) vs `gameworld/tasks.py:38-50` (`sun_phase_started` → `react_to_sun_phase` → `go_home`/`go_outside`) | Two independent systems decide where a character walks, with different triggers and different destination logic. Only one is scheduled (see §7), but both are live code. |
-| slows | `gameplay/services/xp_modifiers.py:169-174` vs `progression/mixins.py:121` | Player-scope `XpModifier`s (`ACTIVITY_ACTIVE_PLAYER_MULTIPLIER = 1.25`) are created, revoked and grace-extended — but the only reader of `get_xp_multiplier()` anywhere is `progression/models.py:885` (`self.character.…`), and `PlayerActivity.get_xp_reward_summary` never consults modifiers at all. Player scope is currently write-only. Whether that's a gap the link work closes or a deliberate not-yet is unstated, and that ambiguity is the actual re-entry cost. **[PCL path]** |
+| slows | `gameplay/services/xp_modifiers.py:169-174` vs `progression/mixins.py:121` | Player-scope `XpModifier`s (`ACTIVITY_ACTIVE_PLAYER_MULTIPLIER = 1.25`) are created, revoked and grace-extended — but the only reader of `get_xp_multiplier()` anywhere is `progression/models.py:885` (`self.character.…`), and `PlayerActivity.get_xp_reward_summary` never consults modifiers at all. Player scope is currently write-only. **Resolved: remove the write, don't wire up the read.** At player scope this modifier is tautological — it is active exactly when the player is recording, and recorded activity is the only source of player AP, so it would multiply every unit of AP it could ever apply to. That is a base-rate change wearing a modifier's clothes. `Scope.PLAYER` stays on the model for genuinely player-level modifiers (events, streaks, seasonal), which need a live read path when the first is authored. See `.claude/plans/modifier-stacking-plan.md` commit 1. |
 | slows | `character/models/*` and `locations/models.py` vs `progression/`, `gameplay/services/` | Two service conventions: model-method-delegates-to-prefixed-service-function (`behaviour.generate_day()` → `behaviour_services.generate_day()`) and plain-function-called-directly (`check_and_award_daily_goals(player)`, `set_activity_active_modifiers(player, ...)`). |
 | slows | `api/views.py` (APIView + `ViewSet` + `@action`), `progression/views.py` (`ModelViewSet` + queryset mixins), `locations/views.py` (bare `APIView` + `ReadOnlyModelViewSet`), `gameplay/views.py` (`ViewSet` + `@action`) | Four view idioms for CRUD-ish endpoints, with permission and queryset scoping done differently in each. |
 | slows | `frontend/src/api/*.ts` vs direct `apiFetch` callers | A dedicated API layer exists (`api/tasks.ts`, `api/notes.ts`, …) *and* seven modules bypass it: `hooks/useActivityTimer.ts`, `useBootstrapGameData.ts`, `useOnboarding.ts`, `useTutorialSteps.ts`, `useMaintenanceStatus.ts`, `components/MaintenanceWatcher.tsx`, `components/TutorialModal/TutorialModal.tsx`. |
@@ -138,20 +138,20 @@ Genuinely unused or superseded. **The PlayerCharacterLink path is excluded** —
 
 ## Where to start
 
-Five items, in the order they should be tackled — see `.claude/plans/readability-audit-top-five-plan.md` for the full plan:
+Two plans came out of this audit.
 
-1. The `control_timers` `NameError` (§7) — a real bug on the path being re-enabled.
-2. Tests for `gameplay/utils.py` (§6) — the reason that bug was invisible.
-3. The modifier-stacking comment at `progression/ap.py:73` (§3) — cheap, and a prerequisite for reasoning about item 5.
-4. `Timer.STATUS_CHOICES` → `TextChoices` (§4) — mechanical but wide; the most-copied literal in the codebase.
-5. The two `get_xp_reward_summary()` implementations (§5).
+**`.claude/plans/readability-audit-top-five-plan.md`** — five items, none of which changes observable behaviour:
 
-`step_toward`'s missing test (§6) is the strongest candidate for sixth.
+1. Tests for `gameplay/utils.py` (§6) — the reason the bug below was invisible.
+2. The `control_timers` `NameError` (§7) — a real bug on the path being re-enabled.
+3. `Timer.STATUS_CHOICES` → `TextChoices` (§4) — mechanical but wide; the most-copied literal in the codebase.
+4. The two `get_xp_reward_summary()` implementations (§5).
+5. `step_toward`'s missing test (§6).
+
+**`.claude/plans/modifier-stacking-plan.md`** — mixed additive/multiplicative modifier stacking, plus the player-scope removal and the missing `UniqueConstraint`. This is a behaviour change and is deliberately kept out of the plan above.
 
 ## Open questions
 
-These need a decision before the relevant remediation can be written honestly:
+Two of the three questions this audit raised have been resolved into the modifier-stacking plan (see §3 and §5 above). One remains:
 
-1. **Is unbounded multiplicative modifier stacking intended** (`progression/ap.py:73-81`), or is a cap wanted before more modifier types exist?
-2. **Are player-scope `XpModifier`s part of the link re-enablement?** If so, §5's framing should describe the intended end state rather than the current one.
-3. **Is `Journey.status = "cancelled"`** (`place_characters.py:112`) a real third state or a bug?
+- **Is `Journey.status = "cancelled"`** (`place_characters.py:112`) a real third state or a bug? It determines whether the `Journey.status` half of the §4 finding is a readability fix or a data fix, and no plan currently covers it.
