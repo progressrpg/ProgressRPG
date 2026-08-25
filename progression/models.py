@@ -655,8 +655,19 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         ``duration`` defaults to ``self.duration`` but can be overridden to
         compute a reward for only part of the recorded time (e.g. the
         XP-eligible portion of a manually-logged activity).
+
+        A *player's* multipliers are premium x task x mastery. Deliberately
+        different from CharacterActivity.get_xp_reward_summary, which is
+        kind x boost x mastery - notably, XpModifier boosts do not apply
+        here, because they describe how the character is doing. The two
+        share their output shape via points.build_reward_summary; only the
+        multipliers differ.
         """
-        from .points import xp_for_duration, xp_mastery_multiplier
+        from .points import (
+            build_reward_summary,
+            xp_for_duration,
+            xp_mastery_multiplier,
+        )
 
         if duration is None:
             duration = self.duration
@@ -673,18 +684,16 @@ class PlayerActivity(TimeRecord, PlayerOwnedMixin):
         mastery_multiplier = xp_mastery_multiplier(player_total_skill_xp(player))
         multiplier *= mastery_multiplier
 
-        def _fmt(d: Decimal) -> int | float:
-            return int(d) if d == d.to_integral_value() else float(d)
-
-        return {
-            "duration_seconds": duration,
-            "base_xp": base_xp,
-            "xp_multiplier": _fmt(multiplier),
-            "task_xp_multiplier": _fmt(task_xp_multiplier),
-            "mastery_multiplier": _fmt(mastery_multiplier),
-            "xp_gained": int(Decimal(base_xp) * multiplier),
-            "skill_xp_gained": (xp_for_duration(duration) if self.skill_id else 0),
-        }
+        return build_reward_summary(
+            duration_seconds=duration,
+            base_xp=base_xp,
+            multiplier=multiplier,
+            skill_xp_gained=xp_for_duration(duration) if self.skill_id else 0,
+            components={
+                "task_xp_multiplier": task_xp_multiplier,
+                "mastery_multiplier": mastery_multiplier,
+            },
+        )
 
     def complete(
         self,
@@ -873,8 +882,19 @@ class CharacterActivity(TimeRecord):
         is set) breakdown for the current `duration` - live-derived from
         duration + the current formula/settings, never read back to derive
         balances (see TimeRecord docs).
+
+        A *character's* multipliers are kind x boost x mastery, where boost
+        is the character's active XpModifiers. Deliberately different from
+        PlayerActivity.get_xp_reward_summary, which is premium x task x
+        mastery and applies no XpModifier boosts. The two share their output
+        shape via points.build_reward_summary; only the multipliers differ.
         """
-        from .points import base_rate, xp_for_duration, xp_mastery_multiplier
+        from .points import (
+            base_rate,
+            build_reward_summary,
+            xp_for_duration,
+            xp_mastery_multiplier,
+        )
 
         rate = base_rate()
         kind_multiplier = (
@@ -889,23 +909,21 @@ class CharacterActivity(TimeRecord):
         base_xp = Decimal(self.duration) * rate
         multiplier = kind_multiplier * boost_multiplier * mastery_multiplier
 
-        def _fmt(d: Decimal) -> int | float:
-            return int(d) if d == d.to_integral_value() else float(d)
-
-        return {
-            "duration_seconds": self.duration,
-            "base_xp": _fmt(base_xp),
-            "xp_multiplier": _fmt(multiplier),
-            "kind_multiplier": _fmt(kind_multiplier),
-            "boost_multiplier": _fmt(boost_multiplier),
-            "mastery_multiplier": _fmt(mastery_multiplier),
-            "xp_gained": int(base_xp * multiplier),
-            "skill_xp_gained": (
+        return build_reward_summary(
+            duration_seconds=self.duration,
+            base_xp=base_xp,
+            multiplier=multiplier,
+            skill_xp_gained=(
                 xp_for_duration(self.duration)
                 if self.activity_definition.skill_id is not None
                 else 0
             ),
-        }
+            components={
+                "kind_multiplier": kind_multiplier,
+                "boost_multiplier": boost_multiplier,
+                "mastery_multiplier": mastery_multiplier,
+            },
+        )
 
     def _finish(self, reward_summary: Dict[str, Any]) -> int:
         self.reward_breakdown = reward_summary
