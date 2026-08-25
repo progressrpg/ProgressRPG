@@ -1,18 +1,26 @@
 # Working-memory load — decomposing the audit's blocks/slows findings
 
 Addresses every `blocks` and `slows` row in
-`docs/design-notes/codebase-re-entry-audit.md` §1 (Working-memory load). The
-`minor` row (`progression/models.py` file size) is out of scope — no severity
-threshold was crossed for it, and splitting a 1185-line models file is a
-bigger structural call than this plan's other items.
+`docs/design-notes/codebase-re-entry-audit.md` §1 (Working-memory load), plus
+two folded-in additions: §2's `process_initiation`/`process_completion`
+naming finding (same file/PCL-adjacency as the §1 `connect()` finding, so
+kept in this branch rather than a separate one) and a new Playwright walker
+test to backstop the Map.tsx refactor, which the audit's §1 finding didn't
+have coverage for. The `minor` row (`progression/models.py` file size) stays
+out of scope — no severity threshold was crossed for it, and splitting a
+1185-line models file is a bigger structural call than this plan's other
+items.
 
-Background: `docs/design-notes/codebase-re-entry-audit.md` §1.
+Background: `docs/design-notes/codebase-re-entry-audit.md` §1 (primary), §2
+(commit 8).
 
 ---
 
 ## 1. High-level strategy
 
-Seven independent findings, seven independent commits. None of them share a
+Ten commits: seven from §1's findings directly, one folded-in naming fix
+(commit 8), one new regression test (commit 10, sequenced before commit 9 at
+implementation time), and Map.tsx's decomposition (commit 9). None share a
 call path with each other, so there is no ordering dependency between them —
 ordering below is by risk, cheapest/safest first, so a bad commit is easy to
 isolate and revert without blocking the rest.
@@ -194,10 +202,37 @@ All existing files; no new files except tests.
   landing; if there's an active branch touching this method, this commit
   should be rebased onto it rather than the reverse.
 
-### Commit 8 — extract `process_initiation`/`process_completion` naming clarity (§2 companion, done here for locality)
+### Commit 8 — rename `process_initiation`/`process_completion` (§2 companion, folded in)
 
-Not in scope — this is audit finding §2 (naming clarity), not §1. Skipped;
-listed in Open Questions below in case you want it folded in.
+Technically audit finding §2 (naming clarity), not §1 — folded into this
+branch per your call, since it's the same file/PCL-adjacency as commit 7 and
+splitting it into a separate branch would just mean re-reading
+`gameplay/utils.py` a second time for no benefit.
+
+- `gameplay/utils.py:144` / `:177`. `process_initiation(player, character,
+  action)` and `process_completion(player, character, action)` don't say
+  what they do: start/pause the server timer, then broadcast a matching
+  websocket action to the player's other open tabs. The `action` parameter
+  is only ever the caller's own dispatch string (`"create_activity"` /
+  `"submit_activity"` — see `consumers.py:396-405`), passed in purely so the
+  log lines can quote it.
+- Rename to name the effect: `start_activity_and_broadcast(player,
+  character)` / `complete_activity_and_broadcast(player, character)` (exact
+  names TBD at implementation time — the point is a verb pair that says
+  "timer + broadcast", not a noun that could mean anything).
+- Drop the `action` parameter. Each function already knows what it's doing
+  from its own name now, so the log messages can hardcode their own label
+  (`"[START ACTIVITY]"` / `"[COMPLETE ACTIVITY]"`) instead of taking it from
+  the caller. Update the two call sites in
+  `consumers.py:397-405` to match.
+- No behaviour change: same two calls (`start_server_timers`/
+  `pause_server_timers`), same two broadcasts (`create_activity`/
+  `submit_activity`), only the names and the dropped log-only parameter.
+- **Same PCL caution as commit 7** — this is the function pair the audit
+  calls "the highest-value test gap in this audit" (§6) because it's about
+  to become reachable again. Land commit 8's rename together with (or after)
+  whatever test coverage lands for these two functions, so the rename
+  doesn't have to be redone against tests written under the old names.
 
 ### Commit 9 — decompose `Map.tsx`'s effect groups into custom hooks
 
@@ -224,12 +259,68 @@ listed in Open Questions below in case you want it folded in.
   module-level hooks instead of inline closures.
 - No behavioural change; this is a JS-level extraction (move `useEffect`
   bodies into hook files) with identical dependency arrays. Playwright's
-  existing Map e2e coverage (if any — check `frontend/e2e` for map specs) is
-  the regression backstop; this is exactly the kind of change that's easy to
-  verify by eyeballing the diff (each hook is a cut/paste of contiguous
-  lines) but easy to break subtly (a missed dependency, a ref passed by
-  value instead of by reference), so review the diff for exact line-for-line
-  moves rather than rewrites.
+  existing Map e2e coverage is the regression backstop for this — see
+  commit 10, added because there wasn't any. This is exactly the kind of
+  change that's easy to verify by eyeballing the diff (each hook is a
+  cut/paste of contiguous lines) but easy to break subtly (a missed
+  dependency, a ref passed by value instead of by reference), so review the
+  diff for exact line-for-line moves rather than rewrites.
+
+### Commit 10 — add a minimal Playwright walker e2e test
+
+Confirmed while writing this plan: `frontend/tests` (the actual Playwright
+`testDir`, per `playwright.config.ts`) has no Map or walker spec today —
+`Map.tsx`/`useMap.ts`/`MapPage.tsx` only have Vitest unit coverage
+(`Map.test.tsx`, `useMap.test.tsx`, `MapPage.test.tsx`). This commit adds
+the missing regression backstop **before** commit 9 touches the file, so
+commit 9's diff has something other than manual smoke-testing behind it —
+sequence it ahead of commit 9 at implementation time despite the numbering
+here.
+
+- New spec, `frontend/tests/flows/map-walker.spec.ts`, following the
+  existing pattern in `tests/smoke/pages.spec.ts` /
+  `tests/flows/timer.spec.ts` (`visitAuthenticatedPage` +
+  `timerUserStorageState` from `tests/utils/authenticatedPage.ts` /
+  `playwright/testUser.ts`).
+- **Gating the `map` feature flag**: `map` defaults to `['testers']` in
+  `frontend/src/featureFlags.ts` and can be widened via
+  `appConfig.feature_flags` (`FeatureToggle.tsx` /
+  `useFeatureFlag`/`useAppConfig`). No existing spec intercepts this
+  endpoint. Two options, decide at implementation time by checking which
+  the test user already satisfies:
+  - If the Playwright test user is already in the `testers` group
+    server-side, no mocking needed — navigate straight to `/map`.
+  - Otherwise, intercept the app-config request (same `page.route()` style
+    already used for `mockSuccessfulSubscriptionSync` in
+    `authenticatedPage.ts`) and inject `feature_flags: { map: ['all'] }` (or
+    the equivalent group) into the response.
+- **Asserting actual movement, minimally**: characters render as a MapLibre
+  GL layer on `<canvas>`, not as individually-queryable DOM nodes, so a
+  Testing-Library-style locator can't read a character's position directly.
+  Two viable approaches — pick the simpler one that works once map internals
+  are visible during implementation:
+  - Query the live map instance's rendered features via
+    `page.evaluate(() => map.queryRenderedFeatures(...))` against the
+    character source/layer, take two coordinate snapshots several seconds
+    apart, and assert they differ for at least one moving character. This
+    needs the `MapLibreMap` instance (or `sourceRef`) to be reachable from
+    `page.evaluate` — check whether anything already exposes it (e.g. on
+    `window` in non-production builds); if not, this commit adds the
+    smallest possible test-only accessor, guarded the same way any existing
+    test-only hook in this codebase is guarded (check for precedent first
+    rather than inventing a new pattern).
+  - Simpler fallback if the above proves fiddly: assert only that the map
+    loads, the character layer renders at least one feature, and no
+    console/network error occurs over an observation window — weaker than
+    an actual movement assertion, but still catches "the map or the walker
+    layer broke" regressions, which is the minimum bar the audit's open
+    question was asking about.
+- Scope stays deliberately minimal per your ask: one happy-path spec, not a
+  full walker test suite (multi-segment paths, speed modifiers, arrival —
+  all already covered server-side by `locations/tests/test_movement.py`).
+  This test's job is to catch "the frontend and backend movement models
+  disagree" or "Map.tsx's refactor broke rendering", not to re-prove
+  `step_toward`'s math client-side.
 
 ---
 
@@ -322,11 +413,18 @@ listed in Open Questions below in case you want it folded in.
     they still pass; these are rename/removal changes so any test currently
     importing `lifecycle_services.lifecycle_get_age` by name needs updating
     to the new name.
-- **Commit 9 (frontend)**: check `frontend/e2e` for existing Map specs, run
-  them scoped (per this repo's rule against running the full Playwright
-  suite) against the refactored component. If no walker-animation e2e
-  coverage exists, that's a gap this plan surfaces but doesn't fill —
-  flagged in Open Questions.
+  - `gameplay/tests/test_disconnect_grace.py` mocks `process_initiation` /
+    `process_completion` (per audit §6) — commit 8's rename means those
+    mocks (and any other test referencing the old names) need updating in
+    the same commit, not left to break silently.
+- **Commit 9 (frontend)**: run commit 10's new walker spec (scoped, per this
+  repo's rule against running the full Playwright suite) against the
+  refactored component before/after to confirm identical behaviour.
+- **Commit 10 (frontend, new)**: the spec itself is the new test — no
+  existing test to modify. Run it scoped against `Map.tsx` pre-refactor
+  first, to confirm it actually catches a real regression and isn't
+  vacuously passing (e.g. temporarily break the walker tick client-side and
+  confirm the spec fails, then revert).
 
 ---
 
@@ -364,18 +462,29 @@ listed in Open Questions below in case you want it folded in.
 
 ## 8. Open questions
 
-- Should commit 8 (`process_initiation`/`process_completion` naming — audit
-  §2, not §1) be folded into this branch, or left for a separate pass since
-  it's a different audit category? Listed here but not planned in detail;
-  left out of the commit sequence above pending your answer.
+- **Resolved:** commit 8 (`process_initiation`/`process_completion` naming)
+  is folded into this branch — see commit 8 above.
+- **Resolved:** commit 10 adds a minimal Playwright walker e2e test as
+  commit 9's regression backstop, since none existed.
 - Two `blocks`-severity findings live on the same function this plan splits
   (`generate_day`'s day-shape rationale and "why exactly two work
-  activities", both audit §4) but need a game-design answer, not a
-  refactor. Do you want those raised as a follow-up now, or later?
-- Is there Playwright coverage for the Map's walker animation today? If not,
-  commit 9 ships without a regression backstop beyond manual smoke-testing —
-  worth deciding whether that's acceptable or whether a minimal walker e2e
-  test should be added first.
+  activities", both audit **§3**, not §4 — corrected from an earlier
+  mislabel in this doc) but need a game-design answer, not a refactor. Do
+  you want those raised as a follow-up now, or later?
+- Two further `blocks`-severity findings sit in audit **§4** (Magic numbers
+  and strings) and are genuinely unrelated to this plan's §1 scope, so
+  they're named here rather than folded in: `gameplay/models.py:78-85`
+  (`Timer.STATUS_CHOICES` as a plain list, 41 non-test call sites) —
+  **already resolved**, `Timer.Status` is now a `TextChoices` per the
+  earlier readability-top-five work (#829). And `locations/models.py:296`
+  — `Journey.status` has no `choices` at all, and
+  `locations/management/commands/place_characters.py:112` writes
+  `status="cancelled"`, a value nothing else recognises (not `is_complete`,
+  not the unique constraint, not any queryset). That one carries a
+  data-integrity question — is `"cancelled"` a real third state or a bug? —
+  so it needs your answer before it's a mechanical `TextChoices` conversion
+  like `Timer.Status` was. Worth a small follow-up plan of its own; not
+  added to this one to keep this plan's scope to §1.
 - Confirmed groupings for commit 9's hooks are a hypothesis from reading
   effect declarations, not full effect bodies (890 lines wasn't fully read
   for this plan). Implementation should re-derive the grouping from the
