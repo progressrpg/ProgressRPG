@@ -77,6 +77,7 @@ from character.models import Character, PlayerCharacterLink
 from character.serializers import CharacterSerializer
 from core.models import Announcement, GameSettings, PlayerAnnouncementState
 
+from gameplay.models import ActivityTimer
 from gameplay.serializers import ActivityTimerSerializer
 from gameplay.services.xp_modifiers import handle_online_login
 from users.services.login_services import get_login_state
@@ -925,7 +926,7 @@ class FetchInfoAPIView(APIView):
 
         # Timer says it's running but no activity exists -> reset
 
-        if at.status != "empty" and activity is None:
+        if at.status != ActivityTimer.Status.EMPTY and activity is None:
             try:
                 at.reset()
             except Exception as e:
