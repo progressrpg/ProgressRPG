@@ -151,9 +151,9 @@ class SetActivityActiveModifiersTests(TestCase):
         )
         self.assertFalse(XpModifier.objects.exists())
 
-    def test_activating_creates_character_and_player_modifiers(self):
+    def test_activating_creates_only_a_character_modifier(self):
         mods = xpm.set_activity_active_modifiers(self.player, is_active=True)
-        self.assertEqual(len(mods), 2)
+        self.assertEqual(len(mods), 1)
 
         character_mod = XpModifier.objects.get(
             scope=XpModifier.Scope.CHARACTER, key=xpm.ACTIVITY_ACTIVE_KEY
@@ -166,12 +166,10 @@ class SetActivityActiveModifiersTests(TestCase):
         self.assertTrue(character_mod.is_active)
         self.assertIsNone(character_mod.ends_at)
 
-        player_mod = XpModifier.objects.get(
-            scope=XpModifier.Scope.PLAYER, key=xpm.ACTIVITY_ACTIVE_KEY
-        )
-        self.assertEqual(player_mod.player_id, self.player.id)
-        self.assertEqual(
-            player_mod.multiplier, Decimal(str(xpm.ACTIVITY_ACTIVE_PLAYER_MULTIPLIER))
+        # No player-scoped counterpart: it would be active exactly when the
+        # player is earning AP, so it could never be off.
+        self.assertFalse(
+            XpModifier.objects.filter(scope=XpModifier.Scope.PLAYER).exists()
         )
 
     def test_deactivating_without_prior_activation_does_nothing(self):
@@ -191,19 +189,15 @@ class SetActivityActiveModifiersTests(TestCase):
         character_mod = XpModifier.objects.get(
             scope=XpModifier.Scope.CHARACTER, key=xpm.ACTIVITY_ACTIVE_KEY
         )
-        player_mod = XpModifier.objects.get(
-            scope=XpModifier.Scope.PLAYER, key=xpm.ACTIVITY_ACTIVE_KEY
-        )
 
-        for mod in (character_mod, player_mod):
-            self.assertTrue(mod.is_active)
-            self.assertIsNotNone(mod.ends_at)
-            self.assertAlmostEqual(
-                mod.ends_at,
-                timezone.now() + timedelta(minutes=xpm.ACTIVITY_ACTIVE_GRACE_MINUTES),
-                delta=timedelta(seconds=5),
-            )
-            self.assertEqual(mod.task_id, "grace-task-id")
+        self.assertTrue(character_mod.is_active)
+        self.assertIsNotNone(character_mod.ends_at)
+        self.assertAlmostEqual(
+            character_mod.ends_at,
+            timezone.now() + timedelta(minutes=xpm.ACTIVITY_ACTIVE_GRACE_MINUTES),
+            delta=timedelta(seconds=5),
+        )
+        self.assertEqual(character_mod.task_id, "grace-task-id")
 
     def test_reactivating_within_grace_window_refreshes_and_cancels_pending_end(self):
         xpm.set_activity_active_modifiers(self.player, is_active=True)
@@ -217,22 +211,18 @@ class SetActivityActiveModifiersTests(TestCase):
         with patch.object(xpm, "current_app") as mock_app:
             xpm.set_activity_active_modifiers(self.player, is_active=True)
 
-        self.assertEqual(mock_app.control.revoke.call_count, 2)
+        self.assertEqual(mock_app.control.revoke.call_count, 1)
 
         character_mod = XpModifier.objects.get(
             scope=XpModifier.Scope.CHARACTER, key=xpm.ACTIVITY_ACTIVE_KEY
         )
-        player_mod = XpModifier.objects.get(
-            scope=XpModifier.Scope.PLAYER, key=xpm.ACTIVITY_ACTIVE_KEY
-        )
-        for mod in (character_mod, player_mod):
-            self.assertTrue(mod.is_active)
-            self.assertIsNone(mod.ends_at)
-            self.assertIsNone(mod.task_id)
+        self.assertTrue(character_mod.is_active)
+        self.assertIsNone(character_mod.ends_at)
+        self.assertIsNone(character_mod.task_id)
 
-        # Refreshed the existing rows rather than creating new ones.
+        # Refreshed the existing row rather than creating a new one.
         self.assertEqual(
-            XpModifier.objects.filter(key=xpm.ACTIVITY_ACTIVE_KEY).count(), 2
+            XpModifier.objects.filter(key=xpm.ACTIVITY_ACTIVE_KEY).count(), 1
         )
 
 
