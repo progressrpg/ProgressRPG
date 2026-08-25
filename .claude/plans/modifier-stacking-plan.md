@@ -95,6 +95,17 @@ that can change a number in production**, and with both current modifiers
 defaulted to `MULTIPLICATIVE` it should not: `1.25 × 1.5 = 1.875` before and
 after. Existing `test_ap.py` tests passing unmodified is the evidence.
 
+> **Commits 2 and 3 must land together.** Commit 2 adds the field; commit 3 is
+> what reads it. Landing 2 alone leaves a field nothing consumes — precisely
+> the write-only pattern commit 1 exists to delete. Separate commits for
+> reviewability, one merge.
+
+Note that both buckets will be live before any additive modifier is authored.
+That is intentional: the mechanism is inert until a key is mapped to
+`ADDITIVE`, and having it ready means authoring the first additive modifier is
+a one-line mapping entry rather than a schema change and a composition rewrite
+in the middle of designing a feature.
+
 ### Commit 4 — unique constraint
 Add a `UniqueConstraint` per scope so `(key, owner)` cannot duplicate.
 `activate_link_modifier`'s `update_or_create` already assumes this; right now
@@ -120,6 +131,19 @@ precedence question this is meant to settle.
 **Alternative B — all additive.** Rejected: the user wants both, and
 multiplicative is the right shape for a boost that should scale with everything
 else rather than be diluted by a growing additive pool.
+
+### "Additive" means additive *percentage*, not flat addition
+**Decided.** An additive modifier contributes a percentage that sums with other
+additive percentages: `+25%` and `+25%` give `+50%`, and that bucket then
+multiplies with the multiplicative ones.
+
+**Alternative — flat addition** (`+10 AP` added to the base irrespective of
+multipliers). Rejected, and worth recording *why the question arose*: a flat
+bonus is not a multiplier at all. It could not live in `get_multiplier`'s
+return value, which is a single `Decimal` factor; it would need a separate term
+in the reward formula plus a decision about where it applies relative to the
+multipliers. Anyone reading "additive" later should not have to re-open that
+question — it is settled as percentage.
 
 ### The number means "+X%" in both modes
 **Chosen:** keep the single `multiplier` field. `1.25` always reads as "+25%";
@@ -178,10 +202,12 @@ one is wanted — a `GameSettings` value, not a hardcoded constant.
 - `multiplier` is `DecimalField(max_digits=6, decimal_places=3)`. Keep the
   arithmetic in `Decimal` throughout; do not round intermediate bucket
   subtotals.
-- **Penalties.** Nothing currently creates a modifier below 1.0, but the admin
-  can. Several additive penalties could drive the additive bucket to zero or
-  negative, flipping the sign of a reward. Decide whether to floor the additive
-  bucket at 0 — see §8.
+- **Penalties are not expected.** No modifier below 1.0 is planned, so the
+  additive bucket cannot be driven to zero or negative in normal use. Enforce
+  this by **validating `multiplier >= 1` on the admin form** rather than
+  clamping inside `get_multiplier` — fail at the point of entry and keep the
+  composition function arithmetic-only. If penalties are ever wanted, the floor
+  decision comes back with them.
 
 **Backwards compatibility**
 - `reward_breakdown` is a persisted `JSONField` (`progression/models.py:421`),
@@ -205,6 +231,11 @@ one is wanted — a `GameSettings` value, not a hardcoded constant.
 ## 6. Tests
 
 **New — `progression/tests/test_ap.py`:**
+Until the first additive modifier is authored, these tests are the **only**
+exercise of the additive path — no production code will hit it. That makes them
+load-bearing rather than incidental: they are what stops the bucket rotting
+before it has an occupant.
+
 - Additive bucket only: two `+25%` additive modifiers give 1.5, not 1.5625.
 - Multiplicative bucket only: unchanged from today.
 - Mixed: additive bucket multiplies with the multiplicative one.
@@ -252,14 +283,13 @@ user's to run.
 
 ## 8. Open questions
 
-1. **Which future modifiers are additive vs multiplicative?** The mapping needs
-   at least a starting position. `player_online` and `activity_active` stay
-   multiplicative by default; the question is the intended shape for the
-   planned events/streaks/seasonal modifiers.
-2. **Should the additive bucket be floored at 0** to make sub-1.0 penalty
-   modifiers safe, or are penalties out of scope (and should the admin reject
-   `multiplier < 1`)?
-3. **Should `xp_mods` in the bootstrap payload be populated?** It is a declared
+1. **Which future modifiers are additive?** None exist yet, and none is needed
+   to land this — `player_online` and `activity_active` both stay
+   multiplicative, so the mapping ships with an empty additive set and the
+   bucket is simply inert. The open part is only which of the planned
+   events/streaks/seasonal modifiers should be additive when they are authored.
+   The *semantics* are settled (additive percentage — see §4).
+2. **Should `xp_mods` in the bootstrap payload be populated?** It is a declared
    API field (`api/serializers.py:149`) read by the frontend
    (`useBootstrapGameData.ts:60`) but hardcoded to `[]` at `api/views.py:773`.
    Out of scope here, but this plan is what would make it worth filling — and
