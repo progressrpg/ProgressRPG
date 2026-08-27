@@ -134,6 +134,83 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
             last_seen=timezone.now()
         )
 
+    async def _reject_duplicate_connection(self, username) -> bool:
+        """
+        Reject this connection if the player already has a live WebSocket.
+        Returns True if the caller should stop (the connection was rejected).
+        """
+        if (
+            hasattr(self, "player_group")
+            and self.player_group in self.channel_layer.groups
+        ):
+            logger.warning(
+                f"[CONNECT] User {username} already connected to a WebSocket."
+            )
+            await self.close()  # Reject the new connection
+            return True
+        return False
+
+    async def _load_player_state(self, user):
+        """
+        Resolve player/character/link for `user`, set the instance state
+        connect() and disconnect() both read (self.player, self.character,
+        self.link, self.player_group), and revoke any auto-complete task
+        left pending from a previous disconnection.
+        """
+        self.player, self.character, self.link = (
+            await self.set_player_and_character(user)
+        )
+        self.player_group = f"player_{self.player.id}"
+
+        # Cancel any pending auto-complete scheduled from the last disconnection.
+        pending_task_id = await cache.aget(
+            DISCONNECT_TASK_CACHE_KEY.format(player_id=self.player.id)
+        )
+        if pending_task_id:
+            await sync_to_async(current_app.control.revoke)(pending_task_id)
+            await cache.adelete(
+                DISCONNECT_TASK_CACHE_KEY.format(player_id=self.player.id)
+            )
+            logger.info(
+                f"[CONNECT] Revoked pending auto-complete task {pending_task_id} for player {self.player.id}"
+            )
+
+        if self.link is None:
+            logger.info(
+                f"[CONNECT] Player {self.player.id} has no active character link; continuing with player-only websocket session."
+            )
+
+    async def _start_session(self):
+        """
+        Register the connection, start the heartbeat, join the player's
+        groups, accept the socket, and replay anything the player missed.
+        """
+        await database_sync_to_async(self.player.register_connection)()
+
+        # register_connection stamps last_seen; this keeps it fresh for
+        # as long as the socket lives.
+        self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+        logger.debug(
+            f"[CONNECT] Player {self.player.id} is_online={self.player.is_online}"
+        )  # ✅ Verify status
+
+        await self.channel_layer.group_add(self.player_group, self.channel_name)
+        await self.channel_layer.group_add("online_users", self.channel_name)
+        logger.debug(
+            f"[CONNECT] Added player {self.player.id} to 'online_users' group."
+        )  # ✅ Debug log
+
+        await self.accept()
+        logger.info(
+            f"[CONNECT] WebSocket connection accepted for player {self.player.id}"
+        )
+
+        await self.broadcast_online_count()
+
+        await self._send_pending_messages()
+
+        self.activity_timer = await self.get_activity_timer()
+
     async def connect(self):
         from django.contrib.auth.models import AnonymousUser
 
@@ -155,64 +232,11 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         if is_authenticated:
             logger.info(f"[CONNECT] Authenticated user {user_id}. Connecting...")
 
-            if (
-                hasattr(self, "player_group")
-                and self.player_group in self.channel_layer.groups
-            ):
-                logger.warning(
-                    f"[CONNECT] User {username} already connected to a WebSocket."
-                )
-                await self.close()  # Reject the new connection
+            if await self._reject_duplicate_connection(username):
                 return
 
-            self.player, self.character, self.link = (
-                await self.set_player_and_character(user)
-            )
-            self.player_group = f"player_{self.player.id}"
-
-            # Cancel any pending auto-complete scheduled from the last disconnection.
-            pending_task_id = await cache.aget(
-                DISCONNECT_TASK_CACHE_KEY.format(player_id=self.player.id)
-            )
-            if pending_task_id:
-                await sync_to_async(current_app.control.revoke)(pending_task_id)
-                await cache.adelete(
-                    DISCONNECT_TASK_CACHE_KEY.format(player_id=self.player.id)
-                )
-                logger.info(
-                    f"[CONNECT] Revoked pending auto-complete task {pending_task_id} for player {self.player.id}"
-                )
-
-            if self.link is None:
-                logger.info(
-                    f"[CONNECT] Player {self.player.id} has no active character link; continuing with player-only websocket session."
-                )
-
-            await database_sync_to_async(self.player.register_connection)()
-
-            # register_connection stamps last_seen; this keeps it fresh for
-            # as long as the socket lives.
-            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
-            logger.debug(
-                f"[CONNECT] Player {self.player.id} is_online={self.player.is_online}"
-            )  # ✅ Verify status
-
-            await self.channel_layer.group_add(self.player_group, self.channel_name)
-            await self.channel_layer.group_add("online_users", self.channel_name)
-            logger.debug(
-                f"[CONNECT] Added player {self.player.id} to 'online_users' group."
-            )  # ✅ Debug log
-
-            await self.accept()
-            logger.info(
-                f"[CONNECT] WebSocket connection accepted for player {self.player.id}"
-            )
-
-            await self.broadcast_online_count()
-
-            await self._send_pending_messages()
-
-            self.activity_timer = await self.get_activity_timer()
+            await self._load_player_state(user)
+            await self._start_session()
 
             await self.send_json(
                 {
