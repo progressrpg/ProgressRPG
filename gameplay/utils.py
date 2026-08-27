@@ -10,8 +10,8 @@ Functions:
     - start_server_timers(act_timer): Asynchronously starts the server-side activity timer.
     - pause_server_timers(act_timer): Asynchronously pauses the server-side activity timer.
     - control_timers(player, act_timer, mode): Asynchronously starts or pauses both server and client timers, with WebSocket feedback.
-    - process_initiation(player, character, action): Create an activity, handling timers and WebSocket updates.
-    - process_completion(player, character, action): Submits an activity, handling timers and WebSocket updates.
+    - start_activity_and_broadcast(player, character): Starts the server timer and broadcasts create_activity.
+    - complete_activity_and_broadcast(player, character): Pauses the server timer and broadcasts submit_activity.
     - send_group_message(group_name, message): Sends a message to a WebSocket group.
 
 Usage:
@@ -162,22 +162,24 @@ async def control_timers(player: Player, act_timer: ActivityTimer, mode: str) ->
         return False
 
 
-def process_initiation(player: Player, character: Character, action: str) -> bool:
+def start_activity_and_broadcast(player: Player, character: Character) -> bool:
     """
-    Processes the initiation of an activity, starting timers if possible.
+    Starts the server timer for `player` and, on success, broadcasts
+    "create_activity" to the player's other open tabs so they pick up the
+    new activity too.
     """
     player.refresh_from_db()
     player_id = player.id
     act_timer = player.activity_timer
     character.refresh_from_db()
     logger.info(
-        f"[PROCESS INITIATION] Initiating {action} for player {player_id}, character {character.id}"
+        f"[START ACTIVITY] Starting timers for player {player_id}, character {character.id}"
     )
 
     start_success, result_text = start_server_timers(act_timer)
     if not start_success:
         logger.info(
-            f"[PROCESS INITIATION] Failed to start timers for player {player_id}. Result: {result_text}"
+            f"[START ACTIVITY] Failed to start timers for player {player_id}. Result: {result_text}"
         )
         async_to_sync(send_group_message)(
             f"player_{player_id}",
@@ -195,22 +197,24 @@ def process_initiation(player: Player, character: Character, action: str) -> boo
         return True
 
 
-def process_completion(player: Player, character: Character, action: str) -> bool:
+def complete_activity_and_broadcast(player: Player, character: Character) -> bool:
     """
-    Processes the completion of an activity, pausing timers.
+    Pauses the server timer for `player` and, on success, broadcasts
+    "submit_activity" to the player's other open tabs so they pick up the
+    completed activity too.
     """
     player.refresh_from_db()
     character.refresh_from_db()
     player_id = player.id
     act_timer = player.activity_timer
     logger.info(
-        f"[PROCESS COMPLETION] Doing {action} for player {player_id}, character {character.id}"
+        f"[COMPLETE ACTIVITY] Pausing timers for player {player_id}, character {character.id}"
     )
 
     pause_success, result_text = pause_server_timers(act_timer)
     if not pause_success:
         logger.warning(
-            f"[PROCESS COMPLETION] Failed to pause timers for player {player_id}"
+            f"[COMPLETE ACTIVITY] Failed to pause timers for player {player_id}"
         )
         async_to_sync(send_group_message)(
             f"player_{player_id}",

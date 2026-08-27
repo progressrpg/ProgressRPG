@@ -48,7 +48,11 @@ ONLINE_COUNT_CACHE_KEY = "online_count"
 ONLINE_COUNT_CACHE_SECONDS = 2
 
 from .models import ActivityTimer, ServerMessage
-from .utils import process_completion, process_initiation, control_timers
+from .utils import (
+    complete_activity_and_broadcast,
+    start_activity_and_broadcast,
+    control_timers,
+)
 
 logger = logging.getLogger("general")
 logger_errors = logging.getLogger("errors")
@@ -418,14 +422,14 @@ class TimerConsumer(AsyncJsonWebsocketConsumer):
         elif action == "pause_timers":
             await control_timers(self.player, self.activity_timer, "pause")
         elif action == "create_activity":
-            success = await database_sync_to_async(process_initiation)(
-                self.player, self.character, action
+            success = await database_sync_to_async(start_activity_and_broadcast)(
+                self.player, self.character
             )
             if not success:
                 logger.warning(f"[HANDLE CLIENT REQUEST] Failed to initiate {action}.")
         elif action == "submit_activity":
-            success = await database_sync_to_async(process_completion)(
-                self.player, self.character, action
+            success = await database_sync_to_async(complete_activity_and_broadcast)(
+                self.player, self.character
             )
             logger.debug(f"[HANDLE CLIENT REQUEST] {action} result: {success}")
             if not success:
