@@ -4,7 +4,7 @@ import random
 
 from character.models import Character, CharacterLocation
 from character.services import relationship_services
-from locations.models import Building, Node
+from locations.models import Building, Journey, Node
 
 DEFAULT_MAX_PER_BUILDING = 5
 
@@ -109,7 +109,15 @@ class Command(BaseCommand):
                 continue
 
             if char.is_moving:
-                char.journeys.filter(status="active").update(status="cancelled")
+                # Reuse Journey.cancel() rather than writing a status value
+                # nothing else recognises - a character has at most one
+                # active journey (uniq_active_journey_per_character), so
+                # this is fetching one row, not a bulk operation.
+                active_journey = char.journeys.filter(
+                    status=Journey.Status.ACTIVE
+                ).first()
+                if active_journey:
+                    active_journey.cancel()
 
             char.assign_home(building)
             occupancy[building.id] += 1
