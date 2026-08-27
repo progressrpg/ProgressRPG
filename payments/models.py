@@ -1,6 +1,12 @@
+from django.core.validators import RegexValidator
 from django.utils import timezone
 from django.db import models
 from django.conf import settings
+
+validate_stripe_price_id = RegexValidator(
+    regex=r"^price_",
+    message="Stripe price IDs start with 'price_' (not a product ID, which starts with 'prod_').",
+)
 
 
 class StripeEvent(models.Model):
@@ -23,7 +29,11 @@ class SubscriptionPlan(models.Model):
         max_length=10, choices=[("monthly", "Monthly"), ("annual", "Annual")]
     )
     stripe_price_id = models.CharField(
-        max_length=255, blank=True, null=True, unique=True
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        validators=[validate_stripe_price_id],
     )
 
     def __str__(self):
