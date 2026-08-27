@@ -18,6 +18,21 @@ _FIXED_KINDS = [
     ActivityDefinition.Kind.WIND_DOWN,
 ]
 
+# The day's shape, as used by generate_day() below. Named here rather than
+# left as inline literals in a 100+ line function; the rationale for the
+# specific values (why 07:00, why exactly two work activities, etc.) is
+# open - see docs/design-notes/codebase-re-entry-audit.md §4 - this only
+# gives the literals names.
+WAKE_TIME = time(7, 0)
+WAKE_JITTER_MINUTES = 15
+# Both the lunch midpoint and the dinner start are jittered by the same
+# ten minutes.
+MEAL_JITTER_MINUTES = 10
+DINNER_TIME = time(17, 30)
+LEISURE_END_TIME = time(22, 30)
+WIND_DOWN_END_TIME = time(23, 0)
+WORK_ACTIVITIES_PER_DAY = 2
+
 
 def _fixed_activity_definitions():
     """
@@ -55,8 +70,8 @@ def generate_day(behaviour, date, replace_future=True):
     def jitter_minutes(base_dt, minutes):
         return base_dt + timedelta(minutes=rng.randint(-minutes, minutes))
 
-    wake = aware(date, time(7, 0))
-    wake = jitter_minutes(wake, 15)
+    wake = aware(date, WAKE_TIME)
+    wake = jitter_minutes(wake, WAKE_JITTER_MINUTES)
 
     morning_start = wake
     morning_end = morning_start + timedelta(hours=1)
@@ -72,7 +87,7 @@ def generate_day(behaviour, date, replace_future=True):
     work_end = aware(date, default_work_end)
 
     lunch_midpoint = work_start + (work_end - work_start) / 2
-    lunch_start = jitter_minutes(lunch_midpoint, 10)
+    lunch_start = jitter_minutes(lunch_midpoint, MEAL_JITTER_MINUTES)
     lunch_end = lunch_start + timedelta(hours=1)
 
     work1_start = work_start
@@ -80,26 +95,30 @@ def generate_day(behaviour, date, replace_future=True):
     work2_start = lunch_end
     work2_end = work_end
 
-    dinner_start = jitter_minutes(max(work_end, aware(date, time(17, 30))), 10)
+    dinner_start = jitter_minutes(
+        max(work_end, aware(date, DINNER_TIME)), MEAL_JITTER_MINUTES
+    )
     dinner_end = dinner_start + timedelta(hours=1)
 
     leisure_start = dinner_end
-    leisure_end = max(leisure_start, aware(date, time(22, 30)))
+    leisure_end = max(leisure_start, aware(date, LEISURE_END_TIME))
 
     wind_start = leisure_end
-    wind_end = max(wind_start, aware(date, time(23, 0)))
+    wind_end = max(wind_start, aware(date, WIND_DOWN_END_TIME))
 
     day_window(behaviour, date)
 
     next_day = date + timedelta(days=1)
-    next_wake = aware(next_day, time(7, 0))
-    next_wake = jitter_minutes(next_wake, 15)
+    next_wake = aware(next_day, WAKE_TIME)
+    next_wake = jitter_minutes(next_wake, WAKE_JITTER_MINUTES)
 
     sleep_start = wind_end
     sleep_end = next_wake
 
     fixed = _fixed_activity_definitions()
-    work_activities = rng.sample(work_activities_for(behaviour.character), 2)
+    work_activities = rng.sample(
+        work_activities_for(behaviour.character), WORK_ACTIVITIES_PER_DAY
+    )
     blocks = [
         (fixed[ActivityDefinition.Kind.SLEEP], aware(date, time(0, 0)), morning_start),
         (fixed[ActivityDefinition.Kind.MORNING], morning_start, morning_end),
