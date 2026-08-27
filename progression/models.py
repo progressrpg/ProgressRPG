@@ -902,7 +902,10 @@ class CharacterActivity(TimeRecord):
             if self.kind == ActivityDefinition.Kind.REST
             else Decimal("1")
         )
-        boost_multiplier = self.character.get_xp_multiplier()
+        boost_additive, boost_multiplicative = (
+            self.character.get_xp_multiplier_buckets()
+        )
+        boost_multiplier = boost_additive * boost_multiplicative
         mastery_multiplier = xp_mastery_multiplier(
             character_total_skill_xp(self.character)
         )
@@ -921,6 +924,12 @@ class CharacterActivity(TimeRecord):
             components={
                 "kind_multiplier": kind_multiplier,
                 "boost_multiplier": boost_multiplier,
+                # The two halves of boost_multiplier, so a breakdown can show
+                # why a boost is what it is. Added rather than replacing
+                # boost_multiplier, which the frontend and stored snapshots
+                # already read.
+                "boost_additive_bucket": boost_additive,
+                "boost_multiplicative_bucket": boost_multiplicative,
                 "mastery_multiplier": mastery_multiplier,
             },
         )

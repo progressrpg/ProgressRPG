@@ -90,6 +90,10 @@ class GetMultiplierTests(TestCase):
         )
 
     def test_multiple_active_modifiers_multiply(self):
+        # No explicit stacking mode: rows default to MULTIPLICATIVE, which is
+        # how every modifier behaved before the field existed. This test
+        # passing unchanged is the evidence that adding the field and the
+        # two-bucket rule moved nothing.
         self.make_modifier(Decimal("1.5"), key="mod_a")
         self.make_modifier(Decimal("2"), key="mod_b")
         self.assertEqual(
@@ -127,6 +131,113 @@ class GetMultiplierTests(TestCase):
     def test_defaults_to_current_time_when_now_not_passed(self):
         self.make_modifier(Decimal("2"))
         self.assertEqual(ap.get_multiplier(self.character), Decimal("2"))
+
+    def test_additive_modifiers_sum_rather_than_compound(self):
+        """
+        Two +25% additive modifiers give +50%, not +56.25%. Getting this
+        wrong by summing the raw multipliers instead of their bonuses would
+        give 2.5.
+        """
+        self.make_modifier(
+            Decimal("1.25"), key="mod_a", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.make_modifier(
+            Decimal("1.25"), key="mod_b", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.assertEqual(
+            ap.get_multiplier(self.character, now=self.now), Decimal("1.5")
+        )
+
+    def test_a_single_additive_modifier_matches_its_face_value(self):
+        self.make_modifier(
+            Decimal("1.25"), key="mod_a", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.assertEqual(
+            ap.get_multiplier(self.character, now=self.now), Decimal("1.25")
+        )
+
+    def test_additive_bucket_multiplies_with_the_multiplicative_ones(self):
+        # (1 + 0.25 + 0.25) * 2 = 3.0
+        self.make_modifier(
+            Decimal("1.25"), key="add_a", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.make_modifier(
+            Decimal("1.25"), key="add_b", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.make_modifier(
+            Decimal("2"), key="mult_a", stacking=XpModifier.Stacking.MULTIPLICATIVE
+        )
+        self.assertEqual(
+            ap.get_multiplier(self.character, now=self.now), Decimal("3.0")
+        )
+
+    def test_result_does_not_depend_on_creation_order(self):
+        """
+        Addition commutes within the bucket and multiplication commutes
+        across the two, so there is no precedence to define. Pinned because
+        a future ordered/pipeline rule would silently break it.
+        """
+        self.make_modifier(
+            Decimal("2"), key="mult_a", stacking=XpModifier.Stacking.MULTIPLICATIVE
+        )
+        self.make_modifier(
+            Decimal("1.25"), key="add_a", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.make_modifier(
+            Decimal("1.5"), key="mult_b", stacking=XpModifier.Stacking.MULTIPLICATIVE
+        )
+        self.make_modifier(
+            Decimal("1.25"), key="add_b", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        # (1 + 0.25 + 0.25) * 2 * 1.5 = 4.5
+        self.assertEqual(
+            ap.get_multiplier(self.character, now=self.now), Decimal("4.5")
+        )
+
+    def test_inactive_additive_modifier_is_excluded_from_its_bucket(self):
+        self.make_modifier(
+            Decimal("1.25"), key="mod_a", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.make_modifier(
+            Decimal("1.25"),
+            key="mod_b",
+            stacking=XpModifier.Stacking.ADDITIVE,
+            is_active=False,
+        )
+        self.assertEqual(
+            ap.get_multiplier(self.character, now=self.now), Decimal("1.25")
+        )
+
+    def test_buckets_multiply_to_the_combined_multiplier(self):
+        """
+        get_multiplier is defined as the product of the two buckets, so the
+        itemised view in a reward breakdown can never disagree with the
+        figure actually applied.
+        """
+        self.make_modifier(
+            Decimal("1.25"), key="add_a", stacking=XpModifier.Stacking.ADDITIVE
+        )
+        self.make_modifier(
+            Decimal("2"), key="mult_a", stacking=XpModifier.Stacking.MULTIPLICATIVE
+        )
+
+        additive, multiplicative = ap.get_multiplier_buckets(
+            self.character, now=self.now
+        )
+
+        self.assertEqual(additive, Decimal("1.25"))
+        self.assertEqual(multiplicative, Decimal("2"))
+        self.assertEqual(
+            additive * multiplicative,
+            ap.get_multiplier(self.character, now=self.now),
+        )
+
+    def test_buckets_are_identity_with_no_modifiers(self):
+        additive, multiplicative = ap.get_multiplier_buckets(
+            self.character, now=self.now
+        )
+        self.assertEqual(additive, Decimal("1.0"))
+        self.assertEqual(multiplicative, Decimal("1.0"))
 
     def test_works_for_player_scope_too(self):
         user = user_factory(with_player=True)
