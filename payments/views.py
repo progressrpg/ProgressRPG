@@ -5,6 +5,7 @@ from stripe.params.checkout import (
     SessionCreateParamsSubscriptionData,
 )
 from django.conf import settings
+from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -131,11 +132,20 @@ class CreateCheckoutSessionView(APIView):
         requested_plan = (request.data.get("plan") or "monthly").strip().lower()
         interval = "annual" if requested_plan == "annual" else "monthly"
 
-        subscription_plan = SubscriptionPlan.objects.filter(interval=interval).first()
+        # Prefer a plan row that actually has a usable Stripe price ID —
+        # a plan for this interval with a blank/null stripe_price_id (e.g.
+        # cleared by sync_stripe, or never configured) must not block
+        # checkout if another row for the same interval is usable.
+        subscription_plan = (
+            SubscriptionPlan.objects.filter(interval=interval)
+            .exclude(Q(stripe_price_id__isnull=True) | Q(stripe_price_id=""))
+            .order_by("id")
+            .first()
+        )
 
         if not subscription_plan:
             logger.error(
-                "[PAYMENTS.CHECKOUT] No SubscriptionPlan found "
+                "[PAYMENTS.CHECKOUT] No SubscriptionPlan with a stripe_price_id found "
                 f"for user_id={request.user.id} interval={interval}"
             )
             return Response(
@@ -144,15 +154,6 @@ class CreateCheckoutSessionView(APIView):
             )
 
         premium_price_id = subscription_plan.stripe_price_id
-        if not premium_price_id:
-            logger.error(
-                "[PAYMENTS.CHECKOUT] SubscriptionPlan has no stripe_price_id "
-                f"for user_id={request.user.id} plan_id={subscription_plan.id}"
-            )
-            return Response(
-                {"error": "Plan is not configured with a Stripe price ID."},
-                status=500,
-            )
 
         logger.info(
             "[PAYMENTS.CHECKOUT] Creating checkout session "
