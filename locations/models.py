@@ -19,10 +19,6 @@ if TYPE_CHECKING:
 ##########################################################
 
 
-def find_path(start_node: "Node", end_node: "Node"):
-    return movement_service.find_path(start_node, end_node)
-
-
 class Movable(models.Model):
     movement_speed = models.FloatField(default=1.0)
     location = gis_models.PointField(srid=3857, default=Point(0, 0, srid=3857))
@@ -67,6 +63,7 @@ class Movable(models.Model):
         abstract = True
 
     def go_home(self):
+        """Delegates to locations.services.movement.go_home."""
         return movement_service.go_home(self)
 
     def get_nearby_outside_nodes(self, radius=50):
@@ -76,6 +73,7 @@ class Movable(models.Model):
         return movement_service.pick_random_outside_node(self, radius=radius)
 
     def go_outside(self, radius=100):
+        """Delegates to locations.services.movement.go_outside."""
         return movement_service.go_outside(self, radius=radius)
 
     @transaction.atomic

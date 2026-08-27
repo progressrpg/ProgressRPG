@@ -5,9 +5,10 @@ websocket fan-out they drive.
 These functions sit on the PlayerCharacterLink websocket path, which is
 currently mid-re-enablement: TimerConsumer.set_player_and_character() returns
 a null character/link, so handle_client_request's create_activity/
-submit_activity branches (and therefore process_initiation/process_completion)
-are not reachable from a live socket yet. They are tested here regardless,
-because that is exactly the code about to become reachable.
+submit_activity branches (and therefore start_activity_and_broadcast/
+complete_activity_and_broadcast) are not reachable from a live socket yet.
+They are tested here regardless, because that is exactly the code about to
+become reachable.
 """
 
 from unittest.mock import patch
@@ -17,10 +18,10 @@ from django.test import TestCase, TransactionTestCase
 
 from character.models import Character
 from gameplay.utils import (
+    complete_activity_and_broadcast,
     control_timers,
     pause_server_timers,
-    process_completion,
-    process_initiation,
+    start_activity_and_broadcast,
     start_server_timers,
 )
 from users.tests import user_factory
@@ -203,7 +204,7 @@ class ControlTimersTests(TransactionTestCase):
         self.assertEqual(self.timer.status, "waiting")
 
 
-class ProcessInitiationTests(TestCase):
+class StartActivityAndBroadcastTests(TestCase):
     def setUp(self):
         self.player = _player_with_timer()
         self.timer = self.player.activity_timer
@@ -214,7 +215,7 @@ class ProcessInitiationTests(TestCase):
         self.timer.new_activity(name="Writing")
 
         with patch("gameplay.utils.send_group_message", self.send):
-            result = process_initiation(self.player, self.character, "create_activity")
+            result = start_activity_and_broadcast(self.player, self.character)
 
         self.assertTrue(result)
         _group, message = self.send.calls[0]
@@ -225,7 +226,7 @@ class ProcessInitiationTests(TestCase):
     def test_broadcasts_the_reason_on_failure(self):
         # Empty timer: start_server_timers refuses it.
         with patch("gameplay.utils.send_group_message", self.send):
-            result = process_initiation(self.player, self.character, "create_activity")
+            result = start_activity_and_broadcast(self.player, self.character)
 
         self.assertFalse(result)
         _group, message = self.send.calls[0]
@@ -233,7 +234,7 @@ class ProcessInitiationTests(TestCase):
         self.assertIn("not in a valid state", message["message"])
 
 
-class ProcessCompletionTests(TestCase):
+class CompleteActivityAndBroadcastTests(TestCase):
     def setUp(self):
         self.player = _player_with_timer()
         self.timer = self.player.activity_timer
@@ -244,7 +245,7 @@ class ProcessCompletionTests(TestCase):
         self.timer.new_activity(name="Writing", start_immediately=True)
 
         with patch("gameplay.utils.send_group_message", self.send):
-            result = process_completion(self.player, self.character, "submit_activity")
+            result = complete_activity_and_broadcast(self.player, self.character)
 
         self.assertTrue(result)
         _group, message = self.send.calls[0]
@@ -258,7 +259,7 @@ class ProcessCompletionTests(TestCase):
         with patch("gameplay.utils.send_group_message", self.send), patch(
             "gameplay.utils.pause_server_timers", return_value=(False, "nope")
         ):
-            result = process_completion(self.player, self.character, "submit_activity")
+            result = complete_activity_and_broadcast(self.player, self.character)
 
         self.assertFalse(result)
         _group, message = self.send.calls[0]

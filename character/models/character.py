@@ -272,37 +272,37 @@ class LifeCycleMixin(models.Model):
         abstract = True
 
     def get_age(self):
-        return lifecycle_services.lifecycle_get_age(self)
+        return lifecycle_services.get_age(self)
 
     def die(self):
-        return lifecycle_services.lifecycle_die(self)
+        return lifecycle_services.die(self)
 
     def is_alive(self):
-        return lifecycle_services.lifecycle_is_alive(self)
+        return lifecycle_services.is_alive(self)
 
     def get_romantic_partners(self):
-        return lifecycle_services.lifecycle_get_romantic_partners(self)
+        return lifecycle_services.get_romantic_partners(self)
 
     def is_fertile(self):
-        return lifecycle_services.lifecycle_is_fertile(self)
+        return lifecycle_services.is_fertile(self)
 
     def can_reproduce_with(self, partner):
-        return lifecycle_services.lifecycle_can_reproduce_with(self, partner)
+        return lifecycle_services.can_reproduce_with(self, partner)
 
     def attempt_pregnancy(self):
-        return lifecycle_services.lifecycle_attempt_pregnancy(self)
+        return lifecycle_services.attempt_pregnancy(self)
 
     def start_pregnancy(self, partner):
-        return lifecycle_services.lifecycle_start_pregnancy(self, partner)
+        return lifecycle_services.start_pregnancy(self, partner)
 
     def handle_childbirth(self):
-        return lifecycle_services.lifecycle_handle_childbirth(self)
+        return lifecycle_services.handle_childbirth(self)
 
     def handle_miscarriage(self):
-        return lifecycle_services.lifecycle_handle_miscarriage(self)
+        return lifecycle_services.handle_miscarriage(self)
 
     def get_miscarriage_change(self):
-        return lifecycle_services.lifecycle_get_miscarriage_change(self)
+        return lifecycle_services.get_miscarriage_change(self)
 
 
 ########################################################################

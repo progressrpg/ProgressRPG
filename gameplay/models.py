@@ -410,6 +410,83 @@ class ActivityTimer(Timer):
         if self.activity:
             self.activity.rename(name)
 
+    def _apply_client_elapsed(
+        self, client_elapsed_seconds: int | None, completion_source: str
+    ):
+        """
+        Auto-completion elapsed-time reconciliation: trust the client's
+        elapsed time over the server's when it reports more and the
+        completion was triggered automatically (e.g. the bounded-timer
+        sweep), so a client that was still running right up to the sweep
+        doesn't lose the last few seconds.
+        """
+        if completion_source != "auto":
+            return
+
+        try:
+            if client_elapsed_seconds is None:
+                raise TypeError
+            parsed_client_elapsed = int(client_elapsed_seconds)
+        except (TypeError, ValueError):
+            parsed_client_elapsed = None
+
+        if (
+            parsed_client_elapsed is not None
+            and parsed_client_elapsed > self.elapsed_time
+        ):
+            self.elapsed_time = parsed_client_elapsed
+            self.save(update_fields=["elapsed_time"])
+
+    def _backfill_started_at(self, pre_complete_start_time):
+        """
+        If the activity never had `started_at` set (e.g. it was created
+        already active rather than via the normal start flow), backfill it
+        from the timer's own start_time, or - failing that - derive it from
+        elapsed_time counting back from now.
+        """
+        if self.activity.started_at is not None:
+            return
+
+        from progression.day_boundaries import logical_date_for
+
+        if pre_complete_start_time is not None:
+            backfilled_started_at = pre_complete_start_time
+        else:
+            backfilled_started_at = timezone.now() - timedelta(
+                seconds=max(0, int(self.elapsed_time))
+            )
+
+        self.activity.started_at = backfilled_started_at
+        self.activity.logical_date = logical_date_for(
+            self.player, backfilled_started_at
+        )
+        self.activity.save(update_fields=["started_at", "logical_date"])
+
+    def _award_and_check_goals(self):
+        """
+        Complete the underlying activity, award its XP/AP, then check daily
+        goals against the activity's own logical day. Returns the reward
+        summary, with level_ups and the daily-goals bonus folded in.
+        """
+        reward_summary = self.activity.get_xp_reward_summary()
+        xp_gained = self.activity.complete(reward_summary=reward_summary)
+        level_ups = self.player.add_activity(self.elapsed_time, xp=xp_gained)
+
+        from progression.daily_goals import check_and_award_daily_goals
+
+        # Against the session's own logical day rather than the current
+        # one: a session started before the day rolled over completes
+        # the goals for the day it was worked, however late it is
+        # submitted.
+        goals_state, bonus_level_ups = check_and_award_daily_goals(
+            self.player, today=self.activity.logical_date
+        )
+        level_ups = level_ups + bonus_level_ups
+
+        reward_summary["level_ups"] = level_ups
+        reward_summary["daily_goals_bonus_ap"] = goals_state.bonus_ap
+        return reward_summary
+
     def complete(
         self,
         newName=None,
@@ -461,58 +538,15 @@ class ActivityTimer(Timer):
             pre_complete_start_time = self.start_time
             super().complete()
 
-            if completion_source == "auto":
-                try:
-                    if client_elapsed_seconds is None:
-                        raise TypeError
-                    parsed_client_elapsed = int(client_elapsed_seconds)
-                except (TypeError, ValueError):
-                    parsed_client_elapsed = None
-
-                if (
-                    parsed_client_elapsed is not None
-                    and parsed_client_elapsed > self.elapsed_time
-                ):
-                    self.elapsed_time = parsed_client_elapsed
-                    self.save(update_fields=["elapsed_time"])
+            self._apply_client_elapsed(client_elapsed_seconds, completion_source)
 
             if newName:
                 self.rename_activity(newName)
             self.update_activity_time()
 
-            if self.activity.started_at is None:
-                from progression.day_boundaries import logical_date_for
+            self._backfill_started_at(pre_complete_start_time)
 
-                if pre_complete_start_time is not None:
-                    backfilled_started_at = pre_complete_start_time
-                else:
-                    backfilled_started_at = timezone.now() - timedelta(
-                        seconds=max(0, int(self.elapsed_time))
-                    )
-
-                self.activity.started_at = backfilled_started_at
-                self.activity.logical_date = logical_date_for(
-                    self.player, backfilled_started_at
-                )
-                self.activity.save(update_fields=["started_at", "logical_date"])
-
-            reward_summary = self.activity.get_xp_reward_summary()
-            xp_gained = self.activity.complete(reward_summary=reward_summary)
-            level_ups = self.player.add_activity(self.elapsed_time, xp=xp_gained)
-
-            from progression.daily_goals import check_and_award_daily_goals
-
-            # Against the session's own logical day rather than the current
-            # one: a session started before the day rolled over completes
-            # the goals for the day it was worked, however late it is
-            # submitted.
-            goals_state, bonus_level_ups = check_and_award_daily_goals(
-                self.player, today=self.activity.logical_date
-            )
-            level_ups = level_ups + bonus_level_ups
-
-            reward_summary["level_ups"] = level_ups
-            reward_summary["daily_goals_bonus_ap"] = goals_state.bonus_ap
+            reward_summary = self._award_and_check_goals()
 
             logger.debug(
                 f"[TIMER COMPLETE] Timer {self.id} completed — elapsed_time: {self.elapsed_time}, completed_at: {self.activity.completed_at}"

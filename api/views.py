@@ -868,6 +868,29 @@ class FetchInfoAPIView(APIView):
 
         logger.info(f"[FETCH INFO] Fetching data for player {player.id}")
 
+        self._sync_player_state(player)
+
+        login_state_data = get_login_state(request.user)
+        game_settings = GameSettings.current()
+
+        try:
+            data = self._build_response_data(
+                request, player, build_number, login_state_data, game_settings
+            )
+            return Response(data)
+
+        except Exception as e:
+            logger.error(f"[FETCH INFO] Serialization error: {e}", exc_info=True)
+            return Response(
+                {"error": "An error occurred during serialization."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def _sync_player_state(self, player):
+        """
+        Bring the player's session/timer/login-streak state up to date
+        before this request's data is serialized.
+        """
         # --- Track user session ---
         track_user_session(player)
 
@@ -879,41 +902,40 @@ class FetchInfoAPIView(APIView):
 
         handle_online_login(player)
 
-        login_state_data = get_login_state(request.user)
+    def _build_response_data(
+        self, request, player, build_number, login_state_data, game_settings
+    ):
+        """
+        Assemble the bootstrap payload. Field-for-field identical to the
+        previous inline dict.
 
-        # --- Serialize everything ---
-        game_settings = GameSettings.current()
-        try:
-            data = {
-                "success": True,
-                "message": "Player and character fetched",
-                "build_number": build_number,
-                "player": PlayerSerializer(player, context={"request": request}).data,
-                "character": None,
-                "activity_timer": ActivityTimerSerializer(
-                    player.activity_timer, context={"request": request}
-                ).data,
-                "population_centre": None,
-                "xp_mods": [],
-                "login_state": login_state_data["login_state"],
-                "login_streak": login_state_data["login_streak"],
-                "login_event_at": login_state_data["login_event_at"],
-                "login_reward_xp": login_state_data["login_reward_xp"],
-                "announcement_unread_count": PlayerAnnouncementState.unread_count_for_player(
-                    player
-                ),
-                "free_timer_limit_seconds": game_settings.free_timer_limit_seconds,
-                "game_settings": GameSettingsSerializer(game_settings).data,
-                "online_count": Player.online_count(),
-            }
-            return Response(data)
-
-        except Exception as e:
-            logger.error(f"[FETCH INFO] Serialization error: {e}", exc_info=True)
-            return Response(
-                {"error": "An error occurred during serialization."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        NOTE: `character`, `population_centre` and `xp_mods` are hardcoded
+        placeholders - this endpoint is mid-transition for the
+        PlayerCharacterLink reactivation. This split doesn't touch those
+        three lines' values, only where they're assembled.
+        """
+        return {
+            "success": True,
+            "message": "Player and character fetched",
+            "build_number": build_number,
+            "player": PlayerSerializer(player, context={"request": request}).data,
+            "character": None,
+            "activity_timer": ActivityTimerSerializer(
+                player.activity_timer, context={"request": request}
+            ).data,
+            "population_centre": None,
+            "xp_mods": [],
+            "login_state": login_state_data["login_state"],
+            "login_streak": login_state_data["login_streak"],
+            "login_event_at": login_state_data["login_event_at"],
+            "login_reward_xp": login_state_data["login_reward_xp"],
+            "announcement_unread_count": PlayerAnnouncementState.unread_count_for_player(
+                player
+            ),
+            "free_timer_limit_seconds": game_settings.free_timer_limit_seconds,
+            "game_settings": GameSettingsSerializer(game_settings).data,
+            "online_count": Player.online_count(),
+        }
 
     def _ensure_activity_timer_consistency(self, player):
         """Ensure activity timer is not in an invalid state."""
