@@ -58,11 +58,17 @@ def day_window(behaviour, date):
     return dawn, dusk, next_dawn
 
 
-@transaction.atomic
-def generate_day(behaviour, date, replace_future=True):
-    tz = timezone.get_current_timezone()
+def _compute_day_blocks(behaviour, date, rng):
+    """
+    The day's schedule for `date`: block timing math, jitter, and the
+    overlap-cleanup pass that resolves work-window drift against the fixed
+    blocks around it.
 
-    rng = random.Random(f"{behaviour.character_id}-{date.isoformat()}")
+    Returns (cleaned, sleep_end) - the ordered list of
+    (activity_definition, start, end) tuples to create, and the datetime the
+    trailing sleep block ends at (needed by the replace-future window).
+    """
+    tz = timezone.get_current_timezone()
 
     def aware(dt_date, t: time):
         return timezone.make_aware(datetime.combine(dt_date, t), tz)
@@ -143,31 +149,44 @@ def generate_day(behaviour, date, replace_future=True):
         cleaned.append((activity_definition, start, end))
         last_end = end
 
+    return cleaned, sleep_end
+
+
+def _replace_future_activities(behaviour, date, sleep_end, is_past):
+    """
+    Delete the character's existing scheduled activities that this day's
+    regenerated blocks would replace, covering everything up to `sleep_end`.
+    """
+    tz = timezone.get_current_timezone()
+
+    def aware(dt_date, t: time):
+        return timezone.make_aware(datetime.combine(dt_date, t), tz)
+
     qs = CharacterActivity.objects.select_for_update().filter(
         character=behaviour.character
     )
+    window_start = aware(date, time(0, 0))
+    to_delete = qs.filter(
+        scheduled_start__lt=sleep_end,
+        scheduled_end__gt=window_start,
+    )
+    if not is_past:
+        # Only protects activities the character has actually lived
+        # through in real time (marked complete by sync_to_now as the day
+        # progresses) - a past-date backfill sets is_complete=True on every
+        # row purely because the date is past, so that protection would
+        # otherwise make regenerating the same past date non-idempotent
+        # (duplicated activities instead of replaced ones).
+        to_delete = to_delete.filter(is_complete=False)
+    to_delete.delete()
 
-    today = timezone.now().date()
-    is_past = date < today
 
-    if replace_future:
-        window_start = aware(date, time(0, 0))
-        window_end = aware(date, time(23, 59, 59))
-        to_delete = qs.filter(
-            scheduled_start__lt=sleep_end,
-            scheduled_end__gt=window_start,
-        )
-        if not is_past:
-            # Only protects activities the character has actually lived
-            # through in real time (marked complete by sync_to_now as the
-            # day progresses) - a past-date backfill sets is_complete=True
-            # on every row purely because the date is past, so that
-            # protection would otherwise make regenerating the same past
-            # date non-idempotent (duplicated activities instead of
-            # replaced ones).
-            to_delete = to_delete.filter(is_complete=False)
-        to_delete.delete()
-
+def _create_activities(behaviour, cleaned, is_past):
+    """
+    Create a CharacterActivity for each (activity_definition, start, end) in
+    `cleaned`. Past-dated blocks are created already complete, since
+    generate_day is also used to backfill history.
+    """
     created = []
 
     for activity_definition, start, end in cleaned:
@@ -189,6 +208,21 @@ def generate_day(behaviour, date, replace_future=True):
         created.append(CharacterActivity.objects.create(**activity_kwargs))
 
     return created
+
+
+@transaction.atomic
+def generate_day(behaviour, date, replace_future=True):
+    rng = random.Random(f"{behaviour.character_id}-{date.isoformat()}")
+
+    cleaned, sleep_end = _compute_day_blocks(behaviour, date, rng)
+
+    today = timezone.now().date()
+    is_past = date < today
+
+    if replace_future:
+        _replace_future_activities(behaviour, date, sleep_end, is_past)
+
+    return _create_activities(behaviour, cleaned, is_past)
 
 
 @transaction.atomic
