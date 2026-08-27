@@ -45,14 +45,14 @@ class PlaceCharactersEndsActiveJourneyTests(TestCase):
             start_node=self.elsewhere_node,
             destination_node=self.destination_node,
             path_nodes=[self.elsewhere_node.pk, self.destination_node.pk],
-            status="active",
+            status=Journey.Status.ACTIVE,
         )
 
     def test_ends_the_journey_as_complete_not_cancelled(self):
         call_command("place_characters")
 
         self.journey.refresh_from_db()
-        self.assertEqual(self.journey.status, "complete")
+        self.assertEqual(self.journey.status, Journey.Status.COMPLETE)
         self.assertIsNotNone(self.journey.finished_at)
 
     def test_clears_is_moving_via_cancel(self):
