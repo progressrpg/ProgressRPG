@@ -75,14 +75,24 @@ class Timer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
 
-    STATUS_CHOICES = [
-        ("active", "Active"),
-        ("paused", "Paused"),
-        ("waiting", "Waiting"),
-        ("completed", "Completed"),
-        ("empty", "Empty"),
-    ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="empty")
+    class Status(models.TextChoices):
+        """
+        The timer state machine, in one place.
+
+        Mirrored on the client as `TimerStatus` in
+        frontend/src/types/enums.ts - the values cross the wire in
+        ActivityTimerSerializer, so the two must stay in step.
+        """
+
+        ACTIVE = "active", "Active"
+        PAUSED = "paused", "Paused"
+        WAITING = "waiting", "Waiting"
+        COMPLETED = "completed", "Completed"
+        EMPTY = "empty", "Empty"
+
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.EMPTY
+    )
 
     if TYPE_CHECKING:
         # Django adds this implicit PK on concrete subclasses; not visible
@@ -93,7 +103,7 @@ class Timer(models.Model):
         abstract = True
 
     def get_elapsed_time(self):
-        if self.start_time and self.status == "active":
+        if self.start_time and self.status == self.Status.ACTIVE:
             logger.debug(
                 f"[GET ELAPSED] Timer {self.id} active — start_time: {self.start_time}, now: {timezone.now()}, base: {self.elapsed_time}"
             )
@@ -128,8 +138,8 @@ class Timer(models.Model):
             f"[TIMER START DEBUG] Timer {self.id} status before: {self.status}, after: active, time: {timezone.now()}"
         )
 
-        if self.status != "active":
-            self.status = "active"
+        if self.status != self.Status.ACTIVE:
+            self.status = self.Status.ACTIVE
             self.start_time = timezone.now()
             self.save(update_fields=["status", "start_time"])
             logger.debug(f"[TIMER START] Timer {self.id} started at {self.start_time}")
@@ -139,9 +149,9 @@ class Timer(models.Model):
         """
         Pause the timer and update its elapsed time.
         """
-        if self.status != "paused":
+        if self.status != self.Status.PAUSED:
             self.apply_elapsed()
-            self.status = "paused"
+            self.status = self.Status.PAUSED
             self.save(update_fields=["status"])
         return self
 
@@ -149,8 +159,8 @@ class Timer(models.Model):
         """
         Set the timer status to 'waiting'.
         """
-        if self.status != "waiting":
-            self.status = "waiting"
+        if self.status != self.Status.WAITING:
+            self.status = self.Status.WAITING
             self.save(update_fields=["status"])
         return self
 
@@ -162,9 +172,9 @@ class Timer(models.Model):
             f"[COMPLETE DEBUG] Timer {self.id} — status: {self.status}, start_time: {self.start_time}, elapsed_time before: {self.elapsed_time}"
         )
 
-        if self.status != "completed":
+        if self.status != self.Status.COMPLETED:
             self.apply_elapsed()
-            self.status = "completed"
+            self.status = self.Status.COMPLETED
             self.save()
         return self
 
@@ -172,8 +182,8 @@ class Timer(models.Model):
         """
         Reset the timer, clearing all elapsed time and setting status to 'empty'.
         """
-        if self.status != "empty":
-            self.status = "empty"
+        if self.status != self.Status.EMPTY:
+            self.status = self.Status.EMPTY
             self.elapsed_time = 0
             self.start_time = None
             self._reset_hook()
@@ -190,7 +200,7 @@ class Timer(models.Model):
         :return: True if the timer is active, False otherwise.
         :rtype: bool
         """
-        return self.status == "active"
+        return self.status == self.Status.ACTIVE
 
 
 class ActivityTimer(Timer):
@@ -262,7 +272,9 @@ class ActivityTimer(Timer):
 
         self.start_time = started_at
         self.elapsed_time = 0
-        self.status = "active" if start_immediately else "waiting"
+        self.status = (
+            self.Status.ACTIVE if start_immediately else self.Status.WAITING
+        )
         # A new session inherits nothing from the previous one's declared
         # duration; set_limit() applies the new one (or the free ceiling).
         self.limit_seconds = None
@@ -292,7 +304,7 @@ class ActivityTimer(Timer):
 
     def has_banked_time(self) -> bool:
         """Whether this timer is holding time the player hasn't resolved."""
-        return self.status == "paused" and self.elapsed_time > 0
+        return self.status == self.Status.PAUSED and self.elapsed_time > 0
 
     def can_resume(self) -> bool:
         """
@@ -302,7 +314,7 @@ class ActivityTimer(Timer):
         time is still the player's - they submit it - but continuing to add
         to it would credit today's work to the day the session began.
         """
-        if self.status != "paused":
+        if self.status != self.Status.PAUSED:
             return False
 
         if not self.activity or self.activity.logical_date is None:
