@@ -18,13 +18,13 @@ def relationship_log_event(relationship, event) -> None:
     relationship.save()
 
 
-def lifecycle_get_age(instance) -> int:
+def get_age(instance) -> int:
     if instance.birth_date is None:
         return 0
     return (timezone.now().date() - instance.birth_date).days
 
 
-def lifecycle_die(instance) -> None:
+def die(instance) -> None:
     instance.death_date = timezone.now().date()
     instance.save(update_fields=["death_date"])
     journey = instance.current_journey
@@ -32,11 +32,11 @@ def lifecycle_die(instance) -> None:
         journey.cancel()
 
 
-def lifecycle_is_alive(instance) -> bool:
+def is_alive(instance) -> bool:
     return instance.death_date is None
 
 
-def lifecycle_get_romantic_partners(instance):
+def get_romantic_partners(instance):
     from character.models import RelationshipType
     from character.services import relationship_services
 
@@ -45,11 +45,11 @@ def lifecycle_get_romantic_partners(instance):
     )
 
 
-def lifecycle_is_fertile(instance) -> bool:
+def is_fertile(instance) -> bool:
     return instance.fertility > 0
 
 
-def lifecycle_can_reproduce_with(instance, partner) -> bool:
+def can_reproduce_with(instance, partner) -> bool:
     if instance.fertility <= 0 or partner.fertility <= 0:
         return False
     if (
@@ -62,18 +62,18 @@ def lifecycle_can_reproduce_with(instance, partner) -> bool:
     return True
 
 
-def lifecycle_attempt_pregnancy(instance) -> bool:
-    romantic_partners = lifecycle_get_romantic_partners(instance)
+def attempt_pregnancy(instance) -> bool:
+    romantic_partners = get_romantic_partners(instance)
 
     for partner in romantic_partners:
-        if lifecycle_can_reproduce_with(instance, partner):
-            if lifecycle_is_fertile(instance) and not instance.is_pregnant:
-                lifecycle_start_pregnancy(instance, partner)
+        if can_reproduce_with(instance, partner):
+            if is_fertile(instance) and not instance.is_pregnant:
+                start_pregnancy(instance, partner)
                 return True
     return False
 
 
-def lifecycle_start_pregnancy(instance, partner) -> None:
+def start_pregnancy(instance, partner) -> None:
     instance.is_pregnant = True
     instance.pregnancy_start_date = timezone.now().date()
     instance.pregnancy_partner = partner
@@ -81,7 +81,7 @@ def lifecycle_start_pregnancy(instance, partner) -> None:
     instance.save()
 
 
-def lifecycle_handle_childbirth(instance) -> None:
+def handle_childbirth(instance) -> None:
     from character.models import Character
 
     child_name = f"Child of {instance.name}"
@@ -97,14 +97,14 @@ def lifecycle_handle_childbirth(instance) -> None:
     child.save()
 
 
-def lifecycle_handle_miscarriage(instance) -> None:
+def handle_miscarriage(instance) -> None:
     instance.is_pregnant = False
     instance.pregnancy_start_date = None
     instance.save()
 
 
-def lifecycle_get_miscarriage_change(instance) -> float:
+def get_miscarriage_change(instance) -> float:
     chance = 0.05
-    if lifecycle_get_age(instance) > (40 * 365):
+    if get_age(instance) > (40 * 365):
         chance += 0.10
     return round(chance, 5)
