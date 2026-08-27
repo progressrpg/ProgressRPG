@@ -109,7 +109,13 @@ class Command(BaseCommand):
                 continue
 
             if char.is_moving:
-                char.journeys.filter(status="active").update(status="cancelled")
+                # Reuse Journey.cancel() rather than writing a status value
+                # nothing else recognises - a character has at most one
+                # active journey (uniq_active_journey_per_character), so
+                # this is fetching one row, not a bulk operation.
+                active_journey = char.journeys.filter(status="active").first()
+                if active_journey:
+                    active_journey.cancel()
 
             char.assign_home(building)
             occupancy[building.id] += 1
