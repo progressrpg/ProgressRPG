@@ -122,7 +122,7 @@ class CharacterPointFeatureSerializer(PointFeatureSerializer):
         journeys = getattr(obj, "active_journey_list", None)
         if journeys is not None:
             return journeys[0] if journeys else None
-        return obj.journeys.filter(status="active").first()
+        return obj.journeys.filter(status=Journey.Status.ACTIVE).first()
 
     def _building_for_node(self, node):
         # Node.building and Node.interior_space are mutually exclusive (see

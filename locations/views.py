@@ -102,7 +102,9 @@ class PopulationCentreMapView(APIView):
             "locations__location",
             Prefetch(
                 "journeys",
-                queryset=Journey.objects.filter(status="active").select_related(
+                queryset=Journey.objects.filter(
+                    status=Journey.Status.ACTIVE
+                ).select_related(
                     "destination_node__building",
                     "destination_node__interior_space__building",
                 ),
@@ -255,7 +257,9 @@ class MapViewportView(APIView):
                 "locations__location",
                 Prefetch(
                     "journeys",
-                    queryset=Journey.objects.filter(status="active").select_related(
+                    queryset=Journey.objects.filter(
+                        status=Journey.Status.ACTIVE
+                    ).select_related(
                         "destination_node__building",
                         "destination_node__interior_space__building",
                     ),
@@ -311,7 +315,9 @@ class MapCharacterDetailView(APIView):
                 "locations__location",
                 Prefetch(
                     "journeys",
-                    queryset=Journey.objects.filter(status="active").select_related(
+                    queryset=Journey.objects.filter(
+                        status=Journey.Status.ACTIVE
+                    ).select_related(
                         "destination_node__building",
                         "destination_node__interior_space__building",
                     ),
@@ -356,7 +362,7 @@ class MapWorldBoundsView(APIView):
 
 class JourneyViewSet(viewsets.ViewSet):
     def list(self, request):
-        journeys = Journey.objects.filter(status="active")
+        journeys = Journey.objects.filter(status=Journey.Status.ACTIVE)
         serializer = JourneySerializer(journeys, many=True)
         return Response(serializer.data)
 

@@ -57,7 +57,7 @@ class Movable(models.Model):
 
     @property
     def current_journey(self):
-        return self.journeys.filter(status="active").first()
+        return self.journeys.filter(status=Journey.Status.ACTIVE).first()
 
     class Meta:
         abstract = True
@@ -289,9 +289,15 @@ class Journey(models.Model):
     # current position in the path
     current_index = models.PositiveIntegerField(default=0)
 
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        COMPLETE = "complete", "Complete"
+
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=20, default="active")  # e.g., active, complete
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.ACTIVE
+    )
 
     # Transient, non-persisted cache of {node_id: Node}, set by callers that
     # batch-fetch nodes across many journeys (e.g. move_characters_tick) to
@@ -300,7 +306,7 @@ class Journey(models.Model):
 
     @property
     def is_complete(self):
-        return self.status == "complete"
+        return self.status == self.Status.COMPLETE
 
     def serialize_for_client(self):
         # convert path_nodes to coordinates
@@ -322,7 +328,7 @@ class Journey(models.Model):
 
     def advance_node(self):
         """Move to the next node in the journey, if any."""
-        if self.status != "active":
+        if self.status != self.Status.ACTIVE:
             return False
 
         if self.path_nodes and self.current_index < len(self.path_nodes) - 1:
@@ -330,7 +336,7 @@ class Journey(models.Model):
             self.save(update_fields=["current_index"])
             return True
 
-        self.status = "complete"
+        self.status = self.Status.COMPLETE
         self.finished_at = timezone.now()
         self.save(update_fields=["status", "finished_at"])
         return False
@@ -377,7 +383,7 @@ class Journey(models.Model):
         """
         Stop any movement in progress and clear the target.
         """
-        self.status = "complete"
+        self.status = self.Status.COMPLETE
         self.finished_at = timezone.now()
         self.save(update_fields=["status", "finished_at"])
 
@@ -386,6 +392,10 @@ class Journey(models.Model):
 
     class Meta:
         constraints = [
+            # Not Status.ACTIVE: a nested class's body (this Meta) can't see
+            # its enclosing class's other nested classes by name - Python
+            # class scopes don't nest that way, only function scopes do.
+            # Same string value either way.
             models.UniqueConstraint(
                 fields=["character"],
                 condition=Q(status="active"),
