@@ -18,6 +18,7 @@ from economy.constants import (
     WHEAT_TO_FLOUR_RATIO,
     YIELD_PER_AREA,
 )
+from locations.constants import PROJECT_SRID
 from economy.models import (
     BuildingCapability,
     FieldCrop,
@@ -69,14 +70,14 @@ def _square(cx, cy, half_side):
             (cx + half_side, cy - half_side),
             (cx - half_side, cy - half_side),
         ),
-        srid=3857,
+        srid=PROJECT_SRID,
     )
 
 
 def _make_field_crop(
     centre_name="Cropville", half_side=10, stage=FieldCrop.Stage.FALLOW
 ):
-    centre_point = Point(0, 0, srid=3857)
+    centre_point = Point(0, 0, srid=PROJECT_SRID)
     centre = PopulationCentre.objects.create(
         name=centre_name, location=centre_point, boundary=_square(0, 0, 50)
     )
@@ -92,13 +93,13 @@ def _make_field_crop(
         name=f"{centre_name} Farmland - Crops",
         usage="crops",
         boundary=_square(100, 0, half_side),
-        location=Point(100, 0, srid=3857),
+        location=Point(100, 0, srid=PROJECT_SRID),
         size=1.0,
     )
     shelter = Building.objects.create(
         name=f"Field Shelter",
         building_type="field_shelter",
-        location=Point(90, 0, srid=3857),
+        location=Point(90, 0, srid=PROJECT_SRID),
         footprint=_square(90, 0, 5),
         population_centre=centre,
     )
@@ -118,7 +119,7 @@ def _make_granary(centre, storage_area=100.0):
     granary = Building.objects.create(
         name=f"Granary",
         building_type="granary",
-        location=Point(-90, 0, srid=3857),
+        location=Point(-90, 0, srid=PROJECT_SRID),
         footprint=_square(-90, 0, 5),
         population_centre=centre,
     )
@@ -132,7 +133,7 @@ def _make_mill(centre, grain_area=1000.0, flour_area=1000.0):
     mill = Building.objects.create(
         name=f"Mill",
         building_type="mill",
-        location=Point(80, 0, srid=3857),
+        location=Point(80, 0, srid=PROJECT_SRID),
         footprint=_square(80, 0, 5),
         population_centre=centre,
     )
@@ -158,7 +159,7 @@ def _make_bakery(centre, storage_area=1000.0):
     bakery = Building.objects.create(
         name=f"Bakery",
         building_type="bakery",
-        location=Point(60, 0, srid=3857),
+        location=Point(60, 0, srid=PROJECT_SRID),
         footprint=_square(60, 0, 5),
         population_centre=centre,
     )
@@ -371,7 +372,7 @@ class GenerateFieldsEconomyTickTests(TestCase):
 
 class AdvanceMillEconomyTickTests(TestCase):
     def _make_centre_with_wheat(self, wheat_quantity=500_000.0, granary_area=10000.0):
-        centre_point = Point(0, 0, srid=3857)
+        centre_point = Point(0, 0, srid=PROJECT_SRID)
         centre = PopulationCentre.objects.create(
             name="Millville", location=centre_point, boundary=_square(0, 0, 50)
         )
@@ -415,7 +416,7 @@ class AdvanceMillEconomyTickTests(TestCase):
     def test_no_granary_does_not_raise(self):
         centre = PopulationCentre.objects.create(
             name="Granaryless village",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=_square(0, 0, 50),
         )
         mill, mill_node = _make_mill(centre)
@@ -456,7 +457,7 @@ class AdvanceMillEconomyTickTests(TestCase):
         mill_b_building = Building.objects.create(
             name="Second Mill",
             building_type="mill",
-            location=Point(70, 0, srid=3857),
+            location=Point(70, 0, srid=PROJECT_SRID),
             footprint=_square(70, 0, 5),
             population_centre=centre,
         )
@@ -510,7 +511,7 @@ class AdvanceMillEconomyTickTests(TestCase):
 
 class AdvanceBakeryEconomyTickTests(TestCase):
     def _make_centre_with_flour(self, flour_quantity=500_000.0):
-        centre_point = Point(0, 0, srid=3857)
+        centre_point = Point(0, 0, srid=PROJECT_SRID)
         centre = PopulationCentre.objects.create(
             name="Bakeville", location=centre_point, boundary=_square(0, 0, 50)
         )
@@ -554,7 +555,7 @@ class AdvanceBakeryEconomyTickTests(TestCase):
     def test_no_mill_does_not_raise(self):
         centre = PopulationCentre.objects.create(
             name="Millless village",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=_square(0, 0, 50),
         )
         bakery, bakery_node = _make_bakery(centre)
@@ -595,7 +596,7 @@ class AdvanceBakeryEconomyTickTests(TestCase):
         bakery_b = Building.objects.create(
             name="Second Bakery",
             building_type="bakery",
-            location=Point(50, 0, srid=3857),
+            location=Point(50, 0, srid=PROJECT_SRID),
             footprint=_square(50, 0, 5),
             population_centre=centre,
         )
@@ -652,7 +653,7 @@ class MultiCapabilityBuildingTests(TestCase):
     def test_milling_and_baking_both_run_on_the_same_day_for_one_building(self):
         centre = PopulationCentre.objects.create(
             name="Communalville",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=_square(0, 0, 50),
         )
         granary = _make_granary(centre)
@@ -665,7 +666,7 @@ class MultiCapabilityBuildingTests(TestCase):
         communal = Building.objects.create(
             name="Communal Hall",
             building_type="communal",
-            location=Point(80, 0, srid=3857),
+            location=Point(80, 0, srid=PROJECT_SRID),
             footprint=_square(80, 0, 5),
             population_centre=centre,
         )
@@ -716,14 +717,14 @@ class MultiCapabilityBuildingTests(TestCase):
 
 class AdvanceBreadConsumptionTickTests(TestCase):
     def _make_centre_with_home(self, name="Eatville"):
-        centre_point = Point(0, 0, srid=3857)
+        centre_point = Point(0, 0, srid=PROJECT_SRID)
         centre = PopulationCentre.objects.create(
             name=name, location=centre_point, boundary=_square(0, 0, 50)
         )
         home = Building.objects.create(
             name=f"Home of ({name})",
             building_type="residential",
-            location=Point(-60, 0, srid=3857),
+            location=Point(-60, 0, srid=PROJECT_SRID),
             footprint=_square(-60, 0, 5),
             population_centre=centre,
         )

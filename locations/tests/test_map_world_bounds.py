@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 
 from ..models import PopulationCentre
 from ..utils import WORLD_BOUNDS_PADDING_M
+from locations.constants import PROJECT_SRID
 
 
 def square(cx, cy, half=5):
@@ -17,7 +18,7 @@ def square(cx, cy, half=5):
             (cx + half, cy - half),
             (cx - half, cy - half),
         ),
-        srid=3857,
+        srid=PROJECT_SRID,
     )
 
 
@@ -39,12 +40,12 @@ class MapWorldBoundsViewTest(TestCase):
     def test_bbox_covers_every_population_centre_with_padding(self):
         PopulationCentre.objects.create(
             name="Near Village",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=square(0, 0, half=10),
         )
         PopulationCentre.objects.create(
             name="Far Village",
-            location=Point(5000, 5000, srid=3857),
+            location=Point(5000, 5000, srid=PROJECT_SRID),
             boundary=square(5000, 5000, half=10),
         )
 
@@ -60,7 +61,7 @@ class MapWorldBoundsViewTest(TestCase):
     def test_population_centre_without_boundary_falls_back_to_location(self):
         PopulationCentre.objects.create(
             name="Boundaryless Village",
-            location=Point(100, 200, srid=3857),
+            location=Point(100, 200, srid=PROJECT_SRID),
         )
 
         response = self.client.get(self.url)

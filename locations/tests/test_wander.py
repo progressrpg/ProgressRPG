@@ -9,6 +9,7 @@ from locations.tasks import wander_tick
 from locations.tests.factories import VILLAGE_BOUNDARY
 from character.models import Character, PlayerCharacterLink
 from users.tests import user_factory
+from locations.constants import PROJECT_SRID
 
 
 class WanderServiceTest(TestCase):
@@ -18,12 +19,12 @@ class WanderServiceTest(TestCase):
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
             name="Wander Village",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=VILLAGE_BOUNDARY,
         )
         self.character = Character.objects.create(
             given_name="Wanderer",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             population_centre=self.centre,
         )
 
@@ -43,7 +44,7 @@ class WanderServiceTest(TestCase):
 
     def test_wander_without_population_centre_is_a_noop(self):
         orphan = Character.objects.create(
-            given_name="Orphan", location=Point(0, 0, srid=3857)
+            given_name="Orphan", location=Point(0, 0, srid=PROJECT_SRID)
         )
         moved = wander(orphan, radius=15)
         self.assertFalse(moved)
@@ -55,7 +56,7 @@ class WanderServiceTest(TestCase):
         # A character pinned at the boundary edge with a huge radius will
         # struggle to find an in-bounds candidate within max_attempts;
         # this should return False rather than raise or move out-of-bounds.
-        self.character.location = Point(49, 49, srid=3857)
+        self.character.location = Point(49, 49, srid=PROJECT_SRID)
         self.character.save(update_fields=["location"])
 
         moved = wander(self.character, radius=1000, max_attempts=5)
@@ -76,24 +77,24 @@ class WanderTickTaskTest(TestCase):
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
             name="Tick Village",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=VILLAGE_BOUNDARY,
         )
         self.idle_npc = Character.objects.create(
             given_name="Idle",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             population_centre=self.centre,
             is_moving=False,
         )
         self.moving_npc = Character.objects.create(
             given_name="Moving",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             population_centre=self.centre,
             is_moving=True,
         )
         self.linked_character = Character.objects.create(
             given_name="Linked",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             population_centre=self.centre,
             is_moving=False,
         )
