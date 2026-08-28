@@ -5,7 +5,7 @@ from django.db import transaction
 
 from character.models import PlayerCharacterLink
 from gameplay.models import XpModifier
-from gameplay.tasks import end_online_boost
+from gameplay.tasks import end_xp_modifier
 from users.models import Player
 
 PLAYER_ONLINE_KEY = "player_online"
@@ -57,9 +57,7 @@ def activate_link_modifier(
         **{owner_field: owner},
         defaults={
             "multiplier": multiplier,
-            "stacking": STACKING_BY_KEY.get(
-                key, XpModifier.Stacking.MULTIPLICATIVE
-            ),
+            "stacking": STACKING_BY_KEY.get(key, XpModifier.Stacking.MULTIPLICATIVE),
             "starts_at": now,
             "ends_at": ends_at,
             "is_active": True,
@@ -83,7 +81,7 @@ def schedule_modifier_end(
     *,
     mod: XpModifier,
     ends_at,
-    task=end_online_boost,
+    task=end_xp_modifier,
     task_kwargs=None,
 ):
     """
