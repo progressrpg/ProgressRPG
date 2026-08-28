@@ -13,6 +13,7 @@ from character.models import Character, CharacterLocation
 from locations.management.commands.generate_characters import Command
 from locations.models import Building, PopulationCentre
 from locations.services import population_estimation
+from locations.constants import PROJECT_SRID
 
 
 def _characters_housed_in(building):
@@ -32,21 +33,21 @@ def _square_footprint(size, x=0, y=0):
             (x, y + size),
             (x, y),
         ),
-        srid=3857,
+        srid=PROJECT_SRID,
     )
 
 
 class GenerateForCentreTests(TestCase):
     def _make_centre(self, name="Charactertown"):
         return PopulationCentre.objects.create(
-            name=name, location=Point(0, 0, srid=3857)
+            name=name, location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def _make_residential_building(self, centre, size, x=0):
         return Building.objects.create(
             name=f"house at {x}",
             building_type="residential",
-            location=Point(x, 0, srid=3857),
+            location=Point(x, 0, srid=PROJECT_SRID),
             footprint=_square_footprint(size, x=x),
             population_centre=centre,
         )
@@ -106,14 +107,14 @@ class GenerateForCentreTests(TestCase):
 class AssignHouseholdsToBuildingsTests(TestCase):
     def _make_centre(self, name="Charactertown"):
         return PopulationCentre.objects.create(
-            name=name, location=Point(0, 0, srid=3857)
+            name=name, location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def _make_residential_building(self, centre, size, x=0):
         return Building.objects.create(
             name=f"house at {x}",
             building_type="residential",
-            location=Point(x, 0, srid=3857),
+            location=Point(x, 0, srid=PROJECT_SRID),
             footprint=_square_footprint(size, x=x),
             population_centre=centre,
         )

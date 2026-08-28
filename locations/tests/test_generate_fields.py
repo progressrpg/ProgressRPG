@@ -9,6 +9,7 @@ from locations.management.commands.generate_villages import create_building_foot
 from locations.models import Node, Building, LandArea, Subzone
 from locations.tests.factories import make_centre_with_building
 from economy.models import FieldCrop
+from locations.constants import PROJECT_SRID
 
 
 class GenerateFieldsCommandTest(TestCase):
@@ -36,8 +37,10 @@ class GenerateFieldsCommandTest(TestCase):
         )
 
     def test_attaches_shelter_and_fieldcrop_to_existing_crops_subzone(self):
-        centre = make_centre_with_building("Fieldtest village", Point(0, 0, srid=3857))
-        subzone = self._make_crops_subzone(centre, Point(100, 100, srid=3857))
+        centre = make_centre_with_building(
+            "Fieldtest village", Point(0, 0, srid=PROJECT_SRID)
+        )
+        subzone = self._make_crops_subzone(centre, Point(100, 100, srid=PROJECT_SRID))
 
         call_command("generate_fields")
 
@@ -56,14 +59,14 @@ class GenerateFieldsCommandTest(TestCase):
 
     def test_skips_crops_subzone_that_already_has_a_fieldcrop(self):
         centre = make_centre_with_building(
-            "Already fielded village", Point(0, 0, srid=3857)
+            "Already fielded village", Point(0, 0, srid=PROJECT_SRID)
         )
-        subzone = self._make_crops_subzone(centre, Point(100, 100, srid=3857))
+        subzone = self._make_crops_subzone(centre, Point(100, 100, srid=PROJECT_SRID))
         existing_shelter = Building.objects.create(
             name="Existing shelter",
             building_type="field_shelter",
-            location=Point(100, 100, srid=3857),
-            footprint=create_building_footprint(Point(100, 100, srid=3857)),
+            location=Point(100, 100, srid=PROJECT_SRID),
+            footprint=create_building_footprint(Point(100, 100, srid=PROJECT_SRID)),
             population_centre=centre,
         )
         FieldCrop.objects.create(
@@ -83,16 +86,18 @@ class GenerateFieldsCommandTest(TestCase):
         )
 
     def test_does_nothing_when_no_crops_subzones_exist(self):
-        make_centre_with_building("No fields village", Point(0, 0, srid=3857))
+        make_centre_with_building("No fields village", Point(0, 0, srid=PROJECT_SRID))
 
         call_command("generate_fields")
 
         self.assertEqual(FieldCrop.objects.count(), 0)
 
     def test_multiple_crops_subzones_share_one_shelter(self):
-        centre = make_centre_with_building("Multiplot village", Point(0, 0, srid=3857))
-        subzone_1 = self._make_crops_subzone(centre, Point(100, 100, srid=3857))
-        subzone_2 = self._make_crops_subzone(centre, Point(120, 100, srid=3857))
+        centre = make_centre_with_building(
+            "Multiplot village", Point(0, 0, srid=PROJECT_SRID)
+        )
+        subzone_1 = self._make_crops_subzone(centre, Point(100, 100, srid=PROJECT_SRID))
+        subzone_2 = self._make_crops_subzone(centre, Point(120, 100, srid=PROJECT_SRID))
 
         call_command("generate_fields")
 
@@ -108,12 +113,16 @@ class GenerateFieldsCommandTest(TestCase):
         self.assertEqual(crop_2.shelter_building, shelter)
 
     def test_shelter_placed_on_boundary_vertex_closest_to_village(self):
-        centre = make_centre_with_building("Nearside village", Point(0, 0, srid=3857))
-        boundary = Polygon(((90, 0), (90, 10), (100, 10), (100, 0), (90, 0)), srid=3857)
+        centre = make_centre_with_building(
+            "Nearside village", Point(0, 0, srid=PROJECT_SRID)
+        )
+        boundary = Polygon(
+            ((90, 0), (90, 10), (100, 10), (100, 0), (90, 0)), srid=PROJECT_SRID
+        )
         land_area = LandArea.objects.create(
             name=f"{centre.name} Farmland",
             population_centre=centre,
-            location=Point(95, 5, srid=3857),
+            location=Point(95, 5, srid=PROJECT_SRID),
             boundary=boundary,
             size=1.0,
         )
@@ -122,7 +131,7 @@ class GenerateFieldsCommandTest(TestCase):
             name=f"{centre.name} Farmland - Crops",
             usage="crops",
             boundary=boundary,
-            location=Point(95, 5, srid=3857),
+            location=Point(95, 5, srid=PROJECT_SRID),
             size=1.0,
         )
 
@@ -138,18 +147,24 @@ class GenerateFieldsCommandTest(TestCase):
         self.assertAlmostEqual(shelter.location.y, 0, places=6)
 
     def test_shelter_placement_respects_minimum_spacing_between_farms(self):
-        centre_a = make_centre_with_building("Farm A village", Point(0, 0, srid=3857))
-        centre_b = make_centre_with_building("Farm B village", Point(0, 1, srid=3857))
+        centre_a = make_centre_with_building(
+            "Farm A village", Point(0, 0, srid=PROJECT_SRID)
+        )
+        centre_b = make_centre_with_building(
+            "Farm B village", Point(0, 1, srid=PROJECT_SRID)
+        )
 
         # Both farms share the exact same field geometry, so their nearest
         # boundary vertex to their own village centre is identical - forcing
         # the second farm's shelter to jitter away to satisfy min spacing.
-        boundary = Polygon(((90, 0), (90, 10), (100, 10), (100, 0), (90, 0)), srid=3857)
+        boundary = Polygon(
+            ((90, 0), (90, 10), (100, 10), (100, 0), (90, 0)), srid=PROJECT_SRID
+        )
         for centre in (centre_a, centre_b):
             land_area = LandArea.objects.create(
                 name=f"{centre.name} Farmland",
                 population_centre=centre,
-                location=Point(95, 5, srid=3857),
+                location=Point(95, 5, srid=PROJECT_SRID),
                 boundary=boundary,
                 size=1.0,
             )
@@ -158,7 +173,7 @@ class GenerateFieldsCommandTest(TestCase):
                 name=f"{centre.name} Farmland - Crops",
                 usage="crops",
                 boundary=boundary,
-                location=Point(95, 5, srid=3857),
+                location=Point(95, 5, srid=PROJECT_SRID),
                 size=1.0,
             )
 

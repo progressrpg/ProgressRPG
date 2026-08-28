@@ -7,18 +7,19 @@ from django.test import TestCase
 
 from locations.models import Building, LandArea, Node, PopulationCentre, Road, Subzone
 from locations.services.population_centre_admin import delete_population_centre
+from locations.constants import PROJECT_SRID
 
-FOOTPRINT = Polygon(((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=3857)
+FOOTPRINT = Polygon(((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=PROJECT_SRID)
 
 
 def _make_populated_centre(name: str) -> PopulationCentre:
     centre = PopulationCentre.objects.create(
-        name=name, location=Point(1, 2, srid=3857), boundary=FOOTPRINT
+        name=name, location=Point(1, 2, srid=PROJECT_SRID), boundary=FOOTPRINT
     )
     building = Building.objects.create(
         name=f"House of {name}",
         building_type="residential",
-        location=Point(0, 0, srid=3857),
+        location=Point(0, 0, srid=PROJECT_SRID),
         footprint=FOOTPRINT,
         population_centre=centre,
     )
@@ -34,14 +35,16 @@ def _make_populated_centre(name: str) -> PopulationCentre:
     Road.objects.create(
         population_centre=centre,
         geom=Polygon(
-            ((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=3857
+            ((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=PROJECT_SRID
         ).boundary,
     )
     land_area = LandArea.objects.create(
         name=f"Fields of {name}",
         population_centre=centre,
-        location=Point(20, 20, srid=3857),
-        boundary=Polygon(((15, 15), (15, 25), (25, 25), (25, 15), (15, 15)), srid=3857),
+        location=Point(20, 20, srid=PROJECT_SRID),
+        boundary=Polygon(
+            ((15, 15), (15, 25), (25, 25), (25, 15), (15, 15)), srid=PROJECT_SRID
+        ),
         size=1.0,
     )
     Subzone.objects.create(
@@ -64,7 +67,7 @@ class DeletePopulationCentreTest(TestCase):
 
         old_location = delete_population_centre("Doomed")
 
-        self.assertEqual(old_location, Point(1, 2, srid=3857))
+        self.assertEqual(old_location, Point(1, 2, srid=PROJECT_SRID))
         self.assertFalse(PopulationCentre.objects.filter(name="Doomed").exists())
         self.assertFalse(Building.objects.filter(id=building_id).exists())
         self.assertFalse(Node.objects.filter(building_id=building_id).exists())

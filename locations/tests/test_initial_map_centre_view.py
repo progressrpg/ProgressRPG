@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 from character.models import Character, PlayerCharacterLink
 from locations.models import PopulationCentre
 from users.tests import user_factory
+from locations.constants import PROJECT_SRID
 
 
 def _boundary(cx, cy, half=50):
@@ -17,7 +18,7 @@ def _boundary(cx, cy, half=50):
             (cx - half, cy + half),
             (cx - half, cy - half),
         ),
-        srid=3857,
+        srid=PROJECT_SRID,
     )
 
 
@@ -30,12 +31,12 @@ class InitialMapCentreViewTest(TestCase):
     def setUp(self):
         self.first_centre = PopulationCentre.objects.create(
             name="First village",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=_boundary(0, 0),
         )
         self.linked_centre = PopulationCentre.objects.create(
             name="Linked village",
-            location=Point(5000, 5000, srid=3857),
+            location=Point(5000, 5000, srid=PROJECT_SRID),
             boundary=_boundary(5000, 5000),
         )
         self.client = APIClient()
@@ -57,7 +58,7 @@ class InitialMapCentreViewTest(TestCase):
         user = user_factory(with_player=True)
         character = Character.objects.create(
             given_name="Linked",
-            location=Point(5000, 5000, srid=3857),
+            location=Point(5000, 5000, srid=PROJECT_SRID),
             population_centre=self.linked_centre,
         )
         PlayerCharacterLink.objects.create(player=user.player, character=character)
@@ -75,7 +76,7 @@ class InitialMapCentreViewTest(TestCase):
     def test_no_boundary_falls_back_to_a_window_around_location(self):
         PopulationCentre.objects.all().delete()
         centre = PopulationCentre.objects.create(
-            name="Boundaryless village", location=Point(100, 200, srid=3857)
+            name="Boundaryless village", location=Point(100, 200, srid=PROJECT_SRID)
         )
         user = user_factory(with_player=True)
         self.client.force_authenticate(user=user)

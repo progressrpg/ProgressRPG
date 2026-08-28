@@ -21,6 +21,7 @@ from django.test import TestCase
 from character.models import Character
 from locations.models import Journey, Node, Path
 from locations.services.movement import step_toward
+from locations.constants import PROJECT_SRID
 
 
 class StepTowardTests(TestCase):
@@ -28,15 +29,21 @@ class StepTowardTests(TestCase):
         # Linear graph: A(0,0) -> B(10,0) -> C(20,0). Ten units per segment,
         # and movement_speed defaults to 1.0, so a time_delta of N gives a
         # budget of exactly N units.
-        self.node_a = Node.objects.create(name="A", location=Point(0, 0, srid=3857))
-        self.node_b = Node.objects.create(name="B", location=Point(10, 0, srid=3857))
-        self.node_c = Node.objects.create(name="C", location=Point(20, 0, srid=3857))
+        self.node_a = Node.objects.create(
+            name="A", location=Point(0, 0, srid=PROJECT_SRID)
+        )
+        self.node_b = Node.objects.create(
+            name="B", location=Point(10, 0, srid=PROJECT_SRID)
+        )
+        self.node_c = Node.objects.create(
+            name="C", location=Point(20, 0, srid=PROJECT_SRID)
+        )
         Path.objects.create(from_node=self.node_a, to_node=self.node_b)
         Path.objects.create(from_node=self.node_b, to_node=self.node_c)
 
         self.character = Character.objects.create(
             given_name="Walker",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.node_a,
             is_moving=True,
         )

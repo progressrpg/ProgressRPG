@@ -4,6 +4,7 @@ from django.test import TestCase
 
 from character.models import Character
 from locations.models import Building, Journey, Node
+from locations.constants import PROJECT_SRID
 
 
 class PlaceCharactersEndsActiveJourneyTests(TestCase):
@@ -21,17 +22,17 @@ class PlaceCharactersEndsActiveJourneyTests(TestCase):
         )
         self.building_node = Node.objects.create(
             name="Cottage entrance",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             building=self.building,
             kind=Node.Kind.BUILDING,
         )
         self.elsewhere_node = Node.objects.create(
             name="Elsewhere",
-            location=Point(100, 100, srid=3857),
+            location=Point(100, 100, srid=PROJECT_SRID),
         )
         self.destination_node = Node.objects.create(
             name="Destination",
-            location=Point(200, 200, srid=3857),
+            location=Point(200, 200, srid=PROJECT_SRID),
         )
 
         self.character = Character.objects.create(

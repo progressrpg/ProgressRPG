@@ -50,13 +50,15 @@ def is_fertile(instance) -> bool:
 
 
 def can_reproduce_with(instance, partner) -> bool:
+    from character.models import Character
+
     if instance.fertility <= 0 or partner.fertility <= 0:
         return False
     if (
-        instance.sex == "Male"
-        and partner.sex == "Male"
-        or instance.sex == "Female"
-        and partner.sex == "Female"
+        instance.sex == Character.SexChoices.MALE
+        and partner.sex == Character.SexChoices.MALE
+        or instance.sex == Character.SexChoices.FEMALE
+        and partner.sex == Character.SexChoices.FEMALE
     ):
         return False
     return True
@@ -88,7 +90,11 @@ def handle_childbirth(instance) -> None:
     child = Character.objects.create(
         given_name=child_name,
         birth_date=timezone.now().date(),
-        sex="Male" if randint(0, 1) == 0 else "Female",
+        sex=(
+            Character.SexChoices.MALE
+            if randint(0, 1) == 0
+            else Character.SexChoices.FEMALE
+        ),
     )
 
     child.add_parent(instance, variant="biological")
