@@ -251,7 +251,7 @@ sqlparse==0.6.0
     # via
     #   -r requirements.in
     #   django
-stripe==15.5.0
+stripe==15.5.1
     # via -r requirements.in
 twisted[tls]==26.4.0
     # via
