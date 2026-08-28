@@ -17,7 +17,7 @@ defusedxml
 disposable-email-domains
 dj-database-url
 dj-rest-auth
-Django>=5.2.14,<6
+Django>=6.0.8,<7
 django-admin-sortable2
 django-allauth
 django-celery-beat
