@@ -8,6 +8,11 @@ SkillDefinition / CharacterSkill in progression.models). Both are derived
 live from a record's `duration` plus the current formula/settings rather
 than frozen at completion time, so balance changes can be recalculated
 retroactively - see TimeRecord.reward_breakdown.
+
+Owns the skill-XP base rate and mastery multiplier (base_rate,
+xp_for_duration, xp_mastery_multiplier), used for per-skill XP and the AP
+mastery bonus. For the level/AP curve and the online/activity-boost
+multiplier lookup, see progression/ap.py instead.
 """
 
 from decimal import Decimal
