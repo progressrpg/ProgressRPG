@@ -12,6 +12,7 @@ import json, logging
 from django.core.cache import cache
 
 from gameplay.services.xp_modifiers import schedule_online_end
+from gameplay.tasks import DISCONNECT_TASK_CACHE_KEY
 from users.models import Player
 
 # How long a player has to reconnect before their running activity timer is
@@ -25,7 +26,6 @@ from users.models import Player
 # the last confirmed heartbeat, so a longer grace period doesn't award XP for
 # the wait itself.
 DISCONNECT_GRACE_SECONDS = 120
-DISCONNECT_TASK_CACHE_KEY = "disconnect_task:{player_id}"
 
 # How often this consumer stamps `last_seen` while the socket is open.
 #
