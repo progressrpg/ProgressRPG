@@ -213,7 +213,7 @@ def complete_expired_bounded_timers():
 
 
 @shared_task(bind=True)
-def end_online_boost(self, modifier_id: int):
+def end_xp_modifier(self, modifier_id: int):
     now = timezone.now()
     mod = XpModifier.objects.select_related("character__behaviour").get(id=modifier_id)
 
