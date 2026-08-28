@@ -4,24 +4,29 @@ from django.test import TestCase
 from locations.management.commands.generate_paths import Command as GeneratePathsCommand
 from locations.models import Node, Path, Building, PopulationCentre
 from locations.serializers import PathFeatureSerializer
+from locations.constants import PROJECT_SRID
 
 
 class GeneratePathsRerouteTest(TestCase):
     def test_reroute_paths_around_buildings_inserts_waypoint_when_blocked(self):
         centre = PopulationCentre.objects.create(
-            name="Reroute village", location=Point(0, 0, srid=3857)
+            name="Reroute village", location=Point(0, 0, srid=PROJECT_SRID)
         )
         node_a = Node.objects.create(
-            name="A", location=Point(-20, 0, srid=3857), population_centre=centre
+            name="A",
+            location=Point(-20, 0, srid=PROJECT_SRID),
+            population_centre=centre,
         )
         node_b = Node.objects.create(
-            name="B", location=Point(20, 0, srid=3857), population_centre=centre
+            name="B", location=Point(20, 0, srid=PROJECT_SRID), population_centre=centre
         )
-        footprint = Polygon(((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=3857)
+        footprint = Polygon(
+            ((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=PROJECT_SRID
+        )
         Building.objects.create(
             name="Blocker",
             building_type="residential",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             footprint=footprint,
             population_centre=centre,
         )
@@ -37,19 +42,23 @@ class GeneratePathsRerouteTest(TestCase):
 
     def test_reroute_paths_around_buildings_leaves_clear_paths_untouched(self):
         centre = PopulationCentre.objects.create(
-            name="Clear village", location=Point(0, 0, srid=3857)
+            name="Clear village", location=Point(0, 0, srid=PROJECT_SRID)
         )
         node_a = Node.objects.create(
-            name="A", location=Point(-20, 0, srid=3857), population_centre=centre
+            name="A",
+            location=Point(-20, 0, srid=PROJECT_SRID),
+            population_centre=centre,
         )
         node_b = Node.objects.create(
-            name="B", location=Point(20, 0, srid=3857), population_centre=centre
+            name="B", location=Point(20, 0, srid=PROJECT_SRID), population_centre=centre
         )
-        footprint = Polygon(((-5, 50), (-5, 60), (5, 60), (5, 50), (-5, 50)), srid=3857)
+        footprint = Polygon(
+            ((-5, 50), (-5, 60), (5, 60), (5, 50), (-5, 50)), srid=PROJECT_SRID
+        )
         Building.objects.create(
             name="Bystander",
             building_type="residential",
-            location=Point(0, 55, srid=3857),
+            location=Point(0, 55, srid=PROJECT_SRID),
             footprint=footprint,
             population_centre=centre,
         )
@@ -63,19 +72,23 @@ class GeneratePathsRerouteTest(TestCase):
 
     def test_path_feature_serializer_uses_rerouted_geom_not_straight_line(self):
         centre = PopulationCentre.objects.create(
-            name="Serializer village", location=Point(0, 0, srid=3857)
+            name="Serializer village", location=Point(0, 0, srid=PROJECT_SRID)
         )
         node_a = Node.objects.create(
-            name="A", location=Point(-20, 0, srid=3857), population_centre=centre
+            name="A",
+            location=Point(-20, 0, srid=PROJECT_SRID),
+            population_centre=centre,
         )
         node_b = Node.objects.create(
-            name="B", location=Point(20, 0, srid=3857), population_centre=centre
+            name="B", location=Point(20, 0, srid=PROJECT_SRID), population_centre=centre
         )
-        footprint = Polygon(((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=3857)
+        footprint = Polygon(
+            ((-5, -5), (-5, 5), (5, 5), (5, -5), (-5, -5)), srid=PROJECT_SRID
+        )
         Building.objects.create(
             name="Blocker",
             building_type="residential",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             footprint=footprint,
             population_centre=centre,
         )

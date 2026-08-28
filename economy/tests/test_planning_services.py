@@ -22,6 +22,7 @@ from economy.constants import (
     PER_WORKER_DAILY_MILLING_CAPACITY,
     WHEAT_TO_FLOUR_RATIO,
 )
+from locations.constants import PROJECT_SRID
 from economy.services.planning_services import settlement_plan
 from locations.models import PopulationCentre
 
@@ -146,7 +147,7 @@ class SettlementPlanFromPopulationTests(SimpleTestCase):
             settlement_plan()
 
     def test_rejects_both_arguments(self):
-        centre = PopulationCentre(name="Both", location=Point(0, 0, srid=3857))
+        centre = PopulationCentre(name="Both", location=Point(0, 0, srid=PROJECT_SRID))
         with self.assertRaises(ValueError):
             settlement_plan(population_centre=centre, population=100)
 
@@ -160,7 +161,7 @@ class SettlementPlanFromPopulationCentreTests(TestCase):
 
     def _make_centre(self, resident_count):
         centre = PopulationCentre.objects.create(
-            name="Planningville", location=Point(0, 0, srid=3857)
+            name="Planningville", location=Point(0, 0, srid=PROJECT_SRID)
         )
         patcher = patch.object(
             PopulationCentre,

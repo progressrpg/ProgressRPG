@@ -16,12 +16,13 @@ from progression.models import (
     SkillDefinition,
     SkillGroup,
 )
+from locations.constants import PROJECT_SRID
 
 
 class WorkActivitiesForTests(TestCase):
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Marigold", location=Point(0, 0, srid=3857)
+            given_name="Marigold", location=Point(0, 0, srid=PROJECT_SRID)
         )
         self.general_activity = ActivityDefinition.objects.create(
             name="hauling water", kind=ActivityDefinition.Kind.WORK
@@ -94,7 +95,7 @@ def create_activity_catalog():
 class GenerateDayWorkActivityTests(TestCase):
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Oswin", location=Point(0, 0, srid=3857)
+            given_name="Oswin", location=Point(0, 0, srid=PROJECT_SRID)
         )
         create_activity_catalog()
 
@@ -140,7 +141,7 @@ class GenerateDayWorkActivityTests(TestCase):
         inn = Building.objects.create(
             name="The Tipsy Griffin",
             building_type="inn",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
         )
         CharacterLocation.objects.create(
             character=self.character,
@@ -163,7 +164,7 @@ class GenerateDayWorkActivityTests(TestCase):
 class DeleteDayTests(TestCase):
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Della", location=Point(0, 0, srid=3857)
+            given_name="Della", location=Point(0, 0, srid=PROJECT_SRID)
         )
         create_activity_catalog()
 
