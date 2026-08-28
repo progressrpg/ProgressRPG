@@ -8,6 +8,7 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import cached_property
+from .constants import PROJECT_SRID
 from .services import movement as movement_service
 from .utils import relative_distance_direction
 
@@ -21,7 +22,9 @@ if TYPE_CHECKING:
 
 class Movable(models.Model):
     movement_speed = models.FloatField(default=1.0)
-    location = gis_models.PointField(srid=3857, default=Point(0, 0, srid=3857))
+    location = gis_models.PointField(
+        srid=PROJECT_SRID, default=Point(0, 0, srid=PROJECT_SRID)
+    )
     is_moving = models.BooleanField(default=False)
 
     current_node = models.ForeignKey(
@@ -114,7 +117,7 @@ class Movable(models.Model):
 
 class Node(models.Model):
     name = models.CharField(max_length=100, blank=True)
-    location = gis_models.PointField(srid=3857, spatial_index=True)
+    location = gis_models.PointField(srid=PROJECT_SRID, spatial_index=True)
     population_centre = models.ForeignKey(
         "locations.PopulationCentre",
         null=True,
@@ -207,7 +210,7 @@ class Path(models.Model):
     )
     length = models.FloatField(blank=True, null=True)
     geom = gis_models.LineStringField(
-        srid=3857, null=True, blank=True, spatial_index=True
+        srid=PROJECT_SRID, null=True, blank=True, spatial_index=True
     )
 
     class Meta:
@@ -225,7 +228,7 @@ class Path(models.Model):
             try:
                 self.length = self.from_node.location.distance(self.to_node.location)
                 self.geom = LineString(
-                    self.from_node.location, self.to_node.location, srid=3857
+                    self.from_node.location, self.to_node.location, srid=PROJECT_SRID
                 )
             except Exception:
                 pass
@@ -260,7 +263,7 @@ class Road(models.Model):
         related_name="roads",
     )
     name = models.CharField(max_length=255, blank=True, default="")
-    geom = gis_models.LineStringField(srid=3857, spatial_index=True)
+    geom = gis_models.LineStringField(srid=PROJECT_SRID, spatial_index=True)
     width = models.FloatField(default=6.0, help_text="Road width in metres")
 
     class Meta:
@@ -451,12 +454,12 @@ class Building(models.Model):
     open_time_override = models.TimeField(null=True, blank=True)
     close_time_override = models.TimeField(null=True, blank=True)
     location = gis_models.PointField(
-        srid=3857,
-        default=Point(0, 0, srid=3857),
+        srid=PROJECT_SRID,
+        default=Point(0, 0, srid=PROJECT_SRID),
         help_text="Centre location",
         spatial_index=True,
     )
-    footprint = gis_models.PolygonField(null=True, blank=True, srid=3857)
+    footprint = gis_models.PolygonField(null=True, blank=True, srid=PROJECT_SRID)
 
     population_centre = models.ForeignKey(
         "locations.PopulationCentre",
@@ -520,7 +523,7 @@ class InteriorSpace(models.Model):
     building = models.ForeignKey(
         Building, on_delete=models.CASCADE, related_name="interiorspaces"
     )
-    location = gis_models.PointField(srid=3857, null=True, blank=True)
+    location = gis_models.PointField(srid=PROJECT_SRID, null=True, blank=True)
     area = models.FloatField()
     usage = models.CharField(max_length=50, choices=SpaceUsage.choices)
 
@@ -551,8 +554,8 @@ class LandArea(models.Model):
         related_name="land_areas",
     )
 
-    location = gis_models.PointField(srid=3857, null=True, blank=True)
-    boundary = gis_models.PolygonField(srid=3857, null=True, blank=True)
+    location = gis_models.PointField(srid=PROJECT_SRID, null=True, blank=True)
+    boundary = gis_models.PolygonField(srid=PROJECT_SRID, null=True, blank=True)
     size = models.FloatField(help_text="Size of land area in hectares")
 
     parent_for_navigation = "population_centre"
@@ -571,8 +574,8 @@ class Subzone(models.Model):
         LandArea, on_delete=models.CASCADE, related_name="subzones"
     )
     name = models.CharField(max_length=255)
-    location = gis_models.PointField(srid=3857, null=True, blank=True)
-    boundary = gis_models.PolygonField(srid=3857, null=True, blank=True)
+    location = gis_models.PointField(srid=PROJECT_SRID, null=True, blank=True)
+    boundary = gis_models.PolygonField(srid=PROJECT_SRID, null=True, blank=True)
     size = models.FloatField(help_text="Size of subzone in hectares")
 
     # Optional "intended usage", not exclusive or enforced.
@@ -605,8 +608,10 @@ class PopulationCentre(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
 
-    location = gis_models.PointField(srid=3857, default=Point(0, 0, srid=3857))
-    boundary = gis_models.PolygonField(null=True, blank=True, srid=3857)
+    location = gis_models.PointField(
+        srid=PROJECT_SRID, default=Point(0, 0, srid=PROJECT_SRID)
+    )
+    boundary = gis_models.PolygonField(null=True, blank=True, srid=PROJECT_SRID)
 
     parent_for_navigation = None
 

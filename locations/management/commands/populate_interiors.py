@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from locations.constants import PROJECT_SRID
 from locations.models import Building, InteriorSpace, Node
 from django.contrib.gis.geos import Polygon, Point
 from locations.models import Path
@@ -161,7 +162,7 @@ class Command(BaseCommand):
 
         if not polygon:
             return Node.objects.create(
-                location=Point(0, 0, srid=3857),
+                location=Point(0, 0, srid=PROJECT_SRID),
                 kind=Node.Kind.INTERIOR,
                 **node_kwargs,
             )
@@ -169,7 +170,7 @@ class Command(BaseCommand):
         for _ in range(max_attempts):
             x = random.uniform(minx, maxx)
             y = random.uniform(miny, maxy)
-            p = Point(x, y, srid=3857)
+            p = Point(x, y, srid=PROJECT_SRID)
 
             if polygon.contains(p):
                 return Node.objects.create(

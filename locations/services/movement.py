@@ -8,6 +8,8 @@ from django.contrib.gis.geos import Point
 from django.db import transaction
 from django.utils import timezone
 
+from locations.constants import PROJECT_SRID
+
 
 def find_path(start_node, end_node):
     # very dumb: pick first outgoing path until we reach the end
@@ -186,7 +188,7 @@ def step_toward(character, time_delta: float = 1.0, speed_modifier: float = 1.0)
 
         if distance <= remaining_distance:
             character.location = Point(
-                next_node.location.x, next_node.location.y, srid=3857
+                next_node.location.x, next_node.location.y, srid=PROJECT_SRID
             )
             character.current_node = next_node
             journey.advance_node()
@@ -199,7 +201,7 @@ def step_toward(character, time_delta: float = 1.0, speed_modifier: float = 1.0)
             factor = remaining_distance / distance
             new_x = character.location.x + dx * factor
             new_y = character.location.y + dy * factor
-            character.location = Point(new_x, new_y, srid=3857)
+            character.location = Point(new_x, new_y, srid=PROJECT_SRID)
             if not character.is_moving:
                 character.is_moving = True
             remaining_distance = 0
