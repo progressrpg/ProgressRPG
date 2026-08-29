@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { apiFetch } from "../utils/api";
+import { fetchInfo } from "../api/gameData";
 import { useAuth } from '../context/AuthContext';
 import type {
   Player,
@@ -8,7 +8,6 @@ import type {
   PopulationCentre,
   XpModifier,
   LoginState,
-  FetchInfoResponse,
   GameSettings,
 } from '../types';
 
@@ -51,7 +50,7 @@ export function useBootstrapGameData() {
       try {
         setLoading(true);
 
-        const info = await apiFetch<FetchInfoResponse>('/fetch_info/');
+        const info = await fetchInfo();
         // console.log("bootstrap info:", info);
         setPlayer(info.player);
         setCharacter(info.character);
