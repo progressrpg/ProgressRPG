@@ -1,7 +1,7 @@
 // src/hooks/useOnboarding.ts
 
 import { useMemo, useState, useCallback } from 'react';
-import { apiFetch } from "../utils/api";
+import { completeOnboarding as completeOnboardingRequest } from "../api/onboarding";
 import { useGame } from './useGame';
 
 export default function useOnboarding() {
@@ -19,9 +19,7 @@ export default function useOnboarding() {
 
   const completeOnboarding = useCallback(async (): Promise<boolean> => {
     try {
-      await apiFetch("/me/complete_onboarding/", {
-        method: "POST",
-      });
+      await completeOnboardingRequest();
 
       await fetchPlayerAndCharacter?.();
       //console.log("player after fetching:", player);
