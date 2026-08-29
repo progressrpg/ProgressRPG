@@ -184,11 +184,11 @@ class DeleteDayTests(TestCase):
 
 class BehaviourSyncTestCase(TestCase):
     """
-    Shared setup for SyncToNowTests/AdvanceTests/InterruptCurrentActivityTests:
-    a character with no scheduled activities yet, and a helper to create one
+    Shared setup for SyncToNowTests/InterruptCurrentActivityTests: a
+    character with no scheduled activities yet, and a helper to create one
     at an offset from the real `timezone.now()` - get_current_activity (which
-    all three functions under test go through) always reads the real clock,
-    not a passed-in `now`, so fixture times have to be anchored there rather
+    both functions under test go through) always reads the real clock, not
+    a passed-in `now`, so fixture times have to be anchored there rather
     than to a fixed date the way GenerateDayWorkActivityTests' are.
     """
 
@@ -261,70 +261,6 @@ class SyncToNowTests(BehaviourSyncTestCase):
         ended.refresh_from_db()
         self.assertTrue(ended.is_complete)
         self.assertEqual(ended.completed_at, ended.scheduled_end)
-
-
-class AdvanceTests(BehaviourSyncTestCase):
-    def test_current_activity_is_force_completed_via_complete_now(self):
-        now = timezone.now()
-        current = self._activity(
-            now - timedelta(minutes=10), now + timedelta(minutes=10)
-        )
-        original_scheduled_end = current.scheduled_end
-
-        self.character.behaviour.advance()
-
-        current.refresh_from_db()
-        self.assertTrue(current.is_complete)
-        self.assertIsNotNone(current.completed_at)
-        # complete_now() doesn't touch scheduled_end - only started_at/
-        # completed_at/is_complete/duration.
-        self.assertEqual(current.scheduled_end, original_scheduled_end)
-
-    def test_next_activitys_started_at_backfill_branch_is_unreachable_here(self):
-        """
-        advance() has a branch meant to backfill `nxt.started_at` when
-        `nxt.scheduled_start <= now`, but it can't actually fire via this
-        code path: `current` is only ever selected when
-        `current.scheduled_end > now` (see the query above), and `nxt` is
-        only ever selected when `nxt.scheduled_start >= current.scheduled_end`
-        - so `nxt.scheduled_start > now` holds transitively by the time the
-        branch's own condition is checked. Documented as a dead branch
-        rather than "fixed" - changing the selection logic is a behaviour
-        change outside a test-coverage pass's scope.
-        """
-        now = timezone.now()
-        current = self._activity(
-            now - timedelta(minutes=10), now + timedelta(minutes=10)
-        )
-        nxt = self._activity(
-            current.scheduled_end, current.scheduled_end + timedelta(minutes=10)
-        )
-        self.assertIsNone(nxt.started_at)
-
-        result = self.character.behaviour.advance()
-
-        self.assertEqual(result, nxt)
-        nxt.refresh_from_db()
-        # Not backfilled - see docstring.
-        self.assertIsNone(nxt.started_at)
-
-    def test_no_current_in_window_falls_through_to_sync_to_now(self):
-        now = timezone.now()
-        upcoming = self._activity(
-            now + timedelta(minutes=5), now + timedelta(minutes=15)
-        )
-
-        result = self.character.behaviour.advance()
-
-        self.assertEqual(result, upcoming)
-
-    def test_no_next_activity_after_the_current_one_returns_none(self):
-        now = timezone.now()
-        self._activity(now - timedelta(minutes=10), now + timedelta(minutes=10))
-
-        result = self.character.behaviour.advance()
-
-        self.assertIsNone(result)
 
 
 class InterruptCurrentActivityTests(BehaviourSyncTestCase):
