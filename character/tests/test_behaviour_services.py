@@ -1,4 +1,4 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from django.contrib.gis.geos import Point
 from django.test import TestCase
@@ -180,3 +180,219 @@ class DeleteDayTests(TestCase):
         self.assertFalse(
             CharacterActivity.objects.filter(character=self.character).exists()
         )
+
+
+class BehaviourSyncTestCase(TestCase):
+    """
+    Shared setup for SyncToNowTests/AdvanceTests/InterruptCurrentActivityTests:
+    a character with no scheduled activities yet, and a helper to create one
+    at an offset from the real `timezone.now()` - get_current_activity (which
+    all three functions under test go through) always reads the real clock,
+    not a passed-in `now`, so fixture times have to be anchored there rather
+    than to a fixed date the way GenerateDayWorkActivityTests' are.
+    """
+
+    def setUp(self):
+        self.character = Character.objects.create(
+            given_name="Rowan", location=Point(0, 0, srid=PROJECT_SRID)
+        )
+        self.activity_definition = ActivityDefinition.objects.create(
+            name="Chores", kind=ActivityDefinition.Kind.WORK
+        )
+
+    def _activity(self, start, end, **kwargs):
+        return CharacterActivity.objects.create(
+            character=self.character,
+            activity_definition=self.activity_definition,
+            scheduled_start=start,
+            scheduled_end=end,
+            **kwargs,
+        )
+
+
+class SyncToNowTests(BehaviourSyncTestCase):
+    def test_current_activity_with_started_at_set_is_returned_as_is(self):
+        now = timezone.now()
+        started = now - timedelta(minutes=5)
+        current = self._activity(
+            now - timedelta(minutes=10), now + timedelta(minutes=10), started_at=started
+        )
+
+        result = self.character.behaviour.sync_to_now()
+
+        self.assertEqual(result, current)
+        current.refresh_from_db()
+        self.assertEqual(current.started_at, started)
+
+    def test_current_activity_with_no_started_at_is_backfilled_to_scheduled_start(self):
+        now = timezone.now()
+        window_start = now - timedelta(minutes=10)
+        current = self._activity(window_start, now + timedelta(minutes=10))
+        self.assertIsNone(current.started_at)
+
+        result = self.character.behaviour.sync_to_now()
+
+        self.assertEqual(result, current)
+        current.refresh_from_db()
+        self.assertEqual(current.started_at, window_start)
+
+    def test_no_current_activity_returns_the_next_upcoming_one(self):
+        now = timezone.now()
+        upcoming = self._activity(
+            now + timedelta(minutes=5), now + timedelta(minutes=15)
+        )
+
+        result = self.character.behaviour.sync_to_now()
+
+        self.assertEqual(result, upcoming)
+
+    def test_no_current_and_no_upcoming_returns_none(self):
+        result = self.character.behaviour.sync_to_now()
+
+        self.assertIsNone(result)
+
+    def test_ended_but_incomplete_activity_is_completed_past_before_the_lookup(self):
+        now = timezone.now()
+        ended = self._activity(now - timedelta(minutes=20), now - timedelta(minutes=10))
+        self.assertFalse(ended.is_complete)
+
+        self.character.behaviour.sync_to_now()
+
+        ended.refresh_from_db()
+        self.assertTrue(ended.is_complete)
+        self.assertEqual(ended.completed_at, ended.scheduled_end)
+
+
+class AdvanceTests(BehaviourSyncTestCase):
+    def test_current_activity_is_force_completed_via_complete_now(self):
+        now = timezone.now()
+        current = self._activity(
+            now - timedelta(minutes=10), now + timedelta(minutes=10)
+        )
+        original_scheduled_end = current.scheduled_end
+
+        self.character.behaviour.advance()
+
+        current.refresh_from_db()
+        self.assertTrue(current.is_complete)
+        self.assertIsNotNone(current.completed_at)
+        # complete_now() doesn't touch scheduled_end - only started_at/
+        # completed_at/is_complete/duration.
+        self.assertEqual(current.scheduled_end, original_scheduled_end)
+
+    def test_next_activitys_started_at_backfill_branch_is_unreachable_here(self):
+        """
+        advance() has a branch meant to backfill `nxt.started_at` when
+        `nxt.scheduled_start <= now`, but it can't actually fire via this
+        code path: `current` is only ever selected when
+        `current.scheduled_end > now` (see the query above), and `nxt` is
+        only ever selected when `nxt.scheduled_start >= current.scheduled_end`
+        - so `nxt.scheduled_start > now` holds transitively by the time the
+        branch's own condition is checked. Documented as a dead branch
+        rather than "fixed" - changing the selection logic is a behaviour
+        change outside a test-coverage pass's scope.
+        """
+        now = timezone.now()
+        current = self._activity(
+            now - timedelta(minutes=10), now + timedelta(minutes=10)
+        )
+        nxt = self._activity(
+            current.scheduled_end, current.scheduled_end + timedelta(minutes=10)
+        )
+        self.assertIsNone(nxt.started_at)
+
+        result = self.character.behaviour.advance()
+
+        self.assertEqual(result, nxt)
+        nxt.refresh_from_db()
+        # Not backfilled - see docstring.
+        self.assertIsNone(nxt.started_at)
+
+    def test_no_current_in_window_falls_through_to_sync_to_now(self):
+        now = timezone.now()
+        upcoming = self._activity(
+            now + timedelta(minutes=5), now + timedelta(minutes=15)
+        )
+
+        result = self.character.behaviour.advance()
+
+        self.assertEqual(result, upcoming)
+
+    def test_no_next_activity_after_the_current_one_returns_none(self):
+        now = timezone.now()
+        self._activity(now - timedelta(minutes=10), now + timedelta(minutes=10))
+
+        result = self.character.behaviour.advance()
+
+        self.assertIsNone(result)
+
+
+class InterruptCurrentActivityTests(BehaviourSyncTestCase):
+    def test_splits_the_current_activity_into_a_completed_and_a_fresh_one(self):
+        now = timezone.now()
+        original = self._activity(
+            now - timedelta(minutes=10), now + timedelta(minutes=20)
+        )
+
+        new_activity = self.character.behaviour.interrupt_current_activity()
+
+        self.assertIsNotNone(new_activity)
+        original.refresh_from_db()
+        self.assertTrue(original.is_complete)
+
+        self.assertEqual(new_activity.character, self.character)
+        self.assertEqual(new_activity.activity_definition, self.activity_definition)
+        self.assertEqual(new_activity.scheduled_end, original.scheduled_end)
+        self.assertFalse(new_activity.is_complete)
+        self.assertIsNotNone(new_activity.started_at)
+        self.assertAlmostEqual(new_activity.started_at, now, delta=timedelta(seconds=5))
+
+    def test_no_current_activity_returns_none(self):
+        result = self.character.behaviour.interrupt_current_activity()
+
+        self.assertIsNone(result)
+
+    def test_an_already_complete_current_activity_returns_none_and_creates_nothing(
+        self,
+    ):
+        now = timezone.now()
+        self._activity(
+            now - timedelta(minutes=10),
+            now + timedelta(minutes=10),
+            is_complete=True,
+        )
+        before_count = CharacterActivity.objects.filter(
+            character=self.character
+        ).count()
+
+        result = self.character.behaviour.interrupt_current_activity()
+
+        self.assertIsNone(result)
+        self.assertEqual(
+            CharacterActivity.objects.filter(character=self.character).count(),
+            before_count,
+        )
+
+    def test_boost_ended_argument_is_currently_unread_and_changes_nothing(self):
+        """
+        boost_ended is accepted but never read inside the function body -
+        pins that current no-op status (not a fix) so a reader doesn't have
+        to trace the implementation to find out.
+        """
+        now = timezone.now()
+        self._activity(now - timedelta(minutes=10), now + timedelta(minutes=20))
+
+        with_true = self.character.behaviour.interrupt_current_activity(
+            boost_ended=True
+        )
+
+        self.assertIsNotNone(with_true)
+
+        # Fresh activity for a second, independent comparison.
+        self._activity(now - timedelta(minutes=10), now + timedelta(minutes=20))
+        with_false = self.character.behaviour.interrupt_current_activity(
+            boost_ended=False
+        )
+
+        self.assertIsNotNone(with_false)
+        self.assertEqual(with_true.activity_definition, with_false.activity_definition)
