@@ -253,36 +253,6 @@ def sync_to_now(behaviour, now=None):
     return qs.filter(scheduled_start__gt=now).order_by("scheduled_start").first()
 
 
-@transaction.atomic
-def advance(behaviour, now=None):
-    now = now or timezone.now()
-
-    qs = (
-        CharacterActivity.objects.select_for_update()
-        .filter(character=behaviour.character)
-        .exclude(scheduled_start__isnull=True)
-        .exclude(scheduled_end__isnull=True)
-        .order_by("scheduled_start")
-    )
-
-    current = qs.filter(scheduled_start__lte=now, scheduled_end__gt=now).first()
-    if not current:
-        return sync_to_now(behaviour, now=now)
-
-    if not current.is_complete:
-        # Same "complete right now, from wherever started_at is" semantics
-        # as complete_now() - force-advancing early is just an early
-        # completion, so reuse it rather than duplicating the AP/XP logic.
-        current.complete_now()
-
-    nxt = qs.filter(scheduled_start__gte=current.scheduled_end).first()
-    if nxt and nxt.started_at is None and nxt.scheduled_start <= now:
-        nxt.started_at = nxt.scheduled_start
-        nxt.save(update_fields=["started_at"])
-
-    return nxt
-
-
 def delete_day(behaviour, date):
     """
     Delete the character's scheduled CharacterActivity rows covering the
