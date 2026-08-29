@@ -18,9 +18,9 @@ from the DB.
 from django.contrib.gis.geos import Point
 from django.test import TestCase
 
-from character.models import Character
-from locations.models import Journey, Node, Path
-from locations.services.movement import step_toward
+from character.models import Character, CharacterLocation
+from locations.models import Building, Journey, Node, Path
+from locations.services.movement import find_path, go_home, go_outside, step_toward
 from locations.constants import PROJECT_SRID
 
 
@@ -150,3 +150,148 @@ class StepTowardTests(TestCase):
 
         self.assertFalse(still_moving)
         self.assertFalse(self.character.is_moving)
+
+
+class FindPathTests(TestCase):
+    """
+    find_path is self-described in its own comment as "very dumb: pick
+    first outgoing path until we reach the end" - these pin what it
+    actually does (BFS via Node.neighbours(), stopping at the first route
+    found) rather than asserting an idealized shortest-path guarantee it
+    doesn't provide.
+    """
+
+    def setUp(self):
+        # Linear graph A-B-C, plus an unconnected D.
+        self.node_a = Node.objects.create(
+            name="A", location=Point(0, 0, srid=PROJECT_SRID)
+        )
+        self.node_b = Node.objects.create(
+            name="B", location=Point(10, 0, srid=PROJECT_SRID)
+        )
+        self.node_c = Node.objects.create(
+            name="C", location=Point(20, 0, srid=PROJECT_SRID)
+        )
+        self.node_d = Node.objects.create(
+            name="D", location=Point(100, 100, srid=PROJECT_SRID)
+        )
+        Path.objects.create(from_node=self.node_a, to_node=self.node_b)
+        Path.objects.create(from_node=self.node_b, to_node=self.node_c)
+
+    def test_direct_single_hop_connection(self):
+        self.assertEqual(
+            find_path(self.node_a, self.node_b), [self.node_a, self.node_b]
+        )
+
+    def test_walks_through_an_intermediate_node(self):
+        self.assertEqual(
+            find_path(self.node_a, self.node_c),
+            [self.node_a, self.node_b, self.node_c],
+        )
+
+    def test_returns_none_when_no_path_exists(self):
+        self.assertIsNone(find_path(self.node_a, self.node_d))
+
+    def test_start_equals_end_returns_a_single_node_path(self):
+        self.assertEqual(find_path(self.node_a, self.node_a), [self.node_a])
+
+
+class GoHomeTests(TestCase):
+    def setUp(self):
+        self.start_node = Node.objects.create(
+            name="Start", location=Point(0, 0, srid=PROJECT_SRID)
+        )
+        self.building = Building.objects.create(
+            name="Cottage",
+            building_type="residential",
+            location=Point(10, 0, srid=PROJECT_SRID),
+        )
+        # BUILDING_ENTRANCE, not BUILDING - go_home looks up the entrance
+        # node first, falling back to an interior room's node only if the
+        # building has one; no InteriorSpace here keeps this deterministic.
+        self.entrance_node = Node.objects.create(
+            name="Cottage entrance",
+            location=Point(10, 0, srid=PROJECT_SRID),
+            building=self.building,
+            kind=Node.Kind.BUILDING_ENTRANCE,
+        )
+        Path.objects.create(from_node=self.start_node, to_node=self.entrance_node)
+
+        self.character = Character.objects.create(
+            given_name="Homer",
+            location=self.start_node.location,
+            current_node=self.start_node,
+        )
+
+    def _give_home(self):
+        CharacterLocation.objects.create(
+            character=self.character,
+            location=self.building,
+            role=CharacterLocation.Role.HOME,
+            is_primary=True,
+        )
+
+    def test_character_with_a_home_is_sent_there(self):
+        self._give_home()
+
+        result = go_home(self.character)
+
+        self.assertTrue(result)
+        self.assertTrue(self.character.is_moving)
+        self.assertEqual(self.character.target_node, self.entrance_node)
+        self.assertTrue(
+            Journey.objects.filter(
+                character=self.character, destination_node=self.entrance_node
+            ).exists()
+        )
+
+    def test_character_with_no_home_is_a_no_op(self):
+        result = go_home(self.character)
+
+        self.assertFalse(result)
+        self.assertFalse(self.character.is_moving)
+        self.assertFalse(Journey.objects.filter(character=self.character).exists())
+
+    def test_character_already_home_is_a_no_op(self):
+        self._give_home()
+        self.character.current_node = self.entrance_node
+        self.character.save(update_fields=["current_node"])
+
+        result = go_home(self.character)
+
+        self.assertFalse(result)
+        self.assertFalse(Journey.objects.filter(character=self.character).exists())
+
+
+class GoOutsideTests(TestCase):
+    def setUp(self):
+        self.start_node = Node.objects.create(
+            name="Start", location=Point(0, 0, srid=PROJECT_SRID)
+        )
+        self.outside_node = Node.objects.create(
+            name="Square",
+            location=Point(5, 0, srid=PROJECT_SRID),
+            kind=Node.Kind.OUTSIDE,
+        )
+        Path.objects.create(from_node=self.start_node, to_node=self.outside_node)
+
+        self.character = Character.objects.create(
+            given_name="Wanderer",
+            location=self.start_node.location,
+            current_node=self.start_node,
+        )
+
+    def test_destination_lands_within_radius_of_a_nearby_outside_node(self):
+        result = go_outside(self.character, radius=100)
+
+        self.assertTrue(result)
+        self.assertTrue(self.character.is_moving)
+        self.assertEqual(self.character.target_node, self.outside_node)
+
+    def test_no_nearby_outside_node_is_a_no_op(self):
+        # outside_node is 5 units away - a radius of 1 excludes it.
+        result = go_outside(self.character, radius=1)
+
+        self.assertFalse(result)
+        self.assertFalse(self.character.is_moving)
+        self.assertFalse(Journey.objects.filter(character=self.character).exists())
