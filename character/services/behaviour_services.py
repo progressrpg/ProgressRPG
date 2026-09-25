@@ -112,8 +112,6 @@ def _compute_day_blocks(behaviour, date, rng):
     wind_start = leisure_end
     wind_end = max(wind_start, aware(date, WIND_DOWN_END_TIME))
 
-    day_window(behaviour, date)
-
     next_day = date + timedelta(days=1)
     next_wake = aware(next_day, WAKE_TIME)
     next_wake = jitter_minutes(next_wake, WAKE_JITTER_MINUTES)
