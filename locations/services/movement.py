@@ -130,7 +130,7 @@ def set_destination(movable, *, node=None, obj=None, point=None):
 
     with transaction.atomic():
         active_journey = Journey.objects.filter(
-            character=movable, status="active"
+            character=movable, status=Journey.Status.ACTIVE
         ).first()
         if active_journey:
             active_journey.cancel()
@@ -155,7 +155,7 @@ def step_toward(movable, time_delta: float = 1.0, speed_modifier: float = 1.0):
     journey = getattr(movable, "_journey", None)
     if journey is None:
         journey = (
-            Journey.objects.filter(character=movable, status="active")
+            Journey.objects.filter(character=movable, status=Journey.Status.ACTIVE)
             .order_by("-id")
             .first()
         )
@@ -214,7 +214,7 @@ def arrive(movable, journey) -> bool:
     movable.location = final_node.location
     movable.current_node = final_node
 
-    journey.status = "complete"
+    journey.status = journey.Status.COMPLETE
     journey.finished_at = timezone.now()
     journey.save(update_fields=["status", "finished_at"])
 
