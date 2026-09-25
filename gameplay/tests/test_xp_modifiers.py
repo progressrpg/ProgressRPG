@@ -95,9 +95,7 @@ class HandleOnlineLoginTests(TestCase):
             player=self.player, character=self.character
         )
         mock_result = MagicMock(id="scheduled-task-id")
-        with patch.object(
-            xpm.end_online_boost, "apply_async", return_value=mock_result
-        ):
+        with patch.object(xpm.end_xp_modifier, "apply_async", return_value=mock_result):
             xpm.schedule_online_end(link)
 
         mod = XpModifier.objects.get(key=xpm.PLAYER_ONLINE_KEY)
@@ -121,7 +119,7 @@ class ScheduleOnlineEndTests(TestCase):
     def test_schedules_end_after_cooldown_instead_of_ending_immediately(self):
         mock_result = MagicMock(id="scheduled-task-id")
         with patch.object(
-            xpm.end_online_boost, "apply_async", return_value=mock_result
+            xpm.end_xp_modifier, "apply_async", return_value=mock_result
         ) as mock_apply_async:
             xpm.schedule_online_end(self.link, cooldown_minutes=30)
 
@@ -181,9 +179,7 @@ class SetActivityActiveModifiersTests(TestCase):
         xpm.set_activity_active_modifiers(self.player, is_active=True)
 
         mock_result = MagicMock(id="grace-task-id")
-        with patch.object(
-            xpm.end_online_boost, "apply_async", return_value=mock_result
-        ):
+        with patch.object(xpm.end_xp_modifier, "apply_async", return_value=mock_result):
             xpm.set_activity_active_modifiers(self.player, is_active=False)
 
         character_mod = XpModifier.objects.get(
@@ -203,9 +199,7 @@ class SetActivityActiveModifiersTests(TestCase):
         xpm.set_activity_active_modifiers(self.player, is_active=True)
 
         mock_result = MagicMock(id="grace-task-id")
-        with patch.object(
-            xpm.end_online_boost, "apply_async", return_value=mock_result
-        ):
+        with patch.object(xpm.end_xp_modifier, "apply_async", return_value=mock_result):
             xpm.set_activity_active_modifiers(self.player, is_active=False)
 
         with patch.object(xpm, "current_app") as mock_app:

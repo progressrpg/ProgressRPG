@@ -5,6 +5,11 @@ Player and Character. Extracted so the level-up curve and multiplier lookup
 have one clearly-named home, independent of where the running total ends up
 being stored.
 
+Owns the level/AP curve (threshold_for_level, apply_xp, total_ap_earned)
+and the online/activity-boost multiplier lookup (get_multiplier,
+get_productivity). For the skill-XP base rate and mastery multiplier, see
+progression/points.py instead.
+
 This is Phase 1 of the progression-track migration in
 .claude/plans/progression-track-abstraction.md: a same-file extraction with
 no schema change. Player and Character still own the `xp`/`level`/
