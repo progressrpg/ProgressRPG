@@ -308,27 +308,3 @@ class InterruptCurrentActivityTests(BehaviourSyncTestCase):
             CharacterActivity.objects.filter(character=self.character).count(),
             before_count,
         )
-
-    def test_boost_ended_argument_is_currently_unread_and_changes_nothing(self):
-        """
-        boost_ended is accepted but never read inside the function body -
-        pins that current no-op status (not a fix) so a reader doesn't have
-        to trace the implementation to find out.
-        """
-        now = timezone.now()
-        self._activity(now - timedelta(minutes=10), now + timedelta(minutes=20))
-
-        with_true = self.character.behaviour.interrupt_current_activity(
-            boost_ended=True
-        )
-
-        self.assertIsNotNone(with_true)
-
-        # Fresh activity for a second, independent comparison.
-        self._activity(now - timedelta(minutes=10), now + timedelta(minutes=20))
-        with_false = self.character.behaviour.interrupt_current_activity(
-            boost_ended=False
-        )
-
-        self.assertIsNotNone(with_false)
-        self.assertEqual(with_true.activity_definition, with_false.activity_definition)

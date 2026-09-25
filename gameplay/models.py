@@ -116,10 +116,6 @@ class Timer(models.Model):
         )
         return self.elapsed_time
 
-    def compute_elapsed(self):
-        """Calculate time without updating the model."""
-        return self.get_elapsed_time()
-
     def apply_elapsed(self):
         """Store current elapsed time in the DB."""
         self.elapsed_time = self.get_elapsed_time()
@@ -152,15 +148,6 @@ class Timer(models.Model):
         if self.status != self.Status.PAUSED:
             self.apply_elapsed()
             self.status = self.Status.PAUSED
-            self.save(update_fields=["status"])
-        return self
-
-    def set_waiting(self):
-        """
-        Set the timer status to 'waiting'.
-        """
-        if self.status != self.Status.WAITING:
-            self.status = self.Status.WAITING
             self.save(update_fields=["status"])
         return self
 
@@ -230,10 +217,6 @@ class ActivityTimer(Timer):
     # instead of needing a verdict about whether the player is still around.
     limit_seconds = models.PositiveIntegerField(null=True, blank=True)
     limit_reason = models.CharField(max_length=32, blank=True, default="")
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # logger.debug(f"[Activity timer save] Compute elapsed: {self.compute_elapsed()}")
 
     def __str__(self):
         return f"ActivityTimer {self.id} for {self.player.name}"

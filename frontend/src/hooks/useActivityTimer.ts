@@ -21,7 +21,7 @@ import type {
 
 export default function useActivityTimer(): ActivityTimerReturn {
   const [_id, setId] = useState<number>(0);
-  const [status, setStatus] = useState<TimerStatus>("empty"); // "empty", "active", "waiting", "completed"
+  const [status, setStatus] = useState<TimerStatus>("empty"); // "empty", "active", "paused", "waiting", "completed"
   const [duration, setDuration] = useState<number>(0); // total seconds for timer base
   const [elapsed, setElapsed] = useState<number>(0);
   const [currentActivity, setCurrentActivity] = useState<CurrentActivity | null>(null);
@@ -29,7 +29,7 @@ export default function useActivityTimer(): ActivityTimerReturn {
   const [limitReached, setLimitReached] = useState<boolean>(false);
   // Server-decided: whether a paused session is still within its own
   // logical day and so may be continued rather than only submitted.
-  const [canResume, setCanResume] = useState<boolean>(false); // true after auto-stop fires; cleared on next startActivity or stop
+  const [canResume, setCanResume] = useState<boolean>(false); // mirrors serverData.can_resume, refreshed on every loadFromServer sync
   const [autoStopCompletion, setAutoStopCompletion] = useState<AutoStopCompletion | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
