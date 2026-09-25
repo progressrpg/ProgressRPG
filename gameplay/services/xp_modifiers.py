@@ -12,11 +12,25 @@ PLAYER_ONLINE_KEY = "player_online"
 PLAYER_ONLINE_MULTIPLIER = 1.25
 ACTIVITY_ACTIVE_KEY = "activity_active"
 ACTIVITY_ACTIVE_CHARACTER_MULTIPLIER = 1.5
-ACTIVITY_ACTIVE_PLAYER_MULTIPLIER = 1.25
 # Grace window before an activity_active modifier actually ends once a
 # player stops timing, so a gap between a character's activity blocks (or a
 # quick pause/resume) doesn't drop and reactivate the boost - see issue #750.
 ACTIVITY_ACTIVE_GRACE_MINUTES = 5
+
+# How each authored modifier key combines with the others active at the same
+# time (see progression.ap.get_multiplier for the rule). Kept here rather
+# than left to each call site so that every code-created row for a given key
+# is consistent by construction - stacking mode is really a property of the
+# modifier *type*, and `key` is what identifies the type. The admin can still
+# create rows with any mode; that is the deliberate escape hatch.
+#
+# Both current keys are multiplicative, which is how they already behaved.
+# The additive bucket has no occupant yet: it is exercised only by
+# progression.tests.test_ap until the first additive modifier is authored.
+STACKING_BY_KEY = {
+    PLAYER_ONLINE_KEY: XpModifier.Stacking.MULTIPLICATIVE,
+    ACTIVITY_ACTIVE_KEY: XpModifier.Stacking.MULTIPLICATIVE,
+}
 
 
 @transaction.atomic
@@ -43,6 +57,9 @@ def activate_link_modifier(
         **{owner_field: owner},
         defaults={
             "multiplier": multiplier,
+            "stacking": STACKING_BY_KEY.get(
+                key, XpModifier.Stacking.MULTIPLICATIVE
+            ),
             "starts_at": now,
             "ends_at": ends_at,
             "is_active": True,
@@ -138,17 +155,28 @@ def handle_online_login(player: Player):
 @transaction.atomic
 def set_activity_active_modifiers(player: Player, *, is_active: bool):
     """
-    Toggle activity-active modifiers without replacing still-valid online modifiers.
+    Toggle the character's activity-active modifier without replacing a
+    still-valid online modifier.
 
-    - Character gets a higher bonus while player is actively recording.
-    - Player gets their own bonus while actively recording.
+    The character gets a higher bonus while the player is actively
+    recording. There is deliberately no player-scoped counterpart: at player
+    scope this modifier would be active exactly when the player is
+    recording, and recorded activity is the only thing that earns a player
+    AP - so it would multiply every unit of AP it could ever apply to, which
+    is a change to the base rate rather than a modifier. The character-scope
+    one is different: a character also earns AP from its own scheduled
+    activities while the player is away, so the boost has a real off state.
 
-    Stopping doesn't end the modifiers outright: `ends_at` is pushed out by
-    ACTIVITY_ACTIVE_GRACE_MINUTES and a Celery task is scheduled to end them
+    Stopping doesn't end the modifier outright: `ends_at` is pushed out by
+    ACTIVITY_ACTIVE_GRACE_MINUTES and a Celery task is scheduled to end it
     then. If the player starts another activity within that window,
     activate_link_modifier's update_or_create refreshes the same modifier
     row (and the pending end task is cancelled) rather than dropping and
     reactivating it.
+
+    Returns a list rather than a single modifier: callers treat it as "the
+    modifiers this toggle touched", and player-scope modifiers that do have
+    a live read path may join it later.
     """
     link = player.active_link
     if not link:
@@ -159,41 +187,29 @@ def set_activity_active_modifiers(player: Player, *, is_active: bool):
     )
 
     if is_active:
-        mods = [
-            activate_link_modifier(
-                link=link,
-                key=ACTIVITY_ACTIVE_KEY,
-                multiplier=ACTIVITY_ACTIVE_CHARACTER_MULTIPLIER,
-                scope=XpModifier.Scope.CHARACTER,
-            ),
-            activate_link_modifier(
-                link=link,
-                key=ACTIVITY_ACTIVE_KEY,
-                multiplier=ACTIVITY_ACTIVE_PLAYER_MULTIPLIER,
-                scope=XpModifier.Scope.PLAYER,
-            ),
-        ]
-        for mod in mods:
-            if mod.task_id:
-                current_app.control.revoke(mod.task_id)
-                mod.task_id = None
-                mod.save(update_fields=["task_id"])
-        return mods
+        mod = activate_link_modifier(
+            link=link,
+            key=ACTIVITY_ACTIVE_KEY,
+            multiplier=ACTIVITY_ACTIVE_CHARACTER_MULTIPLIER,
+            scope=XpModifier.Scope.CHARACTER,
+        )
+        if mod.task_id:
+            current_app.control.revoke(mod.task_id)
+            mod.task_id = None
+            mod.save(update_fields=["task_id"])
+        return [mod]
 
     grace_ends_at = timezone.now() + timedelta(minutes=ACTIVITY_ACTIVE_GRACE_MINUTES)
-    mods = []
-    for scope, owner_field, owner in (
-        (XpModifier.Scope.CHARACTER, "character", link.character),
-        (XpModifier.Scope.PLAYER, "player", link.player),
-    ):
-        mod = (
-            XpModifier.objects.filter(
-                scope=scope, key=ACTIVITY_ACTIVE_KEY, **{owner_field: owner}
-            )
-            .order_by("-starts_at")
-            .first()
+    mod = (
+        XpModifier.objects.filter(
+            scope=XpModifier.Scope.CHARACTER,
+            key=ACTIVITY_ACTIVE_KEY,
+            character=link.character,
         )
-        if mod and mod.is_active:
-            mods.append(schedule_modifier_end(mod=mod, ends_at=grace_ends_at))
+        .order_by("-starts_at")
+        .first()
+    )
+    if mod and mod.is_active:
+        return [schedule_modifier_end(mod=mod, ends_at=grace_ends_at)]
 
-    return mods
+    return []
