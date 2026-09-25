@@ -283,7 +283,7 @@ def get_current_activity(behaviour):
     return activity
 
 
-def interrupt_current_activity(behaviour, boost_ended=False):
+def interrupt_current_activity(behaviour):
     now = timezone.now()
     activity = get_current_activity(behaviour)
     if not activity or activity.is_complete:
