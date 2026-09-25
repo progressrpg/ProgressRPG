@@ -4,6 +4,7 @@ from django.test import TestCase
 from economy.models import BuildingCapability
 from locations.models import LandArea, Node, PopulationCentre, Road, Subzone
 from locations.services.watabou_import import import_watabou_village
+from locations.constants import PROJECT_SRID
 
 # Two adjacent square districts (sharing the edge x=10) so their union is a
 # single Polygon.
@@ -67,7 +68,7 @@ def _make_export(
 class WatabouImportBoundaryTest(TestCase):
     def test_boundary_is_union_of_all_districts_not_just_the_first(self):
         data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD])
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Twin Wards", origin=origin)
 
@@ -77,7 +78,7 @@ class WatabouImportBoundaryTest(TestCase):
 
     def test_boundary_falls_back_to_earth_when_no_districts(self):
         data = _make_export(districts=None)
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="No Wards", origin=origin)
 
@@ -85,7 +86,7 @@ class WatabouImportBoundaryTest(TestCase):
 
     def test_boundary_is_centred_on_origin(self):
         data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD])
-        origin = Point(500, -250, srid=3857)
+        origin = Point(500, -250, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Offset Wards", origin=origin)
 
@@ -96,7 +97,7 @@ class WatabouImportBoundaryTest(TestCase):
 class WatabouImportBuildingTypeTest(TestCase):
     def test_single_building_defaults_to_residential(self):
         data = _make_export(districts=None, buildings=[TRADE_BUILDING])
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Solo", origin=origin)
 
@@ -111,7 +112,7 @@ class WatabouImportBuildingTypeTest(TestCase):
         # is guaranteed a slot ahead of decorative types (see
         # _assign_building_types_and_capabilities).
         data = _make_export(districts=None, buildings=[TRADE_BUILDING] * 8)
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Eight Buildings", origin=origin)
 
@@ -137,7 +138,7 @@ class WatabouImportBuildingTypeTest(TestCase):
         # the next 3, and the final 3 fold back into residential (no
         # catch-all).
         data = _make_export(districts=None, buildings=[TRADE_BUILDING] * 30)
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Thirty Buildings", origin=origin)
 
@@ -161,7 +162,7 @@ class WatabouImportBuildingTypeTest(TestCase):
         # so milling and baking get dedicated buildings rather than sharing
         # a communal one, even though sharing would also fit.
         data = _make_export(districts=None, buildings=[LARGE_BUILDING] * 24)
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Large Village", origin=origin)
 
@@ -187,7 +188,7 @@ class WatabouImportBuildingTypeTest(TestCase):
         # out to a fixed allocation order (the original Ashenford bug: a
         # small village silently missing a bakery).
         data = _make_export(districts=None, buildings=[TRADE_BUILDING] * 6)
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Small Village", origin=origin)
 
@@ -214,7 +215,7 @@ class WatabouImportPopulationPlanLoggingTest(TestCase):
 
     def test_import_logs_recommended_settlement_plan(self):
         data = _make_export(districts=None, buildings=[TRADE_BUILDING] * 8)
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         with self.assertLogs("general", level="INFO") as logs:
             import_watabou_village(data, name="Logged Village", origin=origin)
@@ -227,7 +228,7 @@ class WatabouImportGraphTest(TestCase):
         data = _make_export(
             districts=[TRADE_DISTRICT, MILL_WARD], buildings=[TRADE_BUILDING]
         )
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Graph Village", origin=origin)
 
@@ -249,7 +250,7 @@ class WatabouImportGraphTest(TestCase):
 
     def test_granary_has_no_entrance_node_but_other_buildings_do(self):
         data = _make_export(districts=None, buildings=[TRADE_BUILDING] * 8)
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Granary Entrances", origin=origin)
 
@@ -275,7 +276,7 @@ class WatabouImportGraphTest(TestCase):
         data = _make_export(
             districts=[TRADE_DISTRICT, MILL_WARD], roads=roads, road_width=8
         )
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Road Village", origin=origin)
 
@@ -293,7 +294,7 @@ class WatabouImportGraphTest(TestCase):
                 {"type": "Feature", "id": "roads", "geometries": []},
             ]
         }
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         with self.assertRaises(ValueError):
             import_watabou_village(data, name="No Boundary", origin=origin)
@@ -311,7 +312,7 @@ class WatabouImportFieldsTest(TestCase):
         data = _make_export(
             districts=[TRADE_DISTRICT, MILL_WARD], fields=[FIELD_ONE, FIELD_TWO]
         )
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Fielded Wards", origin=origin)
 
@@ -322,7 +323,7 @@ class WatabouImportFieldsTest(TestCase):
 
     def test_subzone_size_matches_polygon_area_in_hectares(self):
         data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD], fields=[FIELD_ONE])
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="One Field", origin=origin)
 
@@ -334,7 +335,7 @@ class WatabouImportFieldsTest(TestCase):
         data = _make_export(
             districts=[TRADE_DISTRICT, MILL_WARD], fields=[FIELD_ONE, FIELD_TWO]
         )
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Two Fields", origin=origin)
 
@@ -344,7 +345,7 @@ class WatabouImportFieldsTest(TestCase):
 
     def test_no_fields_feature_creates_no_land_area(self):
         data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD])
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="No Fields", origin=origin)
 
@@ -353,7 +354,7 @@ class WatabouImportFieldsTest(TestCase):
 
     def test_empty_fields_coordinates_creates_no_land_area(self):
         data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD], fields=[])
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Empty Fields", origin=origin)
 
@@ -371,7 +372,7 @@ class WatabouImportSquaresTest(TestCase):
         data = _make_export(
             districts=[TRADE_DISTRICT, MILL_WARD], squares=[SQUARE_ONE, SQUARE_TWO]
         )
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Plaza Wards", origin=origin)
 
@@ -388,7 +389,7 @@ class WatabouImportSquaresTest(TestCase):
             fields=[FIELD_ONE],
             squares=[SQUARE_TWO],
         )
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="Mixed Wards", origin=origin)
 
@@ -399,7 +400,7 @@ class WatabouImportSquaresTest(TestCase):
 
     def test_no_squares_feature_creates_no_square_subzone(self):
         data = _make_export(districts=[TRADE_DISTRICT, MILL_WARD])
-        origin = Point(0, 0, srid=3857)
+        origin = Point(0, 0, srid=PROJECT_SRID)
 
         centre = import_watabou_village(data, name="No Squares", origin=origin)
 

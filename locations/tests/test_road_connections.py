@@ -3,10 +3,13 @@ from django.test import TestCase
 
 from locations.models import PopulationCentre, Road
 from locations.services.road_connections import connect_nearest_village_roads
+from locations.constants import PROJECT_SRID
 
 
 def _centre(name: str, x: float, y: float) -> PopulationCentre:
-    return PopulationCentre.objects.create(name=name, location=Point(x, y, srid=3857))
+    return PopulationCentre.objects.create(
+        name=name, location=Point(x, y, srid=PROJECT_SRID)
+    )
 
 
 class ConnectNearestVillageRoadsTest(TestCase):
@@ -14,19 +17,19 @@ class ConnectNearestVillageRoadsTest(TestCase):
         near = _centre("Near", 0, 0)
         Road.objects.create(
             population_centre=near,
-            geom=LineString((0, 0), (10, 0), srid=3857),
+            geom=LineString((0, 0), (10, 0), srid=PROJECT_SRID),
         )
         far = _centre("Far", 1000, 0)
         Road.objects.create(
             population_centre=far,
-            geom=LineString((990, 0), (1000, 0), srid=3857),
+            geom=LineString((990, 0), (1000, 0), srid=PROJECT_SRID),
         )
         # A third, more distant village whose closer road endpoint should be
         # ignored in favour of "far"'s nearer one.
         farther = _centre("Farther", 5000, 0)
         Road.objects.create(
             population_centre=farther,
-            geom=LineString((4000, 0), (4990, 0), srid=3857),
+            geom=LineString((4000, 0), (4990, 0), srid=PROJECT_SRID),
         )
 
         connector = connect_nearest_village_roads(near)
@@ -54,7 +57,7 @@ class ConnectNearestVillageRoadsTest(TestCase):
         solo = _centre("Solo", 0, 0)
         Road.objects.create(
             population_centre=solo,
-            geom=LineString((0, 0), (10, 0), srid=3857),
+            geom=LineString((0, 0), (10, 0), srid=PROJECT_SRID),
         )
         _centre("Roadless", 100, 0)
 

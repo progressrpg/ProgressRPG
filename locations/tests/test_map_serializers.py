@@ -16,11 +16,12 @@ from ..serializers import (
     PopulationCentreLabelFeatureSerializer,
     SubzoneFeatureSerializer,
 )
+from locations.constants import PROJECT_SRID
 from ..services import population_estimation
 
 SQUARE = Polygon(
     ((0, 0), (0, 10), (10, 10), (10, 0), (0, 0)),
-    srid=3857,
+    srid=PROJECT_SRID,
 )
 
 
@@ -110,7 +111,7 @@ class CharacterPointFeatureSerializerTest(TestCase):
             name="Village Bakery", building_type="bakery"
         )
         self.character = Character.objects.create(
-            given_name="Alice", location=Point(0, 0, srid=3857)
+            given_name="Alice", location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def properties(self):
@@ -240,7 +241,7 @@ class CharacterDetailSerializerTest(TestCase):
 
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Alice", sex="Female", location=Point(0, 0, srid=3857)
+            given_name="Alice", sex="Female", location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def properties(self):
@@ -293,7 +294,7 @@ class CharacterDetailSerializerTest(TestCase):
 class SubzoneFeatureSerializerTest(TestCase):
     def setUp(self):
         centre = PopulationCentre.objects.create(
-            name="Testville", location=Point(0, 0, srid=3857)
+            name="Testville", location=Point(0, 0, srid=PROJECT_SRID)
         )
         land_area = LandArea.objects.create(
             name="Testville Land Area", population_centre=centre, size=1.0
@@ -373,7 +374,7 @@ class PopulationCentreLabelFeatureSerializerTest(TestCase):
 
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
-            name="Testville", location=Point(0, 0, srid=3857)
+            name="Testville", location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def properties(self):

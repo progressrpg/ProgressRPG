@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 
 from character.models import Character
 from ..models import Building, Node, Path, PopulationCentre
+from locations.constants import PROJECT_SRID
 
 
 def square(cx, cy, half=5):
@@ -17,7 +18,7 @@ def square(cx, cy, half=5):
             (cx + half, cy - half),
             (cx - half, cy - half),
         ),
-        srid=3857,
+        srid=PROJECT_SRID,
     )
 
 
@@ -50,12 +51,12 @@ class MapViewportViewTest(TestCase):
     def test_only_villages_overlapping_bbox_are_returned(self):
         PopulationCentre.objects.create(
             name="Near Village",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=square(0, 0),
         )
         PopulationCentre.objects.create(
             name="Far Village",
-            location=Point(5000, 5000, srid=3857),
+            location=Point(5000, 5000, srid=PROJECT_SRID),
             boundary=square(5000, 5000),
         )
 
@@ -88,9 +89,11 @@ class MapViewportViewTest(TestCase):
 
     def test_character_outside_bbox_is_excluded(self):
         Character.objects.create(
-            given_name="Faraway", location=Point(9999, 9999, srid=3857)
+            given_name="Faraway", location=Point(9999, 9999, srid=PROJECT_SRID)
         )
-        Character.objects.create(given_name="Inside", location=Point(0, 0, srid=3857))
+        Character.objects.create(
+            given_name="Inside", location=Point(0, 0, srid=PROJECT_SRID)
+        )
 
         response = self.client.get(self.url, {"bbox": "-20,-20,20,20"})
 
@@ -105,8 +108,12 @@ class MapViewportViewTest(TestCase):
     def test_cross_village_path_included_when_viewport_is_mid_route(self):
         # Two nodes far apart, both outside a small viewport centred between
         # them - the path's geometry still crosses through the viewport.
-        node_a = Node.objects.create(name="A", location=Point(-1000, 0, srid=3857))
-        node_b = Node.objects.create(name="B", location=Point(1000, 0, srid=3857))
+        node_a = Node.objects.create(
+            name="A", location=Point(-1000, 0, srid=PROJECT_SRID)
+        )
+        node_b = Node.objects.create(
+            name="B", location=Point(1000, 0, srid=PROJECT_SRID)
+        )
         Path.objects.create(from_node=node_a, to_node=node_b)
 
         response = self.client.get(self.url, {"bbox": "-20,-20,20,20"})
@@ -120,8 +127,12 @@ class MapViewportViewTest(TestCase):
         self.assertEqual(len(path_features), 1)
 
     def test_distant_path_not_crossing_viewport_is_excluded(self):
-        node_a = Node.objects.create(name="A", location=Point(5000, 5000, srid=3857))
-        node_b = Node.objects.create(name="B", location=Point(5100, 5100, srid=3857))
+        node_a = Node.objects.create(
+            name="A", location=Point(5000, 5000, srid=PROJECT_SRID)
+        )
+        node_b = Node.objects.create(
+            name="B", location=Point(5100, 5100, srid=PROJECT_SRID)
+        )
         Path.objects.create(from_node=node_a, to_node=node_b)
 
         response = self.client.get(self.url, {"bbox": "-20,-20,20,20"})

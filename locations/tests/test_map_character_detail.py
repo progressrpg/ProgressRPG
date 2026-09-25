@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 
 from character.models import Character, RelationshipRole, RelationshipType
 from character.services import relationship_services
+from locations.constants import PROJECT_SRID
 
 
 class MapCharacterDetailViewTest(TestCase):
@@ -16,7 +17,7 @@ class MapCharacterDetailViewTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=user)
         self.character = Character.objects.create(
-            given_name="Alice", sex="Female", location=Point(0, 0, srid=3857)
+            given_name="Alice", sex="Female", location=Point(0, 0, srid=PROJECT_SRID)
         )
         self.url = reverse("map-character-detail", kwargs={"pk": self.character.id})
 

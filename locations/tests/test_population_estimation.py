@@ -15,6 +15,7 @@ from django.test import SimpleTestCase, TestCase
 from locations.management.commands.populate_interiors import (
     BUILDING_INTERIORS_PROPORTIONS,
 )
+from locations.constants import PROJECT_SRID
 from locations.models import Building, PopulationCentre
 from locations.services.population_estimation import (
     RESIDENTIAL_OCCUPANCY_FACTOR,
@@ -47,7 +48,7 @@ def _square_footprint(size, x=0, y=0):
             (x, y + size),
             (x, y),
         ),
-        srid=3857,
+        srid=PROJECT_SRID,
     )
 
 
@@ -94,14 +95,14 @@ class ResidentialCapacityTests(TestCase):
 
     def _make_centre(self, name="Estimateville"):
         return PopulationCentre.objects.create(
-            name=name, location=Point(0, 0, srid=3857)
+            name=name, location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def _make_building(self, centre, building_type, footprint, x=0):
         return Building.objects.create(
             name=f"{building_type} at {x}",
             building_type=building_type,
-            location=Point(x, 0, srid=3857),
+            location=Point(x, 0, srid=PROJECT_SRID),
             footprint=footprint,
             population_centre=centre,
         )
@@ -179,14 +180,14 @@ class StartingPopulationTests(TestCase):
 
     def _make_centre(self, name="Startingville"):
         return PopulationCentre.objects.create(
-            name=name, location=Point(0, 0, srid=3857)
+            name=name, location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def _make_residential_building(self, centre, size, x=0):
         return Building.objects.create(
             name=f"house at {x}",
             building_type="residential",
-            location=Point(x, 0, srid=3857),
+            location=Point(x, 0, srid=PROJECT_SRID),
             footprint=_square_footprint(size, x=x),
             population_centre=centre,
         )
