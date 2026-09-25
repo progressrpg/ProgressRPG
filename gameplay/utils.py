@@ -45,7 +45,11 @@ def start_server_timers(act_timer: ActivityTimer):
     logger.info("[START SERVER TIMERS] Attempting to start server timers")
     logger.debug(f"[START SERVER TIMERS] Timers status: activity={act_timer.status}")
 
-    if act_timer.status in ["active", "paused", "waiting"]:
+    if act_timer.status in [
+        ActivityTimer.Status.ACTIVE,
+        ActivityTimer.Status.PAUSED,
+        ActivityTimer.Status.WAITING,
+    ]:
         try:
             from gameplay.services.xp_modifiers import set_activity_active_modifiers
 
@@ -72,7 +76,10 @@ def pause_server_timers(act_timer: ActivityTimer):
     logger.debug(f"[PAUSE SERVER TIMERS] Timers status before: {act_timer.status}")
 
     try:
-        if act_timer.status not in ["completed", "empty"]:
+        if act_timer.status not in [
+            ActivityTimer.Status.COMPLETED,
+            ActivityTimer.Status.EMPTY,
+        ]:
             from gameplay.services.xp_modifiers import set_activity_active_modifiers
 
             act_timer.pause()
@@ -118,8 +125,22 @@ async def control_timers(player: Player, act_timer: ActivityTimer, mode: str) ->
         success_message = "Timers successfully paused"
         failure_message = "Pausing timers failed"
     else:
+        # Returns rather than falling through: the branches above are what
+        # assign `server_success`/`action`/the log messages, so continuing
+        # past here would read an unbound local. Mirrors the failure
+        # contract of the two valid modes - a caller in an async consumer
+        # gets False, not an exception.
         result_text = f"[CONTROL TIMERS] Invalid mode: {mode}"
         logger.warning(result_text)
+        await send_group_message(
+            f"player_{player_id}",
+            {
+                "type": "response",
+                "action": "console.log",
+                "message": result_text,
+            },
+        )
+        return False
 
     if server_success:
         logger.info(f"[CONTROL TIMERS] {success_message} for player {player_id}")

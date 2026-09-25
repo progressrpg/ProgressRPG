@@ -28,7 +28,11 @@ export type FeatureFlagKey =
   | "dailyGoalsBadge";
 
 // ---------------------------------------------------------------------------
-// Timer statuses (Timer.STATUS_CHOICES in gameplay/models.py)
+// Timer statuses (Timer.Status in gameplay/models.py)
+//
+// These values cross the wire in ActivityTimerSerializer, so this union and
+// the backend TextChoices must stay in step. Adding a state means changing
+// both.
 // ---------------------------------------------------------------------------
 
 export type TimerStatus = "active" | "paused" | "waiting" | "completed" | "empty";
