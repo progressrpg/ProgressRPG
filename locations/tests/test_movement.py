@@ -266,7 +266,9 @@ class GoHomeTests(TestCase):
 class GoOutsideTests(TestCase):
     def setUp(self):
         self.start_node = Node.objects.create(
-            name="Start", location=Point(0, 0, srid=PROJECT_SRID)
+            name="Start",
+            location=Point(0, 0, srid=PROJECT_SRID),
+            kind=Node.Kind.BUILDING_ENTRANCE,
         )
         self.outside_node = Node.objects.create(
             name="Square",
