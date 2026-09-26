@@ -6,14 +6,21 @@ from django.test import TestCase
 from locations.models import Node, Path, Building, Journey
 from locations.tasks import move_characters_tick
 from character.models import Character
+from locations.constants import PROJECT_SRID
 
 
 class LocationsModelsTestCase(TestCase):
     def setUp(self):
         # Create a small linear graph of three nodes
-        self.node_a = Node.objects.create(name="A", location=Point(0, 0, srid=3857))
-        self.node_b = Node.objects.create(name="B", location=Point(10, 0, srid=3857))
-        self.node_c = Node.objects.create(name="C", location=Point(20, 0, srid=3857))
+        self.node_a = Node.objects.create(
+            name="A", location=Point(0, 0, srid=PROJECT_SRID)
+        )
+        self.node_b = Node.objects.create(
+            name="B", location=Point(10, 0, srid=PROJECT_SRID)
+        )
+        self.node_c = Node.objects.create(
+            name="C", location=Point(20, 0, srid=PROJECT_SRID)
+        )
 
         # Create directed paths A -> B -> C
         self.path_ab = Path.objects.create(from_node=self.node_a, to_node=self.node_b)
@@ -23,7 +30,7 @@ class LocationsModelsTestCase(TestCase):
         self.building = Building.objects.create(
             name="Test Inn",
             building_type="inn",
-            location=Point(10, 0, srid=3857),
+            location=Point(10, 0, srid=PROJECT_SRID),
         )
 
         # Link building to node_b for semantic tests
@@ -47,7 +54,7 @@ class LocationsModelsTestCase(TestCase):
         # Create a character located at node A
         char = Character.objects.create(
             given_name="Mover",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.node_a,
         )
 
@@ -68,7 +75,7 @@ class LocationsModelsTestCase(TestCase):
         with patch("locations.tasks.move_characters_tick.apply_async") as mocked_task:
             char = Character.objects.create(
                 given_name="Walker",
-                location=Point(0, 0, srid=3857),
+                location=Point(0, 0, srid=PROJECT_SRID),
                 current_node=self.node_a,
             )
 
@@ -98,7 +105,7 @@ class LocationsModelsTestCase(TestCase):
         journey = Journey.objects.create(
             character=Character.objects.create(
                 given_name="J",
-                location=Point(0, 0, srid=3857),
+                location=Point(0, 0, srid=PROJECT_SRID),
                 current_node=self.node_a,
             ),
             start_node=self.node_a,
@@ -138,7 +145,7 @@ class LocationsModelsTestCase(TestCase):
         journey = Journey.objects.create(
             character=Character.objects.create(
                 given_name="J2",
-                location=Point(0, 0, srid=3857),
+                location=Point(0, 0, srid=PROJECT_SRID),
                 current_node=self.node_a,
             ),
             start_node=self.node_a,
@@ -159,7 +166,7 @@ class LocationsModelsTestCase(TestCase):
         journey = Journey.objects.create(
             character=Character.objects.create(
                 given_name="J3",
-                location=Point(0, 0, srid=3857),
+                location=Point(0, 0, srid=PROJECT_SRID),
                 current_node=self.node_a,
             ),
             start_node=self.node_a,
@@ -176,7 +183,7 @@ class LocationsModelsTestCase(TestCase):
         AttributeError the moment any real Journey actually completed."""
         char = Character.objects.create(
             given_name="Arriver",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.node_a,
         )
         char.set_destination(node=self.node_b)

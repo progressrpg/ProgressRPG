@@ -16,6 +16,155 @@
   margin: 0 auto;
 }
 
+.tabsRoot {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.tabBar {
+  display: flex;
+  justify-content: center;
+  gap: sp.$spacing-sm;
+  border-bottom: 1px solid rgba(c.$color-border-primary, 0.25);
+  margin-bottom: sp.$spacing-lg;
+}
+
+.tab {
+  padding: sp.$spacing-sm sp.$spacing-md;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  font-family: inherit;
+  @include t.apply-text-style(t.$text-body);
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.6);
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: c.$color-border-primary;
+  }
+
+  &[data-state='active'] {
+    color: c.$color-border-primary;
+    border-bottom-color: c.$color-border-primary;
+    font-weight: 600;
+  }
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-lg;
+  width: 100%;
+}
+
+.preferenceList {
+  display: flex;
+  flex-direction: column;
+  gap: sp.$spacing-sm;
+}
+
+.preferenceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp.$spacing-md;
+  padding: sp.$spacing-sm;
+  background: rgba(c.$color-border-primary, 0.05);
+  border-radius: sp.$border-radius;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.08);
+  }
+}
+
+.preferenceText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+// Toggle switch: a native checkbox (role="switch") visually hidden but kept
+// in the tab/click order for real keyboard and screen-reader support, with
+// a sibling span drawn as the track/thumb - :checked on the (still
+// interactive) input drives the sibling's style via the general sibling
+// selector, no JS needed for the visual state.
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 1.5rem;
+}
+
+.switchInput {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.switchTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(c.$color-border-primary, 0.25);
+  transition: background 0.2s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0.15rem;
+    left: 0.15rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: c.$color-bg;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease;
+  }
+}
+
+.switchInput:checked + .switchTrack {
+  background: c.$color-border-primary;
+
+  &::before {
+    transform: translateX(1.1rem);
+  }
+}
+
+.switchInput:focus-visible + .switchTrack {
+  outline: 2px solid c.$color-border-primary;
+  outline-offset: 2px;
+}
+
+.switchInput:disabled + .switchTrack {
+  opacity: 0.5;
+}
+
+.preferenceName {
+  font-weight: 600;
+  color: c.$color-border-primary;
+  @include t.apply-text-style(t.$text-body);
+}
+
+.preferenceHelp {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9em;
+  @include t.apply-text-style(t.$text-body);
+}
+
 .section {
   padding: sp.$padding-lg;
   border: 1px solid rgba(c.$color-border-primary, 0.2);

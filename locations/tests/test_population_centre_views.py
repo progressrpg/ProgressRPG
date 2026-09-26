@@ -11,6 +11,7 @@ from locations.models import Node, Path, Journey, PopulationCentre
 from character.models import Character
 from progression.models import ActivityDefinition, CharacterActivity
 from users.tests import user_factory
+from locations.constants import PROJECT_SRID
 
 
 class PopulationCentreMapViewJourneyTest(TestCase):
@@ -20,17 +21,21 @@ class PopulationCentreMapViewJourneyTest(TestCase):
 
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
-            name="Map Journey Village", location=Point(0, 0, srid=3857)
+            name="Map Journey Village", location=Point(0, 0, srid=PROJECT_SRID)
         )
-        self.node_a = Node.objects.create(name="A", location=Point(0, 0, srid=3857))
-        self.node_b = Node.objects.create(name="B", location=Point(10, 0, srid=3857))
+        self.node_a = Node.objects.create(
+            name="A", location=Point(0, 0, srid=PROJECT_SRID)
+        )
+        self.node_b = Node.objects.create(
+            name="B", location=Point(10, 0, srid=PROJECT_SRID)
+        )
         Path.objects.create(from_node=self.node_a, to_node=self.node_b)
 
         self.moving_characters = []
         for i in range(5):
             character = Character.objects.create(
                 given_name=f"Mover{i}",
-                location=Point(0, 0, srid=3857),
+                location=Point(0, 0, srid=PROJECT_SRID),
                 current_node=self.node_a,
                 population_centre=self.centre,
                 is_moving=True,
@@ -88,7 +93,7 @@ class PopulationCentreMapViewCurrentActivityTest(TestCase):
 
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
-            name="Map Activity Village", location=Point(0, 0, srid=3857)
+            name="Map Activity Village", location=Point(0, 0, srid=PROJECT_SRID)
         )
         activity_definition = ActivityDefinition.objects.create(
             name="General labour", kind=ActivityDefinition.Kind.WORK
@@ -98,7 +103,7 @@ class PopulationCentreMapViewCurrentActivityTest(TestCase):
         for i in range(5):
             character = Character.objects.create(
                 given_name=f"Worker{i}",
-                location=Point(0, 0, srid=3857),
+                location=Point(0, 0, srid=PROJECT_SRID),
                 population_centre=self.centre,
             )
             CharacterActivity.objects.create(
@@ -163,12 +168,12 @@ class PopulationCentreVillagePointsTest(TestCase):
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
             name="Test Village",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
         )
         self.residents = [
             Character.objects.create(
                 given_name=f"Resident{i}",
-                location=Point(0, 0, srid=3857),
+                location=Point(0, 0, srid=PROJECT_SRID),
                 population_centre=self.centre,
             )
             for i in range(4)

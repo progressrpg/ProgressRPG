@@ -75,14 +75,24 @@ class Timer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
 
-    STATUS_CHOICES = [
-        ("active", "Active"),
-        ("paused", "Paused"),
-        ("waiting", "Waiting"),
-        ("completed", "Completed"),
-        ("empty", "Empty"),
-    ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="empty")
+    class Status(models.TextChoices):
+        """
+        The timer state machine, in one place.
+
+        Mirrored on the client as `TimerStatus` in
+        frontend/src/types/enums.ts - the values cross the wire in
+        ActivityTimerSerializer, so the two must stay in step.
+        """
+
+        ACTIVE = "active", "Active"
+        PAUSED = "paused", "Paused"
+        WAITING = "waiting", "Waiting"
+        COMPLETED = "completed", "Completed"
+        EMPTY = "empty", "Empty"
+
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.EMPTY
+    )
 
     if TYPE_CHECKING:
         # Django adds this implicit PK on concrete subclasses; not visible
@@ -93,7 +103,7 @@ class Timer(models.Model):
         abstract = True
 
     def get_elapsed_time(self):
-        if self.start_time and self.status == "active":
+        if self.start_time and self.status == self.Status.ACTIVE:
             logger.debug(
                 f"[GET ELAPSED] Timer {self.id} active — start_time: {self.start_time}, now: {timezone.now()}, base: {self.elapsed_time}"
             )
@@ -105,10 +115,6 @@ class Timer(models.Model):
             f"[GET ELAPSED] Timer {self.id} status: '{self.status}' and start time: '{self.start_time}' — returning stored elapsed_time: {self.elapsed_time}"
         )
         return self.elapsed_time
-
-    def compute_elapsed(self):
-        """Calculate time without updating the model."""
-        return self.get_elapsed_time()
 
     def apply_elapsed(self):
         """Store current elapsed time in the DB."""
@@ -128,8 +134,8 @@ class Timer(models.Model):
             f"[TIMER START DEBUG] Timer {self.id} status before: {self.status}, after: active, time: {timezone.now()}"
         )
 
-        if self.status != "active":
-            self.status = "active"
+        if self.status != self.Status.ACTIVE:
+            self.status = self.Status.ACTIVE
             self.start_time = timezone.now()
             self.save(update_fields=["status", "start_time"])
             logger.debug(f"[TIMER START] Timer {self.id} started at {self.start_time}")
@@ -139,18 +145,9 @@ class Timer(models.Model):
         """
         Pause the timer and update its elapsed time.
         """
-        if self.status != "paused":
+        if self.status != self.Status.PAUSED:
             self.apply_elapsed()
-            self.status = "paused"
-            self.save(update_fields=["status"])
-        return self
-
-    def set_waiting(self):
-        """
-        Set the timer status to 'waiting'.
-        """
-        if self.status != "waiting":
-            self.status = "waiting"
+            self.status = self.Status.PAUSED
             self.save(update_fields=["status"])
         return self
 
@@ -162,9 +159,9 @@ class Timer(models.Model):
             f"[COMPLETE DEBUG] Timer {self.id} — status: {self.status}, start_time: {self.start_time}, elapsed_time before: {self.elapsed_time}"
         )
 
-        if self.status != "completed":
+        if self.status != self.Status.COMPLETED:
             self.apply_elapsed()
-            self.status = "completed"
+            self.status = self.Status.COMPLETED
             self.save()
         return self
 
@@ -172,8 +169,8 @@ class Timer(models.Model):
         """
         Reset the timer, clearing all elapsed time and setting status to 'empty'.
         """
-        if self.status != "empty":
-            self.status = "empty"
+        if self.status != self.Status.EMPTY:
+            self.status = self.Status.EMPTY
             self.elapsed_time = 0
             self.start_time = None
             self._reset_hook()
@@ -190,7 +187,7 @@ class Timer(models.Model):
         :return: True if the timer is active, False otherwise.
         :rtype: bool
         """
-        return self.status == "active"
+        return self.status == self.Status.ACTIVE
 
 
 class ActivityTimer(Timer):
@@ -220,10 +217,6 @@ class ActivityTimer(Timer):
     # instead of needing a verdict about whether the player is still around.
     limit_seconds = models.PositiveIntegerField(null=True, blank=True)
     limit_reason = models.CharField(max_length=32, blank=True, default="")
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # logger.debug(f"[Activity timer save] Compute elapsed: {self.compute_elapsed()}")
 
     def __str__(self):
         return f"ActivityTimer {self.id} for {self.player.name}"
@@ -262,7 +255,9 @@ class ActivityTimer(Timer):
 
         self.start_time = started_at
         self.elapsed_time = 0
-        self.status = "active" if start_immediately else "waiting"
+        self.status = (
+            self.Status.ACTIVE if start_immediately else self.Status.WAITING
+        )
         # A new session inherits nothing from the previous one's declared
         # duration; set_limit() applies the new one (or the free ceiling).
         self.limit_seconds = None
@@ -292,7 +287,7 @@ class ActivityTimer(Timer):
 
     def has_banked_time(self) -> bool:
         """Whether this timer is holding time the player hasn't resolved."""
-        return self.status == "paused" and self.elapsed_time > 0
+        return self.status == self.Status.PAUSED and self.elapsed_time > 0
 
     def can_resume(self) -> bool:
         """
@@ -302,7 +297,7 @@ class ActivityTimer(Timer):
         time is still the player's - they submit it - but continuing to add
         to it would credit today's work to the day the session began.
         """
-        if self.status != "paused":
+        if self.status != self.Status.PAUSED:
             return False
 
         if not self.activity or self.activity.logical_date is None:
@@ -398,6 +393,83 @@ class ActivityTimer(Timer):
         if self.activity:
             self.activity.rename(name)
 
+    def _apply_client_elapsed(
+        self, client_elapsed_seconds: int | None, completion_source: str
+    ):
+        """
+        Auto-completion elapsed-time reconciliation: trust the client's
+        elapsed time over the server's when it reports more and the
+        completion was triggered automatically (e.g. the bounded-timer
+        sweep), so a client that was still running right up to the sweep
+        doesn't lose the last few seconds.
+        """
+        if completion_source != "auto":
+            return
+
+        try:
+            if client_elapsed_seconds is None:
+                raise TypeError
+            parsed_client_elapsed = int(client_elapsed_seconds)
+        except (TypeError, ValueError):
+            parsed_client_elapsed = None
+
+        if (
+            parsed_client_elapsed is not None
+            and parsed_client_elapsed > self.elapsed_time
+        ):
+            self.elapsed_time = parsed_client_elapsed
+            self.save(update_fields=["elapsed_time"])
+
+    def _backfill_started_at(self, pre_complete_start_time):
+        """
+        If the activity never had `started_at` set (e.g. it was created
+        already active rather than via the normal start flow), backfill it
+        from the timer's own start_time, or - failing that - derive it from
+        elapsed_time counting back from now.
+        """
+        if self.activity.started_at is not None:
+            return
+
+        from progression.day_boundaries import logical_date_for
+
+        if pre_complete_start_time is not None:
+            backfilled_started_at = pre_complete_start_time
+        else:
+            backfilled_started_at = timezone.now() - timedelta(
+                seconds=max(0, int(self.elapsed_time))
+            )
+
+        self.activity.started_at = backfilled_started_at
+        self.activity.logical_date = logical_date_for(
+            self.player, backfilled_started_at
+        )
+        self.activity.save(update_fields=["started_at", "logical_date"])
+
+    def _award_and_check_goals(self):
+        """
+        Complete the underlying activity, award its XP/AP, then check daily
+        goals against the activity's own logical day. Returns the reward
+        summary, with level_ups and the daily-goals bonus folded in.
+        """
+        reward_summary = self.activity.get_xp_reward_summary()
+        xp_gained = self.activity.complete(reward_summary=reward_summary)
+        level_ups = self.player.add_activity(self.elapsed_time, xp=xp_gained)
+
+        from progression.daily_goals import check_and_award_daily_goals
+
+        # Against the session's own logical day rather than the current
+        # one: a session started before the day rolled over completes
+        # the goals for the day it was worked, however late it is
+        # submitted.
+        goals_state, bonus_level_ups = check_and_award_daily_goals(
+            self.player, today=self.activity.logical_date
+        )
+        level_ups = level_ups + bonus_level_ups
+
+        reward_summary["level_ups"] = level_ups
+        reward_summary["daily_goals_bonus_ap"] = goals_state.bonus_ap
+        return reward_summary
+
     def complete(
         self,
         newName=None,
@@ -449,58 +521,15 @@ class ActivityTimer(Timer):
             pre_complete_start_time = self.start_time
             super().complete()
 
-            if completion_source == "auto":
-                try:
-                    if client_elapsed_seconds is None:
-                        raise TypeError
-                    parsed_client_elapsed = int(client_elapsed_seconds)
-                except (TypeError, ValueError):
-                    parsed_client_elapsed = None
-
-                if (
-                    parsed_client_elapsed is not None
-                    and parsed_client_elapsed > self.elapsed_time
-                ):
-                    self.elapsed_time = parsed_client_elapsed
-                    self.save(update_fields=["elapsed_time"])
+            self._apply_client_elapsed(client_elapsed_seconds, completion_source)
 
             if newName:
                 self.rename_activity(newName)
             self.update_activity_time()
 
-            if self.activity.started_at is None:
-                from progression.day_boundaries import logical_date_for
+            self._backfill_started_at(pre_complete_start_time)
 
-                if pre_complete_start_time is not None:
-                    backfilled_started_at = pre_complete_start_time
-                else:
-                    backfilled_started_at = timezone.now() - timedelta(
-                        seconds=max(0, int(self.elapsed_time))
-                    )
-
-                self.activity.started_at = backfilled_started_at
-                self.activity.logical_date = logical_date_for(
-                    self.player, backfilled_started_at
-                )
-                self.activity.save(update_fields=["started_at", "logical_date"])
-
-            reward_summary = self.activity.get_xp_reward_summary()
-            xp_gained = self.activity.complete(reward_summary=reward_summary)
-            level_ups = self.player.add_activity(self.elapsed_time, xp=xp_gained)
-
-            from progression.daily_goals import check_and_award_daily_goals
-
-            # Against the session's own logical day rather than the current
-            # one: a session started before the day rolled over completes
-            # the goals for the day it was worked, however late it is
-            # submitted.
-            goals_state, bonus_level_ups = check_and_award_daily_goals(
-                self.player, today=self.activity.logical_date
-            )
-            level_ups = level_ups + bonus_level_ups
-
-            reward_summary["level_ups"] = level_ups
-            reward_summary["daily_goals_bonus_ap"] = goals_state.bonus_ap
+            reward_summary = self._award_and_check_goals()
 
             logger.debug(
                 f"[TIMER COMPLETE] Timer {self.id} completed — elapsed_time: {self.elapsed_time}, completed_at: {self.activity.completed_at}"
@@ -629,6 +658,33 @@ class XpModifier(models.Model):
     key = models.CharField(
         max_length=64
     )  # e.g. "player_online", "focus_streak", "event_weekend"
+
+    class Stacking(models.TextChoices):
+        """
+        How this modifier combines with the others active at the same time.
+
+        See progression.ap.get_multiplier for the rule: additive modifiers
+        sum within their own bucket, and that bucket then multiplies with
+        the multiplicative ones.
+        """
+
+        ADDITIVE = "additive", "Additive"
+        MULTIPLICATIVE = "multiplicative", "Multiplicative"
+
+    stacking = models.CharField(
+        max_length=16,
+        choices=Stacking.choices,
+        default=Stacking.MULTIPLICATIVE,
+        help_text=(
+            "Additive modifiers sum with each other before multiplying with "
+            "the multiplicative ones. Defaults to multiplicative, which is "
+            "how every modifier behaved before this field existed."
+        ),
+    )
+
+    # Always read as "+X%", whichever stacking mode applies: 1.25 means +25%,
+    # and the mode decides whether that 25% joins the sum or the product. An
+    # additive modifier contributes (multiplier - 1) to its bucket.
     multiplier = models.DecimalField(max_digits=6, decimal_places=3, default=1.0)
 
     starts_at = models.DateTimeField()
@@ -647,4 +703,28 @@ class XpModifier(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=["key", "is_active", "starts_at", "ends_at"]),
+        ]
+        constraints = [
+            # activate_link_modifier's update_or_create assumes at most one
+            # row per (key, owner); until now that held by convention only.
+            # Enforcing it also makes that call genuinely race-safe: a
+            # concurrent caller now loses on an IntegrityError and re-fetches
+            # rather than silently inserting a second row that would compound
+            # into get_multiplier.
+            #
+            # Two constraints, one per scope, rather than one over
+            # (scope, key, character): Postgres treats NULLs as distinct in a
+            # unique constraint, and both owner FKs are nullable - so a single
+            # constraint would quietly permit duplicate rows on whichever side
+            # was null.
+            models.UniqueConstraint(
+                fields=["key", "character"],
+                condition=models.Q(character__isnull=False),
+                name="uniq_xpmodifier_key_per_character",
+            ),
+            models.UniqueConstraint(
+                fields=["key", "player"],
+                condition=models.Q(player__isnull=False),
+                name="uniq_xpmodifier_key_per_player",
+            ),
         ]

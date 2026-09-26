@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone as dj_timezone
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -12,7 +13,7 @@ from unittest import skip
 from unittest.mock import patch, MagicMock
 
 from character.models import Character, PlayerCharacterLink
-from core.models import Announcement, FeatureFlag, PlayerAnnouncementState
+from core.models import Announcement, FeatureFlag, GameSettings, PlayerAnnouncementState
 from progression.models import Activity, PlayerActivity
 from users.models import CustomUserManager, Player
 
@@ -267,6 +268,99 @@ class TestMeViewSet(APITestCase):
         # shouldn't have paid it out.
         self.assertFalse(goals["bonus_awarded_today"])
         self.assertEqual(goals["bonus_ap"], 0)
+
+    def _enable_inactivity_reminders(self):
+        # InactivityReminderEmails.is_visible() mirrors this same cutoff
+        # (users/dynamic_preferences_registry.py), so the preference is
+        # absent from GET/PATCH until it's set - most of these tests need
+        # it on to exercise the preference at all.
+        settings = GameSettings.current()
+        settings.inactivity_reminders_enabled_from = dj_timezone.now()
+        settings.save()
+
+    def test_preferences_lists_registered_preferences_with_defaults(self):
+        self._enable_inactivity_reminders()
+        self.authenticate()
+
+        res = self.client.get(reverse("me-preferences"))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        keys = {item["key"] for item in res.data["preferences"]}
+        self.assertIn("notifications__inactivity_reminder_emails", keys)
+        item = next(
+            i
+            for i in res.data["preferences"]
+            if i["key"] == "notifications__inactivity_reminder_emails"
+        )
+        self.assertTrue(item["value"])
+        self.assertEqual(item["type"], "boolean")
+
+    def test_preferences_hides_inactivity_reminder_when_feature_disabled(self):
+        # GameSettings.inactivity_reminders_enabled_from is unset by
+        # default (see setUp / GameSettings.current()'s defaults), so the
+        # preference shouldn't appear at all - no point exposing a toggle
+        # for a feature that can't do anything yet.
+        self.authenticate()
+
+        res = self.client.get(reverse("me-preferences"))
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        keys = {item["key"] for item in res.data["preferences"]}
+        self.assertNotIn("notifications__inactivity_reminder_emails", keys)
+
+    def test_preferences_patch_rejects_inactivity_reminder_when_feature_disabled(self):
+        self.authenticate()
+
+        res = self.client.patch(
+            reverse("me-preferences"),
+            {"notifications__inactivity_reminder_emails": False},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_preferences_patch_updates_value(self):
+        self._enable_inactivity_reminders()
+        self.authenticate()
+
+        res = self.client.patch(
+            reverse("me-preferences"),
+            {"notifications__inactivity_reminder_emails": False},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        item = next(
+            i
+            for i in res.data["preferences"]
+            if i["key"] == "notifications__inactivity_reminder_emails"
+        )
+        self.assertFalse(item["value"])
+        self.assertFalse(
+            self.user.preferences["notifications__inactivity_reminder_emails"]
+        )
+
+    def test_preferences_patch_rejects_unknown_key(self):
+        self._enable_inactivity_reminders()
+        self.authenticate()
+
+        res = self.client.patch(
+            reverse("me-preferences"), {"not_a_real_key": True}, format="json"
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_preferences_patch_rejects_non_boolean_value(self):
+        self._enable_inactivity_reminders()
+        self.authenticate()
+
+        res = self.client.patch(
+            reverse("me-preferences"),
+            {"notifications__inactivity_reminder_emails": "not a bool"},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class CustomTokenObtainPairViewTests(APITestCase):
@@ -543,3 +637,66 @@ class DayStartTimeSettingTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.user.refresh_from_db()
         self.assertEqual(self.user.day_start_time, time(2, 0))
+
+    def test_timezone_can_be_updated(self):
+        response = self.client.patch(
+            reverse("me-user-settings"),
+            {"timezone": "Europe/London"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(str(self.user.timezone), "Europe/London")
+
+    def test_an_invalid_timezone_is_rejected(self):
+        response = self.client.patch(
+            reverse("me-user-settings"),
+            {"timezone": "Not/A_Timezone"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(str(self.user.timezone), "UTC")
+
+
+class TimezoneChoicesTests(APITestCase):
+    """
+    Backs the Account Preferences tab's timezone picker with every value
+    `user_settings`'s `timezone` field will actually accept.
+    """
+
+    def setUp(self):
+        from users.tests import user_factory
+
+        self.user = user_factory(with_player=True)
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_requires_auth(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(reverse("me-timezone-choices"))
+        self.assertEqual(response.status_code, 401)
+
+    def test_returns_value_label_pairs_including_known_zones(self):
+        response = self.client.get(reverse("me-timezone-choices"))
+
+        self.assertEqual(response.status_code, 200)
+        timezones = response.data["timezones"]
+        values = {entry["value"] for entry in timezones}
+        self.assertIn("Europe/London", values)
+        self.assertIn("UTC", values)
+
+        by_value = {entry["value"]: entry["label"] for entry in timezones}
+        self.assertEqual(by_value["Europe/London"], "Europe/London")
+
+    def test_every_returned_value_is_accepted_by_user_settings(self):
+        response = self.client.get(reverse("me-timezone-choices"))
+        sample = response.data["timezones"][0]["value"]
+
+        update = self.client.patch(
+            reverse("me-user-settings"), {"timezone": sample}, format="json"
+        )
+
+        self.assertEqual(update.status_code, 200)

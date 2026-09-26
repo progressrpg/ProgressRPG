@@ -1,7 +1,13 @@
 // hooks/useActivityTimer.ts
 import { useState, useRef, useEffect, useCallback } from "react";
-import { apiFetch } from "../utils/api.js";
-import { playActivityStartedSound, primeAudio } from "../utils/sounds.js";
+import {
+  completeTimer,
+  labelActivity as labelActivityRequest,
+  resetTimer,
+  setActivity,
+  startTimer,
+} from "../api/activityTimers";
+import { playActivityStartedSound, primeAudio } from "../utils/sounds";
 import type {
   TimerStatus,
   CurrentActivity,
@@ -11,12 +17,11 @@ import type {
   AutoStopCompletion,
   ActivityTimerReturn,
 } from "../types";
-//import { useGame } from "../context/GameContext.jsx";
 
 
 export default function useActivityTimer(): ActivityTimerReturn {
   const [_id, setId] = useState<number>(0);
-  const [status, setStatus] = useState<TimerStatus>("empty"); // "empty", "active", "waiting", "completed"
+  const [status, setStatus] = useState<TimerStatus>("empty"); // "empty", "active", "paused", "waiting", "completed"
   const [duration, setDuration] = useState<number>(0); // total seconds for timer base
   const [elapsed, setElapsed] = useState<number>(0);
   const [currentActivity, setCurrentActivity] = useState<CurrentActivity | null>(null);
@@ -24,7 +29,7 @@ export default function useActivityTimer(): ActivityTimerReturn {
   const [limitReached, setLimitReached] = useState<boolean>(false);
   // Server-decided: whether a paused session is still within its own
   // logical day and so may be continued rather than only submitted.
-  const [canResume, setCanResume] = useState<boolean>(false); // true after auto-stop fires; cleared on next startActivity or stop
+  const [canResume, setCanResume] = useState<boolean>(false); // mirrors serverData.can_resume, refreshed on every loadFromServer sync
   const [autoStopCompletion, setAutoStopCompletion] = useState<AutoStopCompletion | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -141,18 +146,15 @@ export default function useActivityTimer(): ActivityTimerReturn {
       // lets the server land directly on "active" instead of a separate
       // start() call bracketed by its own broadcast of the intermediate
       // "waiting" state - a state the client here never needed to see.
-      const setData = await apiFetch<{ activity_timer?: { activity?: CurrentActivity } }>(`/activity_timers/set_activity/`, {
-        method: "POST",
-        body: JSON.stringify({
-          activityName: trimmedText,
-          task_id: taskId ?? null,
-          duration: 0,
-          // Sent so the server can honour the bound while the tab is away;
-          // it clamps this to the free-tier ceiling for non-premium players.
-          limitSeconds: resolvedLimit,
-          limitReason: autoStopReasonRef.current,
-          start: true,
-        }),
+      const setData = await setActivity({
+        activityName: trimmedText,
+        taskId: taskId ?? null,
+        duration: 0,
+        // Sent so the server can honour the bound while the tab is away;
+        // it clamps this to the free-tier ceiling for non-premium players.
+        limitSeconds: resolvedLimit,
+        limitReason: autoStopReasonRef.current,
+        start: true,
       });
 
       // If server returns canonical activity object, store it
@@ -205,13 +207,7 @@ export default function useActivityTimer(): ActivityTimerReturn {
     setCurrentActivity((prev) => ({ ...(prev ?? {}), name: trimmedName, text: trimmedName, taskId }));
 
     try {
-      const data = await apiFetch<{ activity_timer?: { activity?: CurrentActivity } }>(`/activity_timers/label_activity/`, {
-        method: "POST",
-        body: JSON.stringify({
-          activityName: trimmedName,
-          task_id: taskId ?? null,
-        }),
-      });
+      const data = await labelActivityRequest(trimmedName, taskId ?? null);
 
       const serverActivity = data?.activity_timer?.activity;
       if (serverActivity) setCurrentActivity({ taskId, ...serverActivity });
@@ -250,7 +246,7 @@ export default function useActivityTimer(): ActivityTimerReturn {
     timerRef.current = setInterval(tickMain, 1000);
 
     try {
-      return await apiFetch(`/activity_timers/start/`, { method: "POST" });
+      return await startTimer();
     } catch (err) {
       console.error("Failed to resume activity:", err);
 
@@ -283,7 +279,7 @@ export default function useActivityTimer(): ActivityTimerReturn {
     pausedTimeRef.current = 0;
 
     try {
-      await apiFetch(`/activity_timers/reset/`, { method: "POST" });
+      await resetTimer();
     } finally {
       setStatus("empty");
       setElapsed(0);
@@ -333,14 +329,7 @@ export default function useActivityTimer(): ActivityTimerReturn {
         ? Number(elapsedSeconds)
         : elapsedRef.current;
 
-      result = await apiFetch<ActivityCompleteResponse>(`/activity_timers/complete/`, {
-        method: "POST",
-        body: JSON.stringify({
-          activityName,
-          elapsedSeconds: completedElapsedSeconds,
-          source,
-        }),
-      });
+      result = await completeTimer(activityName, completedElapsedSeconds, source);
       const parsedResultDurationSeconds = Number(result?.duration_seconds);
       const resolvedCompletionElapsedSeconds = Number.isFinite(parsedResultDurationSeconds)
         ? source === "auto"

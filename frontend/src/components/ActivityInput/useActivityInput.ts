@@ -10,6 +10,16 @@ import type { PlayerActivity } from "../../types";
 import { playLimitReachedSound, primeAudio } from "../../utils/sounds";
 import { formatDuration } from "../../utils/formatUtils";
 
+/**
+ * Minimal handle the hook needs from the activity name input: enough to blur
+ * it, nothing more. Structural rather than `HTMLInputElement` so this module
+ * stays free of DOM types — a React Native `TextInput` satisfies it too
+ * (#569/#574).
+ */
+export interface BlurrableInput {
+  blur: () => void;
+}
+
 /** Populated on stop when `results_mode` is on, instead of opening the SupportFlow modal. */
 export interface ResultsData {
   activityId: number | null;
@@ -287,6 +297,13 @@ export function useActivityInput() {
   const inputValue = hasSession ? (isEditingLabel ? name : name || currentActivity?.name || "") : name;
   const isUnlabelled = hasSession && !(currentActivity?.name ?? currentActivity?.text ?? "").trim();
 
+  // Ref callback rather than a bare ref object so the type stays structural
+  // (BlurrableInput) while still being assignable to a DOM `ref` prop.
+  const activityInputRef = useRef<BlurrableInput | null>(null);
+  const setActivityInputRef = useCallback((node: BlurrableInput | null) => {
+    activityInputRef.current = node;
+  }, []);
+
   useWelcomeMessageEffect({
     loginState,
     loginStreak,
@@ -295,9 +312,15 @@ export function useActivityInput() {
     openWelcomeMessage,
   });
 
+  // Dismiss the mobile keyboard once the timer starts running. This used to
+  // blur `document.activeElement` — whatever happened to be focused anywhere
+  // on the page, which is both a global DOM reach-around and imprecise. The
+  // component hands us a ref to the activity input itself, so blur exactly
+  // that; if it has already unmounted (the unified timer swaps it for the
+  // label display on start), unmounting blurred it anyway.
   useEffect(() => {
     if (isActive) {
-      (document.activeElement as HTMLElement | null)?.blur();
+      activityInputRef.current?.blur();
     }
   }, [isActive]);
 
@@ -603,6 +626,7 @@ export function useActivityInput() {
   return {
     name,
     setName,
+    setActivityInputRef,
     isActive,
     isPaused,
     isWaiting,

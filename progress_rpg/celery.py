@@ -61,6 +61,10 @@ app.conf.beat_schedule = {
         "task": "users.tasks.send_waitlist_nudges",
         "schedule": 7200.0,  # every 2 hours
     },
+    "send_inactivity_reminders": {
+        "task": "users.tasks.send_inactivity_reminders",
+        "schedule": crontab(hour=9, minute=0),  # daily
+    },
     "generate_character_days_1am": {
         "task": "character.tasks.generate_character_days",
         "schedule": crontab(hour=1, minute=0),

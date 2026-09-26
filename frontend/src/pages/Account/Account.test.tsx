@@ -2,15 +2,23 @@ import React from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { TamaguiProvider } from "tamagui";
 
 import Account from "./Account";
+import tamaguiConfig from "../../../tamagui.config";
 
 const mockUseGame = vi.fn();
 const mockUpdatePlayer = vi.fn();
 const mockDownloadUserData = vi.fn();
 const mockDeleteAccount = vi.fn();
+const mockFetchPreferences = vi.fn();
+const mockUpdatePreferences = vi.fn();
+const mockFetchTimezoneChoices = vi.fn();
+const mockUpdateUserSettings = vi.fn();
+const mockSetUser = vi.fn();
+const mockUseAuth = vi.fn();
 
 const TEST_BILLING_PORTAL_URL = "https://billing.stripe.com/p/login/test_portal";
 
@@ -24,9 +32,39 @@ vi.mock("../../api/player", () => ({
   deleteAccount: (...args) => mockDeleteAccount(...args),
 }));
 
+vi.mock("../../api/preferences", () => ({
+  fetchPreferences: (...args) => mockFetchPreferences(...args),
+  updatePreferences: (...args) => mockUpdatePreferences(...args),
+}));
+
+vi.mock("../../api/user", () => ({
+  fetchTimezoneChoices: (...args) => mockFetchTimezoneChoices(...args),
+  updateUserSettings: (...args) => mockUpdateUserSettings(...args),
+}));
+
+vi.mock("../../context/AuthContext", () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
 vi.mock("../../hooks/useAppConfig", () => ({
   useAppConfig: () => ({ data: { stripe_billing_portal_url: TEST_BILLING_PORTAL_URL } }),
 }));
+
+// Account renders Tabs (mirroring LibraryPage, see #584), which needs a
+// TamaguiProvider ancestor - unlike Radix's Tabs.Root, it isn't usable
+// standalone. The app root (src/main.tsx) provides this in production;
+// tests need their own.
+function render(...args: Parameters<typeof rtlRender>) {
+  const [ui, options] = args;
+  return rtlRender(ui, {
+    wrapper: ({ children }) => (
+      <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+        {children}
+      </TamaguiProvider>
+    ),
+    ...options,
+  });
+}
 
 const tierOneAchievements = [
   {
@@ -172,6 +210,28 @@ describe("Account", () => {
     mockUpdatePlayer.mockReset();
     mockDownloadUserData.mockReset();
     mockDeleteAccount.mockReset();
+    mockFetchPreferences.mockReset().mockResolvedValue({ preferences: [] });
+    mockUpdatePreferences.mockReset();
+    mockFetchTimezoneChoices.mockReset().mockResolvedValue({
+      timezones: [
+        { value: "UTC", label: "UTC" },
+        { value: "Europe/London", label: "Europe/London" },
+        { value: "America/New_York", label: "America/New York" },
+      ],
+    });
+    mockUpdateUserSettings.mockReset();
+    mockSetUser.mockReset();
+    mockUseAuth.mockReset().mockReturnValue({
+      user: {
+        email: "test@example.com",
+        is_confirmed: true,
+        is_staff: false,
+        is_superuser: false,
+        date_of_birth: null,
+        timezone: "UTC",
+      },
+      setUser: mockSetUser,
+    });
     mockUseGame.mockReturnValue({
       player: mockPlayer(),
       loading: false,
@@ -524,5 +584,150 @@ describe("Account", () => {
 
     await user.click(screen.getByRole("button", { name: /delete my account/i }));
     expect(screen.getByPlaceholderText("Type DELETE to confirm")).toHaveValue("");
+  });
+
+  it("defaults to the Account tab, hiding preferences content", () => {
+    renderAccount();
+
+    expect(screen.getByRole("heading", { name: "Player" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Notifications" })).not.toBeInTheDocument();
+  });
+
+  it("switches to the Preferences tab and lists preferences", async () => {
+    const user = userEvent.setup();
+    mockFetchPreferences.mockResolvedValue({
+      preferences: [
+        {
+          key: "notifications__inactivity_reminder_emails",
+          section: "notifications",
+          name: "inactivity_reminder_emails",
+          verbose_name: "Inactivity reminder emails",
+          help_text: "Send a reminder email after 7 days of inactivity.",
+          type: "boolean",
+          value: true,
+        },
+      ],
+    });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("tab", { name: "Preferences" }));
+
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeInTheDocument();
+    const checkbox = await screen.findByRole("switch", { name: /inactivity reminder emails/i });
+    expect(checkbox).toBeChecked();
+    expect(screen.queryByRole("heading", { name: "Player" })).not.toBeInTheDocument();
+  });
+
+  it("toggles a preference off and sends the patch", async () => {
+    const user = userEvent.setup();
+    mockFetchPreferences.mockResolvedValue({
+      preferences: [
+        {
+          key: "notifications__inactivity_reminder_emails",
+          section: "notifications",
+          name: "inactivity_reminder_emails",
+          verbose_name: "Inactivity reminder emails",
+          help_text: "Send a reminder email after 7 days of inactivity.",
+          type: "boolean",
+          value: true,
+        },
+      ],
+    });
+    mockUpdatePreferences.mockResolvedValue({
+      preferences: [
+        {
+          key: "notifications__inactivity_reminder_emails",
+          section: "notifications",
+          name: "inactivity_reminder_emails",
+          verbose_name: "Inactivity reminder emails",
+          help_text: "Send a reminder email after 7 days of inactivity.",
+          type: "boolean",
+          value: false,
+        },
+      ],
+    });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("tab", { name: "Preferences" }));
+    const checkbox = await screen.findByRole("switch", { name: /inactivity reminder emails/i });
+    await user.click(checkbox);
+
+    expect(mockUpdatePreferences).toHaveBeenCalledWith(
+      { notifications__inactivity_reminder_emails: false },
+      expect.anything()
+    );
+    await vi.waitFor(() => expect(checkbox).not.toBeChecked());
+  });
+
+  it("shows the saved timezone on the Preferences tab", async () => {
+    const user = userEvent.setup();
+
+    renderAccount();
+
+    await user.click(screen.getByRole("tab", { name: "Preferences" }));
+
+    expect(await screen.findByRole("heading", { name: "Timezone" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Timezone" })).toHaveValue("UTC");
+  });
+
+  it("updates the timezone when a new option is selected from the list", async () => {
+    const user = userEvent.setup();
+    mockUpdateUserSettings.mockResolvedValue({
+      email: "test@example.com",
+      is_confirmed: true,
+      is_staff: false,
+      is_superuser: false,
+      date_of_birth: null,
+      timezone: "Europe/London",
+    });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("tab", { name: "Preferences" }));
+    const combobox = await screen.findByRole("combobox", { name: "Timezone" });
+    await user.click(combobox);
+    await user.click(await screen.findByRole("option", { name: "Europe/London" }));
+
+    expect(mockUpdateUserSettings).toHaveBeenCalledWith(
+      { timezone: "Europe/London" },
+      expect.anything()
+    );
+    await vi.waitFor(() => expect(mockSetUser).toHaveBeenCalled());
+  });
+
+  it("offers to switch to the browser-detected timezone when it differs from the saved one", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(Intl, "DateTimeFormat").mockImplementation(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: "Europe/London" }),
+        }) as Intl.DateTimeFormat
+    );
+    mockUpdateUserSettings.mockResolvedValue({
+      email: "test@example.com",
+      is_confirmed: true,
+      is_staff: false,
+      is_superuser: false,
+      date_of_birth: null,
+      timezone: "Europe/London",
+    });
+
+    renderAccount();
+
+    await user.click(screen.getByRole("tab", { name: "Preferences" }));
+    const hintButton = await screen.findByRole("button", {
+      name: /use detected timezone \(europe\/london\)/i,
+    });
+
+    await user.click(hintButton);
+
+    expect(mockUpdateUserSettings).toHaveBeenCalledWith(
+      { timezone: "Europe/London" },
+      expect.anything()
+    );
+
+    vi.restoreAllMocks();
   });
 });

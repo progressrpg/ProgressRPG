@@ -8,6 +8,7 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import cached_property
+from .constants import PROJECT_SRID
 from .services import movement as movement_service
 from .utils import relative_distance_direction
 
@@ -19,13 +20,11 @@ if TYPE_CHECKING:
 ##########################################################
 
 
-def find_path(start_node: "Node", end_node: "Node"):
-    return movement_service.find_path(start_node, end_node)
-
-
 class Movable(models.Model):
     movement_speed = models.FloatField(default=1.0)
-    location = gis_models.PointField(srid=3857, default=Point(0, 0, srid=3857))
+    location = gis_models.PointField(
+        srid=PROJECT_SRID, default=Point(0, 0, srid=PROJECT_SRID)
+    )
     is_moving = models.BooleanField(default=False)
 
     current_node = models.ForeignKey(
@@ -61,12 +60,13 @@ class Movable(models.Model):
 
     @property
     def current_journey(self):
-        return self.journeys.filter(status="active").first()
+        return self.journeys.filter(status=Journey.Status.ACTIVE).first()
 
     class Meta:
         abstract = True
 
     def go_home(self):
+        """Delegates to locations.services.movement.go_home."""
         return movement_service.go_home(self)
 
     def get_nearby_outside_nodes(self, radius=50):
@@ -76,6 +76,7 @@ class Movable(models.Model):
         return movement_service.pick_random_outside_node(self, radius=radius)
 
     def go_outside(self, radius=100):
+        """Delegates to locations.services.movement.go_outside."""
         return movement_service.go_outside(self, radius=radius)
 
     @transaction.atomic
@@ -116,7 +117,7 @@ class Movable(models.Model):
 
 class Node(models.Model):
     name = models.CharField(max_length=100, blank=True)
-    location = gis_models.PointField(srid=3857, spatial_index=True)
+    location = gis_models.PointField(srid=PROJECT_SRID, spatial_index=True)
     population_centre = models.ForeignKey(
         "locations.PopulationCentre",
         null=True,
@@ -209,7 +210,7 @@ class Path(models.Model):
     )
     length = models.FloatField(blank=True, null=True)
     geom = gis_models.LineStringField(
-        srid=3857, null=True, blank=True, spatial_index=True
+        srid=PROJECT_SRID, null=True, blank=True, spatial_index=True
     )
 
     class Meta:
@@ -227,7 +228,7 @@ class Path(models.Model):
             try:
                 self.length = self.from_node.location.distance(self.to_node.location)
                 self.geom = LineString(
-                    self.from_node.location, self.to_node.location, srid=3857
+                    self.from_node.location, self.to_node.location, srid=PROJECT_SRID
                 )
             except Exception:
                 pass
@@ -262,7 +263,7 @@ class Road(models.Model):
         related_name="roads",
     )
     name = models.CharField(max_length=255, blank=True, default="")
-    geom = gis_models.LineStringField(srid=3857, spatial_index=True)
+    geom = gis_models.LineStringField(srid=PROJECT_SRID, spatial_index=True)
     width = models.FloatField(default=6.0, help_text="Road width in metres")
 
     class Meta:
@@ -291,9 +292,15 @@ class Journey(models.Model):
     # current position in the path
     current_index = models.PositiveIntegerField(default=0)
 
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        COMPLETE = "complete", "Complete"
+
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=20, default="active")  # e.g., active, complete
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.ACTIVE
+    )
 
     # Transient, non-persisted cache of {node_id: Node}, set by callers that
     # batch-fetch nodes across many journeys (e.g. move_characters_tick) to
@@ -302,7 +309,7 @@ class Journey(models.Model):
 
     @property
     def is_complete(self):
-        return self.status == "complete"
+        return self.status == self.Status.COMPLETE
 
     def serialize_for_client(self):
         # convert path_nodes to coordinates
@@ -324,7 +331,7 @@ class Journey(models.Model):
 
     def advance_node(self):
         """Move to the next node in the journey, if any."""
-        if self.status != "active":
+        if self.status != self.Status.ACTIVE:
             return False
 
         if self.path_nodes and self.current_index < len(self.path_nodes) - 1:
@@ -332,7 +339,7 @@ class Journey(models.Model):
             self.save(update_fields=["current_index"])
             return True
 
-        self.status = "complete"
+        self.status = self.Status.COMPLETE
         self.finished_at = timezone.now()
         self.save(update_fields=["status", "finished_at"])
         return False
@@ -379,7 +386,7 @@ class Journey(models.Model):
         """
         Stop any movement in progress and clear the target.
         """
-        self.status = "complete"
+        self.status = self.Status.COMPLETE
         self.finished_at = timezone.now()
         self.save(update_fields=["status", "finished_at"])
 
@@ -388,6 +395,10 @@ class Journey(models.Model):
 
     class Meta:
         constraints = [
+            # Not Status.ACTIVE: a nested class's body (this Meta) can't see
+            # its enclosing class's other nested classes by name - Python
+            # class scopes don't nest that way, only function scopes do.
+            # Same string value either way.
             models.UniqueConstraint(
                 fields=["character"],
                 condition=Q(status="active"),
@@ -443,12 +454,12 @@ class Building(models.Model):
     open_time_override = models.TimeField(null=True, blank=True)
     close_time_override = models.TimeField(null=True, blank=True)
     location = gis_models.PointField(
-        srid=3857,
-        default=Point(0, 0, srid=3857),
+        srid=PROJECT_SRID,
+        default=Point(0, 0, srid=PROJECT_SRID),
         help_text="Centre location",
         spatial_index=True,
     )
-    footprint = gis_models.PolygonField(null=True, blank=True, srid=3857)
+    footprint = gis_models.PolygonField(null=True, blank=True, srid=PROJECT_SRID)
 
     population_centre = models.ForeignKey(
         "locations.PopulationCentre",
@@ -512,7 +523,7 @@ class InteriorSpace(models.Model):
     building = models.ForeignKey(
         Building, on_delete=models.CASCADE, related_name="interiorspaces"
     )
-    location = gis_models.PointField(srid=3857, null=True, blank=True)
+    location = gis_models.PointField(srid=PROJECT_SRID, null=True, blank=True)
     area = models.FloatField()
     usage = models.CharField(max_length=50, choices=SpaceUsage.choices)
 
@@ -543,8 +554,8 @@ class LandArea(models.Model):
         related_name="land_areas",
     )
 
-    location = gis_models.PointField(srid=3857, null=True, blank=True)
-    boundary = gis_models.PolygonField(srid=3857, null=True, blank=True)
+    location = gis_models.PointField(srid=PROJECT_SRID, null=True, blank=True)
+    boundary = gis_models.PolygonField(srid=PROJECT_SRID, null=True, blank=True)
     size = models.FloatField(help_text="Size of land area in hectares")
 
     parent_for_navigation = "population_centre"
@@ -563,8 +574,8 @@ class Subzone(models.Model):
         LandArea, on_delete=models.CASCADE, related_name="subzones"
     )
     name = models.CharField(max_length=255)
-    location = gis_models.PointField(srid=3857, null=True, blank=True)
-    boundary = gis_models.PolygonField(srid=3857, null=True, blank=True)
+    location = gis_models.PointField(srid=PROJECT_SRID, null=True, blank=True)
+    boundary = gis_models.PolygonField(srid=PROJECT_SRID, null=True, blank=True)
     size = models.FloatField(help_text="Size of subzone in hectares")
 
     # Optional "intended usage", not exclusive or enforced.
@@ -597,8 +608,10 @@ class PopulationCentre(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
 
-    location = gis_models.PointField(srid=3857, default=Point(0, 0, srid=3857))
-    boundary = gis_models.PolygonField(null=True, blank=True, srid=3857)
+    location = gis_models.PointField(
+        srid=PROJECT_SRID, default=Point(0, 0, srid=PROJECT_SRID)
+    )
+    boundary = gis_models.PolygonField(null=True, blank=True, srid=PROJECT_SRID)
 
     parent_for_navigation = None
 

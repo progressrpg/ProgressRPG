@@ -4,6 +4,8 @@ from django.contrib.admin import SimpleListFilter
 from django.db.models import Max, Prefetch
 from django.forms.models import BaseInlineFormSet
 from adminsortable2.admin import SortableAdminMixin
+from dynamic_preferences.users.admin import UserPreferenceAdmin
+from dynamic_preferences.users.models import UserPreferenceModel
 
 from .models import (
     CustomUser,
@@ -21,6 +23,17 @@ from core.models import GameSettings
 from payments.models import UserSubscription
 
 # Register your models here.
+
+# django-dynamic-preferences' own UserPreferenceAdmin searches
+# "instance__username", but CustomUser has no username field (email is
+# USERNAME_FIELD) - re-register with a search field that actually exists,
+# or admin search on this changelist 500s.
+admin.site.unregister(UserPreferenceModel)
+
+
+@admin.register(UserPreferenceModel)
+class CustomUserPreferenceAdmin(UserPreferenceAdmin):
+    search_fields = ["instance__email"] + UserPreferenceAdmin.search_fields[1:]
 
 
 class IsPremiumFilter(SimpleListFilter):

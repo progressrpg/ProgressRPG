@@ -33,16 +33,6 @@ class Behaviour(models.Model):
         """
         return behaviour_services.sync_to_now(self, now=now)
 
-    def advance(self, now=None):
-        """
-        Force-advance behaviour:
-        - Complete the current scheduled activity (even if it hasn't reached scheduled_end yet)
-        - Return the next scheduled activity (by scheduled_start)
-
-        Useful if you later implement "player comes online interrupts character behaviour".
-        """
-        return behaviour_services.advance(self, now=now)
-
     def delete_day(self, date):
         return behaviour_services.delete_day(self, date)
 
@@ -52,13 +42,11 @@ class Behaviour(models.Model):
         """
         return behaviour_services.get_current_activity(self)
 
-    def interrupt_current_activity(self, boost_ended=False):
+    def interrupt_current_activity(self):
         """
         Interrupt the current activity by completing it and starting a new instance of it.
         """
-        return behaviour_services.interrupt_current_activity(
-            self, boost_ended=boost_ended
-        )
+        return behaviour_services.interrupt_current_activity(self)
 
     def __str__(self):
         return f"Behaviour for {self.character.name}"

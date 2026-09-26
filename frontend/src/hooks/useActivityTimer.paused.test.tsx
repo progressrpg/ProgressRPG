@@ -6,11 +6,11 @@ import type { ActivityTimerApiData } from '../types';
 
 const mockApiFetch = vi.fn();
 
-vi.mock('../utils/api.js', () => ({
+vi.mock('../utils/api', () => ({
   apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
 
-vi.mock('../utils/sounds.js', () => ({
+vi.mock('../utils/sounds', () => ({
   playActivityStartedSound: vi.fn(),
   primeAudio: vi.fn(),
 }));

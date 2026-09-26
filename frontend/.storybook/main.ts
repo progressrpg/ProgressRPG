@@ -9,6 +9,18 @@ const config: StorybookConfig = {
   ],
   framework: '@storybook/react-vite',
   viteFinal: async (config, options) => {
+    // src/config.ts requires an explicit VITE_API_BASE_URL and throws without
+    // one (#571). Stories never call the backend, but some of them do pull in
+    // modules that import it transitively (Footer renders an /admin link), and
+    // the static build runs in production mode, so no .env.<mode> file supplies
+    // a value. Give it an obviously-local placeholder rather than letting the
+    // gallery white-screen on a config error it has no stake in.
+    config.define = {
+      ...config.define,
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
+        process.env.VITE_API_BASE_URL || 'http://localhost:8000',
+      ),
+    };
     // Only the static build (deployed to GitHub Pages under the repo name)
     // needs this subpath base. Dev server and @storybook/addon-vitest's
     // browser test runner both reuse this same viteFinal, and serving them

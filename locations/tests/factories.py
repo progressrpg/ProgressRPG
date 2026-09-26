@@ -2,11 +2,12 @@ from django.contrib.gis.geos import Point, Polygon
 
 from locations.management.commands.generate_villages import create_building_footprint
 from locations.models import Building, PopulationCentre
+from locations.constants import PROJECT_SRID
 
 # Shared village boundary used by tests that need a character to move/wander
 # within a fixed area - a simple 100x100 square centred on the origin.
 VILLAGE_BOUNDARY = Polygon(
-    ((-50, -50), (-50, 50), (50, 50), (50, -50), (-50, -50)), srid=3857
+    ((-50, -50), (-50, 50), (50, 50), (50, -50), (-50, -50)), srid=PROJECT_SRID
 )
 
 

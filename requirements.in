@@ -23,6 +23,7 @@ django-allauth
 django-celery-beat
 django-cf-turnstile
 django-cors-headers
+django-dynamic-preferences
 django-environ
 django-extensions
 django-filter

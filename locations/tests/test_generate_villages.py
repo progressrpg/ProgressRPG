@@ -8,13 +8,14 @@ from locations.management.commands.generate_villages import (
     BUILDING_ZONES,
     create_building_footprint,
 )
+from locations.constants import PROJECT_SRID
 from locations.models import PopulationCentre
 
 
 class BuildingFootprintRotationTest(TestCase):
     def test_rotation_produces_non_axis_aligned_footprint(self):
         footprint = create_building_footprint(
-            Point(0, 0, srid=3857),
+            Point(0, 0, srid=PROJECT_SRID),
             min_size=10,
             max_size=10,
             irregularity=0,
@@ -30,7 +31,11 @@ class BuildingFootprintRotationTest(TestCase):
 
     def test_zero_rotation_keeps_axis_aligned_footprint(self):
         footprint = create_building_footprint(
-            Point(0, 0, srid=3857), min_size=10, max_size=10, irregularity=0, rotation=0
+            Point(0, 0, srid=PROJECT_SRID),
+            min_size=10,
+            max_size=10,
+            irregularity=0,
+            rotation=0,
         )
         coords = footprint.coords[0][:-1]
         xs = {round(x, 6) for x, _ in coords}

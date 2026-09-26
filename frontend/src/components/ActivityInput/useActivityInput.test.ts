@@ -344,6 +344,72 @@ describe('useActivityInput unified handlers', () => {
     });
   });
 
+  describe('blurring the activity input on start (#574)', () => {
+    it('blurs the registered input when the timer becomes active', () => {
+      const blur = vi.fn();
+
+      const { result, rerender } = renderHook(() => useActivityInput());
+
+      act(() => {
+        result.current.setActivityInputRef({ blur });
+      });
+
+      expect(blur).not.toHaveBeenCalled();
+
+      mockGame({ status: 'active', currentActivity: { name: 'Deep work' } });
+      rerender();
+
+      expect(blur).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not blur while no timer is running', () => {
+      const blur = vi.fn();
+
+      const { result } = renderHook(() => useActivityInput());
+
+      act(() => {
+        result.current.setActivityInputRef({ blur });
+      });
+
+      expect(blur).not.toHaveBeenCalled();
+    });
+
+    it('leaves other focused elements alone - only the activity input is blurred', () => {
+      // The old implementation blurred document.activeElement, i.e. whatever
+      // happened to be focused anywhere on the page.
+      const other = document.createElement('input');
+      document.body.appendChild(other);
+      other.focus();
+      const otherBlur = vi.spyOn(other, 'blur');
+
+      const { result, rerender } = renderHook(() => useActivityInput());
+
+      act(() => {
+        result.current.setActivityInputRef({ blur: vi.fn() });
+      });
+
+      mockGame({ status: 'active', currentActivity: { name: 'Deep work' } });
+      rerender();
+
+      expect(otherBlur).not.toHaveBeenCalled();
+      other.remove();
+    });
+
+    it('is a no-op when the input has already unmounted', () => {
+      // The unified timer swaps the search input for the label display on
+      // start, so the ref can be null by the time the effect runs.
+      const { result, rerender } = renderHook(() => useActivityInput());
+
+      act(() => {
+        result.current.setActivityInputRef(null);
+      });
+
+      mockGame({ status: 'active', currentActivity: { name: 'Deep work' } });
+
+      expect(() => rerender()).not.toThrow();
+    });
+  });
+
   it('invalidates the daily-goals query after completing an activity, so the map badge updates immediately (#673, #751)', async () => {
     mockGame({ status: 'active', currentActivity: { name: 'Deep work' } });
     stop.mockResolvedValue({ xp_gained: 10 });

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Ref } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,6 +29,7 @@ function Harness({
   alwaysOpen,
   maxVisibleRows,
   emptyMessage,
+  inputRef,
 }: {
   type?: "task" | "activity";
   onCreate?: (name: string) => void;
@@ -35,6 +37,7 @@ function Harness({
   alwaysOpen?: boolean;
   maxVisibleRows?: number;
   emptyMessage?: string;
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   const [value, setValue] = useState("");
   return (
@@ -48,6 +51,7 @@ function Harness({
       alwaysOpen={alwaysOpen}
       maxVisibleRows={maxVisibleRows}
       emptyMessage={emptyMessage}
+      inputRef={inputRef}
     />
   );
 }
@@ -56,6 +60,14 @@ describe("EntitySearchInput", () => {
   beforeEach(() => {
     addEntityToCache.mockReset();
     mockEntities = [];
+  });
+
+  it("forwards inputRef to the text input, so callers can blur it directly (#574)", () => {
+    let node: HTMLInputElement | null = null;
+
+    render(<Harness inputRef={(el) => { node = el; }} />);
+
+    expect(node).toBe(screen.getByRole("combobox"));
   });
 
   it("dedupes a task and an identically-named activity into one suggestion", async () => {

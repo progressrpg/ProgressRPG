@@ -10,6 +10,7 @@ from economy.constants import (
     WHEAT_TO_FLOUR_RATIO,
     YIELD_PER_AREA,
 )
+from locations.constants import PROJECT_SRID
 from locations.models import Building, LandArea, Subzone, PopulationCentre
 from locations.utils import perturb_quad_corners
 
@@ -127,7 +128,7 @@ class Command(BaseCommand):
                     (cx + half_side, cy - half_side),
                     (cx - half_side, cy - half_side),
                 ),
-                srid=3857,
+                srid=PROJECT_SRID,
             )
             buffered = boundary.buffer(LANDAREA_BUFFER)
 
@@ -141,7 +142,7 @@ class Command(BaseCommand):
                 continue
 
             landarea.boundary = boundary
-            landarea.location = Point(cx, cy, srid=3857)
+            landarea.location = Point(cx, cy, srid=PROJECT_SRID)
             landarea.save(update_fields=["boundary", "location"])
             return True
 
@@ -213,9 +214,11 @@ class Command(BaseCommand):
             ]
             corners = perturb_quad_corners(corners, x1 - x0, height, FIELD_IRREGULARITY)
             corners.append(corners[0])
-            subzone.boundary = Polygon(corners, srid=3857)
+            subzone.boundary = Polygon(corners, srid=PROJECT_SRID)
             # center as location
-            subzone.location = Point((x0 + x1) / 2, (min_y + max_y) / 2, srid=3857)
+            subzone.location = Point(
+                (x0 + x1) / 2, (min_y + max_y) / 2, srid=PROJECT_SRID
+            )
             subzone.save(update_fields=["boundary", "location"])
             x_cursor = x1
 
