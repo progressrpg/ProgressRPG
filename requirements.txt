@@ -198,7 +198,7 @@ psycopg2-binary==2.9.12
     # via -r requirements.in
 pycparser==3.0
     # via cffi
-pyjwt==2.13.0
+pyjwt==2.15.0
     # via
     #   -r requirements.in
     #   djangorestframework-simplejwt
@@ -280,7 +280,7 @@ uritemplate==4.2.0
     # via
     #   -r requirements.in
     #   drf-spectacular
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   requests
     #   sentry-sdk

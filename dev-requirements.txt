@@ -314,7 +314,7 @@ pygments==2.20.0
     # via pytest
 pygraphviz==2.0.1
     # via -r dev-requirements.in
-pyjwt==2.13.0
+pyjwt==2.15.0
     # via
     #   -r requirements.in
     #   djangorestframework-simplejwt
@@ -336,7 +336,7 @@ python-dateutil==2.9.0.post0
     #   freezegun
 python-decouple==3.8
     # via -r requirements.in
-python-discovery==1.5.1
+python-discovery==1.6.1
     # via virtualenv
 python-dotenv==1.2.2
     # via -r requirements.in
@@ -437,7 +437,7 @@ uritemplate==4.2.0
     # via
     #   -r requirements.in
     #   drf-spectacular
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   geventhttpclient
     #   nab-index
@@ -449,7 +449,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-virtualenv==21.7.3
+virtualenv==21.7.13
     # via pre-commit
 wcwidth==0.8.2
     # via prompt-toolkit
