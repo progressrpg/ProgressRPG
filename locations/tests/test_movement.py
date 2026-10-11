@@ -20,7 +20,13 @@ from django.test import TestCase
 
 from character.models import Character, CharacterLocation
 from locations.models import Building, Journey, Node, Path
-from locations.services.movement import find_path, go_home, go_outside, step_toward
+from locations.services.movement import (
+    PathGraph,
+    find_path,
+    go_home,
+    go_outside,
+    step_toward,
+)
 from locations.constants import PROJECT_SRID
 
 
@@ -156,9 +162,9 @@ class FindPathTests(TestCase):
     """
     find_path is self-described in its own comment as "very dumb: pick
     first outgoing path until we reach the end" - these pin what it
-    actually does (BFS via Node.neighbours(), stopping at the first route
-    found) rather than asserting an idealized shortest-path guarantee it
-    doesn't provide.
+    actually does (BFS over the undirected Path graph, stopping at the first
+    route found) rather than asserting an idealized shortest-path guarantee
+    it doesn't provide.
     """
 
     def setUp(self):
@@ -194,6 +200,25 @@ class FindPathTests(TestCase):
 
     def test_start_equals_end_returns_a_single_node_path(self):
         self.assertEqual(find_path(self.node_a, self.node_a), [self.node_a])
+
+    def test_paths_are_traversable_in_either_direction(self):
+        self.assertEqual(
+            find_path(self.node_c, self.node_a),
+            [self.node_c, self.node_b, self.node_a],
+        )
+
+    def test_query_count_does_not_scale_with_route_length(self):
+        # Regression for a Sentry N+1 in commute_tick: find_path used to
+        # issue one Node.neighbours() query per BFS-visited node. Now it's
+        # one Path load plus one in_bulk for the intermediate nodes.
+        with self.assertNumQueries(2):
+            find_path(self.node_a, self.node_c)
+
+    def test_shared_graph_loads_paths_once(self):
+        graph = PathGraph()
+        with self.assertNumQueries(1):
+            find_path(self.node_a, self.node_b, graph=graph)
+            find_path(self.node_b, self.node_c, graph=graph)
 
 
 class GoHomeTests(TestCase):

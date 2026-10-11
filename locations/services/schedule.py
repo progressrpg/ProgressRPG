@@ -82,7 +82,11 @@ def target_role_for(character, now=None, work_location=_UNSET) -> str:
 
 
 def sync_character_location(
-    character, target_role=_UNSET, target_location=_UNSET, entrance_node=_UNSET
+    character,
+    target_role=_UNSET,
+    target_location=_UNSET,
+    entrance_node=_UNSET,
+    path_graph=None,
 ) -> None:
     """Compare a character's current/target position against their schedule
     and, if they should be elsewhere, send them there via the existing
@@ -92,7 +96,9 @@ def sync_character_location(
     `target_role`, `target_location`, and `entrance_node` may be passed in
     pre-fetched (e.g. by a caller batching lookups across many characters,
     such as commute_tick) to avoid a per-character query. Left unset,
-    they're looked up here as before.
+    they're looked up here as before. `path_graph` (a movement.PathGraph)
+    likewise lets such a caller share one path-graph load across every
+    character it routes.
     """
     from character.models import CharacterLocation
     from locations.models import Node
@@ -127,7 +133,7 @@ def sync_character_location(
         return
 
     try:
-        character.set_destination(node=entrance_node)
+        character.set_destination(node=entrance_node, graph=path_graph)
     except ValueError:
         logger.info(
             "sync_character_location: could not route character %s to %s (%s)",

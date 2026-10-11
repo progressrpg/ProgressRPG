@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import random
+from collections import defaultdict, deque
+from functools import cached_property
 from typing import Optional
 
 from django.contrib.gis.db.models.functions import Distance
@@ -11,21 +13,59 @@ from django.utils import timezone
 from locations.constants import PROJECT_SRID
 
 
-def find_path(start_node, end_node):
-    # very dumb: pick first outgoing path until we reach the end
-    # or you can implement BFS for shortest segment count
-    visited = set()
-    queue = [(start_node, [start_node])]
+class PathGraph:
+    """Undirected node adjacency built from every Path row in one query,
+    loaded lazily on first use. find_path BFSes over this in memory rather
+    than calling Node.neighbours() per visited node (one query per node -
+    an N+1 Sentry flagged in commute_tick). Callers routing many characters
+    in one go (commute_tick) share one instance so the graph loads once.
+    """
+
+    @cached_property
+    def adjacency(self) -> dict[int, set[int]]:
+        from locations.models import Path
+
+        adjacency = defaultdict(set)
+        for from_id, to_id in Path.objects.values_list("from_node_id", "to_node_id"):
+            adjacency[from_id].add(to_id)
+            adjacency[to_id].add(from_id)
+        return adjacency
+
+
+def find_path(start_node, end_node, graph: Optional[PathGraph] = None):
+    """BFS (fewest hops) from start_node to end_node over the Path graph.
+    Returns the list of Nodes along the route, or None if unreachable."""
+    if start_node.pk == end_node.pk:
+        return [start_node]
+
+    adjacency = (graph or PathGraph()).adjacency
+    parents = {start_node.pk: None}
+    queue = deque([start_node.pk])
 
     while queue:
-        node, path = queue.pop(0)
-        if node == end_node:
-            return path
-        visited.add(node)
-        for neighbor in node.neighbours():
-            if neighbor not in visited:
-                queue.append((neighbor, path + [neighbor]))
-    return None
+        node_id = queue.popleft()
+        if node_id == end_node.pk:
+            break
+        for neighbour_id in adjacency.get(node_id, ()):
+            if neighbour_id not in parents:
+                parents[neighbour_id] = node_id
+                queue.append(neighbour_id)
+    else:
+        return None
+
+    path_ids = []
+    node_id = end_node.pk
+    while node_id is not None:
+        path_ids.append(node_id)
+        node_id = parents[node_id]
+    path_ids.reverse()
+
+    from locations.models import Node
+
+    nodes_by_id = Node.objects.in_bulk(path_ids[1:-1])
+    nodes_by_id[start_node.pk] = start_node
+    nodes_by_id[end_node.pk] = end_node
+    return [nodes_by_id[node_id] for node_id in path_ids]
 
 
 def go_home(character) -> bool:
@@ -103,7 +143,7 @@ def go_outside(character, radius: float = 100) -> bool:
     return True
 
 
-def set_destination(character, *, node=None, obj=None, point=None):
+def set_destination(character, *, node=None, obj=None, point=None, graph=None):
     from locations.models import Journey, Node
     from locations.tasks import move_characters_tick
 
@@ -126,7 +166,7 @@ def set_destination(character, *, node=None, obj=None, point=None):
     if not character.current_node:
         raise ValueError("Character has no current_node")
 
-    path = find_path(character.current_node, target_node)
+    path = find_path(character.current_node, target_node, graph=graph)
     if not path:
         raise ValueError(
             f"No path found from {character.current_node} to {target_node}"
