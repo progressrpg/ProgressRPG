@@ -87,7 +87,6 @@ gameplay/
 ├── routing.py
 ├── serializers.py
 ├── services/
-│   ├── timer_service.py
 │   └── xp_modifiers.py
 ├── signals.py
 ├── tasks.py

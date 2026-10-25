@@ -27,6 +27,7 @@ from economy.constants import (
     PER_WORKER_DAILY_MILLING_CAPACITY,
     WHEAT_TO_FLOUR_RATIO,
 )
+from locations.constants import PROJECT_SRID
 from economy.models import BuildingCapability, FieldCrop
 from economy.services.capacity_services import (
     daily_bread_demand,
@@ -57,7 +58,9 @@ def _make_centre(name="Testville", resident_count=0):
     self.addCleanup(patcher.stop) - this helper has no access to the
     test's `self`.
     """
-    centre = PopulationCentre.objects.create(name=name, location=Point(0, 0, srid=3857))
+    centre = PopulationCentre.objects.create(
+        name=name, location=Point(0, 0, srid=PROJECT_SRID)
+    )
     patcher = patch.object(
         PopulationCentre,
         "resident_count",
@@ -75,7 +78,7 @@ def _make_building(centre, building_type, x):
     building = Building.objects.create(
         name=f"{building_type} at {x}",
         building_type=building_type,
-        location=Point(x, 0, srid=3857),
+        location=Point(x, 0, srid=PROJECT_SRID),
         population_centre=centre,
     )
     activity = BUILDING_TYPE_TO_ACTIVITY.get(building_type)

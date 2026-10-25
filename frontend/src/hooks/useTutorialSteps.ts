@@ -1,11 +1,7 @@
 // hooks/useTutorialSteps.ts
 import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "../utils/api";
+import { fetchTutorialSteps } from "../api/tutorial";
 import type { TutorialStep, PaginatedResponse } from "../types";
-
-async function fetchTutorialSteps(): Promise<PaginatedResponse<TutorialStep> | TutorialStep[]> {
-  return apiFetch<PaginatedResponse<TutorialStep> | TutorialStep[]>("/tutorial-steps/");
-}
 
 export default function useTutorialSteps() {
   const { data, isLoading } = useQuery({

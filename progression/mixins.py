@@ -122,3 +122,12 @@ class LevelProgressionMixin(models.Model):
         from progression import ap
 
         return ap.get_multiplier(self, now=now)
+
+    def get_xp_multiplier_buckets(self, now=None):
+        """
+        (additive, multiplicative) halves of get_xp_multiplier, for reward
+        breakdowns that itemise where a boost came from.
+        """
+        from progression import ap
+
+        return ap.get_multiplier_buckets(self, now=now)

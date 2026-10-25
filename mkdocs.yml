@@ -32,6 +32,7 @@ nav:
   - Design Notes:
       - Overview: design-notes/index.md
       - Quest System Ideas: design-notes/quest-system-ideas.md
+      - Codebase Re-entry Audit: design-notes/codebase-re-entry-audit.md
 
   - Legal:
       - Privacy Policy: legal/privacy-policy.md

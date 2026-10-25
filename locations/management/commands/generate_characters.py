@@ -7,11 +7,11 @@ from django.contrib.gis.geos import Point
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from datetime import date, timedelta
+from locations.constants import PROJECT_SRID
 from locations.models import PopulationCentre, Node, Path, Building
 from locations.services import population_estimation
 from character.models import Character, PlayerCharacterLink
 from character.services import household_services
-
 
 MALE_NAMES = [
     "Gareth",
@@ -229,7 +229,7 @@ class Command(BaseCommand):
                 r = random.random() * 100  # adjust radius as needed
                 x = pop_centre.location.x + math.cos(angle) * r
                 y = pop_centre.location.y + math.sin(angle) * r
-                point = Point(x, y, srid=3857)
+                point = Point(x, y, srid=PROJECT_SRID)
 
                 # make sure it doesn’t overlap a building
                 if any(fp.contains(point) for fp in building_footprints):

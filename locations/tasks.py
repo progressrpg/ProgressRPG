@@ -60,7 +60,8 @@ def move_characters_tick(time_delta=None):
         journeys_by_character = {
             journey.character_id: journey
             for journey in Journey.objects.filter(
-                character_id__in=[char.id for char in chars], status="active"
+                character_id__in=[char.id for char in chars],
+                status=Journey.Status.ACTIVE,
             ).select_related("destination_node")
         }
 

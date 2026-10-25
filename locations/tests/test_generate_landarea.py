@@ -8,6 +8,7 @@ from locations.management.commands.generate_landarea import CROPS_SUBZONE_FRACTI
 from locations.models import LandArea
 from locations.tests.factories import make_centre_with_building
 from character.models import Character
+from locations.constants import PROJECT_SRID
 
 
 class GenerateLandareaCommandTest(TestCase):
@@ -17,7 +18,9 @@ class GenerateLandareaCommandTest(TestCase):
         random.seed(1234)
 
     def test_places_landarea_outside_the_boundary(self):
-        centre = make_centre_with_building("Landtest village", Point(0, 0, srid=3857))
+        centre = make_centre_with_building(
+            "Landtest village", Point(0, 0, srid=PROJECT_SRID)
+        )
         Character.objects.create(population_centre=centre)
         original_boundary = centre.boundary
 
@@ -37,9 +40,13 @@ class GenerateLandareaCommandTest(TestCase):
         self.assertEqual(centre.boundary.area, original_boundary.area)
 
     def test_avoids_overlapping_a_neighbouring_villages_boundary(self):
-        centre_a = make_centre_with_building("Village A", Point(0, 0, srid=3857))
+        centre_a = make_centre_with_building(
+            "Village A", Point(0, 0, srid=PROJECT_SRID)
+        )
         Character.objects.create(population_centre=centre_a)
-        centre_b = make_centre_with_building("Village B", Point(500, 0, srid=3857))
+        centre_b = make_centre_with_building(
+            "Village B", Point(500, 0, srid=PROJECT_SRID)
+        )
         Character.objects.create(population_centre=centre_b)
 
         call_command("generate_landarea")
@@ -53,14 +60,16 @@ class GenerateLandareaCommandTest(TestCase):
         self.assertFalse(centre_a.boundary.intersects(landarea_b.boundary))
 
     def test_skips_centre_with_no_residents(self):
-        make_centre_with_building("Empty village", Point(0, 0, srid=3857))
+        make_centre_with_building("Empty village", Point(0, 0, srid=PROJECT_SRID))
 
         call_command("generate_landarea")
 
         self.assertEqual(LandArea.objects.count(), 0)
 
     def test_subzone_boundaries_are_irregular_not_perfect_rectangles(self):
-        centre = make_centre_with_building("Irregular village", Point(0, 0, srid=3857))
+        centre = make_centre_with_building(
+            "Irregular village", Point(0, 0, srid=PROJECT_SRID)
+        )
         Character.objects.create(population_centre=centre)
 
         call_command("generate_landarea")
@@ -79,7 +88,9 @@ class GenerateLandareaCommandTest(TestCase):
             )
 
     def test_crops_plots_area_stays_proportionate_to_intended_fraction(self):
-        centre = make_centre_with_building("Proportion village", Point(0, 0, srid=3857))
+        centre = make_centre_with_building(
+            "Proportion village", Point(0, 0, srid=PROJECT_SRID)
+        )
         Character.objects.create(population_centre=centre)
 
         call_command("generate_landarea")

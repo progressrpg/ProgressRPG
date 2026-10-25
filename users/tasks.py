@@ -137,6 +137,17 @@ def send_waitlist_nudges():
     return count
 
 
+@shared_task
+def send_inactivity_reminders():
+    from users.services import inactivity_reminder_service
+
+    count = inactivity_reminder_service.send_due_reminders()
+    logger.info(
+        f"[INACTIVITY REMINDER TASK] Sent {count} inactivity reminder email(s)."
+    )
+    return count
+
+
 @shared_task(bind=True, retry_backoff=True, max_retries=3)
 def send_email_to_users_task(self, emails, subject, template_base, context, cc_admin):
     """

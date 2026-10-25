@@ -15,6 +15,7 @@ from progression.models import (
     SkillDefinition,
     character_total_skill_xp,
 )
+from locations.constants import PROJECT_SRID
 from progression.tasks import compact_character_activities
 
 
@@ -38,7 +39,7 @@ class CharacterActivityArchiveAggregationTests(TestCase):
 
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Aggregatia", location=Point(0, 0, srid=3857)
+            given_name="Aggregatia", location=Point(0, 0, srid=PROJECT_SRID)
         )
         self.role = Role.objects.create(name="Farmer")
         self.skill = SkillDefinition.objects.create(name="Farming", role=self.role)
@@ -119,7 +120,7 @@ class CharacterActivityArchiveAggregationTests(TestCase):
 class CompactCharacterActivitiesTaskTests(TestCase):
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Compactia", location=Point(0, 0, srid=3857)
+            given_name="Compactia", location=Point(0, 0, srid=PROJECT_SRID)
         )
         self.activity_definition = ActivityDefinition.objects.create(
             name="hauling water", kind=ActivityDefinition.Kind.WORK

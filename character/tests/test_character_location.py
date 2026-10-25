@@ -4,22 +4,23 @@ from django.test import TestCase
 
 from character.models import Character, CharacterLocation
 from locations.models import Building
+from locations.constants import PROJECT_SRID
 
 
 class CharacterLocationModelTests(TestCase):
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Homer", location=Point(0, 0, srid=3857)
+            given_name="Homer", location=Point(0, 0, srid=PROJECT_SRID)
         )
         self.home = Building.objects.create(
             name="Homer's House",
             building_type="residential",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
         )
         self.work = Building.objects.create(
             name="Power Plant",
             building_type="communal",
-            location=Point(10, 10, srid=3857),
+            location=Point(10, 10, srid=PROJECT_SRID),
         )
 
     def test_create_home_and_work_locations(self):
@@ -46,7 +47,7 @@ class CharacterLocationModelTests(TestCase):
         other_home = Building.objects.create(
             name="Second House",
             building_type="residential",
-            location=Point(1, 1, srid=3857),
+            location=Point(1, 1, srid=PROJECT_SRID),
         )
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
@@ -65,7 +66,7 @@ class CharacterLocationModelTests(TestCase):
         other_home = Building.objects.create(
             name="Second House",
             building_type="residential",
-            location=Point(1, 1, srid=3857),
+            location=Point(1, 1, srid=PROJECT_SRID),
         )
         # Not primary, so it doesn't collide with the constraint.
         secondary = CharacterLocation.objects.create(

@@ -77,6 +77,7 @@ from character.models import Character, PlayerCharacterLink
 from character.serializers import CharacterSerializer
 from core.models import Announcement, GameSettings, PlayerAnnouncementState
 
+from gameplay.models import ActivityTimer
 from gameplay.serializers import ActivityTimerSerializer
 from gameplay.services.xp_modifiers import handle_online_login
 from users.services.login_services import get_login_state
@@ -311,6 +312,48 @@ class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
 
 
+def _serialize_preferences(user):
+    """
+    Every registered preference (users/dynamic_preferences_registry.py),
+    with this user's current value - generic over the registry so a new
+    preference class there appears here, and on the frontend Preferences
+    tab, with no further backend/API changes needed. Only
+    `BooleanPreference` is exposed for now (the only type any preference
+    currently uses); teach this function a new `type` string if a future
+    preference needs one.
+
+    A preference class may also define an `is_visible()`
+    staticmethod/classmethod (e.g. InactivityReminderEmails, gated on
+    GameSettings.inactivity_reminders_enabled_from) - if it returns False
+    the preference is left out entirely, same as if it weren't registered.
+    """
+    from dynamic_preferences.types import BooleanPreference
+    from dynamic_preferences.users.registries import user_preferences_registry
+
+    manager = user.preferences
+    items = []
+    for section, prefs in dict(user_preferences_registry).items():
+        for name, pref in prefs.items():
+            if not isinstance(pref, BooleanPreference):
+                continue
+            is_visible = getattr(pref, "is_visible", None)
+            if is_visible is not None and not is_visible():
+                continue
+            key = pref.identifier()
+            items.append(
+                {
+                    "key": key,
+                    "section": section,
+                    "name": name,
+                    "verbose_name": pref.verbose_name,
+                    "help_text": pref.help_text,
+                    "type": "boolean",
+                    "value": manager[key],
+                }
+            )
+    return items
+
+
 class MeViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
@@ -331,6 +374,40 @@ class MeViewSet(viewsets.ViewSet):
         serializer.save()
 
         return Response(UserSerializer(request.user).data)
+
+    @extend_schema(
+        responses=inline_serializer(
+            name="TimezoneChoicesResponse",
+            fields={
+                "timezones": inline_serializer(
+                    name="TimezoneChoiceItem",
+                    fields={
+                        "value": drf_serializers.CharField(),
+                        "label": drf_serializers.CharField(),
+                    },
+                    many=True,
+                ),
+            },
+        )
+    )
+    @action(detail=False, methods=["get"])
+    def timezone_choices(self, request):
+        """
+        Every IANA timezone name `user_settings`'s `timezone` field will
+        accept, paired with a display label - backs the timezone picker on
+        the Account Preferences tab. Sourced from the same `zoneinfo` data
+        `validate_timezone_name` validates against, via
+        timezone_field.choices.standard() for consistent, sorted labels.
+        """
+        from zoneinfo import available_timezones
+
+        from timezone_field.choices import standard
+
+        timezones = [
+            {"value": value, "label": label}
+            for value, label in standard(available_timezones())
+        ]
+        return Response({"timezones": timezones})
 
     @extend_schema(responses=PlayerSerializer)
     @action(detail=False, methods=["get", "patch"])
@@ -418,6 +495,53 @@ class MeViewSet(viewsets.ViewSet):
                 }
             }
         )
+
+    @extend_schema(
+        responses=inline_serializer(
+            name="UserPreferencesResponse",
+            fields={
+                "preferences": inline_serializer(
+                    name="UserPreferenceItem",
+                    fields={
+                        "key": drf_serializers.CharField(),
+                        "section": drf_serializers.CharField(),
+                        "name": drf_serializers.CharField(),
+                        "verbose_name": drf_serializers.CharField(),
+                        "help_text": drf_serializers.CharField(),
+                        "type": drf_serializers.CharField(),
+                        "value": drf_serializers.BooleanField(),
+                    },
+                    many=True,
+                ),
+            },
+        )
+    )
+    @action(detail=False, methods=["get", "patch"])
+    def preferences(self, request):
+        """
+        Per-user settings registered in users/dynamic_preferences_registry.py
+        (django-dynamic-preferences). GET lists every registered preference
+        with this user's current value; PATCH takes `{<key>: <value>, ...}`
+        (keys are the `section__name` identifiers GET returns) and updates
+        just those. See `_serialize_preferences` above.
+        """
+        if request.method == "PATCH":
+            valid_keys = {item["key"] for item in _serialize_preferences(request.user)}
+            for key, value in request.data.items():
+                if key not in valid_keys:
+                    return Response(
+                        {"detail": f"Unknown preference: {key}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if not isinstance(value, bool):
+                    return Response(
+                        {"detail": f"{key} must be a boolean"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            for key, value in request.data.items():
+                request.user.preferences[key] = value
+
+        return Response({"preferences": _serialize_preferences(request.user)})
 
     @extend_schema(
         responses=inline_serializer(
@@ -744,6 +868,29 @@ class FetchInfoAPIView(APIView):
 
         logger.info(f"[FETCH INFO] Fetching data for player {player.id}")
 
+        self._sync_player_state(player)
+
+        login_state_data = get_login_state(request.user)
+        game_settings = GameSettings.current()
+
+        try:
+            data = self._build_response_data(
+                request, player, build_number, login_state_data, game_settings
+            )
+            return Response(data)
+
+        except Exception as e:
+            logger.error(f"[FETCH INFO] Serialization error: {e}", exc_info=True)
+            return Response(
+                {"error": "An error occurred during serialization."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def _sync_player_state(self, player):
+        """
+        Bring the player's session/timer/login-streak state up to date
+        before this request's data is serialized.
+        """
         # --- Track user session ---
         track_user_session(player)
 
@@ -755,41 +902,40 @@ class FetchInfoAPIView(APIView):
 
         handle_online_login(player)
 
-        login_state_data = get_login_state(request.user)
+    def _build_response_data(
+        self, request, player, build_number, login_state_data, game_settings
+    ):
+        """
+        Assemble the bootstrap payload. Field-for-field identical to the
+        previous inline dict.
 
-        # --- Serialize everything ---
-        game_settings = GameSettings.current()
-        try:
-            data = {
-                "success": True,
-                "message": "Player and character fetched",
-                "build_number": build_number,
-                "player": PlayerSerializer(player, context={"request": request}).data,
-                "character": None,
-                "activity_timer": ActivityTimerSerializer(
-                    player.activity_timer, context={"request": request}
-                ).data,
-                "population_centre": None,
-                "xp_mods": [],
-                "login_state": login_state_data["login_state"],
-                "login_streak": login_state_data["login_streak"],
-                "login_event_at": login_state_data["login_event_at"],
-                "login_reward_xp": login_state_data["login_reward_xp"],
-                "announcement_unread_count": PlayerAnnouncementState.unread_count_for_player(
-                    player
-                ),
-                "free_timer_limit_seconds": game_settings.free_timer_limit_seconds,
-                "game_settings": GameSettingsSerializer(game_settings).data,
-                "online_count": Player.online_count(),
-            }
-            return Response(data)
-
-        except Exception as e:
-            logger.error(f"[FETCH INFO] Serialization error: {e}", exc_info=True)
-            return Response(
-                {"error": "An error occurred during serialization."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        NOTE: `character`, `population_centre` and `xp_mods` are hardcoded
+        placeholders - this endpoint is mid-transition for the
+        PlayerCharacterLink reactivation. This split doesn't touch those
+        three lines' values, only where they're assembled.
+        """
+        return {
+            "success": True,
+            "message": "Player and character fetched",
+            "build_number": build_number,
+            "player": PlayerSerializer(player, context={"request": request}).data,
+            "character": None,
+            "activity_timer": ActivityTimerSerializer(
+                player.activity_timer, context={"request": request}
+            ).data,
+            "population_centre": None,
+            "xp_mods": [],
+            "login_state": login_state_data["login_state"],
+            "login_streak": login_state_data["login_streak"],
+            "login_event_at": login_state_data["login_event_at"],
+            "login_reward_xp": login_state_data["login_reward_xp"],
+            "announcement_unread_count": PlayerAnnouncementState.unread_count_for_player(
+                player
+            ),
+            "free_timer_limit_seconds": game_settings.free_timer_limit_seconds,
+            "game_settings": GameSettingsSerializer(game_settings).data,
+            "online_count": Player.online_count(),
+        }
 
     def _ensure_activity_timer_consistency(self, player):
         """Ensure activity timer is not in an invalid state."""
@@ -802,7 +948,7 @@ class FetchInfoAPIView(APIView):
 
         # Timer says it's running but no activity exists -> reset
 
-        if at.status != "empty" and activity is None:
+        if at.status != ActivityTimer.Status.EMPTY and activity is None:
             try:
                 at.reset()
             except Exception as e:

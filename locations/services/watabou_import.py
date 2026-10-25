@@ -31,6 +31,7 @@ from django.db import transaction
 
 from economy.models import BuildingCapability
 from economy.services.planning_services import settlement_plan
+from locations.constants import PROJECT_SRID
 from locations.management.commands.generate_villages import (
     compute_building_entrance_point,
 )
@@ -186,13 +187,13 @@ def _close_ring(ring):
     return points
 
 
-def _translate_polygon(coordinates, offset, srid=3857) -> Polygon:
+def _translate_polygon(coordinates, offset, srid=PROJECT_SRID) -> Polygon:
     dx, dy = offset
     rings = [[(x + dx, y + dy) for x, y in _close_ring(ring)] for ring in coordinates]
     return Polygon(*rings, srid=srid)
 
 
-def _translate_linestring(coordinates, offset, srid=3857) -> LineString:
+def _translate_linestring(coordinates, offset, srid=PROJECT_SRID) -> LineString:
     dx, dy = offset
     points = [(x + dx, y + dy) for x, y in coordinates]
     return LineString(points, srid=srid)

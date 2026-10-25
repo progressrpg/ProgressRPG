@@ -7,14 +7,15 @@ from django.utils import timezone
 from economy.constants import GROWTH_DURATION
 from economy.models import FieldCrop
 from locations.models import Building, LandArea, PopulationCentre, Subzone
+from locations.constants import PROJECT_SRID
 
-SQUARE = Polygon(((0, 0), (0, 10), (10, 10), (10, 0), (0, 0)), srid=3857)
+SQUARE = Polygon(((0, 0), (0, 10), (10, 10), (10, 0), (0, 0)), srid=PROJECT_SRID)
 
 
 class FieldCropGrowthProgressTest(TestCase):
     def setUp(self):
         centre = PopulationCentre.objects.create(
-            name="Testville", location=Point(0, 0, srid=3857)
+            name="Testville", location=Point(0, 0, srid=PROJECT_SRID)
         )
         land_area = LandArea.objects.create(
             name="Testville Land Area", population_centre=centre, size=1.0

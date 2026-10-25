@@ -1,0 +1,84 @@
+@use '../../styles/utilities/mixins' as m;
+@use '../../styles/base/variables' as v;
+@use '../../styles/semantic/spacing' as sp;
+@use '../../styles/semantic/typography' as t;
+@use '../../styles/semantic/colors' as c;
+
+.root {
+  position: relative;
+  width: 100%;
+  max-width: 22rem;
+  min-width: 0;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: sp.$form-control-height;
+  padding: sp.$padding-base;
+  box-sizing: border-box;
+  border-radius: sp.$form-control-radius;
+  @include t.apply-text-style(t.$text-body);
+  @include m.border-interactive(
+    rgba(c.$color-border-primary, 0.4),
+    c.$color-border-primary,
+    c.$color-border-accent
+  );
+
+  &:focus {
+    outline: none;
+    border-color: c.$color-border-primary;
+    background-color: c.$color-bg;
+  }
+
+  @include m.focus-outline(c.$color-border-accent);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + #{sp.$spacing-xs});
+  left: 0;
+  right: 0;
+  z-index: v.$z-index-tooltip;
+  margin: 0;
+  padding: sp.$spacing-xs 0;
+  max-height: 16rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid rgba(c.$color-border-primary, 0.2);
+  border-radius: sp.$border-radius;
+  background: rgba(c.$color-bg, 0.98);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.optionItem {
+  margin: 0;
+}
+
+.optionButton {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: sp.$spacing-sm sp.$spacing-md;
+  text-align: left;
+  color: c.$color-text-body;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(c.$color-border-primary, 0.08);
+  }
+}
+
+.optionButtonActive {
+  background: rgba(c.$color-border-primary, 0.14);
+}
+
+.optionButtonSelected {
+  font-weight: 600;
+}
+
+.emptyMessage {
+  padding: sp.$spacing-sm sp.$spacing-md;
+  color: c.$color-text-muted-strong;
+  @include t.apply-text-style(t.$text-body);
+}

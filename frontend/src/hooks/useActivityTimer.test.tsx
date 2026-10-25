@@ -7,11 +7,11 @@ import type { ActivityTimerApiData } from '../types';
 const mockApiFetch = vi.fn();
 const mockPlayActivityStartedSound = vi.fn();
 
-vi.mock("../utils/api.js", () => ({
+vi.mock("../utils/api", () => ({
   apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
 
-vi.mock("../utils/sounds.js", () => ({
+vi.mock("../utils/sounds", () => ({
   playActivityStartedSound: (...args: unknown[]) => mockPlayActivityStartedSound(...args),
   primeAudio: vi.fn(),
 }));
@@ -214,6 +214,9 @@ describe('useActivityTimer', () => {
           // because an unlabelled quick-start declares no duration.
           limitSeconds: null,
           limitReason: null,
+          // set_activity assigns the activity and starts the clock in one
+          // round-trip (see useActivityTimer's comment on the call site).
+          start: true,
         }),
       })
     );

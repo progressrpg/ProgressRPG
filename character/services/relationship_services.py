@@ -148,14 +148,6 @@ def relationship_get_household_members(character):
     return members
 
 
-# Gendered labels for the two relationship types household generation
-# actually produces - keyed by the *other* character's sex (Character.
-# SexChoices), since "husband"/"son" etc. describe them, not `character`.
-_MARRIAGE_LABELS = {"Male": "husband", "Female": "wife"}
-_PARENT_LABELS = {"Male": "father", "Female": "mother"}
-_CHILD_LABELS = {"Male": "son", "Female": "daughter"}
-
-
 def household_relationship_label(relationship_type, other_role, other_sex) -> str:
     """
     Human-readable label for the *other* member of one of `character`'s
@@ -165,16 +157,35 @@ def household_relationship_label(relationship_type, other_role, other_sex) -> st
     (defensive only; the two types this is actually called for are always
     MARRIAGE/SPOUSE or PARENT_CHILD/PARENT|CHILD).
     """
-    from character.models import RelationshipRole, RelationshipType
+    from character.models import Character, RelationshipRole, RelationshipType
+
+    # Gendered labels for the two relationship types household generation
+    # actually produces - keyed by the *other* character's sex
+    # (Character.SexChoices), since "husband"/"son" etc. describe them, not
+    # `character`. Built here rather than as module-level constants: this
+    # module keeps character.models imports lazy throughout to avoid a
+    # cycle with character.models.character, which imports this module.
+    marriage_labels = {
+        Character.SexChoices.MALE: "husband",
+        Character.SexChoices.FEMALE: "wife",
+    }
+    parent_labels = {
+        Character.SexChoices.MALE: "father",
+        Character.SexChoices.FEMALE: "mother",
+    }
+    child_labels = {
+        Character.SexChoices.MALE: "son",
+        Character.SexChoices.FEMALE: "daughter",
+    }
 
     if relationship_type == RelationshipType.MARRIAGE:
-        return _MARRIAGE_LABELS.get(other_sex, "spouse")
+        return marriage_labels.get(other_sex, "spouse")
 
     if relationship_type == RelationshipType.PARENT_CHILD:
         if other_role == RelationshipRole.PARENT:
-            return _PARENT_LABELS.get(other_sex, "parent")
+            return parent_labels.get(other_sex, "parent")
         if other_role == RelationshipRole.CHILD:
-            return _CHILD_LABELS.get(other_sex, "child")
+            return child_labels.get(other_sex, "child")
 
     return str(relationship_type).replace("_", " ")
 

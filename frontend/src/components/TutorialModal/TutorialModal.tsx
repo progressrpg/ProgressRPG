@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import Modal from "../Modal/Modal";
 import Button from "../Button/Button";
 import useTutorialSteps from "../../hooks/useTutorialSteps";
-import { apiFetch } from "../../utils/api";
+import { markTutorialStepsSeen } from "../../api/tutorial";
 import type { TutorialStep } from "../../types";
 import styles from "./TutorialModal.module.scss";
 
@@ -49,10 +49,7 @@ export default function TutorialModal({
   const handleDone = useCallback(async () => {
     const seenIds = steps.slice(currentIndex).map((s: TutorialStep) => s.id);
     try {
-      await apiFetch("/me/mark_tutorial_steps_seen/", {
-        method: "POST",
-        body: JSON.stringify({ step_ids: seenIds }),
-      });
+      await markTutorialStepsSeen(seenIds);
     } catch {
       // Non-fatal — modal still closes
     }

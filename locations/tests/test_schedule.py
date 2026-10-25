@@ -9,12 +9,13 @@ from locations.models import Node, Path, Building, PopulationCentre
 from locations.services.schedule import sync_character_location, target_role_for
 from locations.tasks import commute_tick
 from character.models import Character, CharacterLocation
+from locations.constants import PROJECT_SRID
 
 
 class ScheduleServiceTargetRoleTest(TestCase):
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Scheduled", location=Point(0, 0, srid=3857)
+            given_name="Scheduled", location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def test_target_role_is_work_at_midday(self):
@@ -59,7 +60,7 @@ class ScheduleServiceTargetRoleTest(TestCase):
 class ScheduleServiceBuildingHoursTest(TestCase):
     def setUp(self):
         self.character = Character.objects.create(
-            given_name="Worker", location=Point(0, 0, srid=3857)
+            given_name="Worker", location=Point(0, 0, srid=PROJECT_SRID)
         )
 
     def _assign_work(self, building):
@@ -73,7 +74,7 @@ class ScheduleServiceBuildingHoursTest(TestCase):
         building = Building.objects.create(
             name="Late Mill",
             building_type="mill",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             open_time_override=time(20, 0),
             close_time_override=time(23, 0),
         )
@@ -95,7 +96,9 @@ class ScheduleServiceBuildingHoursTest(TestCase):
 
     def test_uses_building_type_default_hours(self):
         building = Building.objects.create(
-            name="Bakery", building_type="bakery", location=Point(0, 0, srid=3857)
+            name="Bakery",
+            building_type="bakery",
+            location=Point(0, 0, srid=PROJECT_SRID),
         )
         self._assign_work(building)
 
@@ -117,7 +120,7 @@ class ScheduleServiceBuildingHoursTest(TestCase):
         building = Building.objects.create(
             name="Communal Hall",
             building_type="communal",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
         )
         self._assign_work(building)
 
@@ -145,7 +148,9 @@ class ScheduleServiceBuildingHoursTest(TestCase):
 
     def test_stagger_applied_to_building_resolved_hours(self):
         building = Building.objects.create(
-            name="Market", building_type="market", location=Point(0, 0, srid=3857)
+            name="Market",
+            building_type="market",
+            location=Point(0, 0, srid=PROJECT_SRID),
         )
         self._assign_work(building)
 
@@ -165,23 +170,29 @@ class ScheduleServiceBuildingHoursTest(TestCase):
 class SyncCharacterLocationTest(TestCase):
     def setUp(self):
         self.start_node = Node.objects.create(
-            name="Start", location=Point(0, 0, srid=3857), kind=Node.Kind.OUTSIDE
+            name="Start",
+            location=Point(0, 0, srid=PROJECT_SRID),
+            kind=Node.Kind.OUTSIDE,
         )
         self.home_building = Building.objects.create(
-            name="Home", building_type="residential", location=Point(0, 0, srid=3857)
+            name="Home",
+            building_type="residential",
+            location=Point(0, 0, srid=PROJECT_SRID),
         )
         self.work_building = Building.objects.create(
-            name="Work", building_type="communal", location=Point(20, 0, srid=3857)
+            name="Work",
+            building_type="communal",
+            location=Point(20, 0, srid=PROJECT_SRID),
         )
         self.home_node = Node.objects.create(
             name="HomeEntrance",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             kind=Node.Kind.BUILDING_ENTRANCE,
             building=self.home_building,
         )
         self.work_node = Node.objects.create(
             name="WorkEntrance",
-            location=Point(20, 0, srid=3857),
+            location=Point(20, 0, srid=PROJECT_SRID),
             kind=Node.Kind.BUILDING_ENTRANCE,
             building=self.work_building,
         )
@@ -191,7 +202,7 @@ class SyncCharacterLocationTest(TestCase):
 
         self.character = Character.objects.create(
             given_name="Commuter",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.start_node,
         )
         CharacterLocation.objects.create(
@@ -296,23 +307,23 @@ class SyncCharacterLocationTest(TestCase):
 class CommuteTickTaskTest(TestCase):
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
-            name="Commute Village", location=Point(0, 0, srid=3857)
+            name="Commute Village", location=Point(0, 0, srid=PROJECT_SRID)
         )
         self.idle_character = Character.objects.create(
             given_name="Idle",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             population_centre=self.centre,
             is_moving=False,
         )
         self.moving_character = Character.objects.create(
             given_name="Moving",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             population_centre=self.centre,
             is_moving=True,
         )
         self.orphan_character = Character.objects.create(
             given_name="Orphan",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             is_moving=False,
         )
 

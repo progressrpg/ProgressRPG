@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { CSSProperties, KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent, Ref } from "react";
 import classNames from "classnames";
 
 import { useEntitySearchInput, type SearchEntity } from "./useEntitySearchInput";
@@ -30,6 +30,12 @@ interface EntitySearchInputProps {
   maxVisibleRows?: number;
   /** Shown instead of the list when alwaysOpen is set and there are no rows. */
   emptyMessage?: string;
+  /**
+   * Forwarded to the text input, so a caller can act on the element directly
+   * (e.g. blurring it to dismiss the mobile keyboard) instead of reaching for
+   * `document.activeElement`. See useActivityInput (#574).
+   */
+  inputRef?: Ref<HTMLInputElement>;
 }
 
 export default function EntitySearchInput({
@@ -48,6 +54,7 @@ export default function EntitySearchInput({
   alwaysOpen = false,
   maxVisibleRows,
   emptyMessage,
+  inputRef,
 }: EntitySearchInputProps) {
   const {
     canSearch,
@@ -158,6 +165,7 @@ export default function EntitySearchInput({
   return (
     <div ref={rootRef} className={classNames(styles.root, className)}>
       <input
+        ref={inputRef}
         type="text"
         role="combobox"
         value={value}

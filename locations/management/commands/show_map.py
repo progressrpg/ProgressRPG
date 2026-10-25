@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.gis.geos import Point
+from locations.constants import PROJECT_SRID
 from locations.models import Building, PopulationCentre, LandArea
 from character.models import Character
 from math import sqrt
@@ -59,7 +60,10 @@ class Command(BaseCommand):
                 if la.boundary is not None:
                     minx, miny, maxx, maxy = la.boundary.extent
                     all_points.extend(
-                        [Point(minx, miny, srid=3857), Point(maxx, maxy, srid=3857)]
+                        [
+                            Point(minx, miny, srid=PROJECT_SRID),
+                            Point(maxx, maxy, srid=PROJECT_SRID),
+                        ]
                     )
         else:
             landareas = []
@@ -124,11 +128,19 @@ class Command(BaseCommand):
             if getattr(b, "footprint", None):
                 minx, miny, maxx, maxy = b.footprint.extent
                 points.extend(
-                    [Point(minx, miny, srid=3857), Point(maxx, maxy, srid=3857)]
+                    [
+                        Point(minx, miny, srid=PROJECT_SRID),
+                        Point(maxx, maxy, srid=PROJECT_SRID),
+                    ]
                 )
         if getattr(centre, "boundary", None):
             minx, miny, maxx, maxy = centre.boundary.extent
-            points.extend([Point(minx, miny, srid=3857), Point(maxx, maxy, srid=3857)])
+            points.extend(
+                [
+                    Point(minx, miny, srid=PROJECT_SRID),
+                    Point(maxx, maxy, srid=PROJECT_SRID),
+                ]
+            )
         return points
 
     def compute_grid_bounds(self, points, map_size):
@@ -168,7 +180,7 @@ class Command(BaseCommand):
     ):
         for x, y in self.sample_polygon_edges(polygon):
             gx, gy = self.point_to_grid(
-                Point(x, y, srid=3857), min_x, min_y, scale_x, scale_y, map_size
+                Point(x, y, srid=PROJECT_SRID), min_x, min_y, scale_x, scale_y, map_size
             )
             if 0 <= gy < len(grid) and 0 <= gx < len(grid[0]):
                 grid[gy][gx] = symbol
@@ -178,7 +190,7 @@ class Command(BaseCommand):
             if getattr(b, "footprint", None):
                 minx, miny, maxx, maxy = b.footprint.extent
                 gx_min, gy_min = self.point_to_grid(
-                    Point(minx, miny, srid=3857),
+                    Point(minx, miny, srid=PROJECT_SRID),
                     min_x,
                     min_y,
                     scale_x,
@@ -186,7 +198,7 @@ class Command(BaseCommand):
                     map_size,
                 )
                 gx_max, gy_max = self.point_to_grid(
-                    Point(maxx, maxy, srid=3857),
+                    Point(maxx, maxy, srid=PROJECT_SRID),
                     min_x,
                     min_y,
                     scale_x,

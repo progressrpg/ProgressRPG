@@ -47,7 +47,7 @@ class BaseTimerViewSet(viewsets.ViewSet):
         # the logical-day rule is enforced here rather than trusted to the
         # UI: past its own day, a session can be submitted but not continued,
         # or today's work would be credited to the day it began.
-        if timer.status == "paused" and not timer.can_resume():
+        if timer.status == type(timer).Status.PAUSED and not timer.can_resume():
             return Response(
                 {
                     "error": "This session's day has ended. Submit or discard "
@@ -131,7 +131,7 @@ class ActivityTimerViewSet(BaseTimerViewSet):
         with transaction.atomic():
             locked = timer_model.objects.select_for_update().get(pk=timer.pk)
 
-            if locked.status == "paused" and locked.elapsed_time > 0:
+            if locked.status == timer_model.Status.PAUSED and locked.elapsed_time > 0:
                 # new_activity() resets elapsed_time to 0, so starting
                 # something new over a paused session would destroy the time
                 # banked on it rather than preserve it. The client resolves
@@ -147,7 +147,7 @@ class ActivityTimerViewSet(BaseTimerViewSet):
                     status=status.HTTP_409_CONFLICT,
                 )
 
-            if locked.status != "empty":
+            if locked.status != timer_model.Status.EMPTY:
                 # Active/waiting sessions (and paused ones with no banked
                 # time) still hold a real activity relation; overwriting it
                 # here would silently orphan that activity instead of
@@ -202,7 +202,14 @@ class ActivityTimerViewSet(BaseTimerViewSet):
         """
         timer = self.get_timer(request)
 
-        if timer.status not in ("active", "waiting", "paused") or not timer.activity:
+        # Not named `status`: that would shadow the DRF `status` module used
+        # for the response code below.
+        timer_status = type(timer).Status
+        if timer.status not in (
+            timer_status.ACTIVE,
+            timer_status.WAITING,
+            timer_status.PAUSED,
+        ) or not timer.activity:
             return Response(
                 {"error": "No running timer to label."},
                 status=status.HTTP_400_BAD_REQUEST,

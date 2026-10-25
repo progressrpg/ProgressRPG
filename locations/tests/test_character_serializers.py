@@ -6,6 +6,7 @@ from locations.serializers import (
     CharacterPointFeatureSerializer,
     JOURNEY_PATH_PREVIEW_LIMIT,
 )
+from locations.constants import PROJECT_SRID
 from character.models import Character
 
 
@@ -16,16 +17,22 @@ class CharacterPointFeatureSerializerJourneyTest(TestCase):
     blindly between two polled points."""
 
     def setUp(self):
-        self.node_a = Node.objects.create(name="A", location=Point(0, 0, srid=3857))
-        self.node_b = Node.objects.create(name="B", location=Point(10, 0, srid=3857))
-        self.node_c = Node.objects.create(name="C", location=Point(20, 0, srid=3857))
+        self.node_a = Node.objects.create(
+            name="A", location=Point(0, 0, srid=PROJECT_SRID)
+        )
+        self.node_b = Node.objects.create(
+            name="B", location=Point(10, 0, srid=PROJECT_SRID)
+        )
+        self.node_c = Node.objects.create(
+            name="C", location=Point(20, 0, srid=PROJECT_SRID)
+        )
         Path.objects.create(from_node=self.node_a, to_node=self.node_b)
         Path.objects.create(from_node=self.node_b, to_node=self.node_c)
 
     def test_idle_character_has_no_path(self):
         character = Character.objects.create(
             given_name="Idle",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.node_a,
             movement_speed=2.5,
         )
@@ -38,7 +45,7 @@ class CharacterPointFeatureSerializerJourneyTest(TestCase):
     def test_moving_character_exposes_remaining_path_and_speed(self):
         character = Character.objects.create(
             given_name="Walker",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.node_a,
             is_moving=True,
             movement_speed=3.0,
@@ -62,14 +69,14 @@ class CharacterPointFeatureSerializerJourneyTest(TestCase):
         for i in range(JOURNEY_PATH_PREVIEW_LIMIT + 5):
             nodes.append(
                 Node.objects.create(
-                    name=f"Extra{i}", location=Point(30 + i * 10, 0, srid=3857)
+                    name=f"Extra{i}", location=Point(30 + i * 10, 0, srid=PROJECT_SRID)
                 )
             )
             Path.objects.create(from_node=nodes[-2], to_node=nodes[-1])
 
         character = Character.objects.create(
             given_name="LongHauler",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.node_a,
             is_moving=True,
         )
@@ -95,21 +102,23 @@ class CharacterPointFeatureSerializerLocationTypeTest(TestCase):
 
     def setUp(self):
         self.bakery = Building.objects.create(
-            name="Bakery 1", building_type="bakery", location=Point(0, 0, srid=3857)
+            name="Bakery 1",
+            building_type="bakery",
+            location=Point(0, 0, srid=PROJECT_SRID),
         )
         self.building_node = Node.objects.create(
             name="Bakery entrance",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             building=self.bakery,
         )
         self.outside_node = Node.objects.create(
-            name="Field", location=Point(50, 50, srid=3857)
+            name="Field", location=Point(50, 50, srid=PROJECT_SRID)
         )
 
     def test_current_location_type_reflects_the_building_the_character_is_in(self):
         character = Character.objects.create(
             given_name="Baker",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.building_node,
         )
 
@@ -128,12 +137,12 @@ class CharacterPointFeatureSerializerLocationTypeTest(TestCase):
         )
         interior_node = Node.objects.create(
             name="Kitchen floor",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             interior_space=kitchen,
         )
         character = Character.objects.create(
             given_name="Kneader",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=interior_node,
         )
 
@@ -144,7 +153,7 @@ class CharacterPointFeatureSerializerLocationTypeTest(TestCase):
     def test_current_location_type_is_none_when_the_character_is_outside(self):
         character = Character.objects.create(
             given_name="Forager",
-            location=Point(50, 50, srid=3857),
+            location=Point(50, 50, srid=PROJECT_SRID),
             current_node=self.outside_node,
         )
 
@@ -157,7 +166,7 @@ class CharacterPointFeatureSerializerLocationTypeTest(TestCase):
     ):
         character = Character.objects.create(
             given_name="Walker",
-            location=Point(50, 50, srid=3857),
+            location=Point(50, 50, srid=PROJECT_SRID),
             current_node=self.outside_node,
             is_moving=True,
         )
@@ -179,7 +188,7 @@ class CharacterPointFeatureSerializerLocationTypeTest(TestCase):
     ):
         character = Character.objects.create(
             given_name="Wanderer",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             current_node=self.building_node,
             is_moving=True,
         )

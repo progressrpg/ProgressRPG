@@ -84,6 +84,8 @@ INSTALLED_APPS = [
     "channels",
     "django_vite",
     "sendgrid",
+    "dynamic_preferences",
+    "dynamic_preferences.users.apps.UserPreferencesConfig",
     "core",
     "character",
     "economy",

@@ -7,6 +7,7 @@ from economy import constants
 from economy.conversion import convert_goods
 from economy.models import GoodsStock
 from locations.models import Building, InteriorSpace, PopulationCentre
+from locations.constants import PROJECT_SRID
 
 
 def _square(cx, cy, half_side):
@@ -18,7 +19,7 @@ def _square(cx, cy, half_side):
             (cx + half_side, cy - half_side),
             (cx - half_side, cy - half_side),
         ),
-        srid=3857,
+        srid=PROJECT_SRID,
     )
 
 
@@ -26,7 +27,7 @@ def _make_building(name, building_type, storage_usage, storage_area, centre):
     building = Building.objects.create(
         name=name,
         building_type=building_type,
-        location=Point(0, 0, srid=3857),
+        location=Point(0, 0, srid=PROJECT_SRID),
         footprint=_square(0, 0, 5),
         population_centre=centre,
     )
@@ -41,7 +42,7 @@ class ConvertGoodsTests(TestCase):
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
             name="Millville",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=_square(0, 0, 50),
         )
         self.granary = _make_building(
@@ -165,7 +166,7 @@ class GoodsStockCapacityUnitKindTests(TestCase):
     def setUp(self):
         self.centre = PopulationCentre.objects.create(
             name="Storeville",
-            location=Point(0, 0, srid=3857),
+            location=Point(0, 0, srid=PROJECT_SRID),
             boundary=_square(0, 0, 50),
         )
 

@@ -8,22 +8,25 @@ from character.models import Character, CharacterLocation
 from economy.models import BuildingCapability
 from locations.management.commands.generate_villages import create_building_footprint
 from locations.models import Building, PopulationCentre
+from locations.constants import PROJECT_SRID
 
 WORKING_AGE_BIRTH_DATE = date.today() - timedelta(days=25 * 365)
 
 
 def _make_centre(name="Testville"):
-    return PopulationCentre.objects.create(name=name, location=Point(0, 0, srid=3857))
+    return PopulationCentre.objects.create(
+        name=name, location=Point(0, 0, srid=PROJECT_SRID)
+    )
 
 
 def _make_building(centre, building_type, x, *, activities=()):
     footprint = create_building_footprint(
-        Point(x, 0, srid=3857), min_size=5, max_size=10
+        Point(x, 0, srid=PROJECT_SRID), min_size=5, max_size=10
     )
     building = Building.objects.create(
         name=f"{building_type} at {x}",
         building_type=building_type,
-        location=Point(x, 0, srid=3857),
+        location=Point(x, 0, srid=PROJECT_SRID),
         footprint=footprint,
         population_centre=centre,
     )

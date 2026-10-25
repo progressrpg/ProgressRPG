@@ -41,6 +41,34 @@ export interface AppConfig {
   trial_period_days: number;
 }
 
+/** One registered per-user setting (users/dynamic_preferences_registry.py on
+ * the backend), with the current user's value. `type` is always "boolean"
+ * for now - the only kind of preference registered so far. */
+export interface UserPreference {
+  key: string;
+  section: string;
+  name: string;
+  verbose_name: string;
+  help_text: string;
+  type: 'boolean';
+  value: boolean;
+}
+
+export interface UserPreferencesResponse {
+  preferences: UserPreference[];
+}
+
+/** One IANA timezone name accepted by PATCH /me/user_settings/, with a
+ * display label (api/views.py MeViewSet.timezone_choices). */
+export interface TimezoneChoice {
+  value: string;
+  label: string;
+}
+
+export interface TimezoneChoicesResponse {
+  timezones: TimezoneChoice[];
+}
+
 /** Registration status (public, unauthenticated) */
 export interface RegistrationStatus {
   registration_open: boolean;

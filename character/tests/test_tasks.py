@@ -5,12 +5,13 @@ from character.models import Character
 from character.tasks import generate_character_days
 from character.tests.test_behaviour_services import create_activity_catalog
 from progression.models import CharacterActivity
+from locations.constants import PROJECT_SRID
 
 
 class GenerateCharacterDaysTaskTests(TestCase):
     def test_generates_activities_for_characters_with_behaviour(self):
         character = Character.objects.create(
-            given_name="Genny", location=Point(0, 0, srid=3857)
+            given_name="Genny", location=Point(0, 0, srid=PROJECT_SRID)
         )
         create_activity_catalog()
 
@@ -22,7 +23,7 @@ class GenerateCharacterDaysTaskTests(TestCase):
 
     def test_skips_characters_without_behaviour(self):
         character = Character.objects.create(
-            given_name="NoBehaviour", location=Point(0, 0, srid=3857)
+            given_name="NoBehaviour", location=Point(0, 0, srid=PROJECT_SRID)
         )
         character.behaviour.delete()
 

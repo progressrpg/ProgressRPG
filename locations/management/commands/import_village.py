@@ -5,6 +5,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
 
+from locations.constants import PROJECT_SRID
 from locations.models import PopulationCentre
 from locations.services.population_centre_admin import delete_population_centre
 from locations.services.road_connections import connect_nearest_village_roads
@@ -167,7 +168,7 @@ class Command(BaseCommand):
                 "neither to auto-pick an unoccupied village_layout.VILLAGE_LAYOUT "
                 "slot."
             )
-        return Point(x, y, srid=3857)
+        return Point(x, y, srid=PROJECT_SRID)
 
     def _pick_unused_layout_slot(self) -> Point:
         """
@@ -189,7 +190,7 @@ class Command(BaseCommand):
         }
         for x, y in VILLAGE_LAYOUT:
             if (x, y) not in occupied:
-                return Point(x, y, srid=3857)
+                return Point(x, y, srid=PROJECT_SRID)
         raise CommandError(
             f"Every village_layout.VILLAGE_LAYOUT slot ({len(VILLAGE_LAYOUT)}) is "
             "already occupied by a PopulationCentre - pass --x/--y explicitly, "
