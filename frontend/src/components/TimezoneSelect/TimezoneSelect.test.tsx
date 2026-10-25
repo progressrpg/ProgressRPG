@@ -120,6 +120,29 @@ describe("TimezoneSelect", () => {
     expect(handleChange).not.toHaveBeenCalled();
   });
 
+  it("shows timezones past the first 50 alphabetically when unfiltered", async () => {
+    // Regression test: the list used to be capped at 50 options even when
+    // not actively filtering, so a user browsing the full IANA list (~400
+    // entries) could never scroll past "Africa/*" to reach "America/*" etc.
+    const manyOptions: TimezoneChoice[] = Array.from({ length: 400 }, (_, i) => ({
+      value: `Zone/${i.toString().padStart(3, "0")}`,
+      label: `Zone/${i.toString().padStart(3, "0")}`,
+    }));
+    const user = userEvent.setup();
+    render(
+      <TimezoneSelect
+        options={manyOptions}
+        value="Zone/000"
+        onChange={() => {}}
+        ariaLabel="Timezone"
+      />
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "Timezone" }));
+
+    expect(screen.getByRole("option", { name: "Zone/399" })).toBeInTheDocument();
+  });
+
   it("does not open the dropdown when disabled", async () => {
     const user = userEvent.setup();
     render(

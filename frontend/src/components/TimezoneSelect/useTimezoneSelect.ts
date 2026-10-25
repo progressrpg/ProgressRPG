@@ -8,10 +8,11 @@ interface UseTimezoneSelectArgs {
   disabled?: boolean;
 }
 
-// Caps the rendered list so typing a broad query (or focusing with an empty
-// query, which matches everything) doesn't mount ~400 <li> nodes at once -
-// narrowing the query trims the list back down, same as any typeahead.
-const MAX_VISIBLE_OPTIONS = 50;
+// Caps the rendered list so it can't grow unbounded, while still comfortably
+// covering the full IANA timezone list (~400 entries) the backend sends -
+// the dropdown itself scrolls (see TimezoneSelect.module.scss), so there's
+// no need to also truncate below the real option count.
+const MAX_VISIBLE_OPTIONS = 1000;
 
 export function useTimezoneSelect({
   options,
