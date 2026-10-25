@@ -14,6 +14,7 @@ import {
   semanticColor,
   spacing,
   textTone,
+  typography,
 } from './index.ts';
 
 const frontendDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -96,6 +97,14 @@ describe('tamagui.config.ts', () => {
     expect(tamaguiConfig.tokens.color.primary400.val).toBe(scale.primary['400']);
     expect(tamaguiConfig.tokens.color.colorTextBody.val).toBe(semanticColor.colorTextBody);
     expect(tamaguiConfig.tokens.color).not.toHaveProperty('blue10Light');
+  });
+
+  it('uses the app typography for its fonts', () => {
+    for (const font of [tamaguiConfig.fonts.body, tamaguiConfig.fonts.heading]) {
+      expect(font.family).toBe(typography.fontFamily.base.join(', '));
+      expect(font.size.true).toBe(typography.fontSize.base);
+      expect(font.size['2xl']).toBe(typography.fontSize['2xl']);
+    }
   });
 
   it('keys the spacing scale by step, in scale order', () => {

@@ -1,22 +1,15 @@
 // Tamagui config for the RN/Expo migration (epic #578/#591, decided in
-// #591). Colour and space tokens and the breakpoints come from the app's own
-// design tokens (src/tokens/, #592) - the same source the SCSS layer is
-// generated from - so Tamagui and SCSS can't drift apart. Still built on
-// @tamagui/config's default web preset for what the app has no
+// #591). Colour and space tokens, the fonts and the breakpoints come from
+// the app's own design tokens (src/tokens/, #592) - the same source the SCSS
+// layer is generated from - so Tamagui and SCSS can't drift apart. Still
+// built on @tamagui/config's default web preset for what the app has no
 // Tamagui-shaped equivalent of yet: the `size` scale (Tamagui's internal
 // component dimensions, whose keys radius/zIndex must also use - so those
 // stay stock too), themes and animations.
-//
-// Fonts also stay stock for now, deliberately: Tamagui's wrapper elements
-// set the inherited font, and AlertDialog's Title/Description render
-// Tamagui's own heading/body styles, so swapping in the app's typography is
-// a visible change (font family in portals, and the AlertDialog title from
-// 32px to 18px) rather than a token move. That's a design decision for its
-// own change, not part of this appearance-preserving one.
 import { config as defaultConfig } from '@tamagui/config';
-import { createTamagui, createTokens } from 'tamagui';
+import { createFont, createTamagui, createTokens } from 'tamagui';
 
-import { breakpoints, color, scale, semanticColor, spacing } from './src/tokens/index.ts';
+import { breakpoints, color, scale, semanticColor, spacing, typography } from './src/tokens/index.ts';
 
 // Flattened for Tamagui's single-level colour tokens: $primary, $primary400,
 // $neutral900, $colorTextBody... The mapped type keeps the scale keys typed,
@@ -50,9 +43,35 @@ const tokens = createTokens({
   space,
 });
 
+const fontSize = { ...typography.fontSize, true: typography.fontSize.base };
+
+const createAppFont = (family: readonly string[]) =>
+  createFont({
+    family: family.join(', '),
+    size: fontSize,
+    // Tamagui keys line heights by font size, in px; the app's base ratio
+    // applied to each size.
+    lineHeight: Object.fromEntries(
+      Object.entries(fontSize).map(([key, size]) => [
+        key,
+        Math.round(size * typography.lineHeight.base),
+      ]),
+    ),
+    // createFont fills the remaining size keys from `true`.
+    weight: { true: String(typography.fontWeight.regular) },
+    letterSpacing: { true: typography.letterSpacing.normal },
+  });
+
 const config = createTamagui({
   ...defaultConfig,
   tokens,
+  // Tamagui's wrapper elements set the inherited font, and AlertDialog's
+  // Title/Description render these directly - switching from the stock
+  // Inter/system stack to the app's Roboto was an accepted visual change.
+  fonts: {
+    body: createAppFont(typography.fontFamily.base),
+    heading: createAppFont(typography.fontFamily.heading),
+  },
   // @tamagui/config's stock `media` breakpoints (xs: 660, sm: 800, md: 1020...)
   // don't match this app's own breakpoint scale (the SCSS `respond-to()` mixin
   // uses the same tokens: sm: 576, md: 768...). Overriding here so components

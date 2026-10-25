@@ -156,11 +156,10 @@ Implemented on `chore/592-design-token-plan`. Where it departs from the plan abo
 
 - **`semantic/_spacing.scss` is generated in place.** It holds no mixins, so it didn't need a `.tokens.scss` split. Only `semantic/_colors.scss` is split: it keeps `token()` and the three mixins, and forwards `_colors.tokens.scss`.
 - **Tamagui `radius` and `zIndex` stay stock (D6 revised).** Tamagui requires space/radius/zIndex keys to be a subset of the `size` keys. `size` stays stock, so the app's named keys are rejected. `space` is keyed by step instead (`$1` = xs … `$7` = 3xl).
-- **Tamagui fonts stay stock; the acceptance criterion for typography is not met yet.** Swapping them is a visible change, not a token move:
-  - AlertDialog's Title/Description render Tamagui's heading/body styles, so the title would go from 32px/700 to 18px/600.
-  - Tamagui's wrapper elements set the inherited font, so portal text would move from the Inter/system stack to Roboto.
-
-  That is a design decision for its own issue.
+- **Tamagui fonts: an accepted visual change.** Unlike the rest of the change, switching Tamagui's fonts to the app typography is visible. Duncan accepted it on 2026-10-25. In Storybook, the only rendered differences are:
+  - Text inside Tamagui wrapper elements moves from the Inter/system stack to Roboto, with line-height 23px → 24px.
+  - AlertDialog's title goes from 32px/700 to 18px/600 and its description from 14px to 16px, so the dialog is 15px shorter.
+  - Six other text elements go from 14px to 16px.
 - **Verification** (beyond the unit tests):
   - Production CSS is byte-identical to `development` across all 22 assets. A one-step colour mutation was confirmed to show up in the same comparison.
   - In Storybook, the computed styles of every element across 13 Modal/AlertDialog/Toast/Tooltip/ProgressBar/TutorialModal stories are unchanged, excluding CSS custom properties, at a matching device pixel ratio.
