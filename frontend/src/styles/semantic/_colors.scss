@@ -1,156 +1,22 @@
+// Semantic colour tokens ($color-*, $text-tone, $button-variants,
+// $list-variants) are generated from src/tokens/semantic.ts into
+// _colors.tokens.scss and forwarded from here, so `@use '.../semantic/colors'`
+// keeps exposing them. Only the Sass-side helpers below live in this file.
+@forward 'colors.tokens';
+@use 'colors.tokens' as *;
 @use '../utilities/mixins' as m;
-@use '../tokens/colors' as c;
 @use 'sass:map';
-@use 'sass:color';
 
 // Helper function to get token values from maps
 @function token($map, $key) {
   @return map.get($map, $key);
 }
 
-$color-text-primary: #1e1e1e;
-$color-text-invert: #fbfbfb;
-
-$color-disabled: map.get(c.$neutral-scale, 500);
-$color-light-hover: color.adjust(c.$color-light, $lightness: -5%);
-$color-dark-hover: color.adjust(c.$color-dark, $lightness: 5%);
-
-
-// Text
-$color-text-body: map.get(c.$neutral-scale, 700);
-$color-text-heading: map.get(c.$neutral-scale, 900);
-
-// Buttons
-$button-bg-prim: map.get(c.$primary-scale, 500);
-$button-bg-prim-hov: map.get(c.$primary-scale, 600);
-
-$color-progress-bar: map.get(c.$primary-scale, 500);
-
-// Backgrounds
-//$color-bg: c.$color-light;
-$color-bg: map.get(c.$secondary-scale, 50);
-$color-bg-green: map.get(c.$secondary-scale, 100);
-$color-bg-invert: c.$color-dark;
-
-// Borders
-$color-border-primary: map.get(c.$primary-scale, 500);
-$color-border-accent: map.get(c.$accent-scale, 200);
-$color-glowing-outline: map.get(c.$primary-scale, 500);
-
-// Status
-$color-status-info: map.get(c.$primary-scale, 500);
-$color-status-success: map.get(c.$primary-scale, 600);
-$color-status-warning: map.get(c.$accent-scale, 200);
-$color-danger: #c62828; // strong, readable red
-$color-status-danger: $color-danger;
-
-// Activity categories
-$color-player: map.get(c.$primary-scale, 500);
-$color-character: map.get(c.$accent-scale, 200);
-
-// Error/Warning states
-$color-error: $color-danger;
-$color-error-bg: #ffebee;
-$color-warning: #ff9800;
-$color-warning-dark: #f57c00;
-
-// Text colors
-$color-text-error: $color-error;
-$color-text-disabled: map.get(c.$neutral-scale, 400);
-$color-text-muted: map.get(c.$neutral-scale, 500);
-// $color-text-muted (neutral 500, #707070) only clears 4.5:1 against ~white
-// backgrounds (4.95:1). Tinted surfaces like .tonePlayer's rgba($color-player,
-// 0.08) darken the background enough to drop it to 3.64:1 - use this instead
-// wherever muted text sits on a tinted list-item background.
-$color-text-muted-strong: map.get(c.$neutral-scale, 600);
-$color-text-default: map.get(c.$neutral-scale, 900);
-
-// Border colors
-$color-border-default: map.get(c.$neutral-scale, 300);
-$color-border-light: map.get(c.$neutral-scale, 200);
-$color-border-hover: map.get(c.$primary-scale, 400);
-$color-border-focus: map.get(c.$accent-scale, 200);
-$color-border-error: $color-error;
-
-// Overlay colors
-$color-overlay-backdrop: rgba(0, 0, 0, 0.5);
-$color-overlay-light: rgba(0, 0, 0, 0.4);
-
-// Third-party brand colors
-$color-brand-github: #24292e;
-$color-brand-google: #34a853;
-$color-brand-discord: #5865f2;
-
-
-
-$text-tone: (
-  default: (
-    color: map.get(c.$neutral-scale, 900)
-  ),
-  heading: (
-    color: map.get(c.$neutral-scale, 800)
-  ),
-  muted: (
-    color: map.get(c.$neutral-scale, 500)
-  ),
-  inverted: (
-    color: c.$color-light
-  ),
-  primary: (
-    color: map.get(c.$primary-scale, 600)
-  ),
-  secondary: (
-    color: map.get(c.$secondary-scale, 100)
-  ),
-  accent: (
-    color: map.get(c.$accent-scale, 200)
-  ),
-  error: (
-    color: $color-error
-  ),
-  disabled: (
-    color: $color-text-disabled
-  )
-);
-
-
 @mixin apply-text-tone($tone-map) {
   @each $prop, $value in $tone-map {
     #{$prop}: #{$value};
   }
 }
-
-
-$button-variants: (
-  primary: (
-    tone: inverted,
-    bg: map.get(c.$primary-scale, 500),
-    hover: map.get(c.$primary-scale, 400),
-    active: map.get(c.$primary-scale, 600),
-    disabled: map.get(c.$neutral-scale, 800)
-  ),
-  secondary: (
-    tone: primary,
-    bg: map.get(c.$secondary-scale, 100),
-    hover: map.get(c.$secondary-scale, 200),
-    active: map.get(c.$secondary-scale, 300),
-    disabled: map.get(c.$neutral-scale, 100)
-  ),
-  accent: (
-    tone: accent,
-    bg: map.get(c.$accent-scale, 200),
-    hover: map.get(c.$accent-scale, 300),
-    active: map.get(c.$accent-scale, 400),
-    disabled: map.get(c.$accent-scale, 100)
-  ),
-  danger: (
-    tone: inverted,
-    bg: $color-danger,
-    hover: #b71c1c,
-    active: #8e0000,
-    disabled: rgba($color-danger, 0.4)
-  )
-);
 
 @mixin apply-button-variant($variant-key) {
   $variant: map.get($button-variants, $variant-key);
@@ -179,28 +45,6 @@ $button-variants: (
     opacity: 0.6;
   }
 }
-
-$list-variants: (
-  default: (
-    tone: base,
-    selected-tone: inverted,
-    bg: transparent,
-    hover: map.get(c.$neutral-scale, 100),
-    active: map.get(c.$neutral-scale, 200),
-    selected: map.get(c.$primary-scale, 500),
-    selected-hover: map.get(c.$primary-scale, 400),
-    selected-active: map.get(c.$primary-scale, 600),
-  ),
-  subtle: (
-    tone: secondary,
-    bg: transparent,
-    hover: map.get(c.$secondary-scale, 100),
-    active: map.get(c.$secondary-scale, 200),
-    selected: map.get(c.$accent-scale, 100),
-    selected-hover: map.get(c.$accent-scale, 200),
-    selected-active: map.get(c.$accent-scale, 300),
-  )
-);
 
 @mixin apply-list-variant($variant-key, $is-selected: false) {
   $variant: map.get($list-variants, $variant-key);

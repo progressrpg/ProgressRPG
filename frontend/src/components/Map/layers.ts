@@ -1,5 +1,7 @@
 import { type FilterSpecification, type MapLibreMap } from "maplibre-gl";
 
+import { color } from "../../tokens";
+
 export const BOUNDARY_FILL_LAYER = "boundary-fill";
 export const BOUNDARY_LINE_LAYER = "boundary-line";
 export const BUILDINGS_FILL_LAYER = "buildings-fill";
@@ -32,13 +34,13 @@ export const SELECTED_CHARACTER_HIGHLIGHT_LAYER = "selected-character-highlight"
 export const HOVER_BUILDING_OUTLINE_LAYER = "hover-building-outline";
 export const HOVER_CHARACTER_HIGHLIGHT_LAYER = "hover-character-highlight";
 
-// Selection/hover highlight colour - mirrors $color-accent /
-// $accent-scale(200) in styles/tokens/_colors.scss (MapLibre paint
-// expressions live in plain TS and can't import SCSS variables directly).
-// Chosen over the more literally-named $color-glowing-outline
+// Selection/hover highlight colour - the accent token ($color-accent /
+// $accent-scale(200) in SCSS), read from the shared design tokens since
+// MapLibre paint expressions live in plain TS.
+// Chosen over the more literally-named glowing-outline token
 // ($primary-scale(500), green) because that token reads as part of the
 // map's own green terrain/fields rather than standing out against it.
-const SELECTION_HIGHLIGHT_COLOR = "#ff8800"; // c.$color-accent
+const SELECTION_HIGHLIGHT_COLOR = color.accent;
 
 // A feature only enters a filtered layer's render set the instant
 // setFilter matches it, so a paint-property transition (configured via

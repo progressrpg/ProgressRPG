@@ -99,6 +99,13 @@ test.describe('Tasks core loop', () => {
       await dialog.getByRole('button', { name: 'Delete' }).click();
       await dialog.getByRole('button', { name: 'Delete' }).click();
       await expect(page.getByText(taskName)).not.toBeVisible();
+
+      // Resolve the activity-timer session synchronously instead of relying
+      // on the WS disconnect-grace auto-complete (120s): otherwise a second
+      // run of this test within that window 409s on set_activity because
+      // the player's ActivityTimer is still non-empty from this run.
+      await section.getByRole('button', { name: 'Stop' }).click();
+      await expect(section.getByRole('button', { name: 'Start' })).toBeVisible();
     } finally {
       await page.unrouteAll({ behavior: 'ignoreErrors' });
     }
