@@ -203,7 +203,7 @@ psycopg2-binary==2.9.13
     # via -r requirements.in
 pycparser==3.0
     # via cffi
-pyjwt==2.15.0
+pyjwt==2.15.1
     # via
     #   -r requirements.in
     #   djangorestframework-simplejwt
