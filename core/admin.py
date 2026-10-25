@@ -124,6 +124,10 @@ class GameSettingsAdmin(admin.ModelAdmin):
                 )
             },
         ),
+        (
+            "Notifications",
+            {"fields": ("inactivity_reminders_enabled_from",)},
+        ),
     )
 
     def has_add_permission(self, request):
