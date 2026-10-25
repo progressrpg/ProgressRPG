@@ -4,7 +4,7 @@
 // src/styles/semantic/_colors.scss, _typography.scss). Each component
 // ported onto Tamagui is expected to reconcile its own visual output
 // against the SCSS original (see ProgressBar.tsx for the first instance);
-// a shared token source of truth is tracked separately (#590).
+// a shared token source of truth is tracked separately (#592).
 import { config as defaultConfig } from '@tamagui/config';
 import { createTamagui } from 'tamagui';
 
