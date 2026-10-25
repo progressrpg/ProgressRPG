@@ -76,3 +76,6 @@ jobs:
 
     - name: Run TypeScript type check
       run: cd frontend && npx tsc --noEmit
+
+    - name: Check generated design tokens are up to date
+      run: cd frontend && npm run tokens:check
