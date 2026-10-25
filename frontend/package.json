@@ -9,6 +9,8 @@
     "build:development": "vite build --mode development",
     "build:production": "vite build --mode production",
     "lint": "eslint .",
+    "tokens:generate": "node scripts/generate-tokens.ts",
+    "tokens:check": "node scripts/generate-tokens.ts --check",
     "preview": "vite preview",
     "test": "vitest run --project unit",
     "test:storybook": "vitest run --project storybook",
