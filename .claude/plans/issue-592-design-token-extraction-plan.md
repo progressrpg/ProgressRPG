@@ -149,3 +149,20 @@ Resolved 2026-10-25:
 
 - The out-of-gamut `$color-bg` is filed as #857.
 - CI moved to Node 22: `type-check.yml` and `deploy-docs.yml`; `main.yaml` was already on 24.
+
+## 9. Implementation notes (2026-10-25)
+
+Implemented on `chore/592-design-token-plan`. Where it departs from the plan above:
+
+- **`semantic/_spacing.scss` is generated in place.** It holds no mixins, so it didn't need a `.tokens.scss` split. Only `semantic/_colors.scss` is split: it keeps `token()` and the three mixins, and forwards `_colors.tokens.scss`.
+- **Tamagui `radius` and `zIndex` stay stock (D6 revised).** Tamagui requires space/radius/zIndex keys to be a subset of the `size` keys. `size` stays stock, so the app's named keys are rejected. `space` is keyed by step instead (`$1` = xs … `$7` = 3xl).
+- **Tamagui fonts stay stock; the acceptance criterion for typography is not met yet.** Swapping them is a visible change, not a token move:
+  - AlertDialog's Title/Description render Tamagui's heading/body styles, so the title would go from 32px/700 to 18px/600.
+  - Tamagui's wrapper elements set the inherited font, so portal text would move from the Inter/system stack to Roboto.
+
+  That is a design decision for its own issue.
+- **Verification** (beyond the unit tests):
+  - Production CSS is byte-identical to `development` across all 22 assets. A one-step colour mutation was confirmed to show up in the same comparison.
+  - In Storybook, the computed styles of every element across 13 Modal/AlertDialog/Toast/Tooltip/ProgressBar/TutorialModal stories are unchanged, excluding CSS custom properties, at a matching device pixel ratio.
+  - Pitfall: the ratio changes when the browser pane is hidden or shown, and that alone shifts every border width.
+- **D5 went as recommended.** The `$text-*` style maps stay in `semantic/_typography.scss` for #593.
