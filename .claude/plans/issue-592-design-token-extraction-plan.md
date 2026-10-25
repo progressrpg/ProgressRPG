@@ -31,8 +31,8 @@ Verified up front (2026-10-25, Dart Sass 1.103.1, the project's installed versio
 | `frontend/src/styles/semantic/_colors.tokens.scss`, `_spacing.tokens.scss` | new, generated | Data half of the semantic partials. |
 | `frontend/src/styles/semantic/_colors.scss`, `_spacing.scss` | existing | Keep the mixins and `token()` function; replace the data with `@forward` of the generated partial. |
 | `frontend/package.json` | existing | Add `tokens:generate` and `tokens:check` scripts. |
-| `.github/workflows/type-check.yml` | existing | Run `tokens:check` in the `typescript` job. Bump `node-version` 20 → 22 (needed for type-stripping; local is already on 22). |
-| `frontend/tamagui.config.ts` | existing | Consume generated tokens. Build `media` from the breakpoint tokens. Header comment points to #592 (already fixed on `chore/tamagui-config-token-pointer`). |
+| `.github/workflows/type-check.yml` | existing | Run `tokens:check` in the `typescript` job. (Its Node 20 → 22 bump, needed for type-stripping, is already done on this branch.) |
+| `frontend/tamagui.config.ts` | existing | Consume generated tokens. Build `media` from the breakpoint tokens. (The header comment already points to #592, fixed on this branch.) |
 | `frontend/src/components/Map/layers.ts` | existing | Import the accent colour instead of hard-coding `#ff8800`. |
 | `frontend/src/tokens/__tests__/*.test.ts` | new | See §6. |
 
@@ -52,7 +52,7 @@ Each step is a commit. Steps 1–4 can be one PR; step 5 is a second PR.
    - Author `semantic.ts`.
    - Generate `semantic/_*.tokens.scss`, and slim `_colors.scss` / `_spacing.scss` down to `@forward` plus their mixins and functions.
    - Diff the built CSS: it must be identical.
-3. **Stale-output check.** Add the `tokens:check` npm script and the CI step, plus the Node 22 bump.
+3. **Stale-output check.** Add the `tokens:check` npm script and the CI step. CI already runs Node 22.
 4. **Unit tests** (§6).
 5. **Runtime consumers (separate PR, so it reverts cleanly if Tamagui output shifts).**
    - `tamagui.config.ts` replaces `tokens.color`, `tokens.space`, `tokens.radius` and `tokens.zIndex`, plus `fonts`, with generated values; `size` stays stock (D6).
@@ -99,7 +99,7 @@ Each step is a commit. Steps 1–4 can be one PR; step 5 is a second PR.
   - `050` and `50` are the same key. `$secondary-scale` uses `050`, but `$color-bg` looks it up with `50`; `$dark-scale` uses `50`.
   - `2xl` is the number 2 with unit `xl`.
   - The generator must emit keys unquoted, exactly as authored. Quoting them would make `map.get` return null and silently drop declarations.
-- **Out-of-gamut `$color-bg`.** `$secondary-scale` 050 (+10% lightness on an already ~95% colour) resolves to `hsl(145, 100%, 105.29%)`. Browsers clamp it to white. Preserve it in Sass for parity, emit clamped `#ffffff` for runtime, and **file a separate issue** (the scale step is meaningless).
+- **Out-of-gamut `$color-bg`.** `$secondary-scale` 050 (+10% lightness on an already ~95% colour) resolves to `hsl(145, 100%, 105.29%)`. Browsers clamp it to white. Preserve it in Sass for parity and emit clamped `#ffffff` for runtime. The fix is tracked in #857, to land after this.
 - **Anomalies to preserve, not fix (they belong to #594):**
   - `$list-variants.default.tone: base` (no such tone, so it resolves to null).
   - The unused `hover` keys.
@@ -139,11 +139,13 @@ Manual:
 - **Hand-editing a generated `.scss` file.** The header plus `tokens:check` in CI catches it; make sure the header says to edit `src/tokens/` instead.
 - **Tamagui components that aren't `unstyled`** still render theme and token-driven defaults: `Tabs` content (`Tabs.tsx` ~l.131) and Modal's inner element (`Modal.tsx` ~l.73). Swapping `space` / `radius` / `color` can shift them, so check them by eye in step 5.
 - **Tamagui token-shape requirements.** `space` needs a `true` default key and negative variants are generated, while `zIndex` and `radius` have their own expectations. Build with `createTokens` and let type errors guide the shape. Don't hand-merge into `defaultConfig.tokens` field by field.
-- **The Node 22 bump** in `type-check.yml` is the only CI change. Keep it in its own commit so it's easy to revert if it surprises.
 
 ## 8. Open questions
 
 1. **D5 scope split.** Should the `$text-*` style maps move here or in #593? If here, the #592 acceptance criteria need no edit; if #593, add a note to both issues.
-2. **The out-of-gamut `$color-bg`.** File it now as a separate issue, which I'd recommend, or just note it in #594?
-3. **CI on Node 22**, versus adding `tsx` as a devDependency to keep CI on Node 20. I recommend Node 22, since it's what developers run locally.
-4. **Should the epic stay active?** The 2026-10-25 review found no movement since 2026-08-23. Confirm #588 is still prioritised before starting this L-sized item.
+2. **Should the epic stay active?** The 2026-10-25 review found no movement since 2026-08-23. Confirm #588 is still prioritised before starting this L-sized item.
+
+Resolved 2026-10-25:
+
+- The out-of-gamut `$color-bg` is filed as #857.
+- CI moved to Node 22: `type-check.yml` and `deploy-docs.yml`; `main.yaml` was already on 24.
