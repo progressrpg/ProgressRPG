@@ -1,6 +1,5 @@
 import React, { lazy } from "react";
 import { Navigate } from "react-router";
-import FeatureToggle from "../components/FeatureToggle";
 
 // Lazy load pages
 const Home = lazy(() => import("../pages/Home/Home"));
@@ -17,11 +16,11 @@ const SupportPage = lazy(() => import("../pages/SupportPage/SupportPage"));
 const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const AccountPage = lazy(() => import("../pages/Account/Account"));
 const EditAccount = lazy(() => import("../pages/EditAccount/EditAccount"));
-const MapPage = lazy(() => import("../pages/MapPage/MapPage"));
+const MapRoute = lazy(() => import("./MapRoute"));
 const MaintenancePage = lazy(() => import("../pages/MaintenancePage/MaintenancePage"));
 const UnavailablePage = lazy(() => import("../pages/UnavailablePage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage/NotFoundPage"));
-const LibraryPage = lazy(() => import("../pages/LibraryPage/LibraryPage"));
+const LibraryRoute = lazy(() => import("./LibraryRoute"));
 const ActivityTimelinePage = lazy(() => import("../pages/Game2/ActivityTimelinePage"))
 const SuccessPage = lazy(() => import("../pages/SuccessPage"));
 const CancelPage = lazy(() => import("../pages/CancelPage"));
@@ -94,9 +93,7 @@ export const routes = [
     path: "/map",
     element: (
       <PrivateRoute>
-        <FeatureToggle flag="map">
-          <MapPage />
-        </FeatureToggle>
+        <MapRoute />
       </PrivateRoute>
     ),
   },
@@ -148,7 +145,7 @@ export const routes = [
     path: "/library",
     element: (
       <PrivateRoute>
-        <LibraryPage />
+        <LibraryRoute />
       </PrivateRoute>
     ),
   },

@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema_field
 
 from .achievements import achievement_goals_for_player
 from .models import Player, TutorialStep
+from .services import progressive_unlocks
 from .validators import clean_player_name
 
 
@@ -63,6 +64,7 @@ class PlayerSerializer(serializers.ModelSerializer):
         source="user.current_login_streak", read_only=True
     )
     unseen_tutorial_step_ids = serializers.SerializerMethodField()
+    progressive_unlocks = serializers.SerializerMethodField()
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_tester(self, obj) -> bool:
@@ -71,8 +73,27 @@ class PlayerSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_unseen_tutorial_step_ids(self, obj) -> list[int]:
         seen_ids = set(obj.tutorial_steps_seen.values_list("id", flat=True))
+        eligible_ids = set(
+            TutorialStep.objects.exclude(unlock_key="").values_list("id", "unlock_key")
+        )
+        gated_ids = {
+            step_id
+            for step_id, unlock_key in eligible_ids
+            if not progressive_unlocks.new_signup_milestone_reached(obj, unlock_key)
+        }
         all_ids = set(TutorialStep.objects.values_list("id", flat=True))
-        return sorted(all_ids - seen_ids)
+        return sorted(all_ids - seen_ids - gated_ids)
+
+    @extend_schema_field(serializers.DictField(child=serializers.BooleanField()))
+    def get_progressive_unlocks(self, obj) -> dict[str, bool]:
+        return {
+            key: progressive_unlocks.unlock_visible(obj, key)
+            for key in (
+                progressive_unlocks.INFOBAR,
+                progressive_unlocks.LIBRARY,
+                progressive_unlocks.MAP,
+            )
+        }
 
     @extend_schema_field(AchievementGoalSerializer(many=True))
     def get_achievements(self, obj) -> list[dict[str, object]]:
@@ -105,6 +126,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             "onboarding_completed",
             "login_streak",
             "unseen_tutorial_step_ids",
+            "progressive_unlocks",
         ]
         read_only_fields = [
             "id",
@@ -122,4 +144,5 @@ class PlayerSerializer(serializers.ModelSerializer):
             "trial_end",
             "login_streak",
             "unseen_tutorial_step_ids",
+            "progressive_unlocks",
         ]

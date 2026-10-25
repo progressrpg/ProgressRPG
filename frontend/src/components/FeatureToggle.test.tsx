@@ -122,6 +122,26 @@ describe('FeatureToggle', () => {
     expect(screen.getByText('Legacy Feature Content')).toBeInTheDocument();
   });
 
+  it('renders children when alsoEnabledWhen is true, even if the flag is disabled', () => {
+    render(
+      <FeatureToggle flag={flag('disabledFeature')} alsoEnabledWhen={true}>
+        <div>Feature Content</div>
+      </FeatureToggle>
+    );
+
+    expect(screen.getByText('Feature Content')).toBeInTheDocument();
+  });
+
+  it('renders default fallback when both the flag and alsoEnabledWhen are false', () => {
+    render(
+      <FeatureToggle flag={flag('disabledFeature')} alsoEnabledWhen={false}>
+        <div>Feature Content</div>
+      </FeatureToggle>
+    );
+
+    expect(screen.queryByText('Feature Content')).not.toBeInTheDocument();
+  });
+
   it('uses app-config flag override when present', () => {
     mockUseAppConfig.mockReturnValue({
       data: { feature_flags: { enabledFeature: 'no' } },

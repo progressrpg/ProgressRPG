@@ -20,10 +20,11 @@ interface NavbarProps {
 
 export default function Navbar({ onMenuClick, onHelpClick }: NavbarProps) {
   const { isAuthenticated } = useAuth();
-  const { announcementUnreadCount, setAnnouncementUnreadCount } = useGame();
+  const { player, announcementUnreadCount, setAnnouncementUnreadCount } = useGame();
   const location = useLocation();
   const isAnnouncementsEnabled = useFeatureFlag("announcements");
-  const isMapEnabled = useFeatureFlag("map");
+  const isMapEnabled = useFeatureFlag("map") || Boolean(player?.progressive_unlocks.map);
+  const isLibraryEnabled = Boolean(player?.progressive_unlocks.library);
 
   const { data: announcementsData, isLoading: announcementsLoading } =
     useAnnouncements(isAnnouncementsEnabled);
@@ -93,7 +94,7 @@ export default function Navbar({ onMenuClick, onHelpClick }: NavbarProps) {
             </Button>
           </Link>
 
-          {isAuthenticated && (
+          {isAuthenticated && isLibraryEnabled && (
             <Link to="/library" aria-label="Go to your library">
               <Button
                 variant={isLibraryPage ? "primary" : "secondary"}

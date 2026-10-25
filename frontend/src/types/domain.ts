@@ -53,6 +53,11 @@ export interface Player {
   onboarding_completed: boolean;
   login_streak: number;
   unseen_tutorial_step_ids: number[];
+  progressive_unlocks: {
+    infobar: boolean;
+    library: boolean;
+    map: boolean;
+  };
 }
 
 export interface Announcement {

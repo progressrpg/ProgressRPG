@@ -62,6 +62,9 @@ describe("Navbar", () => {
     mockUseGame.mockReturnValue({
       announcementUnreadCount: 0,
       setAnnouncementUnreadCount: vi.fn(),
+      player: {
+        progressive_unlocks: { infobar: true, library: true, map: true },
+      },
     });
     mockUseFeatureFlag.mockReturnValue(false);
     mockUseAnnouncements.mockReturnValue({ data: undefined, isLoading: false });
@@ -91,6 +94,58 @@ describe("Navbar", () => {
     expect(screen.getByRole("link", { name: "Log out of your account" })).toHaveAttribute(
       "href",
       "/logout"
+    );
+  });
+
+  it("hides the library link until progressive_unlocks.library is true", () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    mockUseGame.mockReturnValue({
+      announcementUnreadCount: 0,
+      setAnnouncementUnreadCount: vi.fn(),
+      player: {
+        progressive_unlocks: { infobar: false, library: false, map: false },
+      },
+    });
+    renderNavbar();
+
+    expect(
+      screen.queryByRole("link", { name: "Go to your library" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the map link via progressive_unlocks.map alone, without the map feature flag", () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    mockUseFeatureFlag.mockReturnValue(false);
+    mockUseGame.mockReturnValue({
+      announcementUnreadCount: 0,
+      setAnnouncementUnreadCount: vi.fn(),
+      player: {
+        progressive_unlocks: { infobar: true, library: true, map: true },
+      },
+    });
+    renderNavbar();
+
+    expect(screen.getByRole("link", { name: "Go to the map" })).toHaveAttribute(
+      "href",
+      "/map"
+    );
+  });
+
+  it("keeps the map link visible for testers regardless of progressive_unlocks.map", () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true });
+    mockUseFeatureFlag.mockImplementation((flag: string) => flag === "map");
+    mockUseGame.mockReturnValue({
+      announcementUnreadCount: 0,
+      setAnnouncementUnreadCount: vi.fn(),
+      player: {
+        progressive_unlocks: { infobar: true, library: true, map: false },
+      },
+    });
+    renderNavbar();
+
+    expect(screen.getByRole("link", { name: "Go to the map" })).toHaveAttribute(
+      "href",
+      "/map"
     );
   });
 

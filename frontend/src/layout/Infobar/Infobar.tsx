@@ -19,7 +19,7 @@ export default function Infobar() {
     );
   }
 
-  if (!player) {
+  if (!player || !player.progressive_unlocks.infobar) {
     return null;
   }
 
