@@ -80,8 +80,10 @@ class Movable(models.Model):
         return movement_service.go_outside(self, radius=radius)
 
     @transaction.atomic
-    def set_destination(self, *, node=None, obj=None, point=None):
-        return movement_service.set_destination(self, node=node, obj=obj, point=point)
+    def set_destination(self, *, node=None, obj=None, point=None, graph=None):
+        return movement_service.set_destination(
+            self, node=node, obj=obj, point=point, graph=graph
+        )
 
     def move_to(self, new_node: "Node"):
         """

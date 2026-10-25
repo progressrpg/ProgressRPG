@@ -814,3 +814,36 @@ class AdvanceBreadConsumptionTickTests(TestCase):
         second.needs.refresh_from_db()
         self.assertEqual(first.needs.hunger, 0.0)
         self.assertEqual(second.needs.hunger, HUNGER_PER_MISSED_MEAL)
+
+    def test_needs_update_is_a_single_query_regardless_of_character_count(self):
+        # Regression for a Sentry N+1: each character's needs used to be
+        # saved individually inside the loop, so the UPDATE count scaled
+        # with the number of characters. bulk_update collapses it to one
+        # UPDATE no matter how many characters were fed.
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        centre, home = self._make_centre_with_home()
+        bakery, _ = _make_bakery(centre)
+        GoodsStock.objects.create(
+            building=bakery,
+            good_type=GoodsStock.GoodType.BREAD,
+            quantity=5 * BREAD_PER_CHARACTER_DAILY_CONSUMPTION,
+        )
+        residents = [
+            _make_resident(centre, home, f"Eater{i}", hunger=5.0) for i in range(5)
+        ]
+
+        with CaptureQueriesContext(connection) as ctx:
+            advance_bread_consumption_tick()
+
+        needs_updates = [
+            q["sql"]
+            for q in ctx.captured_queries
+            if q["sql"].startswith("UPDATE") and "character_characterneeds" in q["sql"]
+        ]
+        self.assertEqual(len(needs_updates), 1)
+
+        for resident in residents:
+            resident.needs.refresh_from_db()
+            self.assertLess(resident.needs.hunger, 5.0)

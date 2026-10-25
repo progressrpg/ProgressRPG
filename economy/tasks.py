@@ -251,10 +251,11 @@ def advance_bread_consumption_tick(today=None):
     milling and baking, eating isn't labor, so it doesn't require the
     character to be standing at the bakery.
     """
-    from character.models import CharacterLocation
+    from character.models import CharacterLocation, CharacterNeeds
 
     today = today or timezone.localdate()
     bakery_cache = {}
+    fed_needs = []
 
     homes = (
         CharacterLocation.objects.filter(
@@ -299,4 +300,7 @@ def advance_bread_consumption_tick(today=None):
             )
 
         needs.last_fed_on = today
-        needs.save(update_fields=["hunger", "last_fed_on"])
+        fed_needs.append(needs)
+
+    if fed_needs:
+        CharacterNeeds.objects.bulk_update(fed_needs, ["hunger", "last_fed_on"])

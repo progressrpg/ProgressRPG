@@ -141,6 +141,7 @@ def commute_tick():
     """
     from character.models import Character, CharacterLocation
     from .models import Node
+    from .services.movement import PathGraph
     from .services.schedule import sync_character_location, target_role_for
 
     characters = list(
@@ -190,6 +191,11 @@ def commute_tick():
         )
     }
 
+    # Loaded lazily on the first character that actually needs routing, then
+    # shared, so pathfinding costs one query per tick rather than one per
+    # BFS-visited node per character.
+    path_graph = PathGraph()
+
     for character in characters:
         target_location = target_locations.get(character.id)
         entrance_node = (
@@ -202,6 +208,7 @@ def commute_tick():
             target_role=target_roles[character.id],
             target_location=target_location,
             entrance_node=entrance_node,
+            path_graph=path_graph,
         )
 
 
