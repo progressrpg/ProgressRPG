@@ -3,8 +3,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import tamaguiConfig from '../../tamagui.config.ts';
 import { renderTokens } from '../../scripts/generate-tokens.ts';
-import { buttonVariants, color, listVariants, scale, semanticColor, textTone } from './index.ts';
+import {
+  breakpoints,
+  buttonVariants,
+  color,
+  listVariants,
+  scale,
+  semanticColor,
+  spacing,
+  textTone,
+} from './index.ts';
 
 const frontendDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const rendered = renderTokens();
@@ -72,5 +82,25 @@ describe('runtime tokens', () => {
 
   it('keeps alpha in 8-digit hex', () => {
     expect(color.border).toBe('#00000026');
+  });
+});
+
+describe('tamagui.config.ts', () => {
+  it('builds its breakpoints from the breakpoint tokens', () => {
+    expect(tamaguiConfig.media.sm).toEqual({ maxWidth: breakpoints.sm });
+    expect(tamaguiConfig.media.md).toEqual({ maxWidth: breakpoints.md });
+    expect(tamaguiConfig.media.mdUp).toEqual({ minWidth: breakpoints.md });
+  });
+
+  it('uses the app colour tokens instead of the stock palette', () => {
+    expect(tamaguiConfig.tokens.color.primary400.val).toBe(scale.primary['400']);
+    expect(tamaguiConfig.tokens.color.colorTextBody.val).toBe(semanticColor.colorTextBody);
+    expect(tamaguiConfig.tokens.color).not.toHaveProperty('blue10Light');
+  });
+
+  it('keys the spacing scale by step, in scale order', () => {
+    expect(tamaguiConfig.tokens.space['1'].val).toBe(spacing.xs);
+    expect(tamaguiConfig.tokens.space['7'].val).toBe(spacing['3xl']);
+    expect(tamaguiConfig.tokens.space.true.val).toBe(spacing.md);
   });
 });
